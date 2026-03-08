@@ -14,10 +14,8 @@ neuroflow/
 ├── skills/                ← agent-invoked skills (SKILL.md per folder)
 ├── commands/              ← slash commands (one .md file per command)
 ├── agents/                ← custom agent definitions (.md files)
-├── hooks/
-│   └── hooks.json         ← event hooks (PostToolUse, PreToolUse, etc.)
-└── config/
-    └── config.json        ← base lab/project config (read by commands, agents, skills)
+└── hooks/
+    └── hooks.json         ← event hooks (PostToolUse, PreToolUse, etc.)
 ```
 
 ## Before adding anything — overlap audit
@@ -84,7 +82,7 @@ Skills, commands, and agents that need project context must explicitly `Read` `.
 2. Document at the top of your skill/command which fields it reads and what they're used for
 3. Handle the case where `.neuroflow/config.json` doesn't exist — either prompt the user to run `/new-project` first, or proceed with sensible defaults
 
-The plugin's `config/config.json` is a **static reference template only** — it is not read at runtime.
+There is no `config/` folder in the plugin — config is always per-project, never part of the plugin itself.
 
 ## Adding a new agent
 
