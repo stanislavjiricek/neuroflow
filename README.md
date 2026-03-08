@@ -1,135 +1,94 @@
 <div align="center">
   <img src="logo.png" alt="neuroflow" width="80%" />
   <h1>neuroflow</h1>
-  <p><strong>A Claude plugin for end-to-end neuroscientific research.</strong></p>
+  <p><strong>A Claude Code plugin for agentic neuroscience research.</strong></p>
   <p>
+    <a href="#whats-new">What's new</a> ·
+    <a href="#why-neuroflow">Why</a> ·
+    <a href="#commands">Commands</a> ·
+    <a href="#skills">Skills</a> ·
+    <a href="#roadmap">Roadmap</a> ·
     <a href="#installation">Install</a> ·
-    <a href="#how-it-works">How it works</a> ·
-    <a href="#modalities">Modalities</a> ·
-    <a href="#workflow">Workflow</a> ·
-    <a href="#commands--agents">Commands & Agents</a>
+    <a href="#contributing">Contribute</a>
   </p>
 </div>
 
-## What's new in 0.1.3
+---
 
-- Added `neuroflow:skill-creator` skill — Anthropic's official skill creation guide bundled into the plugin
-- Renamed `paper-review` skill folder to `review-neuro` to match skill name
+## What's new in 0.1.0
+
+- [`/neuroflow:new-project`](commands/new-project.md) — context-aware project setup: scans your repo, interviews you about what you're working on, writes `.neuroflow/config.json` tailored to your stage
+- [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) — rigorous pre-submission peer review of neuroscience manuscripts
+- [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) — development guide for building and extending the plugin
 
 ---
 
-neuroflow is not a classical analysis toolbox. It is an **agent-driven framework** that brings Claude into every stage of a neuroscientific study — from the first research question through experimental design, data collection, statistical analysis, and final manuscript preparation.
+## Why neuroflow
 
-You describe your research problem. neuroflow orchestrates the right agents, skills, and domain knowledge to move the work forward.
+Most neuroscience software solves one problem at a time — a preprocessing library, a stats package, a reference manager. You still have to stitch everything together yourself, re-explain context at every step, and manually translate between tools and phases.
 
----
+neuroflow is different. It is not a toolbox. It is a **Claude Code plugin** that brings agentic workflows into neuroscience research — from the first hypothesis all the way to a manuscript draft.
 
-## How it works
+You work in your editor. Claude works alongside you — reading your data, writing analysis code, reviewing your paper, auditing your statistics — guided by skills and agents that understand neuroscience domain conventions.
 
-Most neuroscience software handles one phase: a preprocessing library, a stats package, a reference manager. Researchers are left to manually stitch these phases together, translate between tools, and re-explain context at every step.
+**Focused on:**
 
-neuroflow treats the **entire research cycle as a single, stateful workflow**. Context built during hypothesis formulation carries into paradigm design. Paradigm decisions inform preprocessing choices. Analysis results feed directly into the manuscript. Agents collaborate across phases rather than operating in isolation.
-
-```
-Hypothesis → Paradigm → Recording → Analysis → Publication
-     ↑______________________________________________|
-                  (iterative feedback)
-```
+- EEG, iEEG, fMRI, eye tracking, ECG, and other physiological signals
+- Cognitive, clinical, and preclinical research
+- Experimental paradigm development and real-time systems
+- From hypothesis formulation to paper draft
 
 ---
 
-## Modalities
-
-| Modality | Coverage |
-|---|---|
-| **EEG** | Scalp EEG, high-density arrays, resting state, ERP, time-frequency |
-| **iEEG** | Cortical EEG, SEEG, ECoG, high-gamma |
-| **fMRI** | Block design, event-related, resting state, GLM, ROI |
-| **Eye tracking** | Fixations, saccades, pupillometry, gaze contingency |
-| **ECG / Physio** | Heart rate, HRV, skin conductance, respiration |
-| **Multimodal** | Synchronized EEG+fMRI, EEG+Eye, EEG+ECG, any combination |
-
----
-
-## Workflow
-
-### 1. Hypothesis & Planning
-
-The framework opens with a structured **researcher interview** that captures the scientific question, population, and constraints. From there, agents assist with:
-
-- Hypothesis formulation using the PICO framework
-- Systematic literature search across PubMed and bioRxiv, with gap analysis
-- Modality selection — recommending the right signal given the question and lab resources
-- Recording setup and hardware configuration guidance
-- BIDS-compliant project scaffolding
-
-### 2. Paradigm Design
-
-neuroflow generates complete, runnable experimental paradigms — not pseudocode or templates to fill in. It covers:
-
-- Standard designs: oddball, N-back, checkerboard, resting state, go/no-go, cueing
-- PsychoPy scripts with proper timing, counterbalancing, and randomization
-- Lab Streaming Layer (LSL) integration for real-time marker streaming
-- Trigger/marker writing synchronized to EEG, fMRI, and physiological recordings
-- Paradigm audit agent that verifies timing accuracy and edge-case handling
-
-### 3. Data Analysis
-
-The analysis phase adapts to the study modality and design. Agents handle:
-
-- **EEG**: filtering, re-referencing, ICA artifact removal, epoch rejection, ERP, time-frequency analysis, connectivity
-- **fMRI**: GLM construction, contrast definition, ROI extraction, whole-brain maps
-- **iEEG**: high-gamma broadband power, single-trial analysis, spatial localization
-- **Eye tracking**: fixation detection, saccade metrics, gaze-contingent epoch extraction
-- **Physio**: HRV features, SCR detection, cardioballistic artifact removal in EEG
-- **Multimodal**: cross-modal synchrony, feature fusion, joint modeling
-- **Statistics**: permutation testing, cluster correction, Bayesian inference, effect sizes
-
-### 4. Manuscript Preparation
-
-Results flow directly into a structured publication pipeline:
-
-- LaTeX paper generation with figures, tables, and statistical reporting formatted to journal standards
-- Target journals: NeuroImage, Journal of Neuroscience, Brain, Cerebral Cortex, eLife, and others
-- APA/Vancouver/Chicago citation formatting
-- Paper review agent for logic, methodology, and style consistency
-
----
-
-## Commands & Agents
-
-### Slash Commands
+## Commands
 
 | Command | What it does |
 |---|---|
-| `/new-project` | Scaffold a new BIDS project with team config |
-| `/interview` | Structured researcher interview to define the study |
-| `/hypothesis` | Formulate and operationalize a research hypothesis |
-| `/paradigm` | Generate a complete paradigm (PsychoPy + LSL + markers) |
-| `/analyze` | Launch an analysis pipeline for a dataset |
-| `/write-paper` | Draft a scientific manuscript in LaTeX |
-| `/review-paper` | Quality review of a paper draft |
-| `/check-bids` | Validate BIDS directory structure |
+| [`/neuroflow:new-project`](commands/new-project.md) | Interview-based project setup — scans your repo, asks what you're working on, writes `.neuroflow/config.json` |
 
-### Agents
+---
 
-| Agent | Role |
+## Skills
+
+Skills are invoked by Claude automatically when relevant, or you can trigger them explicitly.
+
+| Skill | What it does |
 |---|---|
-| `literature-reviewer` | Autonomous literature search, synthesis, and gap identification |
-| `paradigm-auditor` | Verify paradigm code — timing precision, markers, edge cases |
-| `stats-auditor` | Audit statistical analysis — assumptions, corrections, reporting |
-| `paper-editor` | Review and improve manuscript — logic, style, consistency |
-| `data-quality-checker` | Assess recording quality — artifacts, impedance, missing trials |
+| [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Pre-submission peer review of a neuroscience manuscript |
+| [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
+| [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
+
+---
+
+## Roadmap
+
+Planned additions — contributions welcome:
+
+**Skills**
+- EEG preprocessing — MNE-Python pipeline: filtering, ICA, epochs, artifact rejection
+- fMRI analysis — GLM, contrasts, ROI extraction, resting state connectivity
+- Experimental paradigm design — oddball, N-back, go/no-go, resting state, custom
+- Literature review — PubMed + bioRxiv search, synthesis, gap identification
+- Statistical analysis audit — assumptions, multiple comparisons, effect sizes
+- Results interpretation — ERP components, fMRI clusters, decoding accuracy
+
+**Commands**
+- `/analyze` — launch a modality-appropriate analysis pipeline on a dataset
+- `/write-paper` — generate a LaTeX manuscript draft from results and figures
+- `/check-bids` — validate BIDS directory structure
+
+**Agents**
+- `literature-reviewer` — autonomous PubMed/bioRxiv search and synthesis
+- `stats-auditor` — audit statistical methods and reporting before submission
+- `paradigm-auditor` — verify timing, markers, and edge cases in experiment code
+- `data-quality-checker` — assess recording quality, artifacts, and trial counts
 
 ---
 
 ## Installation
 
 ```bash
-# Step 1: Add the neuroflow marketplace
 claude plugin marketplace add stanislavjiricek/neuroflow
-
-# Step 2: Install the plugin
 claude plugin install neuroflow@neuroflow
 ```
 
@@ -147,21 +106,24 @@ git clone https://github.com/stanislavjiricek/neuroflow
 claude --plugin-dir ./neuroflow
 ```
 
-Configure your lab profile in `config/team.json`:
+Once installed, run `/neuroflow:new-project` in any project folder to get started.
 
-```json
-{
-  "team_name": "Your Lab",
-  "modalities": ["EEG", "eye-tracking"],
-  "programming_language": "python",
-  "analysis_tools": ["MNE-Python", "pandas", "scipy"],
-  "journal_target": "NeuroImage",
-  "citation_style": "APA"
-}
-```
+---
+
+## Contributing
+
+neuroflow is intentionally small right now — and that's the point. It is designed to grow with the community.
+
+If you work in neuroscience and have a workflow that Claude could help with, contributions are very welcome:
+
+- **New skills** — domain knowledge for a modality, analysis method, or writing task
+- **New commands** — multi-step pipelines for common research workflows
+- **New agents** — autonomous subprocesses for literature review, data quality, statistics auditing, and more
+
+See [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) for the development guide, or open an issue to discuss an idea before building.
 
 ---
 
 ## License
 
-MIT © jiric
+MIT © Stanislav Jiricek

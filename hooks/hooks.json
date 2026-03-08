@@ -1,5 +1,5 @@
 {
-  "description": "neuroflow hooks — auto-format Python analysis code and warn on non-BIDS file writes",
+  "description": "neuroflow hooks — auto-format Python analysis code",
   "hooks": {
     "PostToolUse": [
       {
@@ -9,18 +9,6 @@
             "type": "command",
             "command": "python3 -c \"import subprocess, sys, os; f=os.environ.get('CLAUDE_TOOL_RESULT_FILE_PATH',''); ext=os.path.splitext(f)[1] if f else ''; subprocess.run(['ruff','format',f],capture_output=True) if ext=='.py' and os.path.exists(f) else None\"",
             "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 -c \"import sys, os, json; data=json.load(sys.stdin); path=data.get('tool_input',{}).get('file_path',''); bids_patterns=['sub-','ses-','_eeg.','_ieeg.','_bold.','_events.','_channels.']; is_data=any(p in os.path.basename(path) for p in bids_patterns); is_wrong_loc=is_data and 'derivatives' not in path and 'sourcedata' not in path and path.count('sub-')==0; print(json.dumps({'decision':'block','reason':f'⚠️ BIDS WARNING: Writing data file {os.path.basename(path)} outside of a BIDS subject folder. Did you mean to write to sub-XX/...? Use derivatives/ for processed files.'})) if is_wrong_loc else print(json.dumps({'decision':'approve'}))\"",
-            "timeout": 5
           }
         ]
       }

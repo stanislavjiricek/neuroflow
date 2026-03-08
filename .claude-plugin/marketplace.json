@@ -18,7 +18,7 @@
       "homepage": "https://github.com/stanislavjiricek/neuroflow",
       "repository": "https://github.com/stanislavjiricek/neuroflow",
       "license": "MIT",
-      "keywords": ["neuroscience", "EEG", "fMRI", "iEEG", "BIDS", "paradigm", "research"]
+      "keywords": ["neuroscience", "EEG", "fMRI", "Eye tracking", "BIDS", "paradigm", "research"]
     }
   ]
 }
