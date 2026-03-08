@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+
+# Data files (neuroscience)
+*.eeg
+*.vhdr
+*.vmrk
+*.bdf
+*.edf
+*.fif
+*.set
+*.fdt
+*.mff
+*.nii
+*.nii.gz
+*.gii
+*.mgz
+*.xdf
+*.xdfz
+*.mat
+*.hdf5
+*.h5
+
+# Derivatives & outputs (keep structure, not data)
+derivatives/
+sourcedata/
+raw/
+*.csv
+!config/*.csv
+
+# MATLAB
+*.asv
+*.m~
+
+# Analysis outputs
+figures/
+reports/
+*.pdf
+!templates/*.pdf
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+Thumbs.db
+desktop.ini
+
+# Secrets
+.env
+*.key
+*.pem
+secrets.json
