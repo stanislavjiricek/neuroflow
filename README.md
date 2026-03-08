@@ -11,9 +11,10 @@
   </p>
 </div>
 
-## What's new in 0.1.2
+## What's new in 0.1.3
 
-- Added `neuroflow:review-neuro` skill — rigorous six-area pre-submission peer review for neuroscience manuscripts
+- Added `neuroflow:skill-creator` skill — Anthropic's official skill creation guide bundled into the plugin
+- Renamed `paper-review` skill folder to `review-neuro` to match skill name
 
 ---
 
