@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.png" alt="neuroflow" width="180" />
+  <img src="logo.png" alt="neuroflow" width="80%" />
   <h1>neuroflow</h1>
   <p><strong>A Claude plugin for end-to-end neuroscientific research.</strong></p>
   <p>
@@ -122,10 +122,10 @@ Results flow directly into a structured publication pipeline:
 
 ```bash
 # Via Claude Code plugin system
-claude plugin install neuroflow
+claude plugin install stanislavjiricek/neuroflow
 
 # Or clone and link locally
-git clone https://github.com/jiric/neuroflow
+git clone https://github.com/stanislavjiricek/neuroflow
 claude plugin link ./neuroflow
 ```
 
