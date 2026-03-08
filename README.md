@@ -121,12 +121,25 @@ Results flow directly into a structured publication pipeline:
 ## Installation
 
 ```bash
-# Via Claude Code plugin system
-claude plugin install stanislavjiricek/neuroflow
+# Step 1: Add the neuroflow marketplace
+claude plugin marketplace add stanislavjiricek/neuroflow
 
-# Or clone and link locally
+# Step 2: Install the plugin
+claude plugin install neuroflow@neuroflow
+```
+
+Or from within Claude Code:
+
+```
+/plugin marketplace add stanislavjiricek/neuroflow
+/plugin install neuroflow@neuroflow
+```
+
+For local development:
+
+```bash
 git clone https://github.com/stanislavjiricek/neuroflow
-claude plugin link ./neuroflow
+claude --plugin-dir ./neuroflow
 ```
 
 Configure your lab profile in `config/team.json`:

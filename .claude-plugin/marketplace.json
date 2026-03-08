@@ -1,0 +1,24 @@
+{
+  "name": "neuroflow",
+  "owner": {
+    "name": "Stanislav Jiricek"
+  },
+  "metadata": {
+    "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication."
+  },
+  "plugins": [
+    {
+      "name": "neuroflow",
+      "source": "./",
+      "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and multimodal recordings.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Stanislav Jiricek"
+      },
+      "homepage": "https://github.com/stanislavjiricek/neuroflow",
+      "repository": "https://github.com/stanislavjiricek/neuroflow",
+      "license": "MIT",
+      "keywords": ["neuroscience", "EEG", "fMRI", "iEEG", "BIDS", "paradigm", "research"]
+    }
+  ]
+}
