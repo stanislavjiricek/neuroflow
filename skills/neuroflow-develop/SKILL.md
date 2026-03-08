@@ -56,8 +56,16 @@ Create a `.md` file in `agents/`. Define the agent's role, focus, and any tool r
 ## Release workflow
 
 1. Make your changes
-2. Bump the version in `.claude-plugin/plugin.json` (semantic versioning — `0.1.0` → `0.2.0`)
-3. Commit and push to GitHub:
+2. Update the README — add a **"What's new"** section at the very top (below the header, above the intro paragraph), max 3 bullet points summarising what changed:
+
+```markdown
+## What's new in 0.1.x
+- ...
+- ...
+```
+
+3. Bump the patch version in `.claude-plugin/plugin.json` (increment the last number — `0.1.0` → `0.1.1`)
+4. Commit and push to GitHub:
 
 ```bash
 git add -A
@@ -65,7 +73,7 @@ git commit -m "feat: describe what changed"
 git push
 ```
 
-4. Users update their local install:
+5. Users update their local install:
 
 ```
 /plugin marketplace update neuroflow

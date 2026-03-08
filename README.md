@@ -11,6 +11,12 @@
   </p>
 </div>
 
+## What's new in 0.1.1
+
+- Added `neuroflow:neuroflow-develop` skill with full plugin development guide
+- Fixed marketplace installation — correct 2-step flow documented in README
+- Fixed plugin manifest URLs to point to the right GitHub account
+
 ---
 
 neuroflow is not a classical analysis toolbox. It is an **agent-driven framework** that brings Claude into every stage of a neuroscientific study — from the first research question through experimental design, data collection, statistical analysis, and final manuscript preparation.
