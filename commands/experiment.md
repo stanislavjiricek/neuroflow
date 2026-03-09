@@ -37,7 +37,7 @@ Ask:
 - Timing requirements (ISI, SOA, jitter)?
 - Markers needed — what events must be tagged?
 
-Produce a PsychoPy script following neuroscience paradigm best practices. Save as `paradigm-[name].py` in `.neuroflow/experiment/`.
+Produce a PsychoPy script following neuroscience paradigm best practices. Save as `paradigm-[name].py` in `output_path` (from `.neuroflow/experiment/flow.md`, default: `paradigm/`) — not inside `.neuroflow/`.
 
 ## Recording setup
 

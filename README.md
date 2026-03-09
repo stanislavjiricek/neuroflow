@@ -20,8 +20,11 @@
 ## What's new in 0.1.1
 
 - Full research pipeline — 15 commands from [`/start`](commands/start.md) through [`/paper-review`](commands/paper-review.md), each writing to `.neuroflow/` project memory
-- [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) — shared lifecycle and `.neuroflow/` folder spec that every command and agent follows
+- [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) — shared lifecycle and `.neuroflow/` folder spec that every command and agent follows; commands now automatically append significant decisions to `decisions.md`
 - [`scholar`](agents/scholar.md), [`sentinel`](agents/sentinel.md), [`sentinel-dev`](agents/sentinel-dev.md) agents
+- `sentinel` checks plugin version against `project_config.md` and flags when the plugin has been updated; both sentinels clear their report to "All clear" after fixing issues
+- `project_config.md` now tracks `plugin_version` — kept in sync with `plugin.json` by `/start` and `/sentinel`
+- MCP servers declared in `plugin.json`: PubMed, bioRxiv, Miro, Context7
 
 ---
 
@@ -84,7 +87,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 
 | Skill | What it does |
 |---|---|
-| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle, frontmatter standard |
+| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `decisions.md`), frontmatter standard |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
@@ -98,7 +101,7 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | Agent | What it does |
 |---|---|
 | [`scholar`](agents/scholar.md) | Searches PubMed and bioRxiv simultaneously, returns a clean paper list with ⚠️ preprint and 🔒 paywall markers, supports follow-up synthesis and saving |
-| [`sentinel`](agents/sentinel.md) | Project coherence guard — audits `.neuroflow/` for drift, broken references, and preregistration deviations; writes report to `sentinel.md` |
+| [`sentinel`](agents/sentinel.md) | Project coherence guard — audits `.neuroflow/` for drift, broken references, preregistration deviations, and plugin version sync; clears report after fixes |
 | [`sentinel-dev`](agents/sentinel-dev.md) | Plugin development coherence guard — checks folder names vs frontmatter, README tables, version sync, dead references, command frontmatter completeness |
 
 ---
@@ -122,7 +125,7 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 
 ```
 .neuroflow/
-├── project_config.md       ← current phase, research question, tools — read by every command
+├── project_config.md       ← current phase, research question, tools, plugin_version — read by every command
 ├── flow.md                 ← index of all subfolders
 ├── decisions.md            ← key decisions log (git-tracked)
 ├── sentinel.md             ← sentinel audit report

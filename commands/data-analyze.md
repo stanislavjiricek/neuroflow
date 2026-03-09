@@ -41,7 +41,7 @@ Apply the appropriate analysis approach for the goal:
 3. Collect results — figures, tables, statistical outputs
 4. Audit the statistical approach — verify test assumptions, multiple comparison correction, effect size reporting
 
-Save the analysis plan and results summary in `.neuroflow/data-analyze/`. Analysis scripts go in the project repo.
+Save the analysis plan and results summary in `.neuroflow/data-analyze/`. Write analysis scripts, computed results, and figures to `output_path` (from `.neuroflow/data-analyze/flow.md`, default: `scripts/analysis/` for code, `results/` for outputs, `figures/` for plots) — not inside `.neuroflow/`.
 
 ---
 

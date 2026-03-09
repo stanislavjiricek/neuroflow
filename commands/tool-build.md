@@ -36,7 +36,7 @@ Ask:
 3. Build the tool iteratively — write code, test, refine
 4. Apply domain best practices for the tech stack involved (LSL, PsychoPy, BrainFlow, MNE, etc.)
 
-Save all output (spec, code plan, notes) in `.neuroflow/tool-build/`.
+Save specs and notes (`tool-spec.md`, code plan) in `.neuroflow/tool-build/`. Write the actual tool code to `output_path` (from `.neuroflow/tool-build/flow.md`, default: `tools/`) — not inside `.neuroflow/`.
 
 ---
 

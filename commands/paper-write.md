@@ -48,7 +48,7 @@ Adapt to journal word limits and section requirements.
 
 ## At end
 
-- Save the draft as `manuscript-[date].md` or `.tex` in `.neuroflow/paper-write/`
+- Save the draft as `manuscript-[date].md` or `.tex` in `output_path` (from `.neuroflow/paper-write/flow.md`, default: `manuscript/`) — not inside `.neuroflow/`
 - Update `.neuroflow/paper-write/flow.md`
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
 - Update `project_config.md` if phase changed

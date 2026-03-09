@@ -9,13 +9,13 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 ## .neuroflow/ folder
 
-All neuroflow output lives in `.neuroflow/` at the root of the user's project repo. Never write neuroflow output anywhere else.
+`.neuroflow/` is project memory — plans, reports, configs, indexes, decisions, QC notes. It lives at the root of the user's project repo.
 
 ### Root files
 
 | File | Purpose |
 |---|---|
-| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, key decisions. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
+| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, key decisions, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
 | `decisions.md` | Log of key scientific and technical decisions with date and rationale. Git-tracked. |
 | `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |
@@ -32,7 +32,7 @@ All neuroflow output lives in `.neuroflow/` at the root of the user's project re
 | `ethics/` | IRB documents, consent forms. |
 | `preregistration/` | Pre-registration documents (OSF, AsPredicted). |
 | `finance/` | Grant documents, expense tracking. |
-| `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md`. |
+| `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
 
 ### flow.md format
 
@@ -44,6 +44,45 @@ Every subfolder must contain a `flow.md` with this format:
 | filename.md | One sentence. | YYYY-MM-DD |
 ```
 
+Phase subfolders that produce external outputs must also include an `output_path` line at the top:
+
+```
+output_path: ../scripts/analysis
+| File / Folder | Description | Last changed |
+|---|---|---|
+| analysis-plan.md | Analysis plan and statistical approach. | YYYY-MM-DD |
+```
+
+`output_path` is relative to the repo root and points to where this phase writes code, results, figures, or manuscripts. Set by `/start` — never write it manually unless `/start` was not run.
+
+---
+
+## Memory vs outputs
+
+**`.neuroflow/` holds memory only.** Never write code, computed results, figures, or manuscripts inside `.neuroflow/`. All real outputs go to the phase `output_path`.
+
+| What it is | Where it goes |
+|---|---|
+| Plans, QC reports, summaries, configs | `.neuroflow/{phase}/` |
+| Analysis scripts, preprocessing code, tool code | `output_path` |
+| Computed results, figures, tables | `output_path` |
+| Manuscript drafts, grant documents | `output_path` |
+| Paradigm scripts | `output_path` |
+
+Default output paths (used when the repo has no existing structure):
+
+| Phase | Default output_path |
+|---|---|
+| `experiment` | `paradigm/` |
+| `tool-build` / `tool-validate` | `tools/` |
+| `data-preprocess` | `scripts/preprocessing/` |
+| `data-analyze` | `scripts/analysis/` (code) + `results/` (outputs) + `figures/` |
+| `paper-write` | `manuscript/` |
+| `paper-review` | `manuscript/review/` |
+| `grant-proposal` | `grant/` |
+
+---
+
 ## Command lifecycle
 
 Every command must follow this order:
@@ -52,13 +91,27 @@ Every command must follow this order:
 1. Read `.neuroflow/project_config.md`
 2. Read `.neuroflow/flow.md`
 3. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
+4. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
 
 **At end:**
-1. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — what was done, decisions made, open items
-2. Update `.neuroflow/{phase}/flow.md` if new files were created in the phase subfolder
-3. Update `.neuroflow/flow.md` if new subfolders were created
-4. Update `.neuroflow/project_config.md` if the active phase changed
-5. Update `.claude/CLAUDE.md` if the active phase changed
+1. Write external outputs (code, results, figures, manuscripts) to `output_path` — not inside `.neuroflow/`
+2. Write at least one `.md` memory file to `.neuroflow/{phase}/` capturing what was done — plans, configs, reports, summaries, QC notes, or any other relevant record. Format is free; use whatever structure fits the content. Every `.md` file written to the subfolder must be listed in `.neuroflow/{phase}/flow.md`.
+3. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — what was done, decisions made, open items
+4. If a significant decision was made during the session, append it to `.neuroflow/decisions.md` — one entry per decision, format: `**YYYY-MM-DD — [topic]:** [what was decided and why]`
+5. Update `.neuroflow/{phase}/flow.md` if new files were created in the phase subfolder
+6. Update `.neuroflow/flow.md` if new subfolders were created
+7. Update `.neuroflow/project_config.md` if the active phase changed
+8. Update `.claude/CLAUDE.md` if the active phase changed
+
+**What counts as a significant decision:**
+- Analysis approach chosen (e.g. reference scheme, epoch length, statistical test)
+- Paradigm or design choice (e.g. block vs event-related, stimulus duration)
+- Deviation from a pre-registered plan
+- Tool or library selected when alternatives were considered
+- Phase change or scope change
+- Any choice the user explicitly flags as a decision
+
+Do not log routine actions (saving files, running scripts, fixing bugs) — only choices that affect the scientific or technical direction of the project.
 
 ## Command frontmatter standard
 

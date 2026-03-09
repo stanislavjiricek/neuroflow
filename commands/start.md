@@ -43,6 +43,19 @@ Before asking anything, use Glob and Read to inspect the working directory. Look
 | `paradigm/`, `*.psyexp`, PsychoPy scripts | Experiment phase |
 | Empty or only README | Fresh start |
 
+Also detect existing output folders to infer output paths per phase:
+
+| Folder found | Used as output_path for |
+|---|---|
+| `scripts/` or `src/` | data-preprocess, data-analyze (code) |
+| `results/` or `output/` | data-analyze (outputs) |
+| `figures/` | data-analyze (figures) |
+| `manuscript/` | paper-write |
+| `paradigm/` | experiment |
+| `tools/` | tool-build / tool-validate |
+| `grant/` | grant-proposal |
+| Nothing found | use defaults from neuroflow-core |
+
 Summarise what you found in one sentence before the first question. Use it to skip or pre-answer obvious questions.
 
 ---
@@ -93,7 +106,7 @@ Create this structure in the working directory:
     └── flow.md
 ```
 
-**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools. Also read the neuroflow `plugin.json` and write the current version as `plugin_version`. This field is checked by `/sentinel` to detect plugin updates. This file is read by every command and agent — keep it concise.
+**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
 
 **`flow.md`** — write the initial index with only the folders that actually exist:
 

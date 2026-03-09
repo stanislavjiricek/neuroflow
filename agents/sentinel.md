@@ -90,3 +90,5 @@ Then ask the user: for each issue, fix automatically or leave for manual review?
 - Remove a `flow.md` entry for a file that no longer exists
 - Update the active phase in `project_config.md` if drift is unambiguous
 - Add or update `plugin_version` in `project_config.md` to match the current plugin version (Check 7)
+
+After applying any fixes, rewrite `.neuroflow/sentinel.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.

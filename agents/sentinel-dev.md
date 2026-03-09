@@ -64,3 +64,7 @@ Last run: YYYY-MM-DD
 ## All clear
 (written only if zero issues found)
 ```
+
+Then ask the user: for each issue, fix automatically or leave for manual review?
+
+After applying any fixes, rewrite `.neuroflow/sentinel-dev.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.

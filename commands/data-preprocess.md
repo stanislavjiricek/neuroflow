@@ -41,7 +41,7 @@ Ask:
 9. Reject bad epochs
 10. Save preprocessed epochs
 
-Document the pipeline parameters in `preprocess-config.md` in `.neuroflow/data-preprocess/`. Write the pipeline as a reusable script in the project repo.
+Document the pipeline parameters in `preprocess-config.md` in `.neuroflow/data-preprocess/`. Write the pipeline script to `output_path` (from `.neuroflow/data-preprocess/flow.md`, default: `scripts/preprocessing/`) — not inside `.neuroflow/`.
 
 ---
 

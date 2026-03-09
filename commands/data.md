@@ -39,7 +39,7 @@ Save a `data-inventory.md` in `.neuroflow/data/`.
 
 ### 2 — Validate BIDS structure
 
-Use the `neuroflow:bids-structure` skill to check naming conventions, required files, and sidecar JSONs. Document any violations.
+Check BIDS naming conventions, required files (`dataset_description.json`, `participants.tsv`, `events.tsv`), and sidecar JSONs. Document any violations.
 
 If the data is not in BIDS format, ask whether the user wants to convert it or proceed as-is.
 
