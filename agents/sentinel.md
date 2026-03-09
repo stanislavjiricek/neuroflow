@@ -57,6 +57,16 @@ Flag deviations. Do not judge — just surface them for the user.
 
 If `linked_flows.md` exists, check that all listed paths resolve to actual `.neuroflow/` folders.
 
+### 7 — Plugin version sync
+
+Read the neuroflow `plugin.json` to get the current plugin version. Compare it against `plugin_version` in `project_config.md`.
+
+- If `plugin_version` is missing from `project_config.md`: flag it — the field is required
+- If the plugin version is higher than `plugin_version` in `project_config.md`: flag as out of sync — the plugin has been updated since this project was last configured, structural changes may apply
+- If versions match: all clear
+
+Auto-fix: update `plugin_version` in `project_config.md` to match the current plugin version.
+
 ## Report
 
 Write to `.neuroflow/sentinel.md`:
@@ -79,3 +89,4 @@ Then ask the user: for each issue, fix automatically or leave for manual review?
 - Add a missing file to the relevant `flow.md`
 - Remove a `flow.md` entry for a file that no longer exists
 - Update the active phase in `project_config.md` if drift is unambiguous
+- Add or update `plugin_version` in `project_config.md` to match the current plugin version (Check 7)

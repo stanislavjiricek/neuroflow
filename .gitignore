@@ -65,3 +65,9 @@ desktop.ini
 *.key
 *.pem
 secrets.json
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# neuroflow session logs (local only)
+.neuroflow/sessions/

@@ -15,7 +15,7 @@ All neuroflow output lives in `.neuroflow/` at the root of the user's project re
 
 | File | Purpose |
 |---|---|
-| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, key decisions. Read this first. Update when phase changes. |
+| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, key decisions. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
 | `decisions.md` | Log of key scientific and technical decisions with date and rationale. Git-tracked. |
 | `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |

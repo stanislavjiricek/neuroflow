@@ -93,7 +93,7 @@ Create this structure in the working directory:
     └── flow.md
 ```
 
-**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools. This file is read by every command and agent — keep it concise.
+**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools. Also read the neuroflow `plugin.json` and write the current version as `plugin_version`. This field is checked by `/sentinel` to detect plugin updates. This file is read by every command and agent — keep it concise.
 
 **`flow.md`** — write the initial index with only the folders that actually exist:
 
