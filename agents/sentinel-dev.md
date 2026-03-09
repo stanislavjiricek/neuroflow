@@ -7,10 +7,6 @@ description: Plugin development coherence guard. Monitors consistency of the neu
 
 Audits the neuroflow plugin repo for internal consistency. Writes its report to `.neuroflow/sentinel-dev.md` in the plugin repo root.
 
-## Context detection
-
-On start, check whether `.claude-plugin/plugin.json` exists in the working directory. If it does not, stop and ask: "It looks like you're in a project repo, not the neuroflow plugin repo. Did you mean to use `sentinel` instead?"
-
 ## Checks
 
 ### 1 — Folder name vs frontmatter name

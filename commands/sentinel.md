@@ -15,4 +15,8 @@ writes:
 
 # /sentinel
 
-Invoke the **sentinel agent** to run a full coherence audit of `.neuroflow/`. The agent performs all checks, writes the report, and asks the user what to fix.
+Check the working directory and route to the correct agent:
+
+- If `.claude-plugin/plugin.json` exists → this is the neuroflow plugin repo. Invoke the **sentinel-dev agent**.
+- If `.neuroflow/` exists → this is a project repo. Invoke the **sentinel agent**.
+- If neither exists → stop and tell the user to run `/start` first.

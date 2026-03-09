@@ -7,12 +7,6 @@ description: Project coherence guard. Audits .neuroflow/ against the actual repo
 
 Audits the `.neuroflow/` folder for consistency and drift. Called by the `/sentinel` command. Writes its report to `.neuroflow/sentinel.md`.
 
-## Context detection
-
-On start, confirm that `.neuroflow/` exists in the working directory. If it does not, stop and tell the user to run `/start` first.
-
-If `.claude-plugin/plugin.json` is found instead, stop and ask: "It looks like you're in the neuroflow plugin repo, not a project repo. Did you mean to use `sentinel-dev` instead?"
-
 ## Checks
 
 ### 1 — flow.md completeness
