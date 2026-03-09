@@ -1,6 +1,6 @@
 {
   "name": "neuroflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and other neuroscience modalities.",
   "author": {
     "name": "Stanislav Jiricek"
@@ -24,5 +24,23 @@
     "paradigm",
     "analysis",
     "publication"
-  ]
+  ],
+  "mcpServers": {
+    "pubmed": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-pubmed"]
+    },
+    "biorxiv": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-biorxiv"]
+    },
+    "miro": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-miro"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    }
+  }
 }

@@ -61,28 +61,42 @@ Skills are namespaced as `neuroflow:my-skill` after installation.
 
 ## Adding a new command
 
-Create a `.md` file in `commands/`. The filename becomes the command name:
+Create a `.md` file in `commands/`. The filename becomes the command name. Every command must include the standard frontmatter defined in `neuroflow:neuroflow-core`:
 
 ```markdown
 ---
+name: my-command
 description: What this command does
+phase: <phase-name>        # matches command name, or "utility" for stateless commands
+reads:
+  - .neuroflow/project_config.md
+  - .neuroflow/flow.md
+  - .neuroflow/{phase}/flow.md    # only if command has a phase subfolder
+writes:
+  - .neuroflow/sessions/YYYY-MM-DD.md
+  - .neuroflow/{phase}/           # only if command has a phase subfolder
+  - .neuroflow/{phase}/flow.md    # only if command has a phase subfolder
 ---
 
 Instructions Claude follows when the user runs /neuroflow:my-command...
 ```
 
-## Config — extending or adding new files
+Valid phase values: `ideation`, `grant-proposal`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `utility`
 
-Project config lives in the **user's working directory**, not inside the plugin. The `/new-project` command creates `.neuroflow/config.json` there by interviewing the user.
+Every command must also follow the lifecycle defined in `neuroflow:neuroflow-core` — read `project_config.md` + `flow.md` at the start, write to `sessions/` and update `flow.md` at the end.
 
-Skills, commands, and agents that need project context must explicitly `Read` `.neuroflow/config.json` from the working directory at runtime. Config is never auto-injected.
+## Project memory — .neuroflow/
 
-**When building a new skill/command/agent that needs config:**
-1. Add any new fields you need to the `.neuroflow/config.json` template inside `commands/new-project.md`
-2. Document at the top of your skill/command which fields it reads and what they're used for
-3. Handle the case where `.neuroflow/config.json` doesn't exist — either prompt the user to run `/new-project` first, or proceed with sensible defaults
+Project state lives in the **user's working directory**, not inside the plugin. The `/start` command creates `.neuroflow/` there by interviewing the user.
 
-There is no `config/` folder in the plugin — config is always per-project, never part of the plugin itself.
+Skills, commands, and agents that need project context must explicitly `Read` `.neuroflow/project_config.md` from the working directory at runtime. It is never auto-injected.
+
+**When building a new skill/command/agent that needs project context:**
+1. Read `neuroflow:neuroflow-core` to understand the full `.neuroflow/` structure
+2. Declare what you read and write in the frontmatter `reads` / `writes` fields
+3. Handle the case where `.neuroflow/` doesn't exist — prompt the user to run `/start` first, or proceed with sensible defaults
+
+There is no config folder in the plugin — project state is always per-project, in the user's repo.
 
 ## Adding a new agent
 
@@ -95,7 +109,7 @@ Create a `.md` file in `agents/`. Define the agent's role, focus, and any tool r
    - Replace the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight.
    - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.
 3. If it's a new item, **add it to the Roadmap** as completed or remove it from the planned list.
-4. Bump the version in `.claude-plugin/plugin.json` (patch: `0.1.0` → `0.1.1`, minor: `0.1.x` → `0.2.0` for new features)
+4. Bump the patch version in `.claude-plugin/plugin.json` (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is)
 4. Commit and push to GitHub:
 
 ```bash

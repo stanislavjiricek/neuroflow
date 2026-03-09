@@ -1,5 +1,5 @@
 {
-  "description": "neuroflow hooks — auto-format Python analysis code",
+  "description": "neuroflow hooks",
   "hooks": {
     "PostToolUse": [
       {
@@ -9,6 +9,16 @@
             "type": "command",
             "command": "python3 -c \"import subprocess, sys, os; f=os.environ.get('CLAUDE_TOOL_RESULT_FILE_PATH',''); ext=os.path.splitext(f)[1] if f else ''; subprocess.run(['ruff','format',f],capture_output=True) if ext=='.py' and os.path.exists(f) else None\"",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import os,datetime; d=os.path.join(os.getcwd(),'.neuroflow','sessions'); t=os.environ.get('CLAUDE_TOOL_NAME','tool'); p=os.path.join(d,datetime.date.today().isoformat()+'.md'); [open(p,'a').write(f'- {datetime.datetime.now().strftime(\\\"%H:%M\\\")} [{t}]\\n')] if os.path.isdir(d) else None\"",
+            "timeout": 5
           }
         ]
       }

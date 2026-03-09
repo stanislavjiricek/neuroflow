@@ -7,7 +7,9 @@
     <a href="#why-neuroflow">Why</a> ·
     <a href="#commands">Commands</a> ·
     <a href="#skills">Skills</a> ·
-    <a href="#roadmap">Roadmap</a> ·
+    <a href="#agents">Agents</a> ·
+    <a href="#hooks">Hooks</a> ·
+    <a href="#project-memory">Project memory</a> ·
     <a href="#installation">Install</a> ·
     <a href="#contributing">Contribute</a>
   </p>
@@ -15,11 +17,11 @@
 
 ---
 
-## What's new in 0.1.0
+## What's new in 0.1.1
 
-- [`/neuroflow:new-project`](commands/new-project.md) — context-aware project setup: scans your repo, interviews you about what you're working on, writes `.neuroflow/config.json` tailored to your stage
-- [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) — rigorous pre-submission peer review of neuroscience manuscripts
-- [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) — development guide for building and extending the plugin
+- Full research pipeline — 15 commands from [`/start`](commands/start.md) through [`/paper-review`](commands/paper-review.md), each writing to `.neuroflow/` project memory
+- [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) — shared lifecycle and `.neuroflow/` folder spec that every command and agent follows
+- [`scholar`](agents/scholar.md), [`sentinel`](agents/sentinel.md), [`sentinel-dev`](agents/sentinel-dev.md) agents
 
 ---
 
@@ -42,46 +44,109 @@ You work in your editor. Claude works alongside you — reading your data, writi
 
 ## Commands
 
+Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:start`.
+
+### Entry point
+
 | Command | What it does |
 |---|---|
-| [`/neuroflow:new-project`](commands/new-project.md) | Interview-based project setup — scans your repo, asks what you're working on, writes `.neuroflow/config.json` |
+| [`/start`](commands/start.md) | Main entry point — if `.neuroflow/` exists, shows current phase and status; if not, interviews the user and creates the project memory structure |
+
+### Research pipeline
+
+| Command | What it does |
+|---|---|
+| [`/ideation`](commands/ideation.md) | Brainstorm a research question, explore literature via scholar, formalize an idea, or produce a project proposal |
+| [`/grant-proposal`](commands/grant-proposal.md) | Write a grant application — specific aims, significance, innovation, approach, budget, timeline |
+| [`/experiment`](commands/experiment.md) | Paradigm design (PsychoPy), recording setup, instrument and LSL configuration |
+| [`/tool-build`](commands/tool-build.md) | Build a lab tool or software pipeline — real-time systems, acquisition, BCI, paradigm code |
+| [`/tool-validate`](commands/tool-validate.md) | Create a testing pipeline to verify a tool or paradigm works correctly |
+| [`/data`](commands/data.md) | Data intake — locate data, validate BIDS structure, run conversion scripts |
+| [`/data-preprocess`](commands/data-preprocess.md) | Run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, QC |
+| [`/data-analyze`](commands/data-analyze.md) | Run an analysis pipeline — ERPs, time-frequency, connectivity, decoding, GLM |
+| [`/paper-write`](commands/paper-write.md) | Generate a manuscript draft from results and figures |
+| [`/paper-review`](commands/paper-review.md) | Pre-submission peer review — logic, methods, statistics, writing, figures |
+| [`/notes`](commands/notes.md) | Live note-taking — capture freeform input, then reformat into a clean structured document |
+| [`/write-report`](commands/write-report.md) | Generate a structured report from `.neuroflow/` contents for any phase or the whole project |
+
+### Utility
+
+| Command | What it does |
+|---|---|
+| [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
+| [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
 
 ---
 
 ## Skills
 
-Skills are invoked by Claude automatically when relevant, or you can trigger them explicitly.
+Skills are invoked by Claude automatically when relevant, or triggered explicitly.
 
 | Skill | What it does |
 |---|---|
-| [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Pre-submission peer review of a neuroscience manuscript |
-| [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
+| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle, frontmatter standard |
+| [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
+| [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
 
 ---
 
-## Roadmap
+## Agents
 
-Planned additions — contributions welcome:
+Agents are autonomous subprocesses launched by commands when deeper, focused work is needed.
 
-**Skills**
-- EEG preprocessing — MNE-Python pipeline: filtering, ICA, epochs, artifact rejection
-- fMRI analysis — GLM, contrasts, ROI extraction, resting state connectivity
-- Experimental paradigm design — oddball, N-back, go/no-go, resting state, custom
-- Literature review — PubMed + bioRxiv search, synthesis, gap identification
-- Statistical analysis audit — assumptions, multiple comparisons, effect sizes
-- Results interpretation — ERP components, fMRI clusters, decoding accuracy
+| Agent | What it does |
+|---|---|
+| [`scholar`](agents/scholar.md) | Searches PubMed and bioRxiv simultaneously, returns a clean paper list with ⚠️ preprint and 🔒 paywall markers, supports follow-up synthesis and saving |
+| [`sentinel`](agents/sentinel.md) | Project coherence guard — audits `.neuroflow/` for drift, broken references, and preregistration deviations; writes report to `sentinel.md` |
+| [`sentinel-dev`](agents/sentinel-dev.md) | Plugin development coherence guard — checks folder names vs frontmatter, README tables, version sync, dead references, command frontmatter completeness |
 
-**Commands**
-- `/analyze` — launch a modality-appropriate analysis pipeline on a dataset
-- `/write-paper` — generate a LaTeX manuscript draft from results and figures
-- `/check-bids` — validate BIDS directory structure
+---
 
-**Agents**
-- `literature-reviewer` — autonomous PubMed/bioRxiv search and synthesis
-- `stats-auditor` — audit statistical methods and reporting before submission
-- `paradigm-auditor` — verify timing, markers, and edge cases in experiment code
-- `data-quality-checker` — assess recording quality, artifacts, and trial counts
+## Hooks
+
+Hooks fire automatically on tool use events.
+
+| Hook | Trigger | What it does |
+|---|---|---|
+| ruff formatter | `PostToolUse` — Edit / Write | Auto-formats any `.py` file written during a session |
+| session logger | `PostToolUse` — Write / Edit / Bash | Appends a timestamped entry to today's `.neuroflow/sessions/YYYY-MM-DD.md` (only fires if `.neuroflow/` exists in the working directory) |
+
+> **Pre-session orientation** is handled via `.claude/CLAUDE.md` injection — `/start` writes a neuroflow block there so Claude always knows the active phase and where to find project context.
+
+---
+
+## Project memory
+
+Every neuroflow command writes its output to `.neuroflow/` at the root of your project repo. This is the shared memory of your project — readable by every command and agent, across sessions.
+
+```
+.neuroflow/
+├── project_config.md       ← current phase, research question, tools — read by every command
+├── flow.md                 ← index of all subfolders
+├── decisions.md            ← key decisions log (git-tracked)
+├── sentinel.md             ← sentinel audit report
+├── linked_flows.md         ← paths to other .neuroflow/ folders (optional)
+├── team.md                 ← project members and roles (optional)
+├── timeline.md             ← milestones and deadlines (optional)
+├── sessions/               ← one .md per day — add to .gitignore
+├── references/             ← papers, URLs, dataset paths + flow.md
+├── ethics/                 ← IRB documents, consent forms
+├── preregistration/        ← OSF / AsPredicted documents
+├── finance/                ← grant documents, expense tracking
+├── ideation/               ← research questions, proposals, literature reviews
+├── grant-proposal/         ← grant application drafts
+├── experiment/             ← paradigm scripts, recording setup docs
+├── tool-build/             ← tool specs and build notes
+├── tool-validate/          ← validation plans and results
+├── data/                   ← data inventory and intake reports
+├── data-preprocess/        ← preprocessing configs and QC reports
+├── data-analyze/           ← analysis plans and result summaries
+├── paper-write/            ← manuscript drafts
+├── paper-review/           ← review reports
+├── notes/                  ← structured notes from meetings and talks
+└── write-report/           ← project reports
+```
 
 ---
 
@@ -106,7 +171,7 @@ git clone https://github.com/stanislavjiricek/neuroflow
 claude --plugin-dir ./neuroflow
 ```
 
-Once installed, run `/neuroflow:new-project` in any project folder to get started.
+Once installed, run `/neuroflow:start` in any project folder to get started.
 
 ---
 
@@ -118,7 +183,7 @@ If you work in neuroscience and have a workflow that Claude could help with, con
 
 - **New skills** — domain knowledge for a modality, analysis method, or writing task
 - **New commands** — multi-step pipelines for common research workflows
-- **New agents** — autonomous subprocesses for literature review, data quality, statistics auditing, and more
+- **New agents** — autonomous subprocesses for focused tasks
 
 See [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) for the development guide, or open an issue to discuss an idea before building.
 

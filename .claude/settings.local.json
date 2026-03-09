@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -p \"review-neuro.skill\" \"review-neuro/SKILL.md\")",
+      "Bash(\"/c/Users/jiric/Documents/projects/neuroflow_dev/neuroflow/skills/paper-review/SKILL.md\":*)",
+      "Bash(python3 -:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c \":*)",
+      "Bash(unzip -p review-neuro.skill review-neuro/SKILL.md)",
+      "Bash(done)",
+      "Bash(cat /c/Users/jiric/Documents/projects/neuroflow_dev/neuroflow/commands/*.md)",
+      "Bash(wc -l /c/Users/jiric/Documents/projects/neuroflow_dev/neuroflow/commands/*.md)",
+      "Bash(git -C /c/Users/jiric/Documents/projects/neuroflow_dev/neuroflow/ ls-files agents/ commands/)"
+    ]
+  }
+}
