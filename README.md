@@ -133,7 +133,7 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 ├── team.md                 ← project members and roles (optional)
 ├── timeline.md             ← milestones and deadlines (optional)
 ├── sessions/               ← one .md per day — add to .gitignore
-├── references/             ← papers, URLs, dataset paths + flow.md (optional, create when needed)
+├── reasoning/              ← structured per-phase decision logs (JSON: statement, source, reasoning)
 ├── ethics/                 ← IRB documents, consent forms
 ├── preregistration/        ← OSF / AsPredicted documents
 ├── finance/                ← grant documents, expense tracking

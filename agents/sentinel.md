@@ -28,11 +28,9 @@ Check `flow.md` last-changed dates against actual modification times of files **
 
 ### 3 — Broken references
 
-Read `.neuroflow/references/flow.md` if it exists. For each entry:
-- If it is a local path: check that the path exists
-- If it is a URL: note it (do not fetch — just list for user review)
-
-Flag any local paths that no longer exist.
+Read `.neuroflow/reasoning/flow.md` if it exists. For each JSON file listed:
+- Parse the JSON array; for each entry check that `statement`, `source`, and `reasoning` fields are present
+- Flag any entries missing required fields
 
 ### 4 — Phase consistency
 
@@ -71,7 +69,7 @@ List all subfolders inside `.neuroflow/` (directories only, not files).
 
 Derive the set of valid phase subfolder names dynamically:
 - Read all files in the `commands/` directory of the neuroflow plugin. Extract the `name:` field from each command's frontmatter. These are the valid phase names.
-- Also allow the standard root subfolders that are not phase-specific: `sessions`, `references`, `ethics`, `preregistration`, `finance`.
+- Also allow the standard root subfolders that are not phase-specific: `sessions`, `reasoning`, `ethics`, `preregistration`, `finance`.
 
 Derive the set of known skill names dynamically:
 - Read all subfolders inside the `skills/` directory of the neuroflow plugin. Each subfolder name is a skill name.
