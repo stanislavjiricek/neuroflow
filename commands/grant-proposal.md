@@ -7,6 +7,7 @@ reads:
   - .neuroflow/flow.md
   - .neuroflow/ideation/flow.md
   - .neuroflow/grant-proposal/flow.md
+  - skills/phase-grant-proposal/SKILL.md
 writes:
   - .neuroflow/grant-proposal/
   - .neuroflow/grant-proposal/flow.md
@@ -15,7 +16,7 @@ writes:
 
 # /grant-proposal
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/grant-proposal/flow.md` before starting. Also read `.neuroflow/ideation/flow.md` if it exists — load any research question or proposal document from there.
+Read the `neuroflow:phase-grant-proposal` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/grant-proposal/flow.md` before starting. Also read `.neuroflow/ideation/flow.md` if it exists — load any research question or proposal document from there.
 
 ## What this command does
 

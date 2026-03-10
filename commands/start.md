@@ -102,6 +102,9 @@ Create this structure in the working directory:
 ├── flow.md
 ├── decisions.md
 └── sessions/
+└── reasoning/
+    ├── flow.md
+    └── general.json
 ```
 
 **`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
@@ -112,13 +115,18 @@ Create this structure in the working directory:
 | File / Folder | Description | Last changed |
 |---|---|---|
 | project_config.md | Project overview and current phase. | YYYY-MM-DD |
-| decisions.md | Key decisions log. | YYYY-MM-DD |
+| decisions.md | Key decisions log (legacy markdown). | YYYY-MM-DD |
 | sessions/ | Daily session logs. | YYYY-MM-DD |
+| reasoning/ | Structured per-phase decision logs (JSON: statement, source, reasoning). | YYYY-MM-DD |
 ```
 
-**`decisions.md`** — create empty with just a header.
+**`decisions.md`** — create empty with just a header (legacy file; new decisions go to `reasoning/`).
 
 **`sessions/`** — create a `.gitkeep` file. Remind the user to add `sessions/` to `.gitignore`.
+
+**`reasoning/`** — create the folder with:
+- `general.json` — an empty JSON array (`[]`) for project-level decisions
+- `flow.md` — index of JSON files in this folder
 
 ---
 

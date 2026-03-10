@@ -7,6 +7,7 @@ reads:
   - .neuroflow/flow.md
   - .neuroflow/ideation/flow.md
   - .neuroflow/experiment/flow.md
+  - skills/phase-experiment/SKILL.md
 writes:
   - .neuroflow/experiment/
   - .neuroflow/experiment/flow.md
@@ -15,7 +16,7 @@ writes:
 
 # /experiment
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/experiment/flow.md` before starting. Also check `.neuroflow/ideation/` for research question and hypothesis.
+Read the `neuroflow:phase-experiment` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/experiment/flow.md` before starting. Also check `.neuroflow/ideation/` for research question and hypothesis.
 
 ## What this command does
 

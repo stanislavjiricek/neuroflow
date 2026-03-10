@@ -8,6 +8,7 @@ reads:
   - .neuroflow/ideation/flow.md
   - .neuroflow/data-preprocess/flow.md
   - .neuroflow/data-analyze/flow.md
+  - skills/phase-data-analyze/SKILL.md
 writes:
   - .neuroflow/data-analyze/
   - .neuroflow/data-analyze/flow.md
@@ -16,7 +17,7 @@ writes:
 
 # /data-analyze
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data-analyze/flow.md` before starting. Also check `.neuroflow/ideation/` for the research question and hypothesis, and `.neuroflow/data-preprocess/` for the preprocessing report.
+Read the `neuroflow:phase-data-analyze` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data-analyze/flow.md` before starting. Also check `.neuroflow/ideation/` for the research question and hypothesis, and `.neuroflow/data-preprocess/` for the preprocessing report.
 
 ## What this command does
 

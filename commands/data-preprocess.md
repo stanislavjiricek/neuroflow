@@ -7,6 +7,7 @@ reads:
   - .neuroflow/flow.md
   - .neuroflow/data/flow.md
   - .neuroflow/data-preprocess/flow.md
+  - skills/phase-data-preprocess/SKILL.md
 writes:
   - .neuroflow/data-preprocess/
   - .neuroflow/data-preprocess/flow.md
@@ -15,7 +16,7 @@ writes:
 
 # /data-preprocess
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data-preprocess/flow.md` before starting. Also check `.neuroflow/data/flow.md` to understand what data is available.
+Read the `neuroflow:phase-data-preprocess` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data-preprocess/flow.md` before starting. Also check `.neuroflow/data/flow.md` to understand what data is available.
 
 ## What this command does
 
