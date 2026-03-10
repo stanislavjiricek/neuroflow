@@ -91,7 +91,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 
 | Skill | What it does |
 |---|---|
-| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `decisions.md`), frontmatter standard |
+| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
@@ -149,7 +149,7 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 ├── team.md                 ← project members and roles (optional)
 ├── timeline.md             ← milestones and deadlines (optional)
 ├── sessions/               ← one .md per day — add to .gitignore
-├── references/             ← papers, URLs, dataset paths + flow.md (optional, create when needed)
+├── reasoning/              ← structured per-phase decision logs (JSON: statement, source, reasoning)
 ├── ethics/                 ← IRB documents, consent forms
 ├── preregistration/        ← OSF / AsPredicted documents
 ├── finance/                ← grant documents, expense tracking

@@ -18,12 +18,8 @@ The paper-write phase generates a manuscript draft from analysis results, figure
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
 
-## Writing style
-
-- Do not use dashes as punctuation (-- or ---); use a comma `,` or semicolon `;` instead
-
 ## Workflow hints
 
 - The manuscript draft goes to `output_path` (`manuscript/`), not inside `.neuroflow/`
 - Save `manuscript-plan.md` to `.neuroflow/paper-write/` with journal target, section outline, and author list
-- Log any framing or scope decisions in `decisions.md` if they differ from the original research question
+- Log any framing or scope decisions that differ from the original research question in `.neuroflow/reasoning/paper-write.json`

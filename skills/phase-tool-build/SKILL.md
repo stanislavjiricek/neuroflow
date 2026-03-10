@@ -22,4 +22,4 @@ The tool-build phase designs and implements lab tools or software pipelines — 
 
 - All code goes to `output_path` (`tools/`), not inside `.neuroflow/`
 - Save `tool-spec.md` to `.neuroflow/tool-build/` before writing any implementation
-- Note key technical decisions (library choice, architecture, interfaces) in `decisions.md`
+- Note key technical decisions (library choice, architecture, interfaces) in `.neuroflow/reasoning/tool-build.json`

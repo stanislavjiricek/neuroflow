@@ -22,4 +22,4 @@ The data phase locates raw data, validates BIDS structure, and runs conversion s
 
 - Save `data-inventory.md` to `.neuroflow/data/` listing datasets, paths, and BIDS status
 - Conversion scripts and outputs go to `output_path`, not inside `.neuroflow/`
-- Log any structural data issues discovered in `decisions.md` if they affect analysis choices downstream
+- Log any structural data issues that affect analysis choices downstream in `.neuroflow/reasoning/data.json`

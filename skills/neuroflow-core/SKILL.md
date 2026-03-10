@@ -17,7 +17,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 |---|---|
 | `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, key decisions, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
-| `decisions.md` | Log of key scientific and technical decisions with date and rationale. Git-tracked. |
+| `decisions.md` | Legacy markdown decisions log. New decisions go to `.neuroflow/reasoning/{phase}.json`. |
 | `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |
 | `sentinel.md` | Sentinel's last audit report. If all clear: last run date + "all clear". |
 | `team.md` | Project members, roles, contacts. |
@@ -28,7 +28,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | Folder | Purpose |
 |---|---|
 | `sessions/` | One `.md` per day (`YYYY-MM-DD.md`). Local only — add to `.gitignore`. |
-| `references/` | Papers, URLs, dataset paths used in the project. Has its own `flow.md`. Create when needed. |
+| `reasoning/` | Structured per-phase decision logs (JSON files with `statement`, `source`, `reasoning`). Has its own `flow.md`. Created on first use. |
 | `ethics/` | IRB documents, consent forms. |
 | `preregistration/` | Pre-registration documents (OSF, AsPredicted). |
 | `finance/` | Grant documents, expense tracking. |
@@ -99,7 +99,10 @@ Every command must follow this order:
 1. Write external outputs (code, results, figures, manuscripts) to `output_path` — not inside `.neuroflow/`
 2. Write at least one `.md` memory file to `.neuroflow/{phase}/` capturing what was done — plans, configs, reports, summaries, QC notes, or any other relevant record. Format is free; use whatever structure fits the content. Every `.md` file written to the subfolder must be listed in `.neuroflow/{phase}/flow.md`.
 3. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — what was done, decisions made, open items
-4. If a significant decision was made during the session, append it to `.neuroflow/decisions.md` — one entry per decision, format: `**YYYY-MM-DD — [topic]:** [what was decided and why]`
+4. If a significant decision was made during the session, append a new JSON object to `.neuroflow/reasoning/{phase}.json` (use `general.json` for project-level decisions). Each object must have exactly three fields:
+   - `"statement"` — what was decided (one clear sentence)
+   - `"source"` — where the decision originated (e.g. `"command:paper-write | 2026-03-10"`)
+   - `"reasoning"` — why this choice was made over alternatives
 5. Update `.neuroflow/{phase}/flow.md` if new files were created in the phase subfolder
 6. Update `.neuroflow/flow.md` if new subfolders were created
 7. Update `.neuroflow/project_config.md` if the active phase changed

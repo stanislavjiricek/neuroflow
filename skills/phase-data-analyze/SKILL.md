@@ -22,4 +22,4 @@ The data-analyze phase applies statistical and computational methods to preproce
 
 - All code, results, and figures go to `output_path` (`scripts/analysis/`, `results/`, `figures/`), not inside `.neuroflow/`
 - Save `analysis-plan.md` to `.neuroflow/data-analyze/` before running any scripts
-- Log deviations from a pre-registered analysis plan in `decisions.md`
+- Log deviations from a pre-registered analysis plan in `.neuroflow/reasoning/data-analyze.json`

@@ -41,7 +41,7 @@ Write sections in this order if doing the full paper:
 4. **Methods** — participants, recording setup, paradigm, preprocessing, analysis; pull from `.neuroflow/experiment/`, `.neuroflow/data/`, `.neuroflow/data-preprocess/`, `.neuroflow/data-analyze/`
 5. **Results** — present findings without interpretation; reference figures
 6. **Discussion** — interpret findings, compare to prior work, limitations, future directions
-7. **References** — pull from `.neuroflow/references/`
+7. **References** — pull from `.neuroflow/ideation/` (literature collected via scholar agent)
 
 Adapt to journal word limits and section requirements.
 

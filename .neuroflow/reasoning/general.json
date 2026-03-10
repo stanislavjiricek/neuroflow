@@ -1,0 +1,37 @@
+[
+  {
+    "statement": "Project memory lives in `.neuroflow/` in the user's repo, not in the plugin",
+    "source": "sentinel-dev | 2026-03-09",
+    "reasoning": "Config must be per-project; plugin is stateless"
+  },
+  {
+    "statement": "Every subfolder has a `flow.md` index",
+    "source": "sentinel-dev | 2026-03-09",
+    "reasoning": "Context window efficiency — agents read index first, load files only when needed"
+  },
+  {
+    "statement": "Command frontmatter includes `phase`, `reads`, `writes`",
+    "source": "sentinel-dev | 2026-03-09",
+    "reasoning": "Makes dependencies explicit; sentinel-dev can validate consistency"
+  },
+  {
+    "statement": "`sessions/` goes to `.gitignore`; decisions are git-tracked",
+    "source": "sentinel-dev | 2026-03-09",
+    "reasoning": "Sessions are local continuity; decisions are team-shared history"
+  },
+  {
+    "statement": "`/literature` is not a standalone command — literature lives under `/ideation` via scholar agent",
+    "source": "sentinel-dev | 2026-03-09",
+    "reasoning": "Avoids redundant entry points; scholar agent is reusable across commands"
+  },
+  {
+    "statement": "Renamed `/new-project` → `/start`, `/research-question` → `/ideation`, `/write-paper` → `/paper-write`, `/review-paper` → `/paper-review`",
+    "source": "sentinel-dev | 2026-03-09",
+    "reasoning": "Consistent naming: verb or noun, no hyphens in verb phrases"
+  },
+  {
+    "statement": "Renamed `references/` folder to `reasoning/` and migrated decisions tracking to structured per-phase JSON files",
+    "source": "copilot | 2026-03-10",
+    "reasoning": "Makes decisions machine-readable with explicit statement/source/reasoning fields; per-phase structure enables granular tracking of what was decided and why at each research stage"
+  }
+]
