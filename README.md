@@ -192,6 +192,24 @@ claude --plugin-dir ./neuroflow
 
 Once installed, run `/neuroflow:start` in any project folder to get started.
 
+### MCP server credentials
+
+Two of the bundled MCP servers require credentials to be set as environment variables before use:
+
+| MCP | Variable | How to get it |
+|---|---|---|
+| **pubmed** | `PUBMED_EMAIL` | Any email address — NCBI requires one for API usage tracking |
+| **miro** | `MIRO_ACCESS_TOKEN` | Create a Miro app at [developers.miro.com](https://developers.miro.com/) and copy the access token |
+
+Add them to your shell profile or pass them when launching Claude Code:
+
+```bash
+export PUBMED_EMAIL=you@example.com
+export MIRO_ACCESS_TOKEN=your_token_here
+```
+
+The **biorxiv** and **context7** servers work without credentials.
+
 ---
 
 ## Contributing
