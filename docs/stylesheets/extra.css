@@ -1,0 +1,138 @@
+/* ── neuroflow custom styles ───────────────────────────────────────── */
+
+/* Hero section on the home page */
+.hero {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+}
+
+.hero img {
+  max-width: 260px;
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  max-width: 640px;
+  margin: 0 auto 2rem;
+}
+
+/* Badge row */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+/* Command cards grid */
+.command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.command-card {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+  padding: 1.2rem 1.4rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.command-card:hover {
+  border-color: var(--md-primary-fg-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.command-card h3 {
+  font-size: 1rem;
+  margin: 0 0 0.4rem;
+  font-family: var(--md-code-font-family);
+  color: var(--md-primary-fg-color);
+}
+
+.command-card p {
+  font-size: 0.88rem;
+  margin: 0;
+  opacity: 0.8;
+}
+
+/* Pipeline step diagram */
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+}
+
+.pipeline-step {
+  background: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  font-family: var(--md-code-font-family);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.pipeline-arrow {
+  color: var(--md-default-fg-color--light);
+  font-size: 1.1rem;
+}
+
+/* Phase badge inside command pages */
+.phase-badge {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: var(--md-primary-fg-color--light);
+  color: var(--md-primary-bg-color);
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Reads / writes tables look nicer */
+.io-table th {
+  background: var(--md-primary-fg-color--light);
+  color: var(--md-primary-bg-color);
+}
+
+/* Smooth section separators */
+hr {
+  border: none;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+  margin: 2.5rem 0;
+}
+
+/* Admonition tweaks */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 6px;
+}
+
+/* Make inline code pop a little more */
+.md-typeset code {
+  border-radius: 4px;
+}
+
+/* Wider content area on larger screens */
+@media screen and (min-width: 76.25em) {
+  .md-content {
+    max-width: 900px;
+  }
+}

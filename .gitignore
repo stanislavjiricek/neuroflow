@@ -74,3 +74,6 @@ secrets.json
 
 # neuroflow integration credentials (local only — do not commit)
 .neuroflow/integrations.json
+
+# MkDocs build output
+site/

@@ -1,14 +1,157 @@
-# Neuroflow
+---
+title: neuroflow
+hide:
+  - navigation
+  - toc
+---
 
-Documentation for the **Neuroflow** Claude plugin: setup, configuration, and usage.
+<div class="hero" markdown>
+<img src="assets/logo.png" alt="neuroflow logo" />
 
-## What it does
-- (Describe the plugin in 1–2 sentences)
-- (List 3–5 main capabilities)
+# neuroflow
 
-## Where to start
-- Go to **Quickstart** to get running in a few minutes.
-- See **Manifest** and **Tools / Endpoints** for the full spec.
+**A Claude Code plugin for agentic neuroscience research.**
+From first hypothesis to manuscript draft — guided by AI at every step.
 
-## Contributing / edits
-Use the **Edit this page** button (top right) to propose improvements.
+[Get started :octicons-arrow-right-24:](quickstart.md){ .md-button .md-button--primary }
+[Browse commands :octicons-terminal-24:](commands/index.md){ .md-button }
+</div>
+
+---
+
+## Why neuroflow?
+
+Most neuroscience software solves **one problem at a time** — a preprocessing library, a stats package, a reference manager. You still have to stitch everything together yourself, re-explain context at every step, and manually translate between tools and phases.
+
+**neuroflow is different.** It is not a toolbox. It is a Claude Code plugin that brings **agentic workflows** into neuroscience research — from the first hypothesis all the way to a manuscript draft.
+
+You work in your editor. Claude works alongside you — reading your data, writing analysis code, reviewing your paper, auditing your statistics — guided by skills and agents that understand neuroscience domain conventions.
+
+!!! tip "Who is this for?"
+    Neuroscientists working with EEG, iEEG, fMRI, eye tracking, ECG, or other physiological signals — from cognitive and clinical to preclinical research.
+
+---
+
+## The research pipeline
+
+<div class="pipeline" markdown>
+<span class="pipeline-step">/ideation</span>
+<span class="pipeline-arrow">→</span>
+<span class="pipeline-step">/experiment</span>
+<span class="pipeline-arrow">→</span>
+<span class="pipeline-step">/data</span>
+<span class="pipeline-arrow">→</span>
+<span class="pipeline-step">/data-preprocess</span>
+<span class="pipeline-arrow">→</span>
+<span class="pipeline-step">/data-analyze</span>
+<span class="pipeline-arrow">→</span>
+<span class="pipeline-step">/paper-write</span>
+<span class="pipeline-arrow">→</span>
+<span class="pipeline-step">/paper-review</span>
+</div>
+
+Each command picks up where the last one left off. All context is stored in `.neuroflow/` — shared project memory that Claude reads at the start of every session.
+
+---
+
+## Commands at a glance
+
+<div class="command-grid" markdown>
+
+<div class="command-card" markdown>
+### /neuroflow:start
+Main entry point. Scans your project, interviews you, and creates `.neuroflow/` project memory.
+[Learn more →](commands/start.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:ideation
+Brainstorm research questions, search PubMed and bioRxiv via the scholar agent, and formalize a project proposal.
+[Learn more →](commands/ideation.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:grant-proposal
+Write a full grant application — specific aims, significance, innovation, approach, budget, and timeline.
+[Learn more →](commands/grant-proposal.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:experiment
+Design a PsychoPy paradigm, define recording parameters, and configure LSL hardware integration.
+[Learn more →](commands/experiment.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:data
+Locate, inventory, validate BIDS structure, and convert raw data formats.
+[Learn more →](commands/data.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:data-preprocess
+Build and run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, QC.
+[Learn more →](commands/data-preprocess.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:data-analyze
+ERPs, time-frequency, connectivity, decoding, GLM — with built-in stats auditing.
+[Learn more →](commands/data-analyze.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:paper-write
+Generate a full manuscript draft from your analysis results and figures.
+[Learn more →](commands/paper-write.md)
+</div>
+
+<div class="command-card" markdown>
+### /neuroflow:paper-review
+Pre-submission peer review — scientific logic, methods, statistics, writing quality, and figures.
+[Learn more →](commands/paper-review.md)
+</div>
+
+</div>
+
+---
+
+## Quick install
+
+```bash
+claude plugin marketplace add stanislavjiricek/neuroflow
+claude plugin install neuroflow@neuroflow
+```
+
+Then open any project folder and run:
+
+```
+/neuroflow:start
+```
+
+→ [Full installation guide](installation.md)
+
+---
+
+## How it works
+
+```
+.neuroflow/
+├── project_config.md    ← active phase, research question, modality, tools
+├── flow.md              ← index of all subfolders
+├── decisions.md         ← key decisions log
+├── reasoning/           ← structured per-phase decision logs (JSON)
+├── sessions/            ← daily session logs (git-ignored)
+├── ideation/            ← research questions, literature reviews, proposals
+├── experiment/          ← paradigm scripts, recording setup
+├── data/                ← data inventory and intake reports
+├── data-preprocess/     ← preprocessing configs and QC reports
+├── data-analyze/        ← analysis plans and result summaries
+├── paper-write/         ← manuscript drafts
+└── paper-review/        ← review reports
+```
+
+Every command reads `.neuroflow/` at the start and writes its output there. This shared memory means Claude always knows what phase you're in, what you've decided, and what's been done — across sessions and across commands.
+
+→ [Learn about project memory](concepts/project-memory.md)
+
