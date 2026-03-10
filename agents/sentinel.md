@@ -24,7 +24,7 @@ Check `flow.md` last-changed dates against actual file modification times. Flag:
 
 ### 3 — Broken references
 
-Read `references/flow.md`. For each entry:
+If `references/` exists, read `references/flow.md`. For each entry:
 - If it is a local path: check that the path exists
 - If it is a URL: note it (do not fetch — just list for user review)
 

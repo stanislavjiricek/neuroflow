@@ -28,7 +28,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | Folder | Purpose |
 |---|---|
 | `sessions/` | One `.md` per day (`YYYY-MM-DD.md`). Local only — add to `.gitignore`. |
-| `references/` | Papers, URLs, dataset paths used in the project. Has its own `flow.md`. |
+| `references/` | Papers, URLs, dataset paths used in the project. Has its own `flow.md`. Create when needed. |
 | `ethics/` | IRB documents, consent forms. |
 | `preregistration/` | Pre-registration documents (OSF, AsPredicted). |
 | `finance/` | Grant documents, expense tracking. |

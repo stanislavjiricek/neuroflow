@@ -101,9 +101,7 @@ Create this structure in the working directory:
 ├── project_config.md
 ├── flow.md
 ├── decisions.md
-├── sessions/
-└── references/
-    └── flow.md
+└── sessions/
 ```
 
 **`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
@@ -116,12 +114,9 @@ Create this structure in the working directory:
 | project_config.md | Project overview and current phase. | YYYY-MM-DD |
 | decisions.md | Key decisions log. | YYYY-MM-DD |
 | sessions/ | Daily session logs. | YYYY-MM-DD |
-| references/ | Papers, URLs, and data paths used in this project. | YYYY-MM-DD |
 ```
 
 **`decisions.md`** — create empty with just a header.
-
-**`references/flow.md`** — create empty with just a header.
 
 **`sessions/`** — create a `.gitkeep` file. Remind the user to add `sessions/` to `.gitignore`.
 
