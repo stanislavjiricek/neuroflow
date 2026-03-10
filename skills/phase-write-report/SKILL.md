@@ -17,6 +17,10 @@ The write-report phase generates a structured report from `.neuroflow/` contents
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
 
+## Writing style
+
+- Do not use dashes as punctuation (-- or ---); use a comma `,` or semicolon `;` instead
+
 ## Workflow hints
 
 - Save the report to `results/` or the phase folder specified by the user — confirm `output_path` before writing
