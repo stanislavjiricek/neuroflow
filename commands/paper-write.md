@@ -8,6 +8,7 @@ reads:
   - .neuroflow/ideation/flow.md
   - .neuroflow/data-analyze/flow.md
   - .neuroflow/paper-write/flow.md
+  - skills/phase-paper-write/SKILL.md
 writes:
   - .neuroflow/paper-write/
   - .neuroflow/paper-write/flow.md
@@ -16,7 +17,7 @@ writes:
 
 # /paper-write
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/paper-write/flow.md` before starting. Load context from `.neuroflow/ideation/` (research question, hypothesis) and `.neuroflow/data-analyze/` (results summary).
+Read the `neuroflow:phase-paper-write` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/paper-write/flow.md` before starting. Load context from `.neuroflow/ideation/` (research question, hypothesis) and `.neuroflow/data-analyze/` (results summary).
 
 ## What this command does
 

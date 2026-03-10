@@ -6,6 +6,7 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/data/flow.md
+  - skills/phase-data/SKILL.md
 writes:
   - .neuroflow/data/
   - .neuroflow/data/flow.md
@@ -14,7 +15,7 @@ writes:
 
 # /data
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data/flow.md` before starting.
+Read the `neuroflow:phase-data` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data/flow.md` before starting.
 
 ## What this command does
 

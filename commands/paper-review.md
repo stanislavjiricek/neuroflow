@@ -7,6 +7,7 @@ reads:
   - .neuroflow/flow.md
   - .neuroflow/paper-write/flow.md
   - .neuroflow/paper-review/flow.md
+  - skills/phase-paper-review/SKILL.md
 writes:
   - .neuroflow/paper-review/
   - .neuroflow/paper-review/flow.md
@@ -15,7 +16,7 @@ writes:
 
 # /paper-review
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/paper-review/flow.md` before starting. Check `.neuroflow/paper-write/` for the manuscript draft.
+Read the `neuroflow:phase-paper-review` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/paper-review/flow.md` before starting. Check `.neuroflow/paper-write/` for the manuscript draft.
 
 ## What this command does
 

@@ -6,6 +6,7 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/tool-build/flow.md
+  - skills/phase-tool-build/SKILL.md
 writes:
   - .neuroflow/tool-build/
   - .neuroflow/tool-build/flow.md
@@ -14,7 +15,7 @@ writes:
 
 # /tool-build
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/tool-build/flow.md` before starting.
+Read the `neuroflow:phase-tool-build` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/tool-build/flow.md` before starting.
 
 ## What this command does
 
