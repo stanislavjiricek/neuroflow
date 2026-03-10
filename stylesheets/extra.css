@@ -1,0 +1,381 @@
+/* ── neuroflow custom styles ───────────────────────────────────────── */
+
+/* ── Hero section ─────────────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  padding: 4rem 1rem 3rem;
+  background: linear-gradient(160deg, var(--md-primary-fg-color--dark) 0%, var(--md-primary-fg-color) 60%, var(--md-accent-fg-color) 100%);
+  border-radius: 16px;
+  margin: -0.8rem -0.8rem 2.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.hero img {
+  max-width: 180px;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 4px 24px rgba(0,0,0,0.25));
+  position: relative;
+}
+
+.hero h1,
+.md-typeset .hero h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 0.6rem;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  position: relative;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  color: rgba(255,255,255,0.88);
+  max-width: 580px;
+  margin: 0 auto 2.2rem;
+  line-height: 1.65;
+  position: relative;
+}
+
+.hero .md-button {
+  position: relative;
+  margin: 0.3rem;
+}
+
+/* Primary button in hero – white fill */
+.hero .md-button.md-button--primary {
+  background: #fff;
+  color: var(--md-primary-fg-color);
+  border-color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+}
+
+.hero .md-button.md-button--primary:hover {
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+}
+
+/* Secondary button in hero – ghost */
+.hero .md-button:not(.md-button--primary) {
+  border-color: rgba(255,255,255,0.6);
+  color: #fff;
+}
+
+.hero .md-button:not(.md-button--primary):hover {
+  border-color: #fff;
+  background: rgba(255,255,255,0.12);
+}
+
+/* ── Feature highlights ────────────────────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.feature-card {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 12px;
+  padding: 1.4rem 1.4rem 1.2rem;
+  background: var(--md-default-bg-color);
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+
+.feature-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--md-primary-fg-color);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 0.7rem;
+  display: block;
+}
+
+.feature-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  color: var(--md-primary-fg-color);
+}
+
+.feature-card p {
+  font-size: 0.875rem;
+  margin: 0;
+  opacity: 0.78;
+  line-height: 1.55;
+}
+
+/* ── Pipeline diagram ──────────────────────────────────────────────── */
+.pipeline-wrap {
+  background: var(--md-code-bg-color);
+  border-radius: 12px;
+  padding: 1.5rem 1.5rem 1.2rem;
+  margin: 1.5rem 0;
+  border: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+/* MkDocs wraps inline spans in a <p> when processing md_in_html; make it
+   transparent to the flex layout so the step spans become flex items */
+.pipeline > p {
+  display: contents;
+}
+
+.pipeline-step {
+  background: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  padding: 0.45rem 1rem;
+  border-radius: 24px;
+  font-family: var(--md-code-font-family);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.pipeline-step:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+
+.pipeline-arrow {
+  color: var(--md-accent-fg-color);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.pipeline-caption {
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.65;
+  margin-top: 0.9rem;
+}
+
+/* ── Command cards grid ────────────────────────────────────────────── */
+.command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 1.1rem;
+  margin: 1.5rem 0;
+}
+
+.command-card {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem 1.1rem;
+  background: var(--md-default-bg-color);
+  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+
+.command-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--md-primary-fg-color), var(--md-accent-fg-color));
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+
+.command-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--md-primary-fg-color);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.1);
+}
+
+.command-card:hover::before {
+  opacity: 1;
+}
+
+.command-card h3 {
+  font-size: 0.97rem;
+  margin: 0 0 0.45rem;
+  font-family: var(--md-code-font-family);
+  color: var(--md-primary-fg-color);
+  font-weight: 700;
+}
+
+.command-card p {
+  font-size: 0.875rem;
+  margin: 0 0 0.7rem;
+  opacity: 0.78;
+  line-height: 1.5;
+}
+
+.command-card a {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--md-accent-fg-color);
+  text-decoration: none;
+}
+
+.command-card a:hover {
+  text-decoration: underline;
+}
+
+/* Command icon label */
+.command-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* ── Stats / metrics row ───────────────────────────────────────────── */
+.stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.stat-chip {
+  background: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  text-align: center;
+  min-width: 110px;
+}
+
+.stat-chip .stat-number {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  display: block;
+}
+
+.stat-chip .stat-label {
+  font-size: 0.75rem;
+  opacity: 0.82;
+  margin-top: 0.15rem;
+  display: block;
+}
+
+/* ── Install block ─────────────────────────────────────────────────── */
+.install-block {
+  background: var(--md-code-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 12px;
+  padding: 1.5rem 1.8rem;
+  margin: 1.5rem 0;
+}
+
+.install-block h3 {
+  margin: 0 0 0.8rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ── How it works tree ─────────────────────────────────────────────── */
+.how-it-works {
+  background: var(--md-code-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 12px;
+  padding: 1.5rem 1.8rem;
+  margin: 1.5rem 0;
+}
+
+/* ── Phase badge ───────────────────────────────────────────────────── */
+.phase-badge {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: var(--md-primary-fg-color--light);
+  color: var(--md-primary-bg-color);
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* ── Badge row ─────────────────────────────────────────────────────── */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+/* ── IO table ──────────────────────────────────────────────────────── */
+.io-table th {
+  background: var(--md-primary-fg-color--light);
+  color: var(--md-primary-bg-color);
+}
+
+/* ── Section separators ────────────────────────────────────────────── */
+hr {
+  border: none;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+  margin: 2.5rem 0;
+}
+
+/* ── Admonition tweaks ─────────────────────────────────────────────── */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 8px;
+}
+
+/* ── Inline code ───────────────────────────────────────────────────── */
+.md-typeset code {
+  border-radius: 4px;
+}
+
+/* ── Wider content on large screens ───────────────────────────────── */
+@media screen and (min-width: 76.25em) {
+  .md-content {
+    max-width: 960px;
+  }
+}
+
+/* ── Responsive hero ──────────────────────────────────────────────── */
+@media screen and (max-width: 600px) {
+  .hero {
+    padding: 2.5rem 1rem 2rem;
+    border-radius: 10px;
+    margin: -0.4rem -0.4rem 2rem;
+  }
+
+  .hero h1 {
+    font-size: 2.1rem;
+  }
+
+  .pipeline-step {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+  }
+
+  .stat-chip {
+    min-width: 90px;
+  }
+}
