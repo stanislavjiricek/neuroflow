@@ -1,6 +1,6 @@
 ---
 name: sentinel-dev
-description: Plugin development coherence guard. Monitors consistency of the neuroflow plugin itself — folder names vs frontmatter, version sync, README tables, dead references inside SKILL.md files, naming overlaps between skills and agents.
+description: Plugin development coherence guard. Monitors consistency of the neuroflow plugin itself — folder names vs frontmatter, version sync (plugin.json, README, mkdocs.yml), README tables, docs website navigation, dead references inside SKILL.md files, naming overlaps between skills and agents.
 ---
 
 # sentinel-dev
@@ -67,6 +67,23 @@ Read `hooks/hooks.json`. Check:
 - Read `README.md`. If a Hooks section or table is present, verify that every hook matcher described in the README corresponds to an entry in `hooks.json`, and every entry in `hooks.json` is documented in the README.
 
 Flag any hooks present in `hooks.json` but missing from README, or documented in README but absent from `hooks.json`.
+
+### 9 — Docs website sync
+
+Read `mkdocs.yml`. Check:
+
+**9a — Version sync with mkdocs.yml:**
+Read `extra.version` from `mkdocs.yml`. Read the version from `.claude-plugin/plugin.json`.
+They must be identical. Flag if they differ — both must be updated together on every release.
+
+**9b — Command docs completeness:**
+For every file in `commands/` (e.g. `commands/ideation.md`): a corresponding page must exist at `docs/commands/<name>.md` and must appear in the `mkdocs.yml` nav under the Commands section. Flag any commands that are missing a docs page or missing from the nav.
+
+**9c — Skill docs completeness:**
+For every folder in `skills/` (e.g. `skills/phase-ideation/`): the skill's `SKILL.md` must appear in the `mkdocs.yml` nav under the Skills section. Flag any skills missing from the nav.
+
+**9d — No dead nav links:**
+For every path listed in the `mkdocs.yml` nav, check that the referenced file actually exists under `docs/`. Flag any nav entry pointing to a non-existent file.
 
 ## Report
 
