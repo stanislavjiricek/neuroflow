@@ -8,9 +8,11 @@ reads:
   - .neuroflow/sentinel.md
   - .neuroflow/preregistration/
   - .neuroflow/sessions/
+  - .claude/CLAUDE.md
 writes:
   - .neuroflow/sentinel.md
   - .neuroflow/project_config.md
+  - .claude/CLAUDE.md
 ---
 
 # /sentinel
