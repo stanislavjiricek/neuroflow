@@ -7,6 +7,7 @@ reads:
   - .neuroflow/flow.md
   - .neuroflow/sessions/
   - .neuroflow/{phase}/flow.md    # for each phase covered in the report
+  - skills/phase-write-report/SKILL.md
 writes:
   - .neuroflow/write-report/
   - .neuroflow/write-report/flow.md
@@ -15,7 +16,7 @@ writes:
 
 # /write-report
 
-Follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-write-report` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
 ## What this command does
 

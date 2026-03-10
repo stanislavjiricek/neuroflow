@@ -6,6 +6,7 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/ideation/flow.md
+  - skills/phase-ideation/SKILL.md
 writes:
   - .neuroflow/ideation/
   - .neuroflow/ideation/flow.md
@@ -14,7 +15,7 @@ writes:
 
 # /ideation
 
-Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/ideation/flow.md` before starting.
+Read the `neuroflow:phase-ideation` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/ideation/flow.md` before starting.
 
 ## What this command does
 

@@ -6,6 +6,7 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/notes/flow.md
+  - skills/phase-notes/SKILL.md
 writes:
   - .neuroflow/notes/
   - .neuroflow/notes/flow.md
@@ -14,7 +15,7 @@ writes:
 
 # /notes
 
-Follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-notes` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
 ## What this command does
 
