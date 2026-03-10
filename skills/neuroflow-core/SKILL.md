@@ -22,6 +22,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `sentinel.md` | Sentinel's last audit report. If all clear: last run date + "all clear". |
 | `team.md` | Project members, roles, contacts. |
 | `timeline.md` | Milestones and deadlines. |
+| `integrations.json` | MCP integration credentials (PubMed email, Miro token). Written by `/setup`. **Never commit** — add to `.gitignore`. |
 
 ### Root folders
 

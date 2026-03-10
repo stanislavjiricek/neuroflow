@@ -19,10 +19,11 @@ Flag any mismatches.
 
 ### 2 — README tables
 
-Read `README.md`. Extract the Commands table and Skills table. Cross-check:
+Read `README.md`. Extract the Commands table, Skills table, and Agents table. Cross-check:
 - Every command file in `commands/` must have a row in the Commands table
 - Every skill folder in `skills/` must have a row in the Skills table
-- Every row in the tables must point to a file that actually exists
+- Every agent file in `agents/` must have a row in the Agents table
+- Every row in all three tables must point to a file that actually exists
 
 Flag missing entries and dead links.
 
@@ -48,14 +49,24 @@ For every command file, check that the required frontmatter fields are present: 
 
 ### 7 — .neuroflow subfolder purity
 
-List all subfolders inside `.neuroflow/` (directories only, not files). In the plugin repo, `.neuroflow/` should contain only flat files (e.g. `project_config.md`, `flow.md`, `decisions.md`, `sentinel-dev.md`). No subfolders named after skills are permitted.
+List all subfolders inside `.neuroflow/` (directories only, not files). In the plugin repo, `.neuroflow/` may contain `reasoning/` (the structured decision log) and nothing else as a subfolder. No subfolders named after skills are permitted.
 
 For each subfolder found:
+- If the subfolder name is `reasoning/`: permitted — skip.
 - Read the skill folder names from `skills/` (one folder per skill).
-- If the subfolder name matches any skill folder name: flag as a structural error — **skills must not create their own named subfolders in `.neuroflow/`**. Only command phase names are permitted as subfolders in `.neuroflow/`.
-- If the subfolder name does not match a skill name: flag as an unrecognised subfolder and ask whether it is intentional.
+- If the subfolder name matches any skill folder name: flag as a structural error — **skills must not create their own named subfolders in `.neuroflow/`**. Only `reasoning/` is permitted as a subfolder in the plugin repo's `.neuroflow/`.
+- If the subfolder name does not match a skill name and is not `reasoning/`: flag as an unrecognised subfolder and ask whether it is intentional.
 
 Auto-fix: for skill-named subfolders, offer to delete the folder (after confirming with the user that any files inside can be discarded or relocated).
+
+### 8 — hooks.json audit
+
+Read `hooks/hooks.json`. Check:
+- The file exists and is valid JSON.
+- Every hook entry has a `matcher` and at least one `hooks` item with a `type` and `command`.
+- Read `README.md`. If a Hooks section or table is present, verify that every hook matcher described in the README corresponds to an entry in `hooks.json`, and every entry in `hooks.json` is documented in the README.
+
+Flag any hooks present in `hooks.json` but missing from README, or documented in README but absent from `hooks.json`.
 
 ## Report
 
