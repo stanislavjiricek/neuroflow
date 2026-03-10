@@ -3,10 +3,14 @@ site_description: "A Claude Code plugin for agentic neuroscience research — fr
 site_url: "https://stanislavjiricek.github.io/neuroflow/"
 repo_url: "https://github.com/stanislavjiricek/neuroflow"
 repo_name: "stanislavjiricek/neuroflow"
-edit_uri: "edit/main/docs/"
+edit_uri: ""
+
+hooks:
+  - docs/hooks.py
 
 theme:
   name: material
+  custom_dir: overrides
   logo: assets/logo.png
   favicon: assets/logo.png
   features:
@@ -18,8 +22,6 @@ theme:
     - navigation.instant
     - navigation.instant.progress
     - navigation.path
-    - content.action.edit
-    - content.action.view
     - content.code.copy
     - content.code.annotate
     - content.tooltips
@@ -29,18 +31,18 @@ theme:
     - toc.follow
     - toc.integrate
   palette:
-    - scheme: default
-      primary: deep purple
-      accent: purple
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
     - scheme: slate
       primary: deep purple
       accent: purple
       toggle:
-        icon: material/brightness-4
+        icon: material/brightness-7
         name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
   font:
     text: Inter
     code: JetBrains Mono
@@ -87,6 +89,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
+  version: "0.1.2"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -120,9 +123,9 @@ nav:
           - "📊 data-analyze": commands/data-analyze.md
           - "📄 paper-write": commands/paper-write.md
           - "🔍 paper-review": commands/paper-review.md
-      - Utilities:
           - "📓 notes": commands/notes.md
           - "📋 write-report": commands/write-report.md
+      - Utilities:
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
   - Concepts:
@@ -132,8 +135,7 @@ nav:
       - Hooks: concepts/hooks.md
   - Skills:
       - Overview: concepts/skills.md
-      - Core:
-          - "neuroflow-core": skills/neuroflow-core/SKILL.md
+      - Expert:
           - "review-neuro": skills/review-neuro/SKILL.md
       - Phases:
           - "phase-ideation": skills/phase-ideation/SKILL.md
@@ -148,7 +150,8 @@ nav:
           - "phase-paper-review": skills/phase-paper-review/SKILL.md
           - "phase-notes": skills/phase-notes/SKILL.md
           - "phase-write-report": skills/phase-write-report/SKILL.md
-      - Development:
+      - Utils:
+          - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
           - "skill-creator": skills/skill-creator/SKILL.md
   - Integrations: integrations.md

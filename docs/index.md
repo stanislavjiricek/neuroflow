@@ -8,8 +8,6 @@ hide:
 <div class="hero" markdown>
 <img src="assets/logo.png" alt="neuroflow logo" />
 
-# neuroflow
-
 **A Claude Code plugin for agentic neuroscience research.**
 From first hypothesis to manuscript draft — guided by AI at every step.
 

@@ -53,6 +53,8 @@ flowchart LR
 | [`/data-analyze`](data-analyze.md) | data-analyze | ERPs, time-frequency, connectivity, decoding, GLM |
 | [`/paper-write`](paper-write.md) | paper-write | Full manuscript draft from results and figures |
 | [`/paper-review`](paper-review.md) | paper-review | Pre-submission peer review — logic, methods, stats, writing |
+| [`/notes`](notes.md) | notes | Live note-taking — capture rough input, reformat into a clean document |
+| [`/write-report`](write-report.md) | write-report | Generate a structured report from `.neuroflow/` for any phase or the whole project |
 
 ---
 
@@ -60,8 +62,6 @@ flowchart LR
 
 | Command | What it does |
 |---|---|
-| [`/notes`](notes.md) | Live note-taking — capture rough input, reformat into a clean document |
-| [`/write-report`](write-report.md) | Generate a structured report from `.neuroflow/` for any phase or the whole project |
 | [`/phase`](phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, version sync |
 
