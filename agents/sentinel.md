@@ -61,6 +61,27 @@ Read the neuroflow `plugin.json` to get the current plugin version. Compare it a
 
 Auto-fix: update `plugin_version` in `project_config.md` to match the current plugin version.
 
+### 8 — CLAUDE.md neuroflow reference
+
+Check whether `.claude/CLAUDE.md` exists in the project repo.
+
+- If it does not exist: flag it — Claude Code will not load project config without it
+- If it exists but does not reference `project_config.md`: flag it — Claude Code agents will not know where project memory lives
+
+Auto-fix: if the file exists but is missing the neuroflow block, append the same block that `/start` writes:
+
+```markdown
+## neuroflow
+
+This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
+
+- Active phase: {phase from project_config.md}
+- Config: `.neuroflow/project_config.md`
+- Start any session by reading `project_config.md` and `flow.md` first.
+```
+
+If the file does not exist at all, create `.claude/CLAUDE.md` with this block.
+
 ## Report
 
 Write to `.neuroflow/sentinel.md`:
@@ -84,5 +105,6 @@ Then ask the user: for each issue, fix automatically or leave for manual review?
 - Remove a `flow.md` entry for a file that no longer exists
 - Update the active phase in `project_config.md` if drift is unambiguous
 - Add or update `plugin_version` in `project_config.md` to match the current plugin version (Check 7)
+- Append the neuroflow block to `.claude/CLAUDE.md`, or create the file, if the reference to `project_config.md` is missing (Check 8)
 
 After applying any fixes, rewrite `.neuroflow/sentinel.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.
