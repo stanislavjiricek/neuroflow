@@ -1,5 +1,5 @@
-site_name: "Neuroflow — Claude Plugin Docs"
-site_description: "Documentation for the Neuroflow Claude plugin"
+site_name: "neuroflow"
+site_description: "A Claude Code plugin for agentic neuroscience research — from first hypothesis to manuscript draft."
 site_url: "https://stanislavjiricek.github.io/neuroflow/"
 repo_url: "https://github.com/stanislavjiricek/neuroflow"
 repo_name: "stanislavjiricek/neuroflow"
@@ -7,43 +7,131 @@ edit_uri: "edit/main/docs/"
 
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
+    - navigation.expand
     - navigation.top
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.path
     - content.action.edit
+    - content.action.view
     - content.code.copy
+    - content.code.annotate
+    - content.tooltips
+    - search.highlight
+    - search.share
+    - search.suggest
     - toc.follow
+    - toc.integrate
   palette:
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: purple
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: purple
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      note: octicons/tag-16
+      tip: octicons/squirrel-16
+      warning: octicons/alert-16
+      info: octicons/info-16
+      example: octicons/beaker-16
 
 markdown_extensions:
   - admonition
   - attr_list
+  - def_list
   - md_in_html
+  - footnotes
+  - tables
   - toc:
       permalink: true
+      permalink_title: Anchor link to this section
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/stanislavjiricek/neuroflow
+      name: neuroflow on GitHub
+  version:
+    provider: mike
+  generator: false
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search:
+      lang: en
+  - tags
 
 nav:
   - Home: index.md
+  - Installation: installation.md
   - Quickstart: quickstart.md
-  - Plugin Spec:
-      - Manifest: manifest.md
-      - Tools / Endpoints: tools.md
+  - Commands:
+      - Overview: commands/index.md
+      - "🚀 start": commands/start.md
+      - "⚙️ setup": commands/setup.md
+      - Research Pipeline:
+          - "💡 ideation": commands/ideation.md
+          - "📝 grant-proposal": commands/grant-proposal.md
+          - "🧪 experiment": commands/experiment.md
+          - "🔧 tool-build": commands/tool-build.md
+          - "✅ tool-validate": commands/tool-validate.md
+          - "📁 data": commands/data.md
+          - "🔬 data-preprocess": commands/data-preprocess.md
+          - "📊 data-analyze": commands/data-analyze.md
+          - "📄 paper-write": commands/paper-write.md
+          - "🔍 paper-review": commands/paper-review.md
+      - Utilities:
+          - "📓 notes": commands/notes.md
+          - "📋 write-report": commands/write-report.md
+          - "📍 phase": commands/phase.md
+          - "🛡️ sentinel": commands/sentinel.md
+  - Concepts:
+      - Project Memory: concepts/project-memory.md
+      - Agents: concepts/agents.md
+      - Skills: concepts/skills.md
+      - Hooks: concepts/hooks.md
+  - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
