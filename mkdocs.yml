@@ -1,0 +1,49 @@
+site_name: "Neuroflow — Claude Plugin Docs"
+site_description: "Documentation for the Neuroflow Claude plugin"
+site_url: "https://stanislavjiricek.github.io/neuroflow/"
+repo_url: "https://github.com/stanislavjiricek/neuroflow"
+repo_name: "stanislavjiricek/neuroflow"
+edit_uri: "edit/main/docs/"
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.action.edit
+    - content.code.copy
+    - toc.follow
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Plugin Spec:
+      - Manifest: manifest.md
+      - Tools / Endpoints: tools.md
+  - Troubleshooting: troubleshooting.md
+  - Changelog: changelog.md
