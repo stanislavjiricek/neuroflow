@@ -19,23 +19,14 @@ Follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.
 
 ## What this command does
 
-Runs a rigorous pre-submission review of a manuscript. Use the `neuroflow:review-neuro` skill for the full review procedure.
+Gather the inputs below, then invoke the `neuroflow:review-neuro` skill to run the full review.  Do not perform the review yourself — delegate entirely to the skill.
 
 Ask:
-1. Where is the manuscript? (path to file, or paste content)
+1. Where is the manuscript? (path to file, paste content, or URL)
 2. What is the target journal?
 3. Is there a specific concern to focus on, or a full review?
 
----
-
-## Review areas
-
-- **Scientific logic** — does the hypothesis follow from the background? Do the methods answer the research question? Does the discussion match the results?
-- **Methods completeness** — are all preprocessing and analysis steps documented clearly enough to reproduce?
-- **Statistics** — correct tests, assumptions met, multiple comparisons handled, effect sizes reported
-- **Writing quality** — clarity, concision, structure
-- **Figures** — do they match what is described in the text? Are they legible?
-- **Journal fit** — word limit, required sections, citation style
+Once you have the answers, pass them to the `neuroflow:review-neuro` skill and let the skill drive the review procedure from start to finish.
 
 ---
 
