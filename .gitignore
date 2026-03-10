@@ -71,3 +71,6 @@ secrets.json
 
 # neuroflow session logs (local only)
 .neuroflow/sessions/
+
+# neuroflow integration credentials (local only — do not commit)
+.neuroflow/integrations.json

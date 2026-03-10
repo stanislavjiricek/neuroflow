@@ -58,6 +58,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:start`.
 | Command | What it does |
 |---|---|
 | [`/start`](commands/start.md) | Main entry point — if `.neuroflow/` exists, shows current phase and status; if not, interviews the user and creates the project memory structure |
+| [`/setup`](commands/setup.md) | Interactive credential wizard — configure PubMed email and Miro access token; saves to `.neuroflow/integrations.json` |
 
 ### Research pipeline
 
@@ -191,6 +192,57 @@ claude --plugin-dir ./neuroflow
 ```
 
 Once installed, run `/neuroflow:start` in any project folder to get started.
+
+---
+
+## MCP server credentials
+
+neuroflow uses four MCP servers that Claude Code launches automatically via `npx`. Two require credentials:
+
+| Server | Package | Credentials needed |
+|---|---|---|
+| PubMed | `pubmed-mcp-server` | `PUBMED_EMAIL` — any email (required by NCBI for API access) |
+| bioRxiv | `paper-search-mcp-nodejs` | none |
+| Miro | `@k-jarzyna/mcp-miro` | `MIRO_ACCESS_TOKEN` — personal access token from Miro |
+| Context7 | `@upstash/context7-mcp` | none |
+
+### Setup wizard
+
+Run `/neuroflow:setup` (or answer **Y** when prompted during `/neuroflow:start`) to enter a guided wizard:
+
+1. **PubMed** — enter your email address. Validated for `@` format. Skippable.
+2. **Miro** — paste a personal access token from your [Miro developer settings](https://miro.com/app/settings/user-profile/apps). Skippable.
+
+Credentials are saved to **`.neuroflow/integrations.json`** in your project folder. This file is excluded from git (see `.gitignore`) so it is never committed.
+
+### Activating credentials
+
+After running `/setup`, export the env vars in your shell before starting Claude Code:
+
+```bash
+export PUBMED_EMAIL="you@example.com"
+export MIRO_ACCESS_TOKEN="eyJ..."
+```
+
+Add these to your shell profile (`~/.zshrc`, `~/.bashrc`) so they load automatically on every session.
+
+Alternatively, you can set the env vars directly without running the wizard — the plugin will use whichever values are present in the environment.
+
+### What is automatic vs manual
+
+| Step | Automatic | Manual |
+|---|---|---|
+| MCP server processes started | ✅ Claude Code launches them via `npx` | — |
+| PubMed email entry | ✅ Prompted by `/setup` wizard | — |
+| Miro token entry | ✅ Prompted by `/setup` wizard | ⚠️ You must create the token in the Miro browser UI first |
+| Miro OAuth browser login | ❌ Not implemented (by design — browser OAuth from a terminal subprocess is not feasible without a redirect server) | Use a personal access token instead |
+| Env var export | ❌ Not automatic | Run `export …` or add to shell profile |
+
+### Reminder behavior
+
+- If you skip setup and later run `/neuroflow:ideation` → **Explore literature**, the plugin will detect that `PUBMED_EMAIL` is missing and offer to run `/neuroflow:setup` before searching.
+- If you mention Miro during ideation and `MIRO_ACCESS_TOKEN` is missing, the same reminder appears.
+- You can always re-run `/neuroflow:setup` to add or update credentials.
 
 ---
 
