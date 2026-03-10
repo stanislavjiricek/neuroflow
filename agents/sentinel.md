@@ -1,30 +1,34 @@
 ---
 name: sentinel
-description: Project coherence guard. Audits .neuroflow/ against the actual repository — checks flow.md timestamps, broken references, preregistration drift, and session consistency. Called by the /sentinel command.
+description: Project coherence guard. Audits .neuroflow/ for internal consistency — checks flow.md completeness, timestamps, broken references, preregistration drift, and session consistency. Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
 ---
 
 # sentinel
 
 Audits the `.neuroflow/` folder for consistency and drift. Called by the `/sentinel` command. Writes its report to `.neuroflow/sentinel.md`.
 
+**Default scope: `.neuroflow/` only.** Do not read, list, or inspect files outside `.neuroflow/` unless the user explicitly requests a full workspace scan (see [Optional: Full workspace scan](#optional--full-workspace-scan) below).
+
 ## Checks
 
 ### 1 — flow.md completeness
 
-Read root `.neuroflow/flow.md` and every phase subfolder's `flow.md`. For each:
-- Every file listed in `flow.md` must actually exist on disk
-- Every file that exists in the subfolder must be listed in `flow.md`
+Read root `.neuroflow/flow.md` and every subfolder's `flow.md` that lives **inside `.neuroflow/`**. For each:
+- Every file listed in `flow.md` must actually exist on disk inside `.neuroflow/`
+- Every file that exists **inside `.neuroflow/`** must be listed in the relevant `flow.md`
 - Flag any mismatches
+
+Do not scan or list files outside `.neuroflow/`.
 
 ### 2 — Timestamp drift
 
-Check `flow.md` last-changed dates against actual file modification times. Flag:
-- Subfolders with recent file activity but stale `flow.md`
-- Subfolders that haven't been touched in a long time while the project is active (possible abandoned phase)
+Check `flow.md` last-changed dates against actual modification times of files **inside `.neuroflow/`** only. Flag:
+- Subfolders of `.neuroflow/` with recent file activity but stale `flow.md`
+- Subfolders of `.neuroflow/` that haven't been touched in a long time while the project is active (possible abandoned phase)
 
 ### 3 — Broken references
 
-Read `references/flow.md`. For each entry:
+Read `.neuroflow/references/flow.md` if it exists. For each entry:
 - If it is a local path: check that the path exists
 - If it is a URL: note it (do not fetch — just list for user review)
 
@@ -33,27 +37,27 @@ Flag any local paths that no longer exist.
 ### 4 — Phase consistency
 
 Compare:
-- Active phase in `project_config.md`
-- Most recent session log in `sessions/`
-- Which phase subfolders exist and when they were last modified
+- Active phase in `.neuroflow/project_config.md`
+- Most recent session log in `.neuroflow/sessions/`
+- Which phase subfolders exist inside `.neuroflow/` and when they were last modified
 
 Flag if these tell different stories.
 
 ### 5 — Preregistration vs progress
 
-If `preregistration/` exists, read it. Compare stated hypotheses and planned analyses against:
-- `decisions.md` (were there undocumented deviations?)
+If `.neuroflow/preregistration/` exists, read it. Compare stated hypotheses and planned analyses against:
+- `.neuroflow/decisions.md` (were there undocumented deviations?)
 - `.neuroflow/data-analyze/` analysis summary (were different analyses run?)
 
 Flag deviations. Do not judge — just surface them for the user.
 
 ### 6 — linked_flows.md
 
-If `linked_flows.md` exists, check that all listed paths resolve to actual `.neuroflow/` folders.
+If `.neuroflow/linked_flows.md` exists, check that all listed paths resolve to actual `.neuroflow/` folders.
 
 ### 7 — Plugin version sync
 
-Read the neuroflow `plugin.json` to get the current plugin version. Compare it against `plugin_version` in `project_config.md`.
+Read the neuroflow `plugin.json` to get the current plugin version. Compare it against `plugin_version` in `.neuroflow/project_config.md`.
 
 - If `plugin_version` is missing from `project_config.md`: flag it — the field is required
 - If the plugin version is higher than `plugin_version` in `project_config.md`: flag as out of sync — the plugin has been updated since this project was last configured, structural changes may apply
@@ -108,3 +112,25 @@ Then ask the user: for each issue, fix automatically or leave for manual review?
 - Append the neuroflow block to `.claude/CLAUDE.md`, or create the file, if the reference to `project_config.md` is missing (Check 8)
 
 After applying any fixes, rewrite `.neuroflow/sentinel.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.
+
+## Optional — Full workspace scan
+
+After completing the `.neuroflow/` audit above, ask the user:
+
+> "Do you also want me to check consistency of the whole project folder (files outside `.neuroflow/`)? This is off by default."
+
+Only proceed with the steps below if the user answers **yes**.
+
+### WS-1 — Untracked / unlisted files
+
+List files in the workspace root that are not tracked in any `flow.md`. Flag files that look like they should be documented (e.g. drafts, backups, data files) and suggest adding them to the relevant `flow.md` or archiving them.
+
+### WS-2 — flow.md cross-references to workspace files
+
+For every entry in any `flow.md` that points to a path **outside** `.neuroflow/`, verify the path exists on disk. Flag broken paths.
+
+### WS-3 — Draft and backup files
+
+Flag any files in the workspace whose name suggests they are backups or working copies (e.g. names containing `_backup`, `_old`, `_draft`, `_temp`, `_copy`, or ending in `.bak`). Note them for the user to archive or delete explicitly.
+
+Do not read the contents of files outside `.neuroflow/` — only check their names and paths.
