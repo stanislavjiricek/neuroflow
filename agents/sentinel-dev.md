@@ -46,6 +46,17 @@ Check for cases where a skill name and a command name are identical or nearly id
 
 For every command file, check that the required frontmatter fields are present: `name`, `description`, `phase`, `reads`, `writes`. Flag any that are missing fields.
 
+### 7 — .neuroflow subfolder purity
+
+List all subfolders inside `.neuroflow/` (directories only, not files). In the plugin repo, `.neuroflow/` should contain only flat files (e.g. `project_config.md`, `flow.md`, `decisions.md`, `sentinel-dev.md`). No subfolders named after skills are permitted.
+
+For each subfolder found:
+- Read the skill folder names from `skills/` (one folder per skill).
+- If the subfolder name matches any skill folder name: flag as a structural error — **skills must not create their own named subfolders in `.neuroflow/`**. Only command phase names are permitted as subfolders in `.neuroflow/`.
+- If the subfolder name does not match a skill name: flag as an unrecognised subfolder and ask whether it is intentional.
+
+Auto-fix: for skill-named subfolders, offer to delete the folder (after confirming with the user that any files inside can be discarded or relocated).
+
 ## Report
 
 Write to `.neuroflow/sentinel-dev.md` in the plugin repo root:
