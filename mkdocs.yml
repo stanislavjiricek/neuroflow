@@ -132,6 +132,27 @@ nav:
       - Agents: concepts/agents.md
       - Skills: concepts/skills.md
       - Hooks: concepts/hooks.md
+  - Skills:
+      - Overview: concepts/skills.md
+      - Core:
+          - "neuroflow-core": skills/neuroflow-core/SKILL.md
+          - "review-neuro": skills/review-neuro/SKILL.md
+      - Phases:
+          - "phase-ideation": skills/phase-ideation/SKILL.md
+          - "phase-grant-proposal": skills/phase-grant-proposal/SKILL.md
+          - "phase-experiment": skills/phase-experiment/SKILL.md
+          - "phase-tool-build": skills/phase-tool-build/SKILL.md
+          - "phase-tool-validate": skills/phase-tool-validate/SKILL.md
+          - "phase-data": skills/phase-data/SKILL.md
+          - "phase-data-preprocess": skills/phase-data-preprocess/SKILL.md
+          - "phase-data-analyze": skills/phase-data-analyze/SKILL.md
+          - "phase-paper-write": skills/phase-paper-write/SKILL.md
+          - "phase-paper-review": skills/phase-paper-review/SKILL.md
+          - "phase-notes": skills/phase-notes/SKILL.md
+          - "phase-write-report": skills/phase-write-report/SKILL.md
+      - Development:
+          - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
+          - "skill-creator": skills/skill-creator/SKILL.md
   - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
