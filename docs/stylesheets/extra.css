@@ -137,6 +137,12 @@
   font-size: 0.9rem;
 }
 
+/* MkDocs wraps inline spans in a <p> when processing md_in_html; make it
+   transparent to the flex layout so the step spans become flex items */
+.pipeline > p {
+  display: contents;
+}
+
 .pipeline-step {
   background: var(--md-primary-fg-color);
   color: var(--md-primary-bg-color);

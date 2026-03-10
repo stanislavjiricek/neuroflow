@@ -91,8 +91,6 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
       name: neuroflow on GitHub
-  version:
-    provider: mike
   generator: false
 
 extra_css:
