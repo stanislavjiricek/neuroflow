@@ -65,7 +65,25 @@ Read the neuroflow `plugin.json` to get the current plugin version. Compare it a
 
 Auto-fix: update `plugin_version` in `project_config.md` to match the current plugin version.
 
-### 8 — CLAUDE.md neuroflow reference
+### 8 — .neuroflow subfolder names
+
+List all subfolders inside `.neuroflow/` (directories only, not files).
+
+Derive the set of valid phase subfolder names dynamically:
+- Read all files in the `commands/` directory of the neuroflow plugin. Extract the `name:` field from each command's frontmatter. These are the valid phase names.
+- Also allow the standard root subfolders that are not phase-specific: `sessions`, `references`, `ethics`, `preregistration`, `finance`.
+
+Derive the set of known skill names dynamically:
+- Read all subfolders inside the `skills/` directory of the neuroflow plugin. Each subfolder name is a skill name.
+
+Flag any `.neuroflow/` subfolder whose name does not appear in either valid list. Specifically:
+
+- If the subfolder name matches a skill name: flag as a structural error — **skills must not create their own named subfolders in `.neuroflow/`**. All skill memory must be written to the active command's phase subfolder, not into a skill-named folder.
+- If the subfolder name matches neither a command name nor a skill name: flag as an unrecognised subfolder and ask the user whether it is a custom phase or can be removed.
+
+Auto-fix: for skill-named subfolders, offer to move any `.md` files inside them into the appropriate phase subfolder (based on `project_config.md` active phase) and then delete the skill-named folder.
+
+### 9 — CLAUDE.md neuroflow reference
 
 Check whether `.claude/CLAUDE.md` exists in the project repo.
 
@@ -109,7 +127,8 @@ Then ask the user: for each issue, fix automatically or leave for manual review?
 - Remove a `flow.md` entry for a file that no longer exists
 - Update the active phase in `project_config.md` if drift is unambiguous
 - Add or update `plugin_version` in `project_config.md` to match the current plugin version (Check 7)
-- Append the neuroflow block to `.claude/CLAUDE.md`, or create the file, if the reference to `project_config.md` is missing (Check 8)
+- Move `.md` files out of a skill-named subfolder in `.neuroflow/` into the appropriate phase subfolder, then delete the skill-named folder (Check 8)
+- Append the neuroflow block to `.claude/CLAUDE.md`, or create the file, if the reference to `project_config.md` is missing (Check 9)
 
 After applying any fixes, rewrite `.neuroflow/sentinel.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.
 
