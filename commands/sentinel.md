@@ -6,11 +6,14 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/sentinel.md
+  - .neuroflow/decisions.md
+  - .neuroflow/reasoning/
   - .neuroflow/preregistration/
   - .neuroflow/sessions/
   - .claude/CLAUDE.md
 writes:
   - .neuroflow/sentinel.md
+  - .neuroflow/sentinel-dev.md
   - .neuroflow/project_config.md
   - .claude/CLAUDE.md
 ---
