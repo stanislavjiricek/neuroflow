@@ -5,10 +5,12 @@ phase: utility
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
+  - .neuroflow/integrations.json
 writes:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+  - .neuroflow/integrations.json
   - .claude/CLAUDE.md
 ---
 
@@ -146,7 +148,25 @@ This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
 
 ---
 
-## Step 5 — Confirm and suggest next step
+## Step 5 — Integration setup
+
+Ask the user whether they want to connect the MCP integrations now:
+
+> **Set up integrations?**
+> neuroflow can connect to PubMed (literature search) and Miro (visual collaboration). Would you like to set them up now? (Y/n)
+>
+> - **Y / yes** — run the setup wizard (takes ~1 minute)
+> - **n** — skip for now; you can run `/neuroflow:setup` at any time
+
+**If the user says yes:** run the full `/setup` flow inline (follow every step in `commands/setup.md`). When done, return here and continue to Step 6.
+
+**If the user says no or skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 6.
+
+**If `.neuroflow/integrations.json` already exists with both credentials set:** skip this step entirely (do not prompt again).
+
+---
+
+## Step 6 — Confirm and suggest next step
 
 Tell the user what was created. Then suggest the logical next command based on their phase:
 

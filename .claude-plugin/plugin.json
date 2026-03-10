@@ -28,15 +28,21 @@
   "mcpServers": {
     "pubmed": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-pubmed"]
+      "args": ["-y", "pubmed-mcp-server"],
+      "env": {
+        "PUBMED_EMAIL": "${PUBMED_EMAIL}"
+      }
     },
     "biorxiv": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-biorxiv"]
+      "args": ["-y", "paper-search-mcp-nodejs"]
     },
     "miro": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-miro"]
+      "args": ["-y", "@k-jarzyna/mcp-miro"],
+      "env": {
+        "MIRO_ACCESS_TOKEN": "${MIRO_ACCESS_TOKEN}"
+      }
     },
     "context7": {
       "command": "npx",
