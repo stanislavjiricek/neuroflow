@@ -32,6 +32,7 @@ Once you have the answers, pass them to the `neuroflow:review-neuro` skill and l
 
 ## At end
 
-- Save review as `review-[date].md` in `.neuroflow/paper-review/`
+- Save review as `review-[date].md` in `.neuroflow/paper-review/` (done automatically by the skill — do not save the review content into sessions)
 - Update `.neuroflow/paper-review/flow.md`
-- Append to `.neuroflow/sessions/YYYY-MM-DD.md`
+- Append a **single one-liner** to `.neuroflow/sessions/YYYY-MM-DD.md`, e.g.:
+  `- [paper-review] Review of "[Paper title]" for [Journal] saved to .neuroflow/paper-review/review-[date].md`
