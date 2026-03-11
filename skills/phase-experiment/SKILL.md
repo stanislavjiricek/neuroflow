@@ -23,3 +23,7 @@ The experiment phase covers paradigm design, recording setup, and instrument con
 - PsychoPy scripts and config files go to `output_path` (`paradigm/`), not inside `.neuroflow/`
 - Save `experiment-plan.md` to `.neuroflow/experiment/` covering design choices and recording parameters
 - Log any paradigm design decision that deviates from the pre-registered plan in `.neuroflow/reasoning/experiment.json`
+
+## Slash command
+
+`/neuroflow:experiment` — runs this workflow as a slash command.

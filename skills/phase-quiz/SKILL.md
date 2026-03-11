@@ -49,3 +49,7 @@ The quiz command is a standalone utility for neuroscience knowledge testing. It 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — follow the command lifecycle; append to `sessions/` if `.neuroflow/` exists
+
+## Slash command
+
+`/neuroflow:quiz` — runs this workflow as a slash command.

@@ -21,3 +21,7 @@ The write-report phase generates a structured report from `.neuroflow/` contents
 
 - Save the report to `results/` or the phase folder specified by the user — confirm `output_path` before writing
 - Keep the report concise; a summary of key decisions and outputs is more useful than exhaustive detail
+
+## Slash command
+
+`/neuroflow:write-report` — runs this workflow as a slash command.
