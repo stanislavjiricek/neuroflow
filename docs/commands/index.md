@@ -44,7 +44,9 @@ flowchart LR
 | Command | Phase | What it does |
 |---|---|---|
 | [`/ideation`](ideation.md) | ideation | Brainstorm, literature search, formalize a research question, write proposal |
+| [`/preregistration`](preregistration.md) | preregistration | Pre-register study design and analysis plan on OSF or AsPredicted; log deviations |
 | [`/grant-proposal`](grant-proposal.md) | grant-proposal | Full grant application — aims, significance, innovation, approach, budget |
+| [`/finance`](finance.md) | finance | Budget planning, expense tracking, financial reports, and grant compliance |
 | [`/experiment`](experiment.md) | experiment | PsychoPy paradigm, recording setup, LSL/marker configuration |
 | [`/tool-build`](tool-build.md) | tool-build | Build lab tools — real-time systems, BCI, acquisition pipelines |
 | [`/tool-validate`](tool-validate.md) | tool-validate | Testing pipeline for timing, markers, data output, edge cases |

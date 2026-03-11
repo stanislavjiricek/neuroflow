@@ -118,7 +118,9 @@ nav:
       - "⚙️ setup": commands/setup.md
       - Research Pipeline:
           - "💡 ideation": commands/ideation.md
+          - "📋 preregistration": commands/preregistration.md
           - "📝 grant-proposal": commands/grant-proposal.md
+          - "💰 finance": commands/finance.md
           - "🧪 experiment": commands/experiment.md
           - "🔧 tool-build": commands/tool-build.md
           - "✅ tool-validate": commands/tool-validate.md
@@ -144,7 +146,9 @@ nav:
           - "review-neuro": skills/review-neuro/SKILL.md
       - Phases:
           - "phase-ideation": skills/phase-ideation/SKILL.md
+          - "phase-preregistration": skills/phase-preregistration/SKILL.md
           - "phase-grant-proposal": skills/phase-grant-proposal/SKILL.md
+          - "phase-finance": skills/phase-finance/SKILL.md
           - "phase-experiment": skills/phase-experiment/SKILL.md
           - "phase-tool-build": skills/phase-tool-build/SKILL.md
           - "phase-tool-validate": skills/phase-tool-validate/SKILL.md
