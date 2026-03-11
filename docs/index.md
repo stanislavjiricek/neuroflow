@@ -6,6 +6,7 @@ hide:
 ---
 
 <div class="hero" markdown>
+<div id="nf-quotes"></div>
 <div class="hero-inner" markdown>
 <div class="hero-text" markdown>
 

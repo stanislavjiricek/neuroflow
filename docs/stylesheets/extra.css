@@ -609,6 +609,51 @@ hr {
   font-weight: 600;
 }
 
+/* ── Quote bubbles ────────────────────────────────────────────────────────── */
+#nf-quotes {
+  position: relative;
+  width: 100%;
+  min-height: 3rem;
+  pointer-events: none;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nf-quote-bubble {
+  position: absolute;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(10px);
+  border-radius: 2rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.97);
+  max-width: 85%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  white-space: normal;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.nf-quote-bubble.nf-quote-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Why neuroflow gap fix ────────────────────────────────────────────────── */
+.feature-grid {
+  margin-top: 0.9rem;
+}
+
 /* ── Responsive hero ──────────────────────────────────────────────────────── */
 @media screen and (max-width: 600px) {
   .hero {
