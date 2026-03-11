@@ -6,13 +6,20 @@ hide:
 ---
 
 <div class="hero" markdown>
-<img src="assets/logo.png" alt="neuroflow logo" />
+<div class="hero-inner" markdown>
+<img src="assets/logo.png" alt="neuroflow logo" class="hero-logo-img" />
+<div class="hero-text" markdown>
 
-**A Claude Code plugin for agentic neuroscience research.**
-From first hypothesis to manuscript draft — guided by AI at every step.
+**Hi, I'm neuroflow** — a Claude Code plugin and full neuroscience cycle AI assistant.
+From first hypothesis to manuscript draft, guided by AI at every step.
 
 [Get started :octicons-arrow-right-24:](quickstart.md){ .md-button .md-button--primary }
 [Browse commands :octicons-terminal-24:](commands/index.md){ .md-button }
+
+<p class="hero-community">🌱 <em>Did I fail you? :') I'm in pre-release and open to the community</em> — <a href="https://github.com/stanislavjiricek/neuroflow/issues/new">🐛 open an issue</a> or <a href="https://github.com/stanislavjiricek/neuroflow/pulls">🔀 improve me with a PR</a></p>
+
+</div>
+</div>
 </div>
 
 ---

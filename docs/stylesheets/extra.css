@@ -98,45 +98,7 @@ hr {
   box-shadow: var(--nf-shadow-sm);
 }
 
-/* ── Announce bar ───────────────────────────────────────────────────────── */
-.md-announce {
-  background: rgba(249, 168, 37, 0.10) !important;
-  border-bottom: 1px solid rgba(249, 168, 37, 0.28);
-}
 
-.nf-announce-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  padding: 0.05rem 0;
-  font-size: 0.78rem;
-}
-
-.nf-announce-text {
-  opacity: 0.88;
-}
-
-.nf-announce-btn {
-  display: inline-block;
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 50px;
-  padding: 0.15em 0.8em;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: inherit;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-  opacity: 0.85;
-}
-
-.nf-announce-btn:hover {
-  background: rgba(255,255,255,0.12);
-  border-color: rgba(255,255,255,0.6);
-  opacity: 1;
-}
 
 /* ── Header version badge ──────────────────────────────────────────────────── */
 .nf-header-version {
@@ -198,8 +160,7 @@ hr {
 
 /* ── Hero section ─────────────────────────────────────────────────────────── */
 .hero {
-  text-align: center;
-  padding: 2rem 1.5rem 3rem;
+  padding: 1.5rem 2rem;
   background: linear-gradient(145deg,
     #4a148c 0%,
     #6a1b9a 30%,
@@ -233,12 +194,28 @@ hr {
   pointer-events: none;
 }
 
-.hero img {
-  max-width: 480px;
-  margin-bottom: 0;
+.hero-inner {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
   position: relative;
   z-index: 1;
+}
+
+.hero-logo-img {
+  width: 110px;
+  flex-shrink: 0;
+  margin: 0;
+  display: block;
   animation: hero-anim 9s ease-in-out infinite;
+}
+
+/* md_in_html wraps the img in a <p> — make it transparent for flex layout */
+.hero-inner > p {
+  margin: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 @keyframes hero-anim {
@@ -250,37 +227,59 @@ hr {
   100% { transform: translateY(0)    translateX(0)    rotate(0deg)    scaleX(1);    filter: drop-shadow(0 0 28px rgba(149,117,205,0.55)); }
 }
 
-.hero h1,
-.md-typeset .hero h1 {
-  font-size: 3.2rem;
-  font-weight: 900;
-  letter-spacing: -1.5px;
-  margin-bottom: 0.75rem;
-  color: #fff;
-  text-shadow: 0 2px 20px rgba(0,0,0,0.25);
-  position: relative;
-  z-index: 1;
-  line-height: 1.1;
+.hero-text {
+  flex: 1;
+  text-align: left;
 }
 
+.hero-text p,
 .hero p {
-  font-size: 1.15rem;
+  font-size: 1rem;
   color: rgba(255,255,255,0.88);
-  max-width: 560px;
-  margin: 0 auto 2.5rem;
-  line-height: 1.7;
+  margin: 0.3rem 0 1rem;
+  line-height: 1.65;
+  max-width: none;
   position: relative;
   z-index: 1;
+}
+
+.hero-text strong {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.22);
+}
+
+.hero-community {
+  font-size: 0.82rem !important;
+  opacity: 0.75;
+  margin-top: 1.1rem !important;
+  margin-bottom: 0 !important;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding-top: 0.75rem;
+  line-height: 1.55 !important;
+}
+
+.hero-community a {
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hero-community a:hover {
+  color: #fff;
+  text-decoration: underline;
 }
 
 .hero .md-button {
   position: relative;
   z-index: 1;
-  margin: 0.4rem;
+  margin: 0.25rem 0.4rem 0.25rem 0;
   border-radius: 50px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  padding: 0.65rem 1.6rem;
+  padding: 0.55rem 1.4rem;
   transition: transform var(--nf-transition), box-shadow var(--nf-transition), background var(--nf-transition);
 }
 
@@ -619,23 +618,24 @@ hr {
 /* ── Responsive hero ──────────────────────────────────────────────────────── */
 @media screen and (max-width: 600px) {
   .hero {
-    padding: 3rem 1rem 2.5rem;
+    padding: 1.5rem 1rem;
     border-radius: 14px;
     margin: -0.4rem -0.4rem 2.25rem;
   }
 
-  .hero img {
-    max-width: 120px;
+  .hero-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
   }
 
-  .hero h1,
-  .md-typeset .hero h1 {
-    font-size: 2.2rem;
-    letter-spacing: -0.8px;
+  .hero-logo-img {
+    max-width: 80px;
+    width: 80px;
   }
 
-  .hero p {
-    font-size: 1rem;
+  .hero-text strong {
+    font-size: 1.2rem;
   }
 
   .pipeline-step {
