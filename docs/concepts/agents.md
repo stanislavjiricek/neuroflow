@@ -108,6 +108,32 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 
 ---
 
+### Phase agents
+
+**Specialist autonomous subprocesses, one per research phase.**
+
+Each phase agent has deep domain knowledge scoped to its phase. It operates with a plan-first, confirm-before-executing discipline — it drafts a plan, shows it to you, and only proceeds after confirmation.
+
+| Agent | Phase | What it does |
+|---|---|---|
+| `ideation` | ideation | Crystallises research questions via brainstorm, literature explore, formalise, or proposal modes |
+| `grant-proposal` | grant-proposal | Structures proposals section by section for a target funder (NIH, ERC, Wellcome, MRC) |
+| `experiment` | experiment | Paradigm design (PsychoPy), recording setup, and instrument configuration for EEG, fMRI, eye-tracking, ECG |
+| `tool-build` | tool-build | Spec-first design and implementation of acquisition, real-time, LSL, BCI, and analysis pipeline tools |
+| `tool-validate` | tool-validate | Timing, marker integrity, output format, and edge-case testing; writes validation plan before running any tests |
+| `data` | data | Inventory → BIDS validation → conversion sequence; confirms modality before touching anything |
+| `data-preprocess` | data-preprocess | Modality-aware preprocessing pipeline (EEG, fMRI, ECG, eye-tracking); documents all parameters before running |
+| `data-analyze` | data-analyze | Statistical analysis — ERPs, time-frequency, connectivity, decoding, GLM; audits assumptions and applies multiple-comparison correction |
+| `paper-write` | paper-write | Drafts manuscript section by section from project memory; journal-targeted; always writes abstract last |
+| `paper-review` | paper-review | Gathers manuscript, journal, and focus, then delegates to the `review-neuro` skill |
+| `notes` | notes | Captures freeform input without interruption; reformats into a structured document only when asked |
+| `write-report` | write-report | Synthesises `.neuroflow/` memory into a structured report for any phase or the full project |
+| `brain-build` | brain-build | Spec-first design of neuron models and network topology for NEURON, Brian2, NetPyNE, NEST, tvb-library |
+| `brain-optimize` | brain-optimize | Plans parameter sweeps or data-fitting runs; selects the right algorithm (grid, differential evolution, Bayesian, BluePyOpt) |
+| `brain-run` | brain-run | Configures and executes simulation runs, sanity-checks outputs for silence, runaway activity, or NaN values; supports HPC job submission |
+
+---
+
 ## How agents differ from commands
 
 | | Commands | Agents |

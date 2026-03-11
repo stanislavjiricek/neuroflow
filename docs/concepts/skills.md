@@ -41,8 +41,11 @@ Each research phase has a corresponding skill that orients Claude's approach, su
 
 | Skill | Associated command |
 |---|---|
+| `neuroflow:phase-git` | `/git` |
 | `neuroflow:phase-ideation` | `/ideation` |
+| `neuroflow:phase-preregistration` | `/preregistration` |
 | `neuroflow:phase-grant-proposal` | `/grant-proposal` |
+| `neuroflow:phase-finance` | `/finance` |
 | `neuroflow:phase-experiment` | `/experiment` |
 | `neuroflow:phase-tool-build` | `/tool-build` |
 | `neuroflow:phase-tool-validate` | `/tool-validate` |
@@ -53,6 +56,14 @@ Each research phase has a corresponding skill that orients Claude's approach, su
 | `neuroflow:phase-paper-review` | `/paper-review` |
 | `neuroflow:phase-notes` | `/notes` |
 | `neuroflow:phase-write-report` | `/write-report` |
+| `neuroflow:phase-brain-build` | `/brain-build` |
+| `neuroflow:phase-brain-optimize` | `/brain-optimize` |
+| `neuroflow:phase-brain-run` | `/brain-run` |
+| `neuroflow:phase-quiz` | `/quiz` |
+| `neuroflow:phase-fails` | `/fails` |
+| `neuroflow:phase-export` | `/export` |
+| `neuroflow:phase-pipeline` | `/pipeline` |
+| `neuroflow:phase-search` | `/search` |
 
 ### Development skills
 

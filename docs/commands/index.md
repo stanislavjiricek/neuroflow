@@ -60,12 +60,30 @@ flowchart LR
 
 ---
 
+## Brain simulation
+
+| Command | What it does |
+|---|---|
+| [`/brain-build`](brain-build.md) | Assemble a computational brain model — neuron models, network topology, connectivity, simulation framework setup |
+| [`/brain-optimize`](brain-optimize.md) | Run a parameter search or fit the model to experimental data |
+| [`/brain-run`](brain-run.md) | Run the model as a simulation — configure run parameters, launch, and collect outputs |
+
+---
+
 ## Utility commands
 
 | Command | What it does |
 |---|---|
+| [`/git`](git.md) | Context-aware git utility — smart push/pull, commit message generation, branch management, and PR creation with shorthand aliases |
+| [`/pipeline`](pipeline.md) | Define and run a multi-step research pipeline — interactive by default (pauses for approval between steps), or use `--nomistake` for brutal mode |
+| [`/export`](export.md) | Export project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
+| [`/search`](search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase |
+| [`/interview`](interview.md) | Interview preparation from either side — generate tailored questions, run practice Q&A, evaluate readiness |
 | [`/phase`](phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, version sync |
+| [`/quiz`](quiz.md) | Neuroscience quiz — flashcards, pub quiz, or rapid-fire throw questions |
+| [`/fails`](fails.md) | Log dissatisfaction — record plugin behavior, science quality, or UX issues; optionally opens a GitHub issue |
+| [`/idk`](idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
 
 ---
 
