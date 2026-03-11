@@ -7,7 +7,6 @@ hide:
 
 <div class="hero" markdown>
 <div class="hero-inner" markdown>
-<img src="assets/logo.png" alt="neuroflow logo" class="hero-logo-img" />
 <div class="hero-text" markdown>
 
 **Hi, I'm neuroflow** — a Claude Code plugin and full neuroscience cycle AI assistant.
