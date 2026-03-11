@@ -158,6 +158,20 @@ hr {
   border-radius: 50px;
 }
 
+/* ── Hero button group ────────────────────────────────────────────────────── */
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 0.3rem;
+}
+
+.hero-buttons .md-button {
+  margin: 0;
+}
+
 /* ── Hero section ─────────────────────────────────────────────────────────── */
 .hero {
   padding: 2rem 2rem;
@@ -880,6 +894,36 @@ hr {
   padding: 0.45rem 1rem !important;
   border-radius: 50px !important;
   align-self: flex-start;
+}
+
+/* ── Tag pills in node info panel ─────────────────────────────────────────── */
+.nf-tag-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.nf-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.18em 0.55em 0.18em 0.4em;
+  border-radius: 50px;
+  border: 1px solid;
+  background: rgba(255,255,255,0.05);
+  white-space: nowrap;
+}
+
+.nf-tag-dot-sm {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* Hide MkDocs chrome on the mind page */
