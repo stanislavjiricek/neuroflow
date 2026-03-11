@@ -198,6 +198,81 @@
     orchestrates: "rgba(255,183,77,0.35)"
   };
 
+  /* ── Phase / cluster layout ───────────────────────────────────────────────── */
+  /* Clockwise degrees from 12 o'clock for each research phase.
+     Nodes are pulled toward their phase angle in concentric arcs
+     (commands inner, skills middle, agents outer).
+     Cycle: utility → ideation → … → paper-review → back to utility.        */
+  var PHASE_ANGLES = {
+    "ideation":        15,
+    "preregistration": 42,
+    "grant-proposal":  65,
+    "finance":         88,
+    "experiment":      112,
+    "tool-build":      135,
+    "tool-validate":   158,
+    "data":            180,
+    "data-preprocess": 202,
+    "data-analyze":    224,
+    "brain-build":     248,
+    "brain-optimize":  262,
+    "brain-run":       276,
+    "paper-write":     298,
+    "notes":           310,
+    "write-report":    318,
+    "paper-review":    332,
+    "utility":         350
+  };
+
+  /* Phase for each skill / agent node (commands already carry d.phase) */
+  var NODE_PHASE_MAP = {
+    "sk-core":          "utility",
+    "sk-develop":       "utility",
+    "sk-creator":       "utility",
+    "sk-ideation":      "ideation",
+    "sk-prereg":        "preregistration",
+    "sk-grant":         "grant-proposal",
+    "sk-finance":       "finance",
+    "sk-experiment":    "experiment",
+    "sk-tool-build":    "tool-build",
+    "sk-tool-validate": "tool-validate",
+    "sk-data":          "data",
+    "sk-data-pre":      "data-preprocess",
+    "sk-data-analyze":  "data-analyze",
+    "sk-paper-write":   "paper-write",
+    "sk-paper-review":  "paper-review",
+    "sk-notes":         "notes",
+    "sk-write-report":  "write-report",
+    "sk-brain-build":   "brain-build",
+    "sk-brain-opt":     "brain-optimize",
+    "sk-brain-run":     "brain-run",
+    "sk-git":           "utility",
+    "sk-pipeline":      "utility",
+    "sk-search":        "utility",
+    "sk-export":        "utility",
+    "sk-fails":         "utility",
+    "sk-quiz":          "utility",
+    "sk-review-neuro":  "paper-review",
+    "ag-ideation":      "ideation",
+    "ag-scholar":       "ideation",
+    "ag-grant":         "grant-proposal",
+    "ag-experiment":    "experiment",
+    "ag-tool-build":    "tool-build",
+    "ag-tool-val":      "tool-validate",
+    "ag-data":          "data",
+    "ag-data-pre":      "data-preprocess",
+    "ag-data-analyze":  "data-analyze",
+    "ag-paper-write":   "paper-write",
+    "ag-paper-review":  "paper-review",
+    "ag-notes":         "notes",
+    "ag-write-report":  "write-report",
+    "ag-brain-build":   "brain-build",
+    "ag-brain-opt":     "brain-optimize",
+    "ag-brain-run":     "brain-run",
+    "ag-sentinel":      "utility",
+    "ag-sentinel-dev":  "utility"
+  };
+
   /* ── State ───────────────────────────────────────────────────────────────── */
   var simulation = null;
   var selectedId = null;
@@ -299,20 +374,68 @@
       return { source: l.source, target: l.target, type: l.type };
     });
 
+    /* ── Cluster layout helpers ── */
+    /* Orbit radii scale with the smaller viewport dimension so nodes always
+       fit on screen; commands innermost, skills middle, agents outermost.  */
+    var viewportR = Math.min(W, H) / 2;
+
+    function nodePhase(d) {
+      return NODE_PHASE_MAP[d.id] || d.phase || "utility";
+    }
+
+    function clusterAngleRad(d) {
+      var ph = nodePhase(d);
+      var deg = PHASE_ANGLES[ph] !== undefined ? PHASE_ANGLES[ph] : PHASE_ANGLES["utility"];
+      /* Convert clockwise-from-12 degrees → SVG radians (0 = right, CW = +) */
+      return (deg - 90) * Math.PI / 180;
+    }
+
+    function clusterRadius(d) {
+      if (d.type === "core")    return 0;
+      if (d.type === "command") return viewportR * 0.48;
+      if (d.type === "skill")   return viewportR * 0.70;
+      if (d.type === "agent")   return viewportR * 0.90;
+      return viewportR * 0.70;
+    }
+
+    function clusterX(d) {
+      if (d.type === "core") return W / 2;
+      return W / 2 + clusterRadius(d) * Math.cos(clusterAngleRad(d));
+    }
+
+    function clusterY(d) {
+      if (d.type === "core") return H / 2;
+      return H / 2 + clusterRadius(d) * Math.sin(clusterAngleRad(d));
+    }
+
+    /* Pre-position nodes near their cluster target so layout is stable
+       from the very first frame (uses a seeded RNG for reproducibility). */
+    var rng2 = mulberry32(99);
+    nodes.forEach(function(d) {
+      if (d.type !== "core") {
+        d.x = clusterX(d) + (rng2() - 0.5) * 20;
+        d.y = clusterY(d) + (rng2() - 0.5) * 20;
+      }
+    });
+
     /* ── Force simulation ── */
     simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id(function(d) { return d.id; }).distance(function(d) {
-        if (d.type === "rw" || d.type === "r") return 90;
-        if (d.type === "uses")     return 130;
-        if (d.type === "spawns")   return 110;
-        return 140;
-      }).strength(0.4))
+        if (d.type === "rw" || d.type === "r") return 70;
+        if (d.type === "uses")     return 65;
+        if (d.type === "spawns")   return 60;
+        return 90;
+      }).strength(0.7))
       .force("charge", d3.forceManyBody().strength(function(d) {
-        return d.type === "core" ? -800 : -200;
+        return d.type === "core" ? -500 : -60;
       }))
-      .force("center", d3.forceCenter(W / 2, H / 2).strength(0.05))
+      /* Per-node attraction toward phase cluster target — replaces forceCenter */
+      .force("x", d3.forceX(function(d) { return clusterX(d); }).strength(0.22))
+      .force("y", d3.forceY(function(d) { return clusterY(d); }).strength(0.22))
+      /* Tighter collision buffer (8 vs previous 10) — nodes intentionally
+         pack closer within a cluster; forceX/Y prevents runaway separation. */
       .force("collision", d3.forceCollide().radius(function(d) {
-        return TYPE_CONFIG[d.type].radius + 10;
+        return TYPE_CONFIG[d.type].radius + 8;
       }))
       .alphaDecay(0.018)
       .velocityDecay(0.38);
