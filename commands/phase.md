@@ -29,8 +29,8 @@ Shows a visual phase map of the project — current phase, visited phases, recom
 
 4. Print a visual phase map. Use these markers:
 
-   - `●` — current active phase
-   - `◉` — visited: a `.neuroflow/{phase}/` subfolder already exists (work has been done here)
+   - `◉` — current active phase
+   - `●` — visited: a `.neuroflow/{phase}/` subfolder already exists (work has been done here)
    - `→` — recommended: suggested by neuroflow after the initial interview (listed in `recommended_phases` in `project_config.md`), but not yet visited
    - `○` — not started: no subfolder, not recommended
 
@@ -48,8 +48,8 @@ Shows a visual phase map of the project — current phase, visited phases, recom
    ```
    Phase map — Last session: 2026-03-09
 
-     ◉ ideation
-     ● experiment          ← current
+     ● ideation
+     ◉ experiment          ← current
      → data-preprocess     ← recommended
      → data-analyze        ← recommended
      → paper-write         ← recommended
@@ -64,7 +64,7 @@ Shows a visual phase map of the project — current phase, visited phases, recom
      ○ notes
      ○ finance
 
-   Legend: ● current  ◉ visited  → recommended  ○ not started
+   Legend: ◉ current  ● visited  → recommended  ○ not started
    ```
 
    Show visited and current phases first (in pipeline order), then recommended phases, then the rest.
