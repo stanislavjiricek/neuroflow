@@ -112,6 +112,44 @@ Finally: "Is there anything else useful to add — collaborators, deadlines, con
 
 ---
 
+## Step 2b — Suggest phase sequence
+
+Based on everything learned in Steps 1 and 2, generate a recommended ordered list of phases the user is likely to move through. Use the full pipeline as a reference:
+
+```
+ideation → preregistration → grant-proposal → experiment →
+tool-build → tool-validate → data → data-preprocess →
+data-analyze → paper-write → paper-review → write-report →
+export → notes → finance
+```
+
+Select only the phases that apply to this project and order them logically. For example:
+
+- A project already collecting data that targets a journal: `[data-preprocess, data-analyze, paper-write, paper-review, write-report, export]`
+- A project starting from hypothesis with a tool to build: `[ideation, experiment, tool-build, tool-validate, data, data-preprocess, data-analyze, paper-write]`
+- A grant-seeking early-stage project: `[ideation, preregistration, grant-proposal, experiment, data, data-analyze, paper-write]`
+
+Print the suggested sequence clearly before creating `.neuroflow/`:
+
+```
+Based on what you described, here is the expected phase sequence for this project:
+
+  → ideation (current)
+  → preregistration
+  → experiment
+  → data-preprocess
+  → data-analyze
+  → paper-write
+  → paper-review
+  → export
+
+You can always run /neuroflow:phase to see your position in this sequence or adjust it.
+```
+
+Save the list as `recommended_phases` in `project_config.md` (a simple comma-separated or YAML list). This list is read by `/phase` to render the phase map.
+
+---
+
 ## Step 3 — Create .neuroflow/
 
 Create this structure in the working directory:
@@ -126,7 +164,7 @@ Create this structure in the working directory:
     └── general.json
 ```
 
-**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
+**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `recommended_phases` (the ordered list of phases suggested in Step 2b — see below), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
 
 **`flow.md`** — write the initial index with only the folders that actually exist:
 

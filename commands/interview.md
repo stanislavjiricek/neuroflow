@@ -133,3 +133,32 @@ If yes, provide:
 ### 2e — Save and wrap up
 
 Summarise what was covered and any key preparation notes. Append to `.neuroflow/sessions/YYYY-MM-DD.md`.
+
+---
+
+## Phase suggestion (both modes)
+
+At the end of any interview session, if `.neuroflow/project_config.md` exists, read the current `active_phase` and any `recommended_phases` already set.
+
+Based on the interview content and the user's current research context, suggest which neuroflow phases they are likely to be moving through next. Use the full pipeline as reference:
+
+```
+ideation → preregistration → grant-proposal → experiment →
+tool-build → tool-validate → data → data-preprocess →
+data-analyze → paper-write → paper-review → write-report →
+export → notes → finance
+```
+
+Print a brief phase outlook at the end of the session:
+
+```
+Based on this session, here are the neuroflow phases most relevant to where you are heading:
+
+  → data-analyze         ← your next likely phase
+  → paper-write
+  → paper-review
+
+Run /neuroflow:phase at any time to see your full phase map.
+```
+
+Only suggest phases that are genuinely relevant given what was discussed. Skip this block if the conversation was entirely unrelated to the user's research pipeline (e.g., pure practice Q&A with no pipeline context).
