@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.1.4
+
+- **[`/idk`](commands/idk.md)** — a small easter egg: a personal support companion for when you're burned out, overwhelmed by deadlines, or just need to think out loud; breaks down impossible task lists and lets you decompress mid-research
+
 ## What's new in 0.1.3
 
 - **`/start` renamed to [`/neuroflow`](commands/neuroflow.md)** — the main entry point is now `/neuroflow:neuroflow`; all commands, docs, and agents updated
@@ -88,6 +92,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 |---|---|
 | [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
+| [`/idk`](commands/idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
 
 ---
 
