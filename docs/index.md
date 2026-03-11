@@ -55,8 +55,8 @@ All reasoning logs, session notes, and context live in `.neuroflow/` — Claude 
 
 <div class="feature-card" markdown>
 <span class="feature-icon">📊</span>
-### Built-in stats auditing
-Analysis commands include automated statistical checks to keep your results reproducible and defensible.
+### Neuroscience analysis
+ERPs, time-frequency, connectivity, decoding, and GLM — with pre-registration compliance checks and rigorous reporting.
 </div>
 
 </div>
@@ -138,7 +138,7 @@ Build and run a preprocessing pipeline — filtering, ICA, epoching, artifact re
 <div class="command-card" markdown>
 <span class="command-icon">📊</span>
 ### /neuroflow:data-analyze
-ERPs, time-frequency, connectivity, decoding, GLM — with built-in stats auditing.
+ERPs, time-frequency, connectivity, decoding, GLM — across EEG, iEEG, fMRI, and other modalities.
 [Learn more →](commands/data-analyze.md)
 </div>
 

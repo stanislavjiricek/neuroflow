@@ -108,6 +108,7 @@ Every command must follow this order:
 2. Read `.neuroflow/flow.md`
 3. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
 4. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
+5. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
 
 **At end:**
 1. Write external outputs (code, results, figures, manuscripts) to `output_path` — not inside `.neuroflow/`
@@ -222,6 +223,9 @@ phase: <phase-name>        # matches command name, or "utility" for /sentinel an
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
+  - .neuroflow/fails/core.md      # read if exists — past behavior problems
+  - .neuroflow/fails/science.md   # read if exists — past science quality problems
+  - .neuroflow/fails/ux.md        # read if exists — past UX problems
   - .neuroflow/{phase}/flow.md    # only if command has a phase subfolder
 writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
