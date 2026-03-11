@@ -63,24 +63,25 @@ output_path: ../scripts/analysis
 
 ## Memory vs outputs
 
-**`.neuroflow/` holds memory only.** Never write code, computed results, figures, or manuscripts inside `.neuroflow/`. All real outputs go to the phase `output_path`.
+**`.neuroflow/` holds memory and internal tooling only.** Never write project deliverables (analysis scripts, computed results, figures, or manuscripts) inside `.neuroflow/`. All project outputs go to the phase `output_path`. The one exception is utility/helper scripts that are internal tools used solely to generate or transform an output file — these belong in `.neuroflow/{phase}/tools/`.
 
 | What it is | Where it goes |
 |---|---|
 | Plans, QC reports, summaries, configs | `.neuroflow/{phase}/` |
-| Analysis scripts, preprocessing code, tool code | `output_path` |
-| Computed results, figures, tables | `output_path` |
-| Manuscript drafts, grant documents | `output_path` |
-| Paradigm scripts | `output_path` |
+| Analysis scripts, preprocessing code, tool code | `output_path` (outside `.neuroflow/`) |
+| Computed results, figures, tables | `output_path` (outside `.neuroflow/`) |
+| Manuscript drafts, grant documents | `output_path` (outside `.neuroflow/`) |
+| Paradigm scripts | `output_path` (outside `.neuroflow/`) |
+| Utility/helper script (internal tool, e.g. markdown→docx converter) | `.neuroflow/{phase}/tools/` |
 
 **Utility scripts vs project deliverables:**
 
 | Script type | Where it goes |
 |---|---|
-| Project deliverable (analysis pipeline, preprocessing script, paradigm) | `output_path` or `scripts/` |
+| Project deliverable (analysis pipeline, preprocessing script, paradigm) | `output_path` or `scripts/` — always outside `.neuroflow/` |
 | Utility/helper script that produces an output (e.g. markdown→docx converter, report renderer) | `.neuroflow/{phase}/tools/` |
 
-Never place utility scripts in the project root. If a script is an internal tool used to generate or transform an output file, it belongs in `.neuroflow/{phase}/tools/` — not alongside the project's main code.
+Never place utility scripts in the project root. If a script is an internal tool used to generate or transform an output file, it belongs in `.neuroflow/{phase}/tools/` — not alongside the project's main code. Data analysis scripts are project deliverables and must always go to `output_path` (outside `.neuroflow/`).
 
 Default output paths (used when the repo has no existing structure):
 
