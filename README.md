@@ -108,6 +108,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/quiz`](commands/quiz.md) | Neuroscience quiz — flashcards, pub quiz, or rapid-fire throw questions; covers any subfield or general neuroscience |
 | [`/fails`](commands/fails.md) | Log dissatisfaction — record core behavior, science quality, or UX issues; optionally opens a GitHub issue report |
 | [`/idk`](commands/idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
+| [`/search`](commands/search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase; uses `flow.md` as a fast index |
 
 ---
 
@@ -138,6 +139,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-brain-build`](skills/phase-brain-build/SKILL.md) | Phase guidance for /brain-build — neuron models, connectivity, simulation framework |
 | [`neuroflow:phase-brain-optimize`](skills/phase-brain-optimize/SKILL.md) | Phase guidance for /brain-optimize — parameter sweeps, data fitting, optimisation algorithms |
 | [`neuroflow:phase-brain-run`](skills/phase-brain-run/SKILL.md) | Phase guidance for /brain-run — run configuration, simulation launch, output sanity checks |
+| [`neuroflow:phase-search`](skills/phase-search/SKILL.md) | Phase guidance for /search — tag-based scoping, flow.md-first indexing strategy, compact summary format |
 
 ---
 

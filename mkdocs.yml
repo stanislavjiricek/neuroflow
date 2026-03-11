@@ -132,6 +132,7 @@ nav:
       - Utilities:
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
+          - "🔍 search": commands/search.md
   - Concepts:
       - Project Memory: concepts/project-memory.md
       - Agents: concepts/agents.md
@@ -154,6 +155,7 @@ nav:
           - "phase-paper-review": skills/phase-paper-review/SKILL.md
           - "phase-notes": skills/phase-notes/SKILL.md
           - "phase-write-report": skills/phase-write-report/SKILL.md
+          - "phase-search": skills/phase-search/SKILL.md
       - Utils:
           - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
