@@ -34,6 +34,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `ethics/` | IRB documents, consent forms. |
 | `preregistration/` | Pre-registration documents (OSF, AsPredicted). |
 | `finance/` | Grant documents, expense tracking. |
+| `fails/` | Dissatisfaction log — three fixed files: `core.md` (plugin behavior problems), `science.md` (scientific quality problems), `ux.md` (interaction quality problems). Created on first `/fails` run. |
 | `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
 
 **Rule: only command names may be used as phase subfolder names.** Skills must never create their own named subfolders inside `.neuroflow/`. All skill memory must be written to the active command's phase subfolder (`.neuroflow/{phase}/`). Creating a subfolder named after a skill (e.g. `.neuroflow/review-neuro/`) is a structural error.
