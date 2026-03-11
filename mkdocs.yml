@@ -113,7 +113,6 @@ plugins:
 
 nav:
   - Home: index.md
-  - 🌌 Neuroflow Mind: mind.md
   - Installation: installation.md
   - Quickstart: quickstart.md
   - Commands:

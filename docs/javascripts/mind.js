@@ -9,89 +9,90 @@
     /* ── Core ── */
     {
       id: "core", label: ".neuroflow/", type: "core",
+      tags: ["memory"],
       desc: "Shared project memory — the brain that all commands read and write. Stores reasoning logs, session notes, phase folders, and configuration across every session.",
       url: "concepts/project-memory/"
     },
 
     /* ── Commands ── */
-    { id: "cmd-neuroflow",       label: "/neuroflow",       type: "command", phase: "utility",        desc: "Main entry point. Greets you, scans the project, runs the setup interview, and creates the .neuroflow/ memory structure.",                                         url: "commands/neuroflow/" },
-    { id: "cmd-setup",           label: "/setup",           type: "command", phase: "utility",        desc: "Reconfigure project settings — updates project_config.md and prompts for any missing metadata.",                                                                  url: "commands/setup/" },
-    { id: "cmd-phase",           label: "/phase",           type: "command", phase: "utility",        desc: "Show or switch the current research phase. Updates project_config.md and refreshes the flow index.",                                                               url: "commands/phase/" },
-    { id: "cmd-search",          label: "/search",          type: "command", phase: "utility",        desc: "Search PubMed and bioRxiv for relevant literature using PICO queries via the scholar agent.",                                                                      url: "commands/search/" },
-    { id: "cmd-sentinel",        label: "/sentinel",        type: "command", phase: "utility",        desc: "Audit your project memory — checks for completeness, consistency, and stale entries across all .neuroflow/ subfolders.",                                           url: "commands/sentinel/" },
-    { id: "cmd-git",             label: "/git",             type: "command", phase: "utility",        desc: "Version control integration — commit, branch, tag, and review diffs for your research project.",                                                                   url: "commands/git/" },
-    { id: "cmd-export",          label: "/export",          type: "command", phase: "utility",        desc: "Export project memory, reports, and figures to shareable formats (PDF, ZIP, HTML).",                                                                               url: "commands/export/" },
-    { id: "cmd-interview",       label: "/interview",       type: "command", phase: "utility",        desc: "Run an interactive interview to capture or update project context stored in project_config.md.",                                                                   url: "commands/interview/" },
-    { id: "cmd-quiz",            label: "/quiz",            type: "command", phase: "utility",        desc: "Test your neuroscience knowledge with AI-generated spaced-repetition quizzes tailored to your research domain.",                                                   url: "commands/quiz/" },
-    { id: "cmd-fails",           label: "/fails",           type: "command", phase: "utility",        desc: "Log and review failed experiments or analysis attempts. Structured failure reports help avoid repeating mistakes.",                                                 url: "commands/fails/" },
-    { id: "cmd-idk",             label: "/idk",             type: "command", phase: "utility",        desc: "Express and document uncertainty — flags knowledge gaps in project memory so they can be resolved later.",                                                         url: "commands/idk/" },
-    { id: "cmd-pipeline",        label: "/pipeline",        type: "command", phase: "utility",        desc: "Multi-step orchestration — chain commands in sequence with optional --nomistake brutal-review mode.",                                                              url: "commands/pipeline/" },
-    { id: "cmd-ideation",        label: "/ideation",        type: "command", phase: "ideation",       desc: "Brainstorm research questions, search PubMed and bioRxiv via the scholar agent, and formalize a project proposal.",                                                url: "commands/ideation/" },
-    { id: "cmd-preregistration", label: "/preregistration", type: "command", phase: "preregistration",desc: "Formalize hypotheses and analysis plan before data collection. Generates OSF-compatible preregistration documents.",                                                 url: "commands/preregistration/" },
-    { id: "cmd-grant-proposal",  label: "/grant-proposal",  type: "command", phase: "grant-proposal", desc: "Write a full grant application — specific aims, significance, innovation, approach, budget, and timeline.",                                                       url: "commands/grant-proposal/" },
-    { id: "cmd-finance",         label: "/finance",         type: "command", phase: "finance",        desc: "Research budget tracking and financial planning — personnel, equipment, consumables, indirect costs.",                                                              url: "commands/finance/" },
-    { id: "cmd-experiment",      label: "/experiment",      type: "command", phase: "experiment",     desc: "Design a PsychoPy paradigm, define recording parameters, and configure LSL hardware integration for your modality.",                                               url: "commands/experiment/" },
-    { id: "cmd-tool-build",      label: "/tool-build",      type: "command", phase: "tool-build",     desc: "Build custom analysis tools and scripts — MNE pipelines, custom classifiers, or domain-specific utilities.",                                                       url: "commands/tool-build/" },
-    { id: "cmd-tool-validate",   label: "/tool-validate",   type: "command", phase: "tool-validate",  desc: "Validate analysis tools with unit tests, benchmarks, and synthetic data to ensure correctness before use on real data.",                                           url: "commands/tool-validate/" },
-    { id: "cmd-data",            label: "/data",            type: "command", phase: "data",           desc: "Locate, inventory, validate BIDS structure, and convert raw data formats. Generates a data intake report.",                                                        url: "commands/data/" },
-    { id: "cmd-data-preprocess", label: "/data-preprocess", type: "command", phase: "data-preprocess",desc: "Build and run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, and QC reports.",                                                           url: "commands/data-preprocess/" },
-    { id: "cmd-data-analyze",    label: "/data-analyze",    type: "command", phase: "data-analyze",   desc: "ERPs, time-frequency, connectivity, decoding, GLM — with built-in stats auditing for reproducibility.",                                                           url: "commands/data-analyze/" },
-    { id: "cmd-paper-write",     label: "/paper-write",     type: "command", phase: "paper-write",    desc: "Generate a full manuscript draft from your analysis results and figures, following IMRAD structure.",                                                              url: "commands/paper-write/" },
-    { id: "cmd-paper-review",    label: "/paper-review",    type: "command", phase: "paper-review",   desc: "Pre-submission peer review — scientific logic, methods, statistics, writing quality, and figures.",                                                                url: "commands/paper-review/" },
-    { id: "cmd-notes",           label: "/notes",           type: "command", phase: "notes",          desc: "Capture session notes, meeting minutes, and ad-hoc observations in structured format to .neuroflow/notes/.",                                                       url: "commands/notes/" },
-    { id: "cmd-write-report",    label: "/write-report",    type: "command", phase: "write-report",   desc: "Generate a project status or phase summary report from .neuroflow/ contents.",                                                                                    url: "commands/write-report/" },
-    { id: "cmd-brain-build",     label: "/brain-build",     type: "command", phase: "brain-build",    desc: "Build a computational neural model with NEURON, Brian2, NetPyNE, or NEST.",                                                                                       url: "commands/brain-build/" },
-    { id: "cmd-brain-optimize",  label: "/brain-optimize",  type: "command", phase: "brain-optimize", desc: "Tune model parameters to match experimental data — sensitivity analysis, fitting algorithms.",                                                                     url: "commands/brain-optimize/" },
-    { id: "cmd-brain-run",       label: "/brain-run",       type: "command", phase: "brain-run",      desc: "Execute neural simulations and collect output metrics, logs, and visualizations.",                                                                                 url: "commands/brain-run/" },
+    { id: "cmd-neuroflow",       label: "/neuroflow",       type: "command", phase: "utility",        tags: ["memory","human"],           desc: "Main entry point. Greets you, scans the project, runs the setup interview, and creates the .neuroflow/ memory structure.",                                         url: "commands/neuroflow/" },
+    { id: "cmd-setup",           label: "/setup",           type: "command", phase: "utility",        tags: ["memory","human"],           desc: "Reconfigure project settings — updates project_config.md and prompts for any missing metadata.",                                                                  url: "commands/setup/" },
+    { id: "cmd-phase",           label: "/phase",           type: "command", phase: "utility",        tags: ["memory"],                   desc: "Show or switch the current research phase. Updates project_config.md and refreshes the flow index.",                                                               url: "commands/phase/" },
+    { id: "cmd-search",          label: "/search",          type: "command", phase: "utility",        tags: ["literature","memory"],      desc: "Search PubMed and bioRxiv for relevant literature using PICO queries via the scholar agent.",                                                                      url: "commands/search/" },
+    { id: "cmd-sentinel",        label: "/sentinel",        type: "command", phase: "utility",        tags: ["memory"],                   desc: "Audit your project memory — checks for completeness, consistency, and stale entries across all .neuroflow/ subfolders.",                                           url: "commands/sentinel/" },
+    { id: "cmd-git",             label: "/git",             type: "command", phase: "utility",        tags: ["code","memory"],            desc: "Version control integration — commit, branch, tag, and review diffs for your research project.",                                                                   url: "commands/git/" },
+    { id: "cmd-export",          label: "/export",          type: "command", phase: "utility",        tags: ["memory","code"],            desc: "Export project memory, reports, and figures to shareable formats (PDF, ZIP, HTML).",                                                                               url: "commands/export/" },
+    { id: "cmd-interview",       label: "/interview",       type: "command", phase: "utility",        tags: ["human"],                    desc: "Run an interactive interview to capture or update project context stored in project_config.md.",                                                                   url: "commands/interview/" },
+    { id: "cmd-quiz",            label: "/quiz",            type: "command", phase: "utility",        tags: ["human","literature"],       desc: "Test your neuroscience knowledge with AI-generated spaced-repetition quizzes tailored to your research domain.",                                                   url: "commands/quiz/" },
+    { id: "cmd-fails",           label: "/fails",           type: "command", phase: "utility",        tags: ["human","memory"],           desc: "Log and review failed experiments or analysis attempts. Structured failure reports help avoid repeating mistakes.",                                                 url: "commands/fails/" },
+    { id: "cmd-idk",             label: "/idk",             type: "command", phase: "utility",        tags: ["human"],                    desc: "Express and document uncertainty — flags knowledge gaps in project memory so they can be resolved later.",                                                         url: "commands/idk/" },
+    { id: "cmd-pipeline",        label: "/pipeline",        type: "command", phase: "utility",        tags: ["memory","code"],            desc: "Multi-step orchestration — chain commands in sequence with optional --nomistake brutal-review mode.",                                                              url: "commands/pipeline/" },
+    { id: "cmd-ideation",        label: "/ideation",        type: "command", phase: "ideation",       tags: ["literature","human"],       desc: "Brainstorm research questions, search PubMed and bioRxiv via the scholar agent, and formalize a project proposal.",                                                url: "commands/ideation/" },
+    { id: "cmd-preregistration", label: "/preregistration", type: "command", phase: "preregistration",tags: ["writing","stats"],          desc: "Formalize hypotheses and analysis plan before data collection. Generates OSF-compatible preregistration documents.",                                                 url: "commands/preregistration/" },
+    { id: "cmd-grant-proposal",  label: "/grant-proposal",  type: "command", phase: "grant-proposal", tags: ["writing"],                  desc: "Write a full grant application — specific aims, significance, innovation, approach, budget, and timeline.",                                                       url: "commands/grant-proposal/" },
+    { id: "cmd-finance",         label: "/finance",         type: "command", phase: "finance",        tags: ["writing"],                  desc: "Research budget tracking and financial planning — personnel, equipment, consumables, indirect costs.",                                                              url: "commands/finance/" },
+    { id: "cmd-experiment",      label: "/experiment",      type: "command", phase: "experiment",     tags: ["eeg","code"],               desc: "Design a PsychoPy paradigm, define recording parameters, and configure LSL hardware integration for your modality.",                                               url: "commands/experiment/" },
+    { id: "cmd-tool-build",      label: "/tool-build",      type: "command", phase: "tool-build",     tags: ["code","eeg"],               desc: "Build custom analysis tools and scripts — MNE pipelines, custom classifiers, or domain-specific utilities.",                                                       url: "commands/tool-build/" },
+    { id: "cmd-tool-validate",   label: "/tool-validate",   type: "command", phase: "tool-validate",  tags: ["code","stats"],             desc: "Validate analysis tools with unit tests, benchmarks, and synthetic data to ensure correctness before use on real data.",                                           url: "commands/tool-validate/" },
+    { id: "cmd-data",            label: "/data",            type: "command", phase: "data",           tags: ["eeg","fmri","memory"],      desc: "Locate, inventory, validate BIDS structure, and convert raw data formats. Generates a data intake report.",                                                        url: "commands/data/" },
+    { id: "cmd-data-preprocess", label: "/data-preprocess", type: "command", phase: "data-preprocess",tags: ["eeg","fmri","code"],        desc: "Build and run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, and QC reports.",                                                           url: "commands/data-preprocess/" },
+    { id: "cmd-data-analyze",    label: "/data-analyze",    type: "command", phase: "data-analyze",   tags: ["stats","ml","eeg"],         desc: "ERPs, time-frequency, connectivity, decoding, GLM — with built-in stats auditing for reproducibility.",                                                           url: "commands/data-analyze/" },
+    { id: "cmd-paper-write",     label: "/paper-write",     type: "command", phase: "paper-write",    tags: ["writing","stats"],          desc: "Generate a full manuscript draft from your analysis results and figures, following IMRAD structure.",                                                              url: "commands/paper-write/" },
+    { id: "cmd-paper-review",    label: "/paper-review",    type: "command", phase: "paper-review",   tags: ["writing","stats"],          desc: "Pre-submission peer review — scientific logic, methods, statistics, writing quality, and figures.",                                                                url: "commands/paper-review/" },
+    { id: "cmd-notes",           label: "/notes",           type: "command", phase: "notes",          tags: ["human","memory"],           desc: "Capture session notes, meeting minutes, and ad-hoc observations in structured format to .neuroflow/notes/.",                                                       url: "commands/notes/" },
+    { id: "cmd-write-report",    label: "/write-report",    type: "command", phase: "write-report",   tags: ["writing","memory"],         desc: "Generate a project status or phase summary report from .neuroflow/ contents.",                                                                                    url: "commands/write-report/" },
+    { id: "cmd-brain-build",     label: "/brain-build",     type: "command", phase: "brain-build",    tags: ["brain-sim","code"],         desc: "Build a computational neural model with NEURON, Brian2, NetPyNE, or NEST.",                                                                                       url: "commands/brain-build/" },
+    { id: "cmd-brain-optimize",  label: "/brain-optimize",  type: "command", phase: "brain-optimize", tags: ["brain-sim","stats"],        desc: "Tune model parameters to match experimental data — sensitivity analysis, fitting algorithms.",                                                                     url: "commands/brain-optimize/" },
+    { id: "cmd-brain-run",       label: "/brain-run",       type: "command", phase: "brain-run",      tags: ["brain-sim","code"],         desc: "Execute neural simulations and collect output metrics, logs, and visualizations.",                                                                                 url: "commands/brain-run/" },
 
     /* ── Skills ── */
-    { id: "sk-core",          label: "neuroflow-core",         type: "skill", desc: "Core lifecycle rules — what every command must read, write, and follow across all phases.",                                           url: "skills/neuroflow-core/SKILL/" },
-    { id: "sk-develop",       label: "neuroflow-develop",      type: "skill", desc: "Development guide — how to add new skills, commands, agents, and hooks to the neuroflow plugin.",                                    url: "skills/neuroflow-develop/SKILL/" },
-    { id: "sk-creator",       label: "skill-creator",          type: "skill", desc: "Guide for creating and structuring new neuroflow skills, including overlap audits and frontmatter conventions.",                     url: "concepts/skills/" },
-    { id: "sk-ideation",      label: "phase-ideation",         type: "skill", desc: "Neuroscience ideation best practices — hypothesis formation, literature strategy, feasibility assessment.",                          url: "skills/phase-ideation/SKILL/" },
-    { id: "sk-prereg",        label: "phase-preregistration",  type: "skill", desc: "Preregistration guidelines — OSF templates, CONSORT, STROBE, AsPredicted formats.",                                                url: "skills/phase-preregistration/SKILL/" },
-    { id: "sk-grant",         label: "phase-grant-proposal",   type: "skill", desc: "Grant writing strategy — NIH R01/R21, ERC, Wellcome Trust, DFG formats and review criteria.",                                       url: "skills/phase-grant-proposal/SKILL/" },
-    { id: "sk-finance",       label: "phase-finance",          type: "skill", desc: "Research budget planning and financial compliance — personnel costs, equipment, indirect rates.",                                     url: "skills/phase-finance/SKILL/" },
-    { id: "sk-experiment",    label: "phase-experiment",       type: "skill", desc: "Experiment design — PsychoPy paradigms, LSL hardware integration, BIDS recording parameters.",                                      url: "skills/phase-experiment/SKILL/" },
-    { id: "sk-tool-build",    label: "phase-tool-build",       type: "skill", desc: "Tool development — MNE pipelines, custom analysis scripts, code quality, and documentation.",                                       url: "skills/phase-tool-build/SKILL/" },
-    { id: "sk-tool-validate", label: "phase-tool-validate",    type: "skill", desc: "Validation strategies — unit tests, benchmarks, synthetic data, and edge-case coverage.",                                           url: "skills/phase-tool-validate/SKILL/" },
-    { id: "sk-data",          label: "phase-data",             type: "skill", desc: "Data management — BIDS structure, provenance tracking, format conversion (EDF, BrainVision, NWB).",                                 url: "skills/phase-data/SKILL/" },
-    { id: "sk-data-pre",      label: "phase-data-preprocess",  type: "skill", desc: "Preprocessing — filtering, ICA, epoching, artifact rejection, channel interpolation, QC.",                                          url: "skills/phase-data-preprocess/SKILL/" },
-    { id: "sk-data-analyze",  label: "phase-data-analyze",     type: "skill", desc: "Analysis methods — ERPs, TFR, connectivity, decoding, GLM, and statistical testing.",                                               url: "skills/phase-data-analyze/SKILL/" },
-    { id: "sk-paper-write",   label: "phase-paper-write",      type: "skill", desc: "Scientific writing — IMRAD structure, figures, supplementary materials, journal formatting.",                                       url: "skills/phase-paper-write/SKILL/" },
-    { id: "sk-paper-review",  label: "phase-paper-review",     type: "skill", desc: "Peer review — methods critique, statistical rigor, reproducibility, and writing quality assessment.",                               url: "skills/phase-paper-review/SKILL/" },
-    { id: "sk-notes",         label: "phase-notes",            type: "skill", desc: "Note-taking conventions — structured session logs, meeting minutes, and observation formats.",                                       url: "skills/phase-notes/SKILL/" },
-    { id: "sk-write-report",  label: "phase-write-report",     type: "skill", desc: "Report generation — executive summaries, phase milestone reports, and stakeholder-ready formats.",                                  url: "skills/phase-write-report/SKILL/" },
-    { id: "sk-brain-build",   label: "phase-brain-build",      type: "skill", desc: "Neural simulation model building — NEURON, Brian2, NetPyNE, NEST, tvb-library model definitions.",                                  url: "skills/phase-brain-build/SKILL/" },
-    { id: "sk-brain-opt",     label: "phase-brain-optimize",   type: "skill", desc: "Model optimization — parameter tuning, sensitivity analysis, fitting algorithms.",                                                  url: "skills/phase-brain-optimize/SKILL/" },
-    { id: "sk-brain-run",     label: "phase-brain-run",        type: "skill", desc: "Simulation execution — runtime configs, parallel runs, output collection and checkpointing.",                                       url: "skills/phase-brain-run/SKILL/" },
-    { id: "sk-git",           label: "phase-git",              type: "skill", desc: "Version control conventions — branching strategy, commit message standards, tagging releases.",                                      url: "skills/phase-git/SKILL/" },
-    { id: "sk-pipeline",      label: "phase-pipeline",         type: "skill", desc: "Pipeline orchestration — multi-step workflows, dependency ordering, --nomistake strict mode.",                                       url: "skills/phase-pipeline/SKILL/" },
-    { id: "sk-search",        label: "phase-search",           type: "skill", desc: "Literature search — PubMed PICO queries, bioRxiv preprints, synthesis and citation management.",                                    url: "skills/phase-search/SKILL/" },
-    { id: "sk-export",        label: "phase-export",           type: "skill", desc: "Export conventions — PDF reports, ZIP archives, shareable HTML summaries.",                                                         url: "skills/phase-export/SKILL/" },
-    { id: "sk-fails",         label: "phase-fails",            type: "skill", desc: "Failure logging — structured failure reports, root-cause analysis, lessons learned.",                                               url: "skills/phase-fails/SKILL/" },
-    { id: "sk-quiz",          label: "phase-quiz",             type: "skill", desc: "Quiz generation — spaced repetition, domain-specific neuroscience questions, progress tracking.",                                   url: "skills/phase-quiz/SKILL/" },
-    { id: "sk-review-neuro",  label: "review-neuro",           type: "skill", desc: "Expert neuroscience manuscript review — rigorous scientific critique of methods, statistics, and interpretation.",                  url: "skills/review-neuro/SKILL/" },
+    { id: "sk-core",          label: "neuroflow-core",         type: "skill", tags: ["memory"],              desc: "Core lifecycle rules — what every command must read, write, and follow across all phases.",                                           url: "skills/neuroflow-core/SKILL/" },
+    { id: "sk-develop",       label: "neuroflow-develop",      type: "skill", tags: ["code","memory"],       desc: "Development guide — how to add new skills, commands, agents, and hooks to the neuroflow plugin.",                                    url: "skills/neuroflow-develop/SKILL/" },
+    { id: "sk-creator",       label: "skill-creator",          type: "skill", tags: ["code"],                desc: "Guide for creating and structuring new neuroflow skills, including overlap audits and frontmatter conventions.",                     url: "concepts/skills/" },
+    { id: "sk-ideation",      label: "phase-ideation",         type: "skill", tags: ["literature"],          desc: "Neuroscience ideation best practices — hypothesis formation, literature strategy, feasibility assessment.",                          url: "skills/phase-ideation/SKILL/" },
+    { id: "sk-prereg",        label: "phase-preregistration",  type: "skill", tags: ["writing","stats"],     desc: "Preregistration guidelines — OSF templates, CONSORT, STROBE, AsPredicted formats.",                                                url: "skills/phase-preregistration/SKILL/" },
+    { id: "sk-grant",         label: "phase-grant-proposal",   type: "skill", tags: ["writing"],             desc: "Grant writing strategy — NIH R01/R21, ERC, Wellcome Trust, DFG formats and review criteria.",                                       url: "skills/phase-grant-proposal/SKILL/" },
+    { id: "sk-finance",       label: "phase-finance",          type: "skill", tags: ["writing"],             desc: "Research budget planning and financial compliance — personnel costs, equipment, indirect rates.",                                     url: "skills/phase-finance/SKILL/" },
+    { id: "sk-experiment",    label: "phase-experiment",       type: "skill", tags: ["eeg","code"],          desc: "Experiment design — PsychoPy paradigms, LSL hardware integration, BIDS recording parameters.",                                      url: "skills/phase-experiment/SKILL/" },
+    { id: "sk-tool-build",    label: "phase-tool-build",       type: "skill", tags: ["code","eeg"],          desc: "Tool development — MNE pipelines, custom analysis scripts, code quality, and documentation.",                                       url: "skills/phase-tool-build/SKILL/" },
+    { id: "sk-tool-validate", label: "phase-tool-validate",    type: "skill", tags: ["code","stats"],        desc: "Validation strategies — unit tests, benchmarks, synthetic data, and edge-case coverage.",                                           url: "skills/phase-tool-validate/SKILL/" },
+    { id: "sk-data",          label: "phase-data",             type: "skill", tags: ["eeg","fmri","memory"], desc: "Data management — BIDS structure, provenance tracking, format conversion (EDF, BrainVision, NWB).",                                 url: "skills/phase-data/SKILL/" },
+    { id: "sk-data-pre",      label: "phase-data-preprocess",  type: "skill", tags: ["eeg","fmri","code"],   desc: "Preprocessing — filtering, ICA, epoching, artifact rejection, channel interpolation, QC.",                                          url: "skills/phase-data-preprocess/SKILL/" },
+    { id: "sk-data-analyze",  label: "phase-data-analyze",     type: "skill", tags: ["stats","ml"],          desc: "Analysis methods — ERPs, TFR, connectivity, decoding, GLM, and statistical testing.",                                               url: "skills/phase-data-analyze/SKILL/" },
+    { id: "sk-paper-write",   label: "phase-paper-write",      type: "skill", tags: ["writing"],             desc: "Scientific writing — IMRAD structure, figures, supplementary materials, journal formatting.",                                       url: "skills/phase-paper-write/SKILL/" },
+    { id: "sk-paper-review",  label: "phase-paper-review",     type: "skill", tags: ["writing","stats"],     desc: "Peer review — methods critique, statistical rigor, reproducibility, and writing quality assessment.",                               url: "skills/phase-paper-review/SKILL/" },
+    { id: "sk-notes",         label: "phase-notes",            type: "skill", tags: ["human"],               desc: "Note-taking conventions — structured session logs, meeting minutes, and observation formats.",                                       url: "skills/phase-notes/SKILL/" },
+    { id: "sk-write-report",  label: "phase-write-report",     type: "skill", tags: ["writing"],             desc: "Report generation — executive summaries, phase milestone reports, and stakeholder-ready formats.",                                  url: "skills/phase-write-report/SKILL/" },
+    { id: "sk-brain-build",   label: "phase-brain-build",      type: "skill", tags: ["brain-sim"],           desc: "Neural simulation model building — NEURON, Brian2, NetPyNE, NEST, tvb-library model definitions.",                                  url: "skills/phase-brain-build/SKILL/" },
+    { id: "sk-brain-opt",     label: "phase-brain-optimize",   type: "skill", tags: ["brain-sim","stats"],   desc: "Model optimization — parameter tuning, sensitivity analysis, fitting algorithms.",                                                  url: "skills/phase-brain-optimize/SKILL/" },
+    { id: "sk-brain-run",     label: "phase-brain-run",        type: "skill", tags: ["brain-sim"],           desc: "Simulation execution — runtime configs, parallel runs, output collection and checkpointing.",                                       url: "skills/phase-brain-run/SKILL/" },
+    { id: "sk-git",           label: "phase-git",              type: "skill", tags: ["code"],                desc: "Version control conventions — branching strategy, commit message standards, tagging releases.",                                      url: "skills/phase-git/SKILL/" },
+    { id: "sk-pipeline",      label: "phase-pipeline",         type: "skill", tags: ["code","memory"],       desc: "Pipeline orchestration — multi-step workflows, dependency ordering, --nomistake strict mode.",                                       url: "skills/phase-pipeline/SKILL/" },
+    { id: "sk-search",        label: "phase-search",           type: "skill", tags: ["literature"],          desc: "Literature search — PubMed PICO queries, bioRxiv preprints, synthesis and citation management.",                                    url: "skills/phase-search/SKILL/" },
+    { id: "sk-export",        label: "phase-export",           type: "skill", tags: ["code","memory"],       desc: "Export conventions — PDF reports, ZIP archives, shareable HTML summaries.",                                                         url: "skills/phase-export/SKILL/" },
+    { id: "sk-fails",         label: "phase-fails",            type: "skill", tags: ["human"],               desc: "Failure logging — structured failure reports, root-cause analysis, lessons learned.",                                               url: "skills/phase-fails/SKILL/" },
+    { id: "sk-quiz",          label: "phase-quiz",             type: "skill", tags: ["human"],               desc: "Quiz generation — spaced repetition, domain-specific neuroscience questions, progress tracking.",                                   url: "skills/phase-quiz/SKILL/" },
+    { id: "sk-review-neuro",  label: "review-neuro",           type: "skill", tags: ["writing","stats"],     desc: "Expert neuroscience manuscript review — rigorous scientific critique of methods, statistics, and interpretation.",                  url: "skills/review-neuro/SKILL/" },
 
     /* ── Agents ── */
-    { id: "ag-ideation",     label: "ideation",      type: "agent", desc: "Autonomous ideation specialist — literature review, hypothesis formation, feasibility assessment.",                url: "concepts/agents/" },
-    { id: "ag-scholar",      label: "scholar",        type: "agent", desc: "Literature search specialist — PubMed and bioRxiv queries, paper synthesis, citation extraction.",               url: "concepts/agents/" },
-    { id: "ag-grant",        label: "grant-proposal", type: "agent", desc: "Grant writing specialist — NIH, ERC, Wellcome Trust formats, reviewer-aware framing.",                          url: "concepts/agents/" },
-    { id: "ag-experiment",   label: "experiment",     type: "agent", desc: "Experiment design specialist — PsychoPy paradigms, LSL hardware configuration, BIDS metadata.",                 url: "concepts/agents/" },
-    { id: "ag-tool-build",   label: "tool-build",     type: "agent", desc: "Tool development specialist — MNE custom pipelines, test scaffolding, documentation.",                          url: "concepts/agents/" },
-    { id: "ag-tool-val",     label: "tool-validate",  type: "agent", desc: "Validation specialist — unit tests, benchmark suites, synthetic data generation.",                             url: "concepts/agents/" },
-    { id: "ag-data",         label: "data",           type: "agent", desc: "Data management specialist — BIDS validation, format conversion, provenance checks.",                          url: "concepts/agents/" },
-    { id: "ag-data-pre",     label: "data-preprocess",type: "agent", desc: "Preprocessing specialist — MNE pipeline execution, ICA, artifact rejection, QC reporting.",                   url: "concepts/agents/" },
-    { id: "ag-data-analyze", label: "data-analyze",   type: "agent", desc: "Analysis specialist — ERPs, time-frequency, connectivity, decoding, stats auditing.",                         url: "concepts/agents/" },
-    { id: "ag-paper-write",  label: "paper-write",    type: "agent", desc: "Writing specialist — manuscript drafting from analysis results and figures.",                                  url: "concepts/agents/" },
-    { id: "ag-paper-review", label: "paper-review",   type: "agent", desc: "Review specialist — methods critique, statistical rigour, reproducibility checks.",                           url: "concepts/agents/" },
-    { id: "ag-notes",        label: "notes",          type: "agent", desc: "Note-taking specialist — structured session logs and observation records.",                                    url: "concepts/agents/" },
-    { id: "ag-write-report", label: "write-report",   type: "agent", desc: "Report specialist — phase summaries and stakeholder-ready executive reports.",                                url: "concepts/agents/" },
-    { id: "ag-brain-build",  label: "brain-build",    type: "agent", desc: "Neural model specialist — NEURON, Brian2, NetPyNE, NEST model construction.",                                 url: "concepts/agents/" },
-    { id: "ag-brain-opt",    label: "brain-optimize", type: "agent", desc: "Optimization specialist — parameter fitting, sensitivity analysis, adaptive search.",                         url: "concepts/agents/" },
-    { id: "ag-brain-run",    label: "brain-run",      type: "agent", desc: "Simulation specialist — runtime execution, parallel job management, output collection.",                      url: "concepts/agents/" },
-    { id: "ag-sentinel",     label: "sentinel",       type: "agent", desc: "Audit specialist — project memory completeness, phase consistency, stale-entry detection.",                   url: "concepts/agents/" },
-    { id: "ag-sentinel-dev", label: "sentinel-dev",   type: "agent", desc: "Dev audit specialist — plugin integrity checks, overlap detection, version consistency.",                     url: "concepts/agents/" }
+    { id: "ag-ideation",     label: "ideation",      type: "agent", tags: ["literature","human"],  desc: "Autonomous ideation specialist — literature review, hypothesis formation, feasibility assessment.",                url: "concepts/agents/" },
+    { id: "ag-scholar",      label: "scholar",        type: "agent", tags: ["literature"],          desc: "Literature search specialist — PubMed and bioRxiv queries, paper synthesis, citation extraction.",               url: "concepts/agents/" },
+    { id: "ag-grant",        label: "grant-proposal", type: "agent", tags: ["writing"],             desc: "Grant writing specialist — NIH, ERC, Wellcome Trust formats, reviewer-aware framing.",                          url: "concepts/agents/" },
+    { id: "ag-experiment",   label: "experiment",     type: "agent", tags: ["eeg","code"],          desc: "Experiment design specialist — PsychoPy paradigms, LSL hardware configuration, BIDS metadata.",                 url: "concepts/agents/" },
+    { id: "ag-tool-build",   label: "tool-build",     type: "agent", tags: ["code"],                desc: "Tool development specialist — MNE custom pipelines, test scaffolding, documentation.",                          url: "concepts/agents/" },
+    { id: "ag-tool-val",     label: "tool-validate",  type: "agent", tags: ["code","stats"],        desc: "Validation specialist — unit tests, benchmark suites, synthetic data generation.",                             url: "concepts/agents/" },
+    { id: "ag-data",         label: "data",           type: "agent", tags: ["eeg","fmri"],          desc: "Data management specialist — BIDS validation, format conversion, provenance checks.",                          url: "concepts/agents/" },
+    { id: "ag-data-pre",     label: "data-preprocess",type: "agent", tags: ["eeg","fmri"],          desc: "Preprocessing specialist — MNE pipeline execution, ICA, artifact rejection, QC reporting.",                   url: "concepts/agents/" },
+    { id: "ag-data-analyze", label: "data-analyze",   type: "agent", tags: ["stats","ml"],          desc: "Analysis specialist — ERPs, time-frequency, connectivity, decoding, stats auditing.",                         url: "concepts/agents/" },
+    { id: "ag-paper-write",  label: "paper-write",    type: "agent", tags: ["writing"],             desc: "Writing specialist — manuscript drafting from analysis results and figures.",                                  url: "concepts/agents/" },
+    { id: "ag-paper-review", label: "paper-review",   type: "agent", tags: ["writing","stats"],     desc: "Review specialist — methods critique, statistical rigour, reproducibility checks.",                           url: "concepts/agents/" },
+    { id: "ag-notes",        label: "notes",          type: "agent", tags: ["human"],               desc: "Note-taking specialist — structured session logs and observation records.",                                    url: "concepts/agents/" },
+    { id: "ag-write-report", label: "write-report",   type: "agent", tags: ["writing"],             desc: "Report specialist — phase summaries and stakeholder-ready executive reports.",                                url: "concepts/agents/" },
+    { id: "ag-brain-build",  label: "brain-build",    type: "agent", tags: ["brain-sim"],           desc: "Neural model specialist — NEURON, Brian2, NetPyNE, NEST model construction.",                                 url: "concepts/agents/" },
+    { id: "ag-brain-opt",    label: "brain-optimize", type: "agent", tags: ["brain-sim","stats"],   desc: "Optimization specialist — parameter fitting, sensitivity analysis, adaptive search.",                         url: "concepts/agents/" },
+    { id: "ag-brain-run",    label: "brain-run",      type: "agent", tags: ["brain-sim"],           desc: "Simulation specialist — runtime execution, parallel job management, output collection.",                      url: "concepts/agents/" },
+    { id: "ag-sentinel",     label: "sentinel",       type: "agent", tags: ["memory"],              desc: "Audit specialist — project memory completeness, phase consistency, stale-entry detection.",                   url: "concepts/agents/" },
+    { id: "ag-sentinel-dev", label: "sentinel-dev",   type: "agent", tags: ["code","memory"],       desc: "Dev audit specialist — plugin integrity checks, overlap detection, version consistency.",                     url: "concepts/agents/" }
   ];
 
   var LINKS = [
@@ -188,6 +189,21 @@
     command: { color: "#7c4dff", glow: "#651fff", radius: 12, ring: 1 },
     skill:   { color: "#26c6da", glow: "#00acc1", radius: 9,  ring: 2 },
     agent:   { color: "#66bb6a", glow: "#43a047", radius: 9,  ring: 3 }
+  };
+
+  /* ── Tag receptor colors ─────────────────────────────────────────────────── */
+  /* Each tag is shown as a small colored dot (receptor) on the node surface.  */
+  var TAG_CONFIG = {
+    "memory":    { color: "#ce93d8", label: "memory" },
+    "literature":{ color: "#ffd54f", label: "literature" },
+    "eeg":       { color: "#26c6da", label: "EEG / ephys" },
+    "fmri":      { color: "#ef5350", label: "fMRI / imaging" },
+    "brain-sim": { color: "#ec407a", label: "brain simulation" },
+    "stats":     { color: "#ffa726", label: "statistics" },
+    "ml":        { color: "#42a5f5", label: "machine learning" },
+    "code":      { color: "#66bb6a", label: "code / tools" },
+    "writing":   { color: "#ab47bc", label: "scientific writing" },
+    "human":     { color: "#ff7043", label: "human interaction" }
   };
 
   var LINK_COLORS = {
@@ -341,6 +357,29 @@
         .attr("font-size", "11px")
         .attr("font-family", "Inter, sans-serif")
         .text(item.label);
+    });
+
+    /* ── Tag receptor legend (top-right) ── */
+    var tagKeys = Object.keys(TAG_CONFIG);
+    var tagLegend = svg.append("g").attr("transform", "translate(" + (W - 145) + ",20)");
+    tagLegend.append("text")
+      .attr("x", 0).attr("y", 0)
+      .attr("fill", "rgba(255,255,255,0.4)")
+      .attr("font-size", "10px")
+      .attr("font-family", "Inter, sans-serif")
+      .attr("font-weight", "600")
+      .attr("letter-spacing", "0.08em")
+      .text("DOMAIN TAGS");
+    tagKeys.forEach(function(key, i) {
+      var g = tagLegend.append("g").attr("transform", "translate(0," + (14 + i * 18) + ")");
+      g.append("circle").attr("r", 3.5).attr("cx", 4).attr("cy", 5)
+        .attr("fill", TAG_CONFIG[key].color)
+        .attr("opacity", 0.9);
+      g.append("text").attr("x", 13).attr("y", 9)
+        .attr("fill", "rgba(255,255,255,0.5)")
+        .attr("font-size", "10px")
+        .attr("font-family", "Inter, sans-serif")
+        .text(TAG_CONFIG[key].label);
     });
 
     /* ── Link type hint ── */
@@ -501,10 +540,47 @@
       .attr("stroke-width", 1.5)
       .attr("opacity", 0.5);
 
-    /* Labels */
+    /* ── Tag receptor dots ── */
+    /* For each node, draw small colored dots evenly around the outer edge
+       of the main circle — one dot per tag, like membrane receptors.        */
+    /* TAG_START_ANGLE: -π/2 rotates the first dot to the 12 o'clock
+       position in SVG coordinates (where 0 rad = 3 o'clock).               */
+    var TAG_START_ANGLE = -Math.PI / 2;
+    nodeSel.each(function(d) {
+      var tags = d.tags || [];
+      if (!tags.length) return;
+      var n = tags.length;
+      var nodeR = TYPE_CONFIG[d.type].radius;
+      /* Receptor dots sit just outside the node circle */
+      var dotR = d.type === "core" ? 5 : 3;
+      var orbitR = nodeR + dotR + 2;
+      tags.forEach(function(tag, i) {
+        var angle = TAG_START_ANGLE + (i / n) * 2 * Math.PI;
+        var cx = Math.cos(angle) * orbitR;
+        var cy = Math.sin(angle) * orbitR;
+        var tagCfg = TAG_CONFIG[tag] || { color: "#ffffff" };
+        d3.select(this).append("circle")
+          .attr("class", "nf-tag-dot")
+          .attr("cx", cx)
+          .attr("cy", cy)
+          .attr("r", dotR)
+          .attr("fill", tagCfg.color)
+          .attr("stroke", "rgba(0,0,0,0.4)")
+          .attr("stroke-width", 0.5)
+          .attr("opacity", 0.9)
+          .attr("pointer-events", "none");
+      });
+    });
+
+    /* Labels — offset clears both the node circle and any receptor dots.
+       dot orbit max = radius + 2*dotR + 2 ≈ radius+8, so radius+14 is safe. */
     nodeSel.append("text")
       .attr("class", "nf-node-label")
-      .attr("dy", function(d) { return TYPE_CONFIG[d.type].radius + 13; })
+      .attr("dy", function(d) {
+        /* Receptor dot orbit sits at nodeR + dotR + 2; add clearance */
+        var dotR = d.type === "core" ? 5 : 3;
+        return TYPE_CONFIG[d.type].radius + dotR + 6;
+      })
       .attr("text-anchor", "middle")
       .attr("font-size", function(d) { return d.type === "core" ? "13px" : "10px"; })
       .attr("font-weight", function(d) { return d.type === "core" ? "700" : "500"; })
@@ -522,6 +598,7 @@
       '<span class="nf-mind-panel-type"></span>' +
       '<h3 class="nf-mind-panel-title"></h3>' +
       '<p class="nf-mind-panel-desc"></p>' +
+      '<div class="nf-mind-panel-tags"></div>' +
       '<div class="nf-mind-panel-connections"></div>' +
       '<a class="nf-mind-panel-link md-button md-button--primary" href="#" target="_self">View docs →</a>' +
       '</div>';
@@ -640,6 +717,23 @@
       panel.querySelector(".nf-mind-panel-type").style.color = cfg.color;
       panel.querySelector(".nf-mind-panel-title").textContent = d.label;
       panel.querySelector(".nf-mind-panel-desc").textContent = d.desc;
+
+      /* Tags */
+      var tagsDiv = panel.querySelector(".nf-mind-panel-tags");
+      var tags = d.tags || [];
+      if (tags.length) {
+        var tagHtml = '<p class="nf-conn-heading">Domain tags</p><div class="nf-tag-pills">';
+        tags.forEach(function(tag) {
+          var tagCfg = TAG_CONFIG[tag] || { color: "#fff", label: tag };
+          tagHtml += '<span class="nf-tag-pill" style="border-color:' + tagCfg.color + ';color:' + tagCfg.color + '">' +
+            '<span class="nf-tag-dot-sm" style="background:' + tagCfg.color + '"></span>' +
+            tagCfg.label + '</span>';
+        });
+        tagHtml += '</div>';
+        tagsDiv.innerHTML = tagHtml;
+      } else {
+        tagsDiv.innerHTML = "";
+      }
 
       /* Connections list */
       var connDiv = panel.querySelector(".nf-mind-panel-connections");
