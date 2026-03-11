@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.1.5
+
+- **Behavioral flags** — two prompt-level flags added to [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md): `nomistake` (aggressive evaluation loop — reruns and self-critiques until high-quality threshold is met) and `snowflake` (clarify-first mode — asks targeted questions before each step, proceeds incrementally). Include either word in any prompt and the flag activates for the full command session.
+
 ## What's new in 0.1.4
 
 - **[`/quiz`](commands/quiz.md)** — neuroscience quiz command with three modes: flashcards (saveable A4 printable layout), pub quiz (with neuroscience-themed house rules), and rapid-fire throw questions (default)
@@ -117,7 +121,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 
 | Skill | What it does |
 |---|---|
-| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard |
+| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`nomistake`, `snowflake`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
