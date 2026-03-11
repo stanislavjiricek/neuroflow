@@ -669,6 +669,11 @@ hr {
   display: none !important;
 }
 
+/* ── Hide auto-injected page title on home page (hero logo is the identity) ── */
+.md-content:has(.hero) .md-content__inner > h1 {
+  display: none !important;
+}
+
 /* ── Hide edit/view-source page action buttons ────────────────────────────── */
 .md-content__button {
   display: none !important;
