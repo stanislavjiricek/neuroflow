@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.1.4
+
+- **[`/fails`](commands/fails.md)** — new utility command and [`neuroflow:phase-fails`](skills/phase-fails/SKILL.md) skill: log dissatisfaction (core behavior, science quality, or interaction UX) to `.neuroflow/fails/`, with optional one-click GitHub issue reporting
+
 ## What's new in 0.1.3
 
 - **`/start` renamed to [`/neuroflow`](commands/neuroflow.md)** — the main entry point is now `/neuroflow:neuroflow`; all commands, docs, and agents updated
@@ -88,6 +92,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 |---|---|
 | [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
+| [`/fails`](commands/fails.md) | Log dissatisfaction — record core behavior, science quality, or UX issues; optionally opens a GitHub issue report |
 
 ---
 
@@ -113,6 +118,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-paper-review`](skills/phase-paper-review/SKILL.md) | Phase guidance for /paper-review — delegates review to neuroflow:review-neuro |
 | [`neuroflow:phase-notes`](skills/phase-notes/SKILL.md) | Phase guidance for /notes |
 | [`neuroflow:phase-write-report`](skills/phase-write-report/SKILL.md) | Phase guidance for /write-report |
+| [`neuroflow:phase-fails`](skills/phase-fails/SKILL.md) | Phase guidance for /fails — categorisation approach, GitHub reporting, and dissatisfaction capture rules |
 
 ---
 
@@ -170,6 +176,7 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 ├── paper-review/           ← review reports
 ├── notes/                  ← structured notes from meetings and talks
 └── write-report/           ← project reports
+└── fails/                  ← dissatisfaction log: core.md, science.md, ux.md
 ```
 
 ---
