@@ -87,14 +87,14 @@ Every command must also follow the lifecycle defined in `neuroflow:neuroflow-cor
 
 ## Project memory — .neuroflow/
 
-Project state lives in the **user's working directory**, not inside the plugin. The `/start` command creates `.neuroflow/` there by interviewing the user.
+Project state lives in the **user's working directory**, not inside the plugin. The `/neuroflow` command creates `.neuroflow/` there by interviewing the user.
 
 Skills, commands, and agents that need project context must explicitly `Read` `.neuroflow/project_config.md` from the working directory at runtime. It is never auto-injected.
 
 **When building a new skill/command/agent that needs project context:**
 1. Read `neuroflow:neuroflow-core` to understand the full `.neuroflow/` structure
 2. Declare what you read and write in the frontmatter `reads` / `writes` fields
-3. Handle the case where `.neuroflow/` doesn't exist — prompt the user to run `/start` first, or proceed with sensible defaults
+3. Handle the case where `.neuroflow/` doesn't exist — prompt the user to run `/neuroflow` first, or proceed with sensible defaults
 
 There is no config folder in the plugin — project state is always per-project, in the user's repo.
 

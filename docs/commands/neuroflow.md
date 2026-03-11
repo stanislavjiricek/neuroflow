@@ -1,20 +1,20 @@
 ---
-title: /start
+title: /neuroflow
 ---
 
-# `/neuroflow:start`
+# `/neuroflow:neuroflow`
 
 **The main entry point for every neuroflow project.**
 
-`/start` is the first command you run in any project folder. It either shows you the current status of an existing project or interviews you and creates the `.neuroflow/` project memory structure from scratch.
+`/neuroflow` is the first command you run in any project folder. It either shows you the current status of an existing project or interviews you and creates the `.neuroflow/` project memory structure from scratch.
 
 ---
 
 ## When to use it
 
-- **New project** — run `/start` to create `.neuroflow/` and get oriented
-- **Returning to a project** — run `/start` to see your current phase and status at a glance
-- **Starting a new session** — it's a good habit to run `/start` at the beginning of each work session
+- **New project** — run `/neuroflow` to create `.neuroflow/` and get oriented
+- **Returning to a project** — run `/neuroflow` to see your current phase and status at a glance
+- **Starting a new session** — it's a good habit to run `/neuroflow` at the beginning of each work session
 
 ---
 
@@ -22,7 +22,7 @@ title: /start
 
 ### Existing project
 
-If `.neuroflow/project_config.md` already exists, `/start` reads it and prints a brief status:
+If `.neuroflow/project_config.md` already exists, `/neuroflow` reads it and prints a brief status:
 
 ```
 Current phase: data-preprocess
@@ -36,7 +36,7 @@ It then waits for your instruction — no setup, no interview, just status + nex
 
 ### New project
 
-If `.neuroflow/` does not exist, `/start` runs through a setup sequence:
+If `.neuroflow/` does not exist, `/neuroflow` runs through a setup sequence:
 
 **1. Scan the repo**
 
@@ -99,7 +99,7 @@ Based on your phase, Claude suggests the next command to run.
 ## Example session
 
 ```
-/neuroflow:start
+/neuroflow:neuroflow
 ```
 
 ```

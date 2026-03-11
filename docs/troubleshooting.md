@@ -10,7 +10,7 @@ Common issues and how to resolve them.
 
 ## Installation issues
 
-### `/neuroflow:start` is not recognized
+### `/neuroflow:neuroflow` is not recognized
 
 **Cause:** neuroflow is not installed, or the installation did not complete.
 
@@ -81,9 +81,9 @@ Then restart Claude Code.
 
 ### `.neuroflow/` was not created
 
-**Cause:** `/start` was interrupted, or you declined to create it.
+**Cause:** `/neuroflow` was interrupted, or you declined to create it.
 
-**Fix:** Run `/neuroflow:start` again and complete the setup interview.
+**Fix:** Run `/neuroflow:neuroflow` again and complete the setup interview.
 
 ### Project context is wrong or stale
 
@@ -93,7 +93,7 @@ Then restart Claude Code.
 
 1. Run `/neuroflow:sentinel` to detect and fix inconsistencies
 2. Check that `.claude/CLAUDE.md` contains the neuroflow block
-3. Run `/neuroflow:start` to refresh the status
+3. Run `/neuroflow:neuroflow` to refresh the status
 
 ### Claude does not remember the project
 

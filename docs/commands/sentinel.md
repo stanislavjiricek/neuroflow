@@ -25,7 +25,7 @@ Claude checks which context it's in and routes to the appropriate agent:
 
 1. If `.claude-plugin/plugin.json` exists → **plugin repo** — invokes the `sentinel-dev` agent
 2. If `.neuroflow/` exists → **project repo** — invokes the `sentinel` agent
-3. Otherwise → asks you to run `/start` first
+3. Otherwise → asks you to run `/neuroflow` first
 
 ---
 

@@ -30,12 +30,12 @@ claude
 
 ---
 
-## Step 3 — Run `/start`
+## Step 3 — Run `/neuroflow`
 
 Type this in Claude Code:
 
 ```
-/neuroflow:start
+/neuroflow:neuroflow
 ```
 
 If this is a **new project**, neuroflow will:
@@ -48,7 +48,7 @@ If you already have a `.neuroflow/` folder, it will show your current phase and 
 
 !!! example "Example session"
     ```
-    You: /neuroflow:start
+    You: /neuroflow:neuroflow
 
     Claude: I found a `paradigm/` folder with PsychoPy scripts and a `scripts/` folder
             with Python preprocessing code. This looks like an EEG study in progress.

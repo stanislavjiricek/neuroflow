@@ -44,7 +44,7 @@ This is the recommended way to contribute or test changes before they are releas
 Once installed, open any project folder and run:
 
 ```
-/neuroflow:start
+/neuroflow:neuroflow
 ```
 
 You should see neuroflow scan your project and offer to set up `.neuroflow/` project memory.

@@ -14,7 +14,7 @@ title: /phase
 
 - You want to quickly check where you are in the project
 - You want to switch from one phase to another
-- You're orienting yourself at the start of a session (though `/start` does this too)
+- You're orienting yourself at the start of a session (though `/neuroflow` does this too)
 
 ---
 
@@ -82,5 +82,5 @@ Claude: ✅ Active phase updated to: data-analyze
 
 ## Related commands
 
-- [`/start`](start.md) — full project status + session start
+- [`/neuroflow`](neuroflow.md) — full project status + session start
 - [`/sentinel`](sentinel.md) — audit project for consistency issues

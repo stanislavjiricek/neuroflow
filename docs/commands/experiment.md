@@ -35,7 +35,7 @@ Claude asks which area you want to work on:
     - Timing requirements (ISI, SOA, jitter)
     - Markers needed — which events must be tagged
 
-    **Output:** `paradigm-[name].py` saved to your `paradigm/` folder (or the path detected by `/start`), following neuroscience paradigm best practices.
+    **Output:** `paradigm-[name].py` saved to your `paradigm/` folder (or the path detected by `/neuroflow`), following neuroscience paradigm best practices.
 
     **Example:**
     ```

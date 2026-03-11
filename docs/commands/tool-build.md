@@ -86,7 +86,7 @@ Claude: Got it — a closed-loop alpha neurofeedback system.
 ## Output
 
 - `tool-spec.md` — specification document → `.neuroflow/tool-build/`
-- Tool code → `tools/` (or the path detected by `/start`)
+- Tool code → `tools/` (or the path detected by `/neuroflow`)
 
 ---
 

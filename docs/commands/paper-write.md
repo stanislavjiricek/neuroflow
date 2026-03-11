@@ -115,7 +115,7 @@ Claude: PLOS ONE style (APA references, 250-word abstract limit).
 
 ## Output
 
-The draft is saved as `manuscript-[date].md` (or `.tex`) in your `manuscript/` folder (or the path detected by `/start`).
+The draft is saved as `manuscript-[date].md` (or `.tex`) in your `manuscript/` folder (or the path detected by `/neuroflow`).
 
 ---
 

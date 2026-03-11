@@ -88,7 +88,7 @@ Check whether `.claude/CLAUDE.md` exists in the project repo.
 - If it does not exist: flag it — Claude Code will not load project config without it
 - If it exists but does not reference `project_config.md`: flag it — Claude Code agents will not know where project memory lives
 
-Auto-fix: if the file exists but is missing the neuroflow block, append the same block that `/start` writes:
+Auto-fix: if the file exists but is missing the neuroflow block, append the same block that `/neuroflow` writes:
 
 ```markdown
 ## neuroflow
