@@ -44,7 +44,7 @@ Flag if these tell different stories.
 ### 5 — Preregistration vs progress
 
 If `.neuroflow/preregistration/` exists, read it. Compare stated hypotheses and planned analyses against:
-- `.neuroflow/decisions.md` (were there undocumented deviations?)
+- `.neuroflow/reasoning/` (were there undocumented deviations?)
 - `.neuroflow/data-analyze/` analysis summary (were different analyses run?)
 
 Flag deviations. Do not judge — just surface them for the user.

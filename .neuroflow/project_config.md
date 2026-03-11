@@ -23,6 +23,4 @@ End-to-end agentic research workflow plugin for neuroscience teams. Covers the f
 - MCP: bioRxiv, PubMed, Miro, Context7
 - Hooks: PostToolUse (ruff formatter, session logger)
 
-## Key decisions
 
-See `decisions.md`.

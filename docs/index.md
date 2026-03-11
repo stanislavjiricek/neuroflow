@@ -40,7 +40,7 @@ Domain-specific skills for EEG, iEEG, fMRI, eye tracking, ECG, and other physiol
 <div class="feature-card" markdown>
 <span class="feature-icon">💾</span>
 ### Persistent project memory
-All decisions, logs, and context live in `.neuroflow/` — Claude reads it at the start of every session so you never repeat yourself.
+All reasoning logs, session notes, and context live in `.neuroflow/` — Claude reads it at the start of every session so you never repeat yourself.
 </div>
 
 <div class="feature-card" markdown>
@@ -175,7 +175,6 @@ Then open any project folder and run:
 .neuroflow/
 ├── project_config.md    ← active phase, research question, modality, tools
 ├── flow.md              ← index of all subfolders
-├── decisions.md         ← key decisions log
 ├── reasoning/           ← structured per-phase decision logs (JSON)
 ├── sessions/            ← daily session logs (git-ignored)
 ├── ideation/            ← research questions, literature reviews, proposals

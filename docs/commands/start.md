@@ -67,7 +67,6 @@ Claude asks a few focused questions — one or two at a time:
 .neuroflow/
 ├── project_config.md    ← research question, modality, tools, active phase
 ├── flow.md              ← index of all subfolders
-├── decisions.md         ← key decisions log
 ├── sessions/            ← daily session logs (.gitignore this)
 └── reasoning/
     └── general.json     ← project-level decisions (JSON)

@@ -58,7 +58,7 @@ Flags if these tell inconsistent stories.
 ### 5 — Preregistration vs progress
 
 If `.neuroflow/preregistration/` exists, compares stated hypotheses and planned analyses against:
-- `decisions.md`
+- `.neuroflow/reasoning/` (were there undocumented deviations?)
 - The analysis summary in `.neuroflow/data-analyze/`
 
 Flags deviations — does not judge them, just surfaces them.
