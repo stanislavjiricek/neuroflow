@@ -23,3 +23,7 @@ The grant-proposal phase translates a defined research question into a fundable 
 - All drafted content (aims, narrative, budget tables) goes to `output_path` (`grant/`), not inside `.neuroflow/`
 - Save a brief grant summary to `.neuroflow/grant-proposal/` so future commands know funding context
 - Log funder, scheme, and deadline in `project_config.md` if not already there
+
+## Slash command
+
+`/neuroflow:grant-proposal` — runs this workflow as a slash command.

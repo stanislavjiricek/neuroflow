@@ -23,3 +23,7 @@ The data-preprocess phase filters, cleans, epochs, and quality-checks raw data t
 - All scripts and processed data go to `output_path` (`scripts/preprocessing/`), not inside `.neuroflow/`
 - Save `preprocess-config.md` to `.neuroflow/data-preprocess/` with the full parameter set used
 - Log any deviation from a pre-registered preprocessing plan in `.neuroflow/reasoning/data-preprocess.json`
+
+## Slash command
+
+`/neuroflow:data-preprocess` — runs this workflow as a slash command.

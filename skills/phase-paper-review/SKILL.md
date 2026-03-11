@@ -22,3 +22,7 @@ The paper-review phase runs a rigorous pre-submission peer review of a neuroscie
 
 - The review is saved automatically by `review-neuro` to `.neuroflow/paper-review/review-[date].md` — do not duplicate this
 - Append only a single one-liner to the session log referencing the saved file path
+
+## Slash command
+
+`/neuroflow:paper-review` — runs this workflow as a slash command.

@@ -24,3 +24,7 @@ The brain-build phase covers the design and implementation of a computational br
 - Save `model-spec.md` to `.neuroflow/brain-build/` before writing any implementation
 - Note key architecture decisions (neuron model chosen, connectivity rule, library selected) in `.neuroflow/reasoning/brain-build.json`
 - Common frameworks: NEURON, Brian2, NetPyNE, NEST, tvb-library, Custom Python/Julia
+
+## Slash command
+
+`/neuroflow:brain-build` — runs this workflow as a slash command.
