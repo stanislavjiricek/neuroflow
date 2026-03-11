@@ -160,7 +160,7 @@ hr {
 
 /* ── Hero section ─────────────────────────────────────────────────────────── */
 .hero {
-  padding: 1.5rem 2rem;
+  padding: 2rem 2rem;
   background: linear-gradient(145deg,
     #4a148c 0%,
     #6a1b9a 30%,
@@ -197,17 +197,9 @@ hr {
 .hero-inner {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  justify-content: center;
   position: relative;
   z-index: 1;
-}
-
-.hero-logo-img {
-  width: 110px;
-  flex-shrink: 0;
-  margin: 0;
-  display: block;
-  animation: hero-anim 9s ease-in-out infinite;
 }
 
 /* md_in_html wraps the img in a <p> — make it transparent for flex layout */
@@ -227,9 +219,11 @@ hr {
   100% { transform: translateY(0)    translateX(0)    rotate(0deg)    scaleX(1);    filter: drop-shadow(0 0 28px rgba(149,117,205,0.55)); }
 }
 
+
 .hero-text {
   flex: 1;
-  text-align: left;
+  text-align: center;
+  max-width: 680px;
 }
 
 .hero-text p,
@@ -625,13 +619,8 @@ hr {
 
   .hero-inner {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 1rem;
-  }
-
-  .hero-logo-img {
-    max-width: 80px;
-    width: 80px;
   }
 
   .hero-text strong {
