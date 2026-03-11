@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.1.5"
+  version: "0.1.6"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow

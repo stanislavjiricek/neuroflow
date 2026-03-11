@@ -6,6 +6,15 @@ title: Changelog
 
 ---
 
+## 0.1.6
+
+- **Version bump** — website and header badge updated to v0.1.6
+- **Mind map back button** — the back-to-docs link on the mind map page is now a full-width prominent button, easy to spot and reach
+- **Fails-folder awareness in core** — `neuroflow:neuroflow-core` now instructs every command to read `.neuroflow/fails/` at start (if it exists), so past logged dissatisfaction is always in context
+- **Removed AI-slop feature claims** — the "Built-in stats auditing" feature card removed from the homepage; the `/data-analyze` command page and skill are unchanged
+
+---
+
 ## 0.1.5
 
 - **`/git`** — context-aware git utility with smart shorthand aliases (`p`, `pl`, `ps`, `a`, `c`, `ac`, `acp`, `b`, `pr`); reads repo state to decide push vs pull, suggests commit messages, and can open PRs via `gh` CLI; new `neuroflow:phase-git` skill

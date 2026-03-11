@@ -766,6 +766,38 @@ hr {
 }
 .nf-mind-back:hover { color: #ce93d8; }
 
+/* Large prominent back-to-docs button overlaid on the mind map */
+.nf-mind-back-btn-wrap {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.nf-mind-back-btn {
+  display: inline-block;
+  pointer-events: all;
+  padding: 0.75rem 2rem;
+  background: rgba(106, 27, 154, 0.85);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 2rem;
+  text-decoration: none;
+  border: 1.5px solid rgba(206, 147, 216, 0.55);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.nf-mind-back-btn:hover {
+  background: rgba(149, 0, 200, 0.95);
+  border-color: #ce93d8;
+  color: #fff;
+}
+
 .nf-mind-topbar-title {
   display: flex;
   align-items: center;

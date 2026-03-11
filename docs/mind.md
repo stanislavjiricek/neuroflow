@@ -8,11 +8,14 @@ hide:
 
 <div id="nf-mind-root" class="nf-mind-fullscreen">
   <div class="nf-mind-topbar">
-    <a href=".." class="nf-mind-back" aria-label="Back to homepage">← back</a>
+    <a href=".." class="nf-mind-back" aria-label="Back to docs">← back to docs</a>
     <div class="nf-mind-topbar-title">
       <span class="nf-mind-topbar-icon">🌌</span>
       <span>Neuroflow Mind</span>
     </div>
     <p class="nf-mind-topbar-hint">drag · scroll to zoom · click any node</p>
+  </div>
+  <div class="nf-mind-back-btn-wrap">
+    <a href=".." class="nf-mind-back-btn">← back to docs</a>
   </div>
 </div>
