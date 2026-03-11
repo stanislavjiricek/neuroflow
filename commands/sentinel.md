@@ -6,7 +6,6 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/sentinel.md
-  - .neuroflow/decisions.md
   - .neuroflow/reasoning/
   - .neuroflow/preregistration/
   - .neuroflow/sessions/

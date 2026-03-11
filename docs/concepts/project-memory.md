@@ -6,7 +6,7 @@ title: Project Memory
 
 **Project memory is the `.neuroflow/` folder at the root of your project repository.**
 
-It is the shared brain of your neuroflow project — a set of structured Markdown and JSON files that every command reads at the start of a session and writes to at the end. This means Claude always knows your research question, your active phase, your decisions, and what has been done before — without you having to re-explain anything.
+It is the shared brain of your neuroflow project — a set of structured Markdown and JSON files that every command reads at the start of a session and writes to at the end. This means Claude always knows your research question, your active phase, and what has been done before — without you having to re-explain anything.
 
 ---
 
@@ -16,7 +16,6 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 .neuroflow/
 ├── project_config.md       ← current phase, research question, modality, tools, plugin_version
 ├── flow.md                 ← index of all subfolders
-├── decisions.md            ← key decisions log (git-tracked)
 ├── sentinel.md             ← sentinel audit report
 ├── linked_flows.md         ← paths to other .neuroflow/ folders (optional)
 ├── team.md                 ← project members and roles (optional)
@@ -86,10 +85,6 @@ tools: Python 3.11, MNE 1.6, PsychoPy 2024
 ### `flow.md`
 
 An index of everything in `.neuroflow/`. Each subfolder has its own `flow.md` too — an index of the files inside it. Commands use `flow.md` to navigate without scanning the whole disk.
-
-### `decisions.md`
-
-A log of significant decisions made during the project — when you chose one approach over another, when you deviated from the pre-registered plan, when you changed a parameter. New decisions go to `reasoning/` (JSON format); `decisions.md` is legacy markdown.
 
 ### `reasoning/`
 

@@ -9,15 +9,14 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 ## .neuroflow/ folder
 
-`.neuroflow/` is project memory — plans, reports, configs, indexes, decisions, QC notes. It lives at the root of the user's project repo.
+`.neuroflow/` is project memory — plans, reports, configs, indexes, reasoning logs, QC notes. It lives at the root of the user's project repo.
 
 ### Root files
 
 | File | Purpose |
 |---|---|
-| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, key decisions, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
+| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
-| `decisions.md` | Legacy markdown decisions log. New decisions go to `.neuroflow/reasoning/{phase}.json`. |
 | `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |
 | `sentinel.md` | Sentinel's last audit report. If all clear: last run date + "all clear". |
 | `team.md` | Project members, roles, contacts. |

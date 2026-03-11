@@ -102,7 +102,6 @@ Create this structure in the working directory:
 .neuroflow/
 ├── project_config.md
 ├── flow.md
-├── decisions.md
 └── sessions/
 └── reasoning/
     ├── flow.md
@@ -117,12 +116,9 @@ Create this structure in the working directory:
 | File / Folder | Description | Last changed |
 |---|---|---|
 | project_config.md | Project overview and current phase. | YYYY-MM-DD |
-| decisions.md | Key decisions log (legacy markdown). | YYYY-MM-DD |
 | sessions/ | Daily session logs. | YYYY-MM-DD |
 | reasoning/ | Structured per-phase decision logs (JSON: statement, source, reasoning). | YYYY-MM-DD |
 ```
-
-**`decisions.md`** — create empty with just a header (legacy file; new decisions go to `reasoning/`).
 
 **`sessions/`** — create a `.gitkeep` file. Remind the user to add `sessions/` to `.gitignore`.
 

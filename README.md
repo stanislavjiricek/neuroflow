@@ -24,7 +24,7 @@
 ## What's new in 0.1.1
 
 - Full research pipeline — 15 commands from [`/start`](commands/start.md) through [`/paper-review`](commands/paper-review.md), each writing to `.neuroflow/` project memory
-- [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) — shared lifecycle and `.neuroflow/` folder spec that every command and agent follows; commands now automatically append significant decisions to `decisions.md`
+- [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) — shared lifecycle and `.neuroflow/` folder spec that every command and agent follows; commands now automatically append significant decisions to `.neuroflow/reasoning/{phase}.json`
 - [`scholar`](agents/scholar.md), [`sentinel`](agents/sentinel.md), [`sentinel-dev`](agents/sentinel-dev.md) agents
 - `sentinel` checks plugin version against `project_config.md` and flags when the plugin has been updated; both sentinels clear their report to "All clear" after fixing issues
 - `project_config.md` now tracks `plugin_version` — kept in sync with `plugin.json` by `/start` and `/sentinel`
@@ -144,7 +144,6 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 .neuroflow/
 ├── project_config.md       ← current phase, research question, tools, plugin_version — read by every command
 ├── flow.md                 ← index of all subfolders
-├── decisions.md            ← key decisions log (git-tracked)
 ├── sentinel.md             ← sentinel audit report
 ├── linked_flows.md         ← paths to other .neuroflow/ folders (optional)
 ├── team.md                 ← project members and roles (optional)

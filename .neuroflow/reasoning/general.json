@@ -15,9 +15,9 @@
     "reasoning": "Makes dependencies explicit; sentinel-dev can validate consistency"
   },
   {
-    "statement": "`sessions/` goes to `.gitignore`; decisions are git-tracked",
+    "statement": "`sessions/` goes to `.gitignore`; reasoning logs are git-tracked",
     "source": "sentinel-dev | 2026-03-09",
-    "reasoning": "Sessions are local continuity; decisions are team-shared history"
+    "reasoning": "Sessions are local continuity; reasoning logs are team-shared history"
   },
   {
     "statement": "`/literature` is not a standalone command — literature lives under `/ideation` via scholar agent",
