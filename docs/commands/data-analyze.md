@@ -6,7 +6,7 @@ title: /data-analyze
 
 **Run an analysis pipeline on your preprocessed data.**
 
-`/data-analyze` covers the full range of neuroscience analysis methods — ERPs, time-frequency, connectivity, decoding, and GLM.
+`/data-analyze` covers the full range of neuroscience analysis methods — ERPs, time-frequency, connectivity, decoding, and GLM — with built-in statistical auditing to ensure your results are rigorous.
 
 ---
 
@@ -103,6 +103,17 @@ Claude selects the appropriate tooling based on your goal:
     fmri_glm.fit(fmri_imgs, events_df)
     z_map = fmri_glm.compute_contrast('target - standard')
     ```
+
+---
+
+## Statistical auditing
+
+After running analysis, Claude audits the statistical approach:
+
+- **Test assumptions** — normality, sphericity, independence
+- **Multiple comparison correction** — cluster permutation, FDR, Bonferroni
+- **Effect size reporting** — Cohen's d, partial η², AUC
+- **Pre-registration compliance** — if a plan exists, flags any deviations
 
 ---
 

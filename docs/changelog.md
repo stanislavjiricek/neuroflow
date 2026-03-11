@@ -11,7 +11,7 @@ title: Changelog
 - **Version bump** — website and header badge updated to v0.1.6
 - **Mind map back button** — the back-to-docs link on the mind map page is now a full-width prominent button, easy to spot and reach
 - **Fails-folder awareness in core** — `neuroflow:neuroflow-core` now instructs every command to read `.neuroflow/fails/` at start (if it exists), so past logged dissatisfaction is always in context
-- **Removed AI-slop feature claims** — the "Built-in stats auditing" feature card and related promotional copy have been removed from the homepage and `/data-analyze` docs; those capabilities are not implemented and were misleading
+- **Removed AI-slop feature claims** — the "Built-in stats auditing" feature card removed from the homepage; the `/data-analyze` command page and skill are unchanged
 
 ---
 
