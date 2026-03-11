@@ -24,3 +24,7 @@ The brain-run phase covers configuring and executing a simulation run — settin
 - Save `run-config.md` and `run-summary.md` to `.neuroflow/brain-run/`
 - Note any run that produces qualitatively new or unexpected behaviour in `.neuroflow/reasoning/brain-run.json`
 - For HPC submission: produce a job script (SLURM/PBS) alongside `run_sim.py` and save both to `output_path`
+
+## Slash command
+
+`/neuroflow:brain-run` — runs this workflow as a slash command.

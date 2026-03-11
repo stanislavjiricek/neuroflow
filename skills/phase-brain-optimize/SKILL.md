@@ -24,3 +24,7 @@ The brain-optimize phase covers parameter exploration and model fitting — swee
 - Save `optimize-plan.md` and post-run summaries to `.neuroflow/brain-optimize/`
 - Log algorithm choice and cost function rationale in `.neuroflow/reasoning/brain-optimize.json`
 - Common libraries: DEAP, Optuna, scipy.optimize, BluePyOpt, scikit-optimize
+
+## Slash command
+
+`/neuroflow:brain-optimize` — runs this workflow as a slash command.

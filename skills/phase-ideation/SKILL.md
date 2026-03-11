@@ -24,3 +24,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 - The research question produced here anchors every downstream phase — write it precisely
 - Save the final research question to `.neuroflow/ideation/research-question.md`
 - Update `project_config.md` if the research question is defined or changed
+
+## Slash command
+
+`/neuroflow:ideation` — runs this workflow as a slash command.

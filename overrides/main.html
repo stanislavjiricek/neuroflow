@@ -12,5 +12,50 @@
     badge.textContent = 'v{{ config.extra.version }}';
     inner.appendChild(badge);
   });
+
+  /* ── Quote bubbles on homepage ───────────────────────────────────────────── */
+  document$.subscribe(function () {
+    var container = document.getElementById('nf-quotes');
+    if (!container) return;
+
+    var quotes = [
+      "Anthropic, please collab — we'll build a brain together.",
+      "What if the next breakthrough in neuroscience started with a conversation?",
+      "Every neuron fires for a reason. So does every prompt.",
+      "Science moves at the speed of curiosity — AI moves at the speed of thought.",
+      "The brain is the most complex thing in the universe. Let's map it together.",
+      "From raw EEG signal to published insight — one session at a time.",
+      "Your next discovery is one hypothesis away.",
+      "Research shouldn't end at the data — it should begin there.",
+      "The future of neuroscience is collaborative: human intuition, AI precision.",
+      "Every failed experiment is the brain teaching you something new."
+    ];
+
+    /* Horizontal anchor positions (% from left), cycling through so each
+       quote appears at a slightly different spot — the bubble effect. */
+    var positions = [48, 52, 45, 55, 50, 43, 57, 47, 53, 46];
+
+    var bubble = document.createElement('span');
+    bubble.className = 'nf-quote-bubble';
+    container.appendChild(bubble);
+
+    var idx = 0;
+
+    var FADE_MS = 650; /* must match the CSS transition duration on .nf-quote-bubble */
+
+    function showQuote() {
+      bubble.classList.remove('nf-quote-visible');
+
+      setTimeout(function () {
+        bubble.textContent = '\u201c' + quotes[idx] + '\u201d'; /* " … " */
+        bubble.style.left = positions[idx % positions.length] + '%';
+        bubble.classList.add('nf-quote-visible');
+        idx = (idx + 1) % quotes.length;
+      }, FADE_MS);
+    }
+
+    showQuote();
+    setInterval(showQuote, 10000);
+  });
 </script>
 {% endblock %}

@@ -44,7 +44,9 @@ flowchart LR
 | Command | Phase | What it does |
 |---|---|---|
 | [`/ideation`](ideation.md) | ideation | Brainstorm, literature search, formalize a research question, write proposal |
+| [`/preregistration`](preregistration.md) | preregistration | Pre-register study design and analysis plan on OSF or AsPredicted; log deviations |
 | [`/grant-proposal`](grant-proposal.md) | grant-proposal | Full grant application — aims, significance, innovation, approach, budget |
+| [`/finance`](finance.md) | finance | Budget planning, expense tracking, financial reports, and grant compliance |
 | [`/experiment`](experiment.md) | experiment | PsychoPy paradigm, recording setup, LSL/marker configuration |
 | [`/tool-build`](tool-build.md) | tool-build | Build lab tools — real-time systems, BCI, acquisition pipelines |
 | [`/tool-validate`](tool-validate.md) | tool-validate | Testing pipeline for timing, markers, data output, edge cases |
@@ -72,6 +74,10 @@ flowchart LR
 
 | Command | What it does |
 |---|---|
+| [`/git`](git.md) | Context-aware git utility — smart push/pull, commit message generation, branch management, and PR creation with shorthand aliases |
+| [`/pipeline`](pipeline.md) | Define and run a multi-step research pipeline — interactive by default (pauses for approval between steps), or use `--nomistake` for brutal mode |
+| [`/export`](export.md) | Export project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
+| [`/search`](search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase |
 | [`/interview`](interview.md) | Interview preparation from either side — generate tailored questions, run practice Q&A, evaluate readiness |
 | [`/phase`](phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, version sync |

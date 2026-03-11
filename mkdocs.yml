@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.1.4"
+  version: "0.1.5"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -118,7 +118,9 @@ nav:
       - "⚙️ setup": commands/setup.md
       - Research Pipeline:
           - "💡 ideation": commands/ideation.md
+          - "📋 preregistration": commands/preregistration.md
           - "📝 grant-proposal": commands/grant-proposal.md
+          - "💰 finance": commands/finance.md
           - "🧪 experiment": commands/experiment.md
           - "🔧 tool-build": commands/tool-build.md
           - "✅ tool-validate": commands/tool-validate.md
@@ -134,6 +136,10 @@ nav:
           - "🔄 brain-optimize": commands/brain-optimize.md
           - "▶️ brain-run": commands/brain-run.md
       - Utilities:
+          - "🔀 git": commands/git.md
+          - "🔁 pipeline": commands/pipeline.md
+          - "📤 export": commands/export.md
+          - "🔍 search": commands/search.md
           - "🎤 interview": commands/interview.md
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
@@ -150,8 +156,11 @@ nav:
       - Expert:
           - "review-neuro": skills/review-neuro/SKILL.md
       - Phases:
+          - "phase-git": skills/phase-git/SKILL.md
           - "phase-ideation": skills/phase-ideation/SKILL.md
+          - "phase-preregistration": skills/phase-preregistration/SKILL.md
           - "phase-grant-proposal": skills/phase-grant-proposal/SKILL.md
+          - "phase-finance": skills/phase-finance/SKILL.md
           - "phase-experiment": skills/phase-experiment/SKILL.md
           - "phase-tool-build": skills/phase-tool-build/SKILL.md
           - "phase-tool-validate": skills/phase-tool-validate/SKILL.md
@@ -167,10 +176,14 @@ nav:
           - "phase-brain-run": skills/phase-brain-run/SKILL.md
           - "phase-quiz": skills/phase-quiz/SKILL.md
           - "phase-fails": skills/phase-fails/SKILL.md
+          - "phase-export": skills/phase-export/SKILL.md
+          - "phase-pipeline": skills/phase-pipeline/SKILL.md
+          - "phase-search": skills/phase-search/SKILL.md
       - Utils:
           - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
           - "skill-creator": skills/skill-creator/SKILL.md
+  - Agents: concepts/agents.md
   - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
