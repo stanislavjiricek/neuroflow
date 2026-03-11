@@ -103,6 +103,9 @@ extra:
 extra_css:
   - stylesheets/extra.css
 
+extra_javascript:
+  - javascripts/mind.js
+
 plugins:
   - search:
       lang: en
@@ -110,6 +113,7 @@ plugins:
 
 nav:
   - Home: index.md
+  - 🌌 Neuroflow Mind: mind.md
   - Installation: installation.md
   - Quickstart: quickstart.md
   - Commands:

@@ -717,3 +717,213 @@ hr {
 .md-footer {
   margin-top: 2rem;
 }
+
+/* ── Neuroflow Mind page ──────────────────────────────────────────────────── */
+
+/* Full-screen canvas container */
+.nf-mind-fullscreen {
+  position: fixed;
+  inset: 0;
+  background: #080812;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top bar */
+.nf-mind-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(13, 10, 25, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(149, 117, 205, 0.18);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.nf-mind-back {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.82rem;
+  text-decoration: none;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+.nf-mind-back:hover { color: #ce93d8; }
+
+.nf-mind-topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.02em;
+}
+
+.nf-mind-topbar-icon { font-size: 1.1rem; }
+
+.nf-mind-topbar-hint {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.32);
+  margin: 0;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* SVG takes remaining space */
+.nf-mind-fullscreen svg {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Info panel */
+.nf-mind-panel {
+  position: fixed;
+  right: -360px;
+  top: 0;
+  bottom: 0;
+  width: 320px;
+  background: rgba(14, 10, 28, 0.94);
+  backdrop-filter: blur(16px);
+  border-left: 1px solid rgba(149, 117, 205, 0.22);
+  z-index: 200;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+}
+
+.nf-mind-panel--open {
+  right: 0;
+}
+
+.nf-mind-panel-inner {
+  padding: 1.4rem 1.2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nf-mind-close {
+  align-self: flex-end;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.65);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.nf-mind-close:hover { background: rgba(255, 255, 255, 0.15); }
+
+.nf-mind-panel-type {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.nf-mind-panel-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.nf-mind-panel-desc {
+  font-size: 0.83rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.62);
+  margin: 0;
+}
+
+.nf-conn-heading {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0 0 0.4rem;
+}
+
+.nf-conn-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.nf-conn-list li {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nf-conn-rel {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.72rem;
+}
+
+.nf-mind-panel-link {
+  margin-top: 0.5rem;
+  font-size: 0.82rem !important;
+  padding: 0.45rem 1rem !important;
+  border-radius: 50px !important;
+  align-self: flex-start;
+}
+
+/* Hide MkDocs chrome on the mind page */
+body:has(.nf-mind-fullscreen) .md-header,
+body:has(.nf-mind-fullscreen) .md-sidebar,
+body:has(.nf-mind-fullscreen) .md-footer,
+body:has(.nf-mind-fullscreen) .md-content__inner > h1,
+body:has(.nf-mind-fullscreen) .md-content__button {
+  display: none !important;
+}
+
+body:has(.nf-mind-fullscreen) .md-main {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body:has(.nf-mind-fullscreen) .md-content {
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body:has(.nf-mind-fullscreen) .md-content__inner {
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
+/* ── "Explore the Mind" button on homepage ────────────────────────────────── */
+.md-button--mind {
+  border-color: rgba(149, 117, 205, 0.55) !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  background: rgba(103, 58, 183, 0.12) !important;
+  backdrop-filter: blur(4px);
+}
+
+.md-button--mind:hover {
+  background: rgba(103, 58, 183, 0.28) !important;
+  border-color: rgba(206, 147, 216, 0.7) !important;
+  color: #fff !important;
+}
+
+/* Responsive: hide hint text on very small screens */
+@media screen and (max-width: 480px) {
+  .nf-mind-topbar-hint { display: none; }
+  .nf-mind-panel { width: 100%; right: -100%; }
+}

@@ -15,6 +15,7 @@ From first hypothesis to manuscript draft, guided by AI at every step.
 
 [Get started :octicons-arrow-right-24:](quickstart.md){ .md-button .md-button--primary }
 [Browse commands :octicons-terminal-24:](commands/index.md){ .md-button }
+[🌌 Neuroflow Mind](mind.md){ .md-button .md-button--mind }
 
 <p class="hero-community">🌱 <em>Did I fail you? :') I'm in pre-release and open to the community</em> — <a href="https://github.com/stanislavjiricek/neuroflow/issues/new">🐛 open an issue</a> or <a href="https://github.com/stanislavjiricek/neuroflow/pulls">🔀 improve me with a PR</a></p>
 
