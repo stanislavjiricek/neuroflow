@@ -8,6 +8,10 @@ edit_uri: ""
 hooks:
   - docs/hooks.py
 
+exclude_docs: |
+  hooks.py
+  __pycache__/
+
 theme:
   name: material
   custom_dir: overrides
