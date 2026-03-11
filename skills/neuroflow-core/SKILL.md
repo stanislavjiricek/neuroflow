@@ -179,6 +179,20 @@ Follow neuroflow-core. Follow the active command. Do not extend, modify, or add 
 - If a new feature seems useful, mention it — do not implement it unless asked.
 - New skills, commands, agents, or hooks are only added when the user has requested them.
 - When in doubt, do less.
+## Behavioral flags
+
+Behavioral flags are keywords that, when present anywhere in the user's prompt (as a word, phrase, or clear synonym), change how Claude behaves for the **entire duration of that command invocation**. Scan for these flags at the start of every command before taking any action.
+
+| Flag | Aliases | Behavior |
+|---|---|---|
+| `nomistake` | `hardcode`, `no-mistake`, `no mistake` | **Aggressive evaluation loop.** Never stop at the first pass. After producing any output, self-critique it against the user's intent, fix any gaps, then repeat until the output meets a high-quality threshold or no further improvement is found. Report each iteration briefly: what changed and why. Use the most thorough available approach at every step. |
+| `snowflake` | `careful`, `careful-mode`, `be careful`, `handle with care` | **Clarify-first mode.** Before acting on any ambiguous instruction, ask targeted clarifying questions. Confirm key assumptions explicitly. Proceed incrementally — complete one step, show it, and wait for approval before continuing. Flag any uncertainty before rather than after acting. Never assume; always ask. |
+
+**Detection rules:**
+- Flag detection is case-insensitive and substring-aware (`NOMISTAKE`, `NoMistake`, and `nomistake` all trigger the flag)
+- Both flags may be active simultaneously if both keywords are present
+- A flag stays active for the entire command session — it is not reset between steps
+- If a flag is detected, announce it at the start: e.g. *"🔁 nomistake mode active — after producing any output I will self-critique and iterate until it meets a high-quality threshold."* or *"❄️ snowflake mode active — I will ask clarifying questions before acting on any ambiguous instruction and proceed step-by-step."*
 
 ---
 
@@ -202,4 +216,4 @@ writes:
 ---
 ```
 
-Valid phase values: `ideation`, `grant-proposal`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `utility`
+Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `utility`

@@ -118,7 +118,9 @@ nav:
       - "⚙️ setup": commands/setup.md
       - Research Pipeline:
           - "💡 ideation": commands/ideation.md
+          - "📋 preregistration": commands/preregistration.md
           - "📝 grant-proposal": commands/grant-proposal.md
+          - "💰 finance": commands/finance.md
           - "🧪 experiment": commands/experiment.md
           - "🔧 tool-build": commands/tool-build.md
           - "✅ tool-validate": commands/tool-validate.md
@@ -132,6 +134,7 @@ nav:
       - Utilities:
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
+          - "🔍 search": commands/search.md
   - Concepts:
       - Project Memory: concepts/project-memory.md
       - Agents: concepts/agents.md
@@ -143,7 +146,9 @@ nav:
           - "review-neuro": skills/review-neuro/SKILL.md
       - Phases:
           - "phase-ideation": skills/phase-ideation/SKILL.md
+          - "phase-preregistration": skills/phase-preregistration/SKILL.md
           - "phase-grant-proposal": skills/phase-grant-proposal/SKILL.md
+          - "phase-finance": skills/phase-finance/SKILL.md
           - "phase-experiment": skills/phase-experiment/SKILL.md
           - "phase-tool-build": skills/phase-tool-build/SKILL.md
           - "phase-tool-validate": skills/phase-tool-validate/SKILL.md
@@ -154,6 +159,7 @@ nav:
           - "phase-paper-review": skills/phase-paper-review/SKILL.md
           - "phase-notes": skills/phase-notes/SKILL.md
           - "phase-write-report": skills/phase-write-report/SKILL.md
+          - "phase-search": skills/phase-search/SKILL.md
       - Utils:
           - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
