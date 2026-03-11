@@ -13,35 +13,64 @@ writes: []
 
 ## What this command does
 
-Shows the current project phase and phases worked on so far. Lets the user switch phase if they want.
+Shows a visual phase map of the project — current phase, visited phases, recommended phases, and untouched phases. Lets the user switch phase if they want.
 
 ---
 
 ## Steps
 
-1. Read `project_config.md` — get the current active phase
-2. Read root `flow.md` — list all phase subfolders that exist (these are phases that have been worked on)
-3. Check `sessions/` — find the most recent session log and note the date
+1. Read `project_config.md` — extract:
+   - `active_phase` (the current active phase)
+   - `recommended_phases` (list suggested after the initial interview, if present)
 
-Print a compact status:
+2. Check which phase subfolders exist inside `.neuroflow/` — these are phases that have been worked on (a `.neuroflow/{phase}/` directory is present).
 
-```
-Current phase: ideation
-Phases worked on: ideation, experiment
-Last session: 2026-03-09
+3. Check `sessions/` — find the most recent session log and note the date.
 
-Available phases to switch to:
-  [ ] grant-proposal
-  [ ] data
-  [ ] data-preprocess
-  [ ] data-analyze
-  [ ] paper-write
-  [ ] paper-review
-  [ ] tool-build
-  [ ] tool-validate
-  [ ] notes
-```
+4. Print a visual phase map. Use these markers:
 
-4. Ask: "Do you want to switch to a different phase, or continue with the current one?"
+   - `●` — current active phase
+   - `◉` — visited: a `.neuroflow/{phase}/` subfolder already exists (work has been done here)
+   - `→` — recommended: suggested by neuroflow after the initial interview (listed in `recommended_phases` in `project_config.md`), but not yet visited
+   - `○` — not started: no subfolder, not recommended
 
-5. If the user picks a different phase, update `project_config.md` and `.claude/CLAUDE.md` with the new active phase, then suggest the corresponding command.
+   The complete ordered list of phases is:
+
+   ```
+   ideation → preregistration → grant-proposal → experiment →
+   tool-build → tool-validate → data → data-preprocess →
+   data-analyze → paper-write → paper-review → write-report →
+   export → notes → finance
+   ```
+
+   Print the map in order. Example output:
+
+   ```
+   Phase map — Last session: 2026-03-09
+
+     ◉ ideation
+     ● experiment          ← current
+     → data-preprocess     ← recommended
+     → data-analyze        ← recommended
+     → paper-write         ← recommended
+     ○ preregistration
+     ○ grant-proposal
+     ○ tool-build
+     ○ tool-validate
+     ○ data
+     ○ paper-review
+     ○ write-report
+     ○ export
+     ○ notes
+     ○ finance
+
+   Legend: ● current  ◉ visited  → recommended  ○ not started
+   ```
+
+   Show visited and current phases first (in pipeline order), then recommended phases, then the rest.
+
+   If `recommended_phases` is absent from `project_config.md`, omit the `→` entries and the legend entry for "recommended". Suggest running `/neuroflow` to set up the project and generate phase recommendations.
+
+5. Ask: "Do you want to switch to a different phase, or continue with the current one?"
+
+6. If the user picks a different phase, update `project_config.md` and `.claude/CLAUDE.md` with the new active phase, then suggest the corresponding command.
