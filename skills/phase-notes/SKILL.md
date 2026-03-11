@@ -21,3 +21,7 @@ The notes phase captures live notes during a meeting, talk, or session, then ref
 
 - Save the final formatted notes to `.neuroflow/notes/notes-[date].md`
 - Keep the raw capture separate from the reformatted version if both are useful
+
+## Slash command
+
+`/neuroflow:notes` — runs this workflow as a slash command.

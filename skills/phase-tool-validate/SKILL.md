@@ -23,3 +23,7 @@ The tool-validate phase creates and runs a testing pipeline to verify that a too
 - Test scripts and logs go to `output_path` (`tools/`), not inside `.neuroflow/`
 - Save `validation-report-[date].md` to `.neuroflow/tool-validate/` summarizing pass/fail status
 - If validation reveals a design flaw, log the finding in `.neuroflow/reasoning/tool-validate.json` and loop back to tool-build
+
+## Slash command
+
+`/neuroflow:tool-validate` — runs this workflow as a slash command.

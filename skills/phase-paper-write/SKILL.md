@@ -23,3 +23,7 @@ The paper-write phase generates a manuscript draft from analysis results, figure
 - The manuscript draft goes to `output_path` (`manuscript/`), not inside `.neuroflow/`
 - Save `manuscript-plan.md` to `.neuroflow/paper-write/` with journal target, section outline, and author list
 - Log any framing or scope decisions that differ from the original research question in `.neuroflow/reasoning/paper-write.json`
+
+## Slash command
+
+`/neuroflow:paper-write` — runs this workflow as a slash command.

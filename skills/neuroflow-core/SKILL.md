@@ -134,6 +134,18 @@ Do not log routine actions (saving files, running scripts, fixing bugs) — only
 
 ---
 
+## When a skill is invoked without a slash command
+
+If a phase skill is invoked by Claude directly — without the user running the corresponding slash command — run the full workflow as normal. Apply the full command lifecycle (read `project_config.md`, write to `.neuroflow/{phase}/`, update `flow.md`, log to `sessions/`, etc.).
+
+At the end of the interaction, mention the slash command once:
+
+> 💡 You can also run `/neuroflow:<command-name>` to start this workflow directly as a slash command next time.
+
+Each phase skill declares its slash command in a `## Slash command` section. Use that to determine the correct command name.
+
+---
+
 ## End-of-command checklist
 
 Run through these before closing any command:
@@ -146,6 +158,7 @@ Run through these before closing any command:
 - [ ] Confirmed no utility scripts were placed in the project root
 - [ ] Confirmed no files or folders were placed directly in `.neuroflow/` unless they are listed in the "Root files" or "Root folders" tables in neuroflow-core
 - [ ] Verified `.claude/CLAUDE.md` exists in the **project root** (created if missing)
+- [ ] If invoked without a slash command: mention the slash command at the end
 
 ## Command frontmatter standard
 
