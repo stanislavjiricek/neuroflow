@@ -178,12 +178,17 @@ Then open any project folder and run:
 ├── reasoning/           ← structured per-phase decision logs (JSON)
 ├── sessions/            ← daily session logs (git-ignored)
 ├── ideation/            ← research questions, literature reviews, proposals
+├── grant-proposal/      ← grant application drafts
 ├── experiment/          ← paradigm scripts, recording setup
+├── tool-build/          ← tool specs and implementation notes
+├── tool-validate/       ← validation plans and test results
 ├── data/                ← data inventory and intake reports
 ├── data-preprocess/     ← preprocessing configs and QC reports
 ├── data-analyze/        ← analysis plans and result summaries
 ├── paper-write/         ← manuscript drafts
-└── paper-review/        ← review reports
+├── paper-review/        ← review reports
+├── notes/               ← session and meeting notes
+└── write-report/        ← generated project reports
 ```
 
 </div>
