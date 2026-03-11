@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.1.5
+
+- **[`/git`](commands/git.md)** — context-aware git utility with smart shorthand aliases (`p`, `pl`, `ps`, `a`, `c`, `ac`, `acp`, `b`, `pr`); reads repo state to decide push vs pull, suggests commit messages, and can open PRs via `gh` CLI
+
 ## What's new in 0.1.4
 
 - **[`/quiz`](commands/quiz.md)** — neuroscience quiz command with three modes: flashcards (saveable A4 printable layout), pub quiz (with neuroscience-themed house rules), and rapid-fire throw questions (default)
@@ -102,6 +106,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 
 | Command | What it does |
 |---|---|
+| [`/git`](commands/git.md) | Context-aware git utility — smart push/pull, commit message generation, branch management, and PR creation with shorthand aliases |
 | [`/interview`](commands/interview.md) | Interview preparation from either side — generate tailored questions grounded in your research context, run practice Q&A, and optionally evaluate readiness |
 | [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
@@ -121,6 +126,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
+| [`neuroflow:phase-git`](skills/phase-git/SKILL.md) | Phase guidance for /git — context-aware git shorthand rules, smart push/pull logic, commit message generation, branch management, and PR creation |
 | [`neuroflow:phase-ideation`](skills/phase-ideation/SKILL.md) | Phase guidance for /ideation — approach, relevant skills, workflow hints |
 | [`neuroflow:phase-grant-proposal`](skills/phase-grant-proposal/SKILL.md) | Phase guidance for /grant-proposal |
 | [`neuroflow:phase-experiment`](skills/phase-experiment/SKILL.md) | Phase guidance for /experiment |
