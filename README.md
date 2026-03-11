@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.1.5
+
+- **15 phase agents** — [`ideation`](agents/ideation.md), [`grant-proposal`](agents/grant-proposal.md), [`experiment`](agents/experiment.md), [`tool-build`](agents/tool-build.md), [`tool-validate`](agents/tool-validate.md), [`data`](agents/data.md), [`data-preprocess`](agents/data-preprocess.md), [`data-analyze`](agents/data-analyze.md), [`paper-write`](agents/paper-write.md), [`paper-review`](agents/paper-review.md), [`notes`](agents/notes.md), [`write-report`](agents/write-report.md), [`brain-build`](agents/brain-build.md), [`brain-optimize`](agents/brain-optimize.md), [`brain-run`](agents/brain-run.md) — each agent is a specialist autonomous subprocess scoped to its phase, with a plan-first / confirm-before-executing discipline
+
 ## What's new in 0.1.4
 
 - **[`/quiz`](commands/quiz.md)** — neuroscience quiz command with three modes: flashcards (saveable A4 printable layout), pub quiz (with neuroscience-themed house rules), and rapid-fire throw questions (default)
@@ -150,6 +154,21 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`scholar`](agents/scholar.md) | Searches PubMed and bioRxiv simultaneously, returns a clean paper list with ⚠️ preprint and 🔒 paywall markers, supports follow-up synthesis and saving |
 | [`sentinel`](agents/sentinel.md) | Project coherence guard — audits `.neuroflow/` for drift, broken references, preregistration deviations, and plugin version sync; clears report after fixes |
 | [`sentinel-dev`](agents/sentinel-dev.md) | Plugin development coherence guard — checks folder names vs frontmatter, README tables, version sync, dead references, command frontmatter completeness |
+| [`ideation`](agents/ideation.md) | Ideation phase specialist — crystallises research questions via brainstorm, literature explore (via scholar), formalise, or proposal modes |
+| [`grant-proposal`](agents/grant-proposal.md) | Grant writing specialist — structures proposals section by section for a target funder (NIH, ERC, Wellcome, MRC); confirms limits before drafting |
+| [`experiment`](agents/experiment.md) | Experiment design specialist — paradigm design (PsychoPy), recording setup, and instrument configuration for EEG, fMRI, eye-tracking, ECG |
+| [`tool-build`](agents/tool-build.md) | Lab tool builder — spec-first design and implementation of acquisition, real-time, LSL, BCI, and analysis pipeline tools |
+| [`tool-validate`](agents/tool-validate.md) | Tool validation specialist — timing, marker integrity, output format, and edge-case testing; writes validation-plan.md before running any tests |
+| [`data`](agents/data.md) | Data intake specialist — inventory → BIDS validation → conversion sequence; confirms modality before touching anything |
+| [`data-preprocess`](agents/data-preprocess.md) | Preprocessing specialist — modality-aware pipeline (EEG, fMRI, ECG, eye-tracking); documents all parameters before running |
+| [`data-analyze`](agents/data-analyze.md) | Statistical analysis specialist — ERPs, time-frequency, connectivity, decoding, GLM; audits assumptions and applies multiple-comparison correction |
+| [`paper-write`](agents/paper-write.md) | Manuscript writing specialist — drafts section by section from project memory; journal-targeted; always writes abstract last |
+| [`paper-review`](agents/paper-review.md) | Pre-submission peer review specialist — gathers manuscript, journal, and focus, then delegates to the review-neuro skill |
+| [`notes`](agents/notes.md) | Live note-taking specialist — captures freeform input without interruption; reformats into a structured document only when asked |
+| [`write-report`](agents/write-report.md) | Report generation specialist — synthesises `.neuroflow/` memory into a structured report for any phase or the full project |
+| [`brain-build`](agents/brain-build.md) | Computational brain model builder — spec-first design of neuron models and network topology for NEURON, Brian2, NetPyNE, NEST, tvb-library |
+| [`brain-optimize`](agents/brain-optimize.md) | Parameter optimisation specialist — plans sweeps or data-fitting runs; selects the right algorithm (grid, differential evolution, Bayesian, BluePyOpt) |
+| [`brain-run`](agents/brain-run.md) | Simulation runner — configures and executes runs, sanity-checks outputs for silence, runaway activity, or NaN values; supports HPC job submission |
 
 ---
 
