@@ -323,3 +323,9 @@ Then tell the user:
 - Do not hallucinate specific citations; if a key reference appears to be missing, say
   so and describe the type of work that should be cited rather than inventing titles.
 - Apply appropriate dual standards where relevant (e.g., both neuroscience reporting norms AND mathematical notation standards for computational/physics-adjacent manuscripts).
+
+## Slash command
+
+This skill is invoked as part of the `/neuroflow:paper-review` command. If used directly without that command, run the full review workflow as normal and mention at the end:
+
+> 💡 You can also run `/neuroflow:paper-review` to start the full paper review workflow as a slash command next time.

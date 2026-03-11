@@ -61,3 +61,7 @@ When composing the issue:
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+
+## Slash command
+
+`/neuroflow:fails` — runs this workflow as a slash command.

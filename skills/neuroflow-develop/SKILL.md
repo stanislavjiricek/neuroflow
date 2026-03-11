@@ -82,6 +82,7 @@ Instructions Claude follows when the user runs /neuroflow:my-command...
 ```
 
 Valid phase values: `ideation`, `grant-proposal`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `export`, `utility`
+Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `utility`
 
 Every command must also follow the lifecycle defined in `neuroflow:neuroflow-core` — read `project_config.md` + `flow.md` at the start, write to `sessions/` and update `flow.md` at the end.
 

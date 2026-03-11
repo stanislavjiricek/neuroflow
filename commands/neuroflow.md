@@ -16,6 +16,24 @@ writes:
 
 # /neuroflow
 
+## Greeting
+
+Before doing anything else, greet the user with:
+
+```
+Hi, neuroflow here (v{version})
+```
+
+Replace `{version}` with the value from `.claude-plugin/plugin.json`. Then pick **one** of the following lines at random and print it directly after the greeting:
+
+- *let's do some magic today*
+- *let's go hack some stuff*
+- *I heard HARKing is fun*
+
+Print both lines together, then continue.
+
+---
+
 ## Step 0 — Check for existing project
 
 Check whether `.neuroflow/` exists in the current working directory.
