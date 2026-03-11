@@ -11,7 +11,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 `.neuroflow/` is project memory — plans, reports, configs, indexes, reasoning logs, QC notes. It lives at the root of the user's project repo.
 
-**Rule: `.neuroflow/` is workflow state only.** Never place deliverables, reports, meta-documents, improvement notes, or any non-workflow output files inside `.neuroflow/`. If unsure where something belongs, default to the project root or `report/`.
+**Rule: `.neuroflow/` contains only what is explicitly defined in this skill.** The only files and folders permitted inside `.neuroflow/` are those listed in the Root files and Root folders tables below. Never add anything else — no extra deliverables, reports, meta-documents, improvement notes, or any other files not covered by this spec. If unsure where something belongs, default to the project root or `report/`.
 
 ### Root files
 
