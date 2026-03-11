@@ -11,6 +11,8 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 `.neuroflow/` is project memory — plans, reports, configs, indexes, reasoning logs, QC notes. It lives at the root of the user's project repo.
 
+**Rule: `.neuroflow/` is workflow state only.** Never place deliverables, reports, meta-documents, improvement notes, or any non-workflow output files inside `.neuroflow/`. If unsure where something belongs, default to the project root or `report/`.
+
 ### Root files
 
 | File | Purpose |
@@ -55,7 +57,7 @@ output_path: ../scripts/analysis
 | analysis-plan.md | Analysis plan and statistical approach. | YYYY-MM-DD |
 ```
 
-`output_path` is relative to the repo root and points to where this phase writes code, results, figures, or manuscripts. Set by `/start` — never write it manually unless `/start` was not run.
+`output_path` is relative to the repo root and points to where this phase writes code, results, figures, or manuscripts. Set by `/neuroflow` — never write it manually unless `/neuroflow` was not run.
 
 ---
 
@@ -70,6 +72,15 @@ output_path: ../scripts/analysis
 | Computed results, figures, tables | `output_path` |
 | Manuscript drafts, grant documents | `output_path` |
 | Paradigm scripts | `output_path` |
+
+**Utility scripts vs project deliverables:**
+
+| Script type | Where it goes |
+|---|---|
+| Project deliverable (analysis pipeline, preprocessing script, paradigm) | `output_path` or `scripts/` |
+| Utility/helper script that produces an output (e.g. markdown→docx converter, report renderer) | `.neuroflow/{phase}/tools/` |
+
+Never place utility scripts in the project root. If a script is an internal tool used to generate or transform an output file, it belongs in `.neuroflow/{phase}/tools/` — not alongside the project's main code.
 
 Default output paths (used when the repo has no existing structure):
 
@@ -98,15 +109,16 @@ Every command must follow this order:
 **At end:**
 1. Write external outputs (code, results, figures, manuscripts) to `output_path` — not inside `.neuroflow/`
 2. Write at least one `.md` memory file to `.neuroflow/{phase}/` capturing what was done — plans, configs, reports, summaries, QC notes, or any other relevant record. Format is free; use whatever structure fits the content. Every `.md` file written to the subfolder must be listed in `.neuroflow/{phase}/flow.md`.
-3. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — what was done, decisions made, open items
-4. If a significant decision was made during the session, append a new JSON object to `.neuroflow/reasoning/{phase}.json` (use `general.json` for project-level decisions). Each object must have exactly three fields:
+3. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — do this at **each meaningful milestone** during the session (new output file created, significant correction made, new tool or approach used), not only once at the start or end
+4. Write to `.neuroflow/reasoning/{phase}.json` at natural decision points **during** the session — not only at the end. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
    - `"statement"` — what was decided (one clear sentence)
    - `"source"` — where the decision originated (e.g. `"command:paper-write | 2026-03-10"`)
    - `"reasoning"` — why this choice was made over alternatives
-5. Update `.neuroflow/{phase}/flow.md` if new files were created in the phase subfolder
+5. Update `.neuroflow/{phase}/flow.md` **immediately** when each new file is created in the phase subfolder — treat it as a live index, not a one-time snapshot taken at the end
 6. Update `.neuroflow/flow.md` if new subfolders were created
 7. Update `.neuroflow/project_config.md` if the active phase changed
 8. Update `.claude/CLAUDE.md` if the active phase changed
+9. **Phase transition check:** if the outputs produced during this session clearly belong to a different (later) phase than the active phase in `project_config.md`, prompt the user: *"The work produced looks like [phase] outputs. Should I update the active phase in project_config.md?"* Do not silently leave the phase wrong.
 
 **What counts as a significant decision:**
 - Analysis approach chosen (e.g. reference scheme, epoch length, statistical test)
@@ -117,6 +129,21 @@ Every command must follow this order:
 - Any choice the user explicitly flags as a decision
 
 Do not log routine actions (saving files, running scripts, fixing bugs) — only choices that affect the scientific or technical direction of the project.
+
+---
+
+## End-of-command checklist
+
+Run through these before closing any command:
+
+- [ ] Appended to `sessions/YYYY-MM-DD.md` at each meaningful milestone
+- [ ] Wrote decisions to `reasoning/{phase}.json` at natural decision points during the session
+- [ ] Updated `{phase}/flow.md` immediately as each new file was created
+- [ ] Updated root `flow.md` if new folders were created
+- [ ] Checked that active phase in `project_config.md` is still accurate — if not, asked user
+- [ ] Confirmed no utility scripts were placed in the project root
+- [ ] Confirmed no non-workflow files were placed in `.neuroflow/`
+- [ ] Verified `.claude/CLAUDE.md` exists in the **project root** (created if missing)
 
 ## Command frontmatter standard
 

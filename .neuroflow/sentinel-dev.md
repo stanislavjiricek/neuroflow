@@ -13,7 +13,7 @@ All 16 `skills/*/SKILL.md` `name:` fields match their folder names exactly. All 
 All 15 command files have a matching row in the Commands table. All 16 skill folders have a matching row in the Skills table. All table links resolve to existing files.
 
 ### Check 3 — Version sync: PASS
-`plugin.json` version `0.1.2` matches the `## What's new in 0.1.2` heading in `README.md`.
+`plugin.json` version `0.1.3` matches the `## What's new in 0.1.3` heading in `README.md`.
 
 ### Check 4 — Dead references inside SKILL.md files: PASS
 All `neuroflow:` references found across SKILL.md files (`neuroflow:neuroflow-core`, `neuroflow:review-neuro`) point to existing skill folders.

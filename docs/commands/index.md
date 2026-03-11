@@ -4,7 +4,7 @@ title: Commands
 
 # Commands
 
-Run commands with `/neuroflow:<command>` in any project folder. Always start with `/neuroflow:start`.
+Run commands with `/neuroflow:<command>` in any project folder. Always start with `/neuroflow:neuroflow`.
 
 ---
 
@@ -34,7 +34,7 @@ flowchart LR
 
 | Command | What it does |
 |---|---|
-| [`/start`](start.md) | Main entry point — scans your project, sets up `.neuroflow/`, or shows current status |
+| [`/neuroflow`](neuroflow.md) | Main entry point — scans your project, sets up `.neuroflow/`, or shows current status |
 | [`/setup`](setup.md) | Interactive wizard for PubMed and Miro credentials |
 
 ---

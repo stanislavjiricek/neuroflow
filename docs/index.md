@@ -85,9 +85,9 @@ Analysis commands include automated statistical checks to keep your results repr
 
 <div class="command-card" markdown>
 <span class="command-icon">🚀</span>
-### /neuroflow:start
+### /neuroflow:neuroflow
 Main entry point. Scans your project, interviews you, and creates `.neuroflow/` project memory.
-[Learn more →](commands/start.md)
+[Learn more →](commands/neuroflow.md)
 </div>
 
 <div class="command-card" markdown>
@@ -160,7 +160,7 @@ claude plugin install neuroflow@neuroflow
 Then open any project folder and run:
 
 ```
-/neuroflow:start
+/neuroflow:neuroflow
 ```
 
 → [Full installation guide](installation.md)

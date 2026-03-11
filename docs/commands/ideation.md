@@ -6,7 +6,7 @@ title: /ideation
 
 **The very beginning of a research project.**
 
-`/ideation` helps you brainstorm a research question, explore the literature, formalize an existing idea into a project definition, or produce a project proposal document. It's the natural next step after `/start` for a new project.
+`/ideation` helps you brainstorm a research question, explore the literature, formalize an existing idea into a project definition, or produce a project proposal document. It's the natural next step after `/neuroflow` for a new project.
 
 ---
 

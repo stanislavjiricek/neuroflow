@@ -23,4 +23,4 @@ Check the working directory and route to the correct agent:
 
 1. If `.claude-plugin/plugin.json` exists → plugin repo. Invoke the **sentinel-dev agent**. Stop here regardless of what else exists.
 2. Otherwise, if `.neuroflow/` exists → project repo. Invoke the **sentinel agent**.
-3. Otherwise → stop and tell the user to run `/start` first.
+3. Otherwise → stop and tell the user to run `/neuroflow` first.

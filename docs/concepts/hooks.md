@@ -57,7 +57,7 @@ Hooks are defined in the plugin's `plugin.json` and are activated automatically 
 
 ## Pre-session orientation
 
-In addition to event hooks, neuroflow uses `.claude/CLAUDE.md` injection for pre-session orientation. When `/start` runs, it writes a neuroflow block to `.claude/CLAUDE.md`:
+In addition to event hooks, neuroflow uses `.claude/CLAUDE.md` injection for pre-session orientation. When `/neuroflow` runs, it writes a neuroflow block to `.claude/CLAUDE.md`:
 
 ```markdown
 ## neuroflow

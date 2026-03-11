@@ -17,17 +17,22 @@
 
 ---
 
+## What's new in 0.1.3
+
+- **`/start` renamed to [`/neuroflow`](commands/neuroflow.md)** — the main entry point is now `/neuroflow:neuroflow`; all commands, docs, and agents updated
+- **Behavioral improvements** — lifecycle hardened based on real-session feedback: continuous session logging, live [`flow.md`](skills/neuroflow-core/SKILL.md) updates, phase transition prompts, utility scripts routed to `.neuroflow/{phase}/tools/`, local `.claude/CLAUDE.md` creation enforced in project root
+
 ## What's new in 0.1.2
 
 - 12 phase skills — [`neuroflow:phase-ideation`](skills/phase-ideation/SKILL.md) through [`neuroflow:phase-write-report`](skills/phase-write-report/SKILL.md) — each loaded automatically by its corresponding command to orient agent approach, relevant skills, and workflow hints
 
 ## What's new in 0.1.1
 
-- Full research pipeline — 15 commands from [`/start`](commands/start.md) through [`/paper-review`](commands/paper-review.md), each writing to `.neuroflow/` project memory
+- Full research pipeline — 15 commands from [`/neuroflow`](commands/neuroflow.md) through [`/paper-review`](commands/paper-review.md), each writing to `.neuroflow/` project memory
 - [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) — shared lifecycle and `.neuroflow/` folder spec that every command and agent follows; commands now automatically append significant decisions to `.neuroflow/reasoning/{phase}.json`
 - [`scholar`](agents/scholar.md), [`sentinel`](agents/sentinel.md), [`sentinel-dev`](agents/sentinel-dev.md) agents
 - `sentinel` checks plugin version against `project_config.md` and flags when the plugin has been updated; both sentinels clear their report to "All clear" after fixing issues
-- `project_config.md` now tracks `plugin_version` — kept in sync with `plugin.json` by `/start` and `/sentinel`
+- `project_config.md` now tracks `plugin_version` — kept in sync with `plugin.json` by `/neuroflow` and `/sentinel`
 - MCP servers declared in `plugin.json`: PubMed, bioRxiv, Miro, Context7
 
 ---
@@ -51,13 +56,13 @@ You work in your editor. Claude works alongside you — reading your data, writi
 
 ## Commands
 
-Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:start`.
+Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neuroflow`.
 
 ### Entry point
 
 | Command | What it does |
 |---|---|
-| [`/start`](commands/start.md) | Main entry point — if `.neuroflow/` exists, shows current phase and status; if not, interviews the user and creates the project memory structure |
+| [`/neuroflow`](commands/neuroflow.md) | Main entry point — if `.neuroflow/` exists, shows current phase and status; if not, interviews the user and creates the project memory structure |
 | [`/setup`](commands/setup.md) | Interactive credential wizard — configure PubMed email and Miro access token; saves to `.neuroflow/integrations.json` |
 
 ### Research pipeline
@@ -132,7 +137,7 @@ Hooks fire automatically on tool use events.
 | ruff formatter | `PostToolUse` — Edit / Write | Auto-formats any `.py` file written during a session |
 | session logger | `PostToolUse` — Write / Edit / Bash | Appends a timestamped entry to today's `.neuroflow/sessions/YYYY-MM-DD.md` (only fires if `.neuroflow/` exists in the working directory) |
 
-> **Pre-session orientation** is handled via `.claude/CLAUDE.md` injection — `/start` writes a neuroflow block there so Claude always knows the active phase and where to find project context.
+> **Pre-session orientation** is handled via `.claude/CLAUDE.md` injection — `/neuroflow` writes a neuroflow block there so Claude always knows the active phase and where to find project context.
 
 ---
 
@@ -190,7 +195,7 @@ git clone https://github.com/stanislavjiricek/neuroflow
 claude --plugin-dir ./neuroflow
 ```
 
-Once installed, run `/neuroflow:start` in any project folder to get started.
+Once installed, run `/neuroflow:neuroflow` in any project folder to get started.
 
 ---
 
@@ -207,7 +212,7 @@ neuroflow uses four MCP servers that Claude Code launches automatically via `npx
 
 ### Setup wizard
 
-Run `/neuroflow:setup` (or answer **Y** when prompted during `/neuroflow:start`) to enter a guided wizard:
+Run `/neuroflow:setup` (or answer **Y** when prompted during `/neuroflow:neuroflow`) to enter a guided wizard:
 
 1. **PubMed** — enter your email address. Validated for `@` format. Skippable.
 2. **Miro** — paste a personal access token from your [Miro developer settings](https://miro.com/app/settings/user-profile/apps). Skippable.

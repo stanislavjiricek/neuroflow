@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.1.2"
+  version: "0.1.3"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -114,7 +114,7 @@ nav:
   - Quickstart: quickstart.md
   - Commands:
       - Overview: commands/index.md
-      - "🚀 start": commands/start.md
+      - "🚀 neuroflow": commands/neuroflow.md
       - "⚙️ setup": commands/setup.md
       - Research Pipeline:
           - "💡 ideation": commands/ideation.md

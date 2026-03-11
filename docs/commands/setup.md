@@ -12,7 +12,7 @@ title: /setup
 
 ## When to use it
 
-- First time setting up credentials (or if you skipped it during `/start`)
+- First time setting up credentials (or if you skipped it during `/neuroflow`)
 - Updating an existing credential
 - Checking which integrations are currently configured
 
@@ -127,4 +127,4 @@ echo 'export MIRO_ACCESS_TOKEN="eyJhbGciOiJSUzI1NiJ9..."' >> ~/.zshrc
 ## Related
 
 - [Integrations guide →](../integrations.md)
-- [`/start`](start.md) — also offers to run setup on first use
+- [`/neuroflow`](neuroflow.md) — also offers to run setup on first use

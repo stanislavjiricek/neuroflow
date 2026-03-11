@@ -1,5 +1,5 @@
 ---
-name: start
+name: neuroflow
 description: Main entry point for a neuroflow project. If .neuroflow/ exists, shows current phase and status. If not, interviews the user and creates the .neuroflow/ folder structure.
 phase: utility
 reads:
@@ -14,7 +14,7 @@ writes:
   - .claude/CLAUDE.md
 ---
 
-# /start
+# /neuroflow
 
 ## Step 0 — Check for existing project
 
@@ -126,11 +126,15 @@ Create this structure in the working directory:
 - `general.json` — an empty JSON array (`[]`) for project-level decisions
 - `flow.md` — index of JSON files in this folder
 
+> **Do not create `decisions.md`** — this is a legacy artifact superseded by `reasoning/general.json`. Use `reasoning/general.json` for all project-level decision logging.
+
 ---
 
 ## Step 4 — Update .claude/CLAUDE.md
 
-Append or update a short neuroflow block in `.claude/CLAUDE.md`:
+Create or update `.claude/CLAUDE.md` in the **project root** (i.e. the user's current working directory, not `~/.claude/CLAUDE.md`). This local file travels with the repo and ensures every Claude session opened in this project folder automatically loads neuroflow context.
+
+Append or update the following block:
 
 ```markdown
 ## neuroflow
@@ -141,6 +145,8 @@ This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
 - Config: `.neuroflow/project_config.md`
 - Start any session by reading `project_config.md` and `flow.md` first.
 ```
+
+If `~/.claude/CLAUDE.md` also exists, optionally add the block there too — but the **local** `.claude/CLAUDE.md` in the project root is required. Without it, Claude has no automatic project context when the folder is opened.
 
 ---
 

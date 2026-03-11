@@ -10,7 +10,7 @@ writes:
 
 # /setup
 
-Guide the user through connecting the neuroflow MCP integrations. This command can be run at any time — on first run, after skipping during `/start`, or to update existing credentials.
+Guide the user through connecting the neuroflow MCP integrations. This command can be run at any time — on first run, after skipping during `/neuroflow`, or to update existing credentials.
 
 ---
 
@@ -115,5 +115,5 @@ Tell the user: "No credentials saved. You can run `/neuroflow:setup` at any time
 
 ## Step 5 — Suggest next step
 
-- If the user came from `/start`, tell them to continue with the suggested phase command.
+- If the user came from `/neuroflow`, tell them to continue with the suggested phase command.
 - Otherwise, suggest: "Run `/neuroflow:ideation` to start exploring literature, or any other command to continue your project."
