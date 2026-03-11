@@ -9,9 +9,9 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 ## .neuroflow/ folder
 
-`.neuroflow/` is project memory — plans, reports, configs, indexes, reasoning logs, QC notes. It lives at the root of the user's project repo.
+`.neuroflow/` is project memory. It lives at the root of the user's project repo.
 
-**Rule: `.neuroflow/` is workflow state only.** Never place deliverables, reports, meta-documents, improvement notes, or any non-workflow output files inside `.neuroflow/`. If unsure where something belongs, default to the project root or `report/`.
+**Rule: `.neuroflow/` root contains only the files and folders explicitly listed in the tables below — nothing else.** Never place any file or folder directly in `.neuroflow/` unless it appears in the "Root files" or "Root folders" tables. All workflow content belongs in the appropriate phase subfolder (`.neuroflow/{phase}/`). External deliverables, polished reports, or any user-facing outputs go in the project root or `report/`.
 
 ### Root files
 
@@ -142,7 +142,7 @@ Run through these before closing any command:
 - [ ] Updated root `flow.md` if new folders were created
 - [ ] Checked that active phase in `project_config.md` is still accurate — if not, asked user
 - [ ] Confirmed no utility scripts were placed in the project root
-- [ ] Confirmed no non-workflow files were placed in `.neuroflow/`
+- [ ] Confirmed no files or folders were placed directly in `.neuroflow/` unless they are listed in the "Root files" or "Root folders" tables in neuroflow-core
 - [ ] Verified `.claude/CLAUDE.md` exists in the **project root** (created if missing)
 
 ## Command frontmatter standard
