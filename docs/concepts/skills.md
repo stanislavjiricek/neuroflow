@@ -53,6 +53,11 @@ Each research phase has a corresponding skill that orients Claude's approach, su
 | `neuroflow:phase-paper-review` | `/paper-review` |
 | `neuroflow:phase-notes` | `/notes` |
 | `neuroflow:phase-write-report` | `/write-report` |
+| `neuroflow:phase-brain-build` | `/brain-build` |
+| `neuroflow:phase-brain-optimize` | `/brain-optimize` |
+| `neuroflow:phase-brain-run` | `/brain-run` |
+| `neuroflow:phase-quiz` | `/quiz` |
+| `neuroflow:phase-fails` | `/fails` |
 
 ### Development skills
 
