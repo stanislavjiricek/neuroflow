@@ -19,6 +19,7 @@
 
 ## What's new in 0.1.4
 
+- **[`/idk`](commands/idk.md)** — a small easter egg: a personal support companion for when you're burned out, overwhelmed by deadlines, or just need to think out loud; breaks down impossible task lists and lets you decompress mid-research
 - **[`/interview`](commands/interview.md)** — interview preparation from either side of the table; generates tailored questions grounded in your research context, runs practice Q&A, and optionally evaluates your readiness
 - **Brain simulation commands** — [`/brain-build`](commands/brain-build.md), [`/brain-optimize`](commands/brain-optimize.md), and [`/brain-run`](commands/brain-run.md) for assembling, fitting, and running computational brain models (NEURON, Brian2, NetPyNE, NEST, tvb-library)
 
@@ -102,6 +103,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/interview`](commands/interview.md) | Interview preparation from either side — generate tailored questions grounded in your research context, run practice Q&A, and optionally evaluate readiness |
 | [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
+| [`/idk`](commands/idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
 
 ---
 
