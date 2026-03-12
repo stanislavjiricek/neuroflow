@@ -18,19 +18,24 @@ writes:
 
 ## Greeting
 
-Before doing anything else, greet the user with:
+Before doing anything else, display the ASCII welcome logo:
 
 ```
-Hi, neuroflow here (v{version})
+   ____  ___  __  ___________  / __/ /___ _      __
+  / __ \/ _ \/ / / / ___/ __ \/ /_/ / __ \ | /| / /
+ / / / /  __/ /_/ / /  / /_/ / __/ / /_/ / |/ |/ /
+/_/ /_/\___/\__,_/_/   \____/_/ /_/\____/|__/|__/
+
+  v{version}  ·  agentic neuroscience research, from hypothesis to publication
 ```
 
-Replace `{version}` with the value from `.claude-plugin/plugin.json`. Then pick **one** of the following lines at random and print it directly after the greeting:
+Replace `{version}` with the value from `.claude-plugin/plugin.json`. Then pick **one** of the following lines at random and print it directly after the logo block:
 
 - *let's do some magic today*
 - *let's go hack some stuff*
 - *I heard HARKing is fun*
 
-Print both lines together, then continue.
+Print the logo, version, tagline, and the selected one-liner together as one block, then continue.
 
 ---
 
