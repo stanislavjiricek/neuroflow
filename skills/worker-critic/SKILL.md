@@ -150,7 +150,7 @@ If the loop halts at max iterations:
 
 Any phase command or agent can activate the worker-critic loop by invoking the `worker-critic` skill. The orchestrator selects the appropriate phase agent as the worker automatically, based on the active phase in `.neuroflow/project_config.md`.
 
-**Phase → worker agent mapping:**
+**Phase → worker agent mapping** (17 phases, 15 unique worker agents; preregistration shares the `ideation` worker and finance shares the `grant-proposal` worker):
 
 | Phase | Worker agent |
 |---|---|
