@@ -1,22 +1,31 @@
 """
-MkDocs build hook: copy skills/ into docs/skills/ before build.
+MkDocs build hook: copy skills/ and agents/ into docs/ before build.
 
-On Windows, the docs/skills symlink doesn't resolve. This hook copies
-the skills directory into docs/ so MkDocs can find the SKILL.md files
-on all platforms.
+On Windows, symlinks don't resolve. This hook copies the skills and agents
+directories into docs/ so MkDocs can find the files on all platforms.
 """
 import os
 import shutil
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKILLS_SRC = os.path.join(REPO_ROOT, "skills")
-SKILLS_DST = os.path.join(REPO_ROOT, "docs", "skills")
+
+_DIRS = [
+    ("skills", "docs/skills"),
+    ("agents", "docs/agents"),
+]
+
+
+def _sync_dir(src, dst):
+    if os.path.islink(dst) or os.path.isfile(dst):
+        os.remove(dst)
+    elif os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
 
 
 def on_pre_build(config):
-    # Remove stale symlink or old copy
-    if os.path.islink(SKILLS_DST) or os.path.isfile(SKILLS_DST):
-        os.remove(SKILLS_DST)
-    elif os.path.isdir(SKILLS_DST):
-        shutil.rmtree(SKILLS_DST)
-    shutil.copytree(SKILLS_SRC, SKILLS_DST)
+    for src_rel, dst_rel in _DIRS:
+        _sync_dir(
+            os.path.join(REPO_ROOT, src_rel),
+            os.path.join(REPO_ROOT, dst_rel),
+        )
