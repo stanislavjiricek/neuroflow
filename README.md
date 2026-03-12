@@ -19,6 +19,7 @@
 
 ## What's new in 0.1.8
 
+- **New fixed quote** — added *"I will jump to version 1.0.0 once I manage to publish the first paper"* to the [homepage quote bubbles](https://stanislavjiricek.github.io/neuroflow/)
 - **Two new fixed quotes added to the homepage hero** — "We will probably be the first ones to understand the brain." and "When I said we, I meant you as well, are you in?" appended as adjacent entries in the [`overrides/main.html`](overrides/main.html) quotes rotation
 - **[`/output`](commands/output.md)** — renamed from `/export` to avoid conflict with Claude's built-in `/export` command (which exports conversations); functionality is identical; skill renamed to [`neuroflow:phase-output`](skills/phase-output/SKILL.md)
 - **[`auto-issue`](skills/auto-issue/SKILL.md)** — passive frustration detection; automatically files a GitHub issue when the user expresses dissatisfaction, without requiring any explicit invocation
