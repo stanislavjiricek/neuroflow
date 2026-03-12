@@ -17,6 +17,11 @@
 
 ---
 
+## What's new in 0.1.8
+
+- **[`/slideshow`](commands/slideshow.md)** — new utility command: build a structured slide deck from selected project phases, figures, and key findings
+- **[`neuroflow:phase-slideshow`](skills/phase-slideshow/SKILL.md)** — companion skill with audience calibration, slide count heuristics, and Markdown/reveal.js and PowerPoint outline format guidance
+
 ## What's new in 0.1.7
 
 - **[`neuroflow-developer`](.github/agents/neuroflow-developer.md)** — superspecialized GitHub agent for developing and maintaining the neuroflow plugin; merges `neuroflow-core` lifecycle rules and `neuroflow-develop` guidance into one repo-aware agent; reads the live state of every skill, command, agent, and hook at the start of each session so it is always operating on what the repo actually contains
@@ -133,6 +138,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/interview`](commands/interview.md) | Interview preparation from either side — generate tailored questions grounded in your research context, run practice Q&A, and optionally evaluate readiness |
 | [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
+| [`/slideshow`](commands/slideshow.md) | Build a presentation from selected areas of the project — pick phases, figures, and key findings, then get a structured slide deck ready to export |
 | [`/quiz`](commands/quiz.md) | Neuroscience quiz — flashcards, pub quiz, or rapid-fire throw questions; covers any subfield or general neuroscience |
 | [`/fails`](commands/fails.md) | Log dissatisfaction — record core behavior, science quality, or UX issues; optionally opens a GitHub issue report |
 | [`/export`](commands/export.md) | Export project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
