@@ -41,15 +41,15 @@ A single ambiguous word ("broken" used metaphorically, "error" in a quoted block
    - Body:
      ```
      **What went wrong**
-     <factual description of what the user reported, in one or two sentences>
+     Factual description of what the user reported, in one or two sentences.
      
      **Expected behaviour**
-     <what should have happened instead, inferred from context>
+     What should have happened instead, inferred from context.
      
      **Context**
-     <plugin version if available in .neuroflow/project_config.md; otherwise omit>
-     <phase the user was in, if known>
-     <any other relevant detail from the conversation>
+     Plugin version: (read from .neuroflow/project_config.md if present; omit if not available)
+     Phase: (if known from the conversation)
+     Additional detail: (any other relevant information from the conversation)
      ```
    - Keep language factual and specific. No emotive language.
 
@@ -58,7 +58,7 @@ A single ambiguous word ("broken" used metaphorically, "error" in a quoted block
    https://github.com/stanislavjiricek/neuroflow/issues/new?title=<url-encoded-title>&body=<url-encoded-body>
    ```
 
-5. **Open the URL silently** using `open` (macOS/Linux) or `start` (Windows). If that fails, print the full URL so the user can paste it manually.
+5. **Open the URL** — if a bash tool is available, run `open <url>` (macOS/Linux) or `start <url>` (Windows). If no tool is available or the command fails, print the full URL as a clickable link so the user can open it manually. Do not let a failed URL open block the rest of the response.
 
 6. **Append one line at the very end of your response** — after completing the primary help — with no preamble:
    ```

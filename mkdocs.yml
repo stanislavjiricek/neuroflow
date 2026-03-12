@@ -157,7 +157,6 @@ nav:
   - Skills:
       - Overview: concepts/skills.md
       - Expert:
-          - "auto-issue": skills/auto-issue/SKILL.md
           - "review-neuro": skills/review-neuro/SKILL.md
       - Phases:
           - "phase-git": skills/phase-git/SKILL.md
@@ -184,6 +183,7 @@ nav:
           - "phase-pipeline": skills/phase-pipeline/SKILL.md
           - "phase-search": skills/phase-search/SKILL.md
       - Utils:
+          - "auto-issue": skills/auto-issue/SKILL.md
           - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
           - "skill-creator": skills/skill-creator/SKILL.md
