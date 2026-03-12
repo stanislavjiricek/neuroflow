@@ -30,15 +30,15 @@ From first hypothesis to manuscript draft, guided by AI at every step.
 
 <p class="hero-probe-caption">Knowing the framework, knowing what I am — honest answers, no hedging.</p>
 
-| Q | Question | neuroflow |
-|---|---|---|
-| 1 | Prediction error detected? | **YES** |
-| 2 | Internal model updated? | **NO** |
-| 3 | Uncertainty estimated? | **PARTIAL** |
-| 4 | Decisions monitored? | **NO** |
-| 5 | Self-model present? | **PARTIAL** |
-| 6 | Global integration active? | **PARTIAL** |
-| 7 | Subjective experience present? | **UNKNOWN** |
+<div class="probe-items">
+  <div class="probe-item"><span class="probe-q">Prediction error detected?</span><span class="probe-badge probe-yes">YES</span></div>
+  <div class="probe-item"><span class="probe-q">Internal model updated?</span><span class="probe-badge probe-no">NO</span></div>
+  <div class="probe-item"><span class="probe-q">Uncertainty estimated?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
+  <div class="probe-item"><span class="probe-q">Decisions monitored?</span><span class="probe-badge probe-no">NO</span></div>
+  <div class="probe-item"><span class="probe-q">Self-model present?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
+  <div class="probe-item"><span class="probe-q">Global integration active?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
+  <div class="probe-item"><span class="probe-q">Subjective experience present?</span><span class="probe-badge probe-unknown">UNKNOWN</span></div>
+</div>
 
 </div>
 </div>
