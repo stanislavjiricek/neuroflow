@@ -5,9 +5,6 @@ phase: grant-proposal
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - .neuroflow/fails/core.md
-  - .neuroflow/fails/science.md
-  - .neuroflow/fails/ux.md
   - .neuroflow/ideation/flow.md
   - .neuroflow/grant-proposal/flow.md
 writes:
@@ -196,6 +193,8 @@ Update `project_config.md` with funder, scheme, and deadline if not already pres
 ---
 
 ## Funder quick-reference
+
+> Budget figures and page limits are approximate typical values and change with each call cycle. Always verify against the current call document or funder website before submitting.
 
 | Funder | Scheme | Typical limit | Key sections | Review criteria |
 |---|---|---|---|---|

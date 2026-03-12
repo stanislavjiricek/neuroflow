@@ -1,6 +1,6 @@
 ---
 name: phase-grant-proposal
-description: Phase guidance for the neuroflow /grant-proposal command. Loaded automatically when /grant-proposal is invoked. Provides deep funder knowledge, neuroscience-specific grant writing tactics, review criteria alignment, and workflow orchestration for the grant-proposal phase.
+description: Phase guidance for /grant-proposal with deep funder knowledge, neuroscience-specific grant tactics, review criteria alignment, and workflow orchestration.
 ---
 
 # phase-grant-proposal
@@ -38,6 +38,8 @@ Never skip the discovery step. A grant without a clear research question is not 
 ---
 
 ## Funder knowledge base
+
+> Budget figures, page limits, and scheme names are approximate typical values as of 2024–2025. Verify against the current call document or funder website before advising a user — requirements change each cycle.
 
 ### NIH (USA)
 - **Mechanisms**: R01 (5 yr, $500K DC/yr), R21 (2 yr, $275K total), R03 (2 yr, $50K/yr), K awards (career development), U01 (cooperative agreement)

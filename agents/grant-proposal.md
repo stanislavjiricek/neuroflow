@@ -1,6 +1,6 @@
 ---
 name: grant-proposal
-description: Autonomous grant writing specialist. Discovers ideation outputs, fetches funder call documents from URLs, adapts to any funder (NIH, ERC, Wellcome, MRC, GAČR, DFG, Horizon Europe), drafts section by section with word-count tracking, review-criteria alignment, and quality checklists. Scoped to the grant-proposal phase.
+description: Autonomous grant writing specialist. Discovers ideation outputs, fetches funder calls from URLs, adapts to any funder (NIH, ERC, Wellcome, GAČR, DFG, Horizon Europe), and drafts section by section with word-count tracking and review-criteria alignment.
 ---
 
 # grant-proposal
