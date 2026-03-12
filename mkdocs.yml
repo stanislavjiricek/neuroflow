@@ -143,6 +143,7 @@ nav:
           - "🔁 pipeline": commands/pipeline.md
           - "📤 output": commands/output.md
           - "🔍 search": commands/search.md
+          - "👤 flowie": commands/flowie.md
           - "🎤 interview": commands/interview.md
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
@@ -183,6 +184,7 @@ nav:
           - "phase-fails": skills/phase-fails/SKILL.md
           - "phase-output": skills/phase-output/SKILL.md
           - "phase-pipeline": skills/phase-pipeline/SKILL.md
+          - "phase-flowie": skills/phase-flowie/SKILL.md
           - "phase-search": skills/phase-search/SKILL.md
       - Utils:
           - "auto-issue": skills/auto-issue/SKILL.md
