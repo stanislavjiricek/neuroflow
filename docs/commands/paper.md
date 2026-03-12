@@ -103,5 +103,4 @@ Approved sections are saved to `manuscript/` (or the path set in `.neuroflow/pap
 ## Related commands
 
 - [`/data-analyze`](data-analyze.md) — generate the results that go into the paper
-- [`/paper-write`](paper-write.md) — draft-only command without the built-in critique loop
-- [`/paper-review`](paper-review.md) — standalone peer review of an existing manuscript
+- [`/review`](review.md) — peer review a colleague's paper using the same six-area methodology

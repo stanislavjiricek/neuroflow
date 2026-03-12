@@ -37,7 +37,7 @@ When assisting in any neuroflow phase, apply the profile as follows:
 - If a proposed idea conflicts with a stated stance, flag it explicitly rather than suppressing it
 - Use the `ideas.md` file as a starting point — the user's cross-project hypotheses may be relevant
 
-### In /paper-write
+### In /paper
 
 - Apply the user's documented writing style throughout — density, hedging patterns, register
 - Do not override the user's voice with generic academic prose

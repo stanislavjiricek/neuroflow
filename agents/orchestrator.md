@@ -40,8 +40,8 @@ Select the appropriate phase agent as the worker based on the active phase (19 p
 | data | `data` |
 | data-preprocess | `data-preprocess` |
 | data-analyze | `data-analyze` |
-| paper-write | `paper-write` |
-| paper-review | `paper-review` |
+| paper | `paper-writer` |
+| review | `review` |
 | notes | `notes` |
 | write-report | `write-report` |
 | slideshow | `write-report` |

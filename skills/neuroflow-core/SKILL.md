@@ -93,8 +93,8 @@ Default output paths (used when the repo has no existing structure):
 | `tool-build` / `tool-validate` | `tools/` |
 | `data-preprocess` | `scripts/preprocessing/` |
 | `data-analyze` | `scripts/analysis/` (code) + `results/` (outputs) + `figures/` |
-| `paper-write` | `manuscript/` |
-| `paper-review` | `manuscript/review/` |
+| `paper` | `manuscript/` |
+| `review` | `reviews/` |
 | `grant-proposal` | `grant/` |
 
 ---
@@ -234,4 +234,4 @@ writes:
 ---
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `utility`
+Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `utility`

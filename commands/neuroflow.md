@@ -55,18 +55,18 @@ Check whether `.neuroflow/` exists in the current working directory.
 
 ## Step 0b — Journal check
 
-Run this check whenever Step 0 finds an existing project. Skip entirely when **both** of the following are true: (1) the current active phase is not `paper-write` or `paper-review`, and (2) neither `paper-write` nor `paper-review` appears in `recommended_phases`. If either condition is false, run the check.
+Run this check whenever Step 0 finds an existing project. Skip entirely when **both** of the following are true: (1) the current active phase is not `paper`, and (2) `paper` does not appear in `recommended_phases`. If either condition is false, run the check.
 
-**Trigger condition:** `paper-write` or `paper-review` is the active phase, or appears in `recommended_phases`.
+**Trigger condition:** `paper` is the active phase, or appears in `recommended_phases`.
 
 1. Look for a `target_journal:` field in `project_config.md`.
-2. If not found there, check `.neuroflow/paper-write/flow.md` for a line that starts with `target_journal:`.
+2. If not found there, check `.neuroflow/paper/flow.md` for a line that starts with `target_journal:`.
 3. **If a journal is already set:** print it as part of the status line — e.g. `Target journal: NeuroImage` — and continue. No further action needed.
 4. **If no journal is set:**
    - Print: `No target journal has been set for your manuscript.`
    - Ask: `Would you like a journal recommendation? (Y/n)`
    - **If yes:** run the journal recommendation workflow below.
-   - **If no:** note it briefly — `"You can set the target journal when you run /neuroflow:paper-write."` — and continue.
+   - **If no:** note it briefly — `"You can set the target journal when you run /neuroflow:paper."` — and continue.
 
 ### Journal recommendation workflow
 
@@ -95,7 +95,7 @@ When the user asks for a recommendation:
 
 7. If the user picks a journal (by number or name):
    - Write `target_journal: <journal name>` to `project_config.md`
-   - If `.neuroflow/paper-write/` exists, also write `target_journal: <journal name>` to `.neuroflow/paper-write/flow.md`; do not create the folder or file if they do not exist yet
+   - If `.neuroflow/paper/` exists, also write `target_journal: <journal name>` to `.neuroflow/paper/flow.md`; do not create the folder or file if they do not exist yet
    - Confirm: `Target journal set to <journal name>.`
 
 8. If the user says skip: note it and continue without writing.
@@ -125,7 +125,7 @@ Also detect existing output folders to infer output paths per phase:
 | `scripts/` or `src/` | data-preprocess, data-analyze (code) |
 | `results/` or `output/` | data-analyze (outputs) |
 | `figures/` | data-analyze (figures) |
-| `manuscript/` | paper-write |
+| `manuscript/` | paper |
 | `paradigm/` | experiment |
 | `tools/` | tool-build / tool-validate |
 | `grant/` | grant-proposal |
@@ -182,15 +182,15 @@ Based on everything learned in Steps 1 and 2, generate a recommended ordered lis
 ```
 ideation → preregistration → grant-proposal → experiment →
 tool-build → tool-validate → data → data-preprocess →
-data-analyze → paper-write → paper-review → write-report →
-export → notes → finance
+data-analyze → paper → write-report →
+notes → finance
 ```
 
 Select only the phases that apply to this project and order them logically. For example:
 
-- A project already collecting data that targets a journal: `[data-preprocess, data-analyze, paper-write, paper-review, write-report, export]`
-- A project starting from hypothesis with a tool to build: `[ideation, experiment, tool-build, tool-validate, data, data-preprocess, data-analyze, paper-write]`
-- A grant-seeking early-stage project: `[ideation, preregistration, grant-proposal, experiment, data, data-analyze, paper-write]`
+- A project already collecting data that targets a journal: `[data-preprocess, data-analyze, paper, write-report]`
+- A project starting from hypothesis with a tool to build: `[ideation, experiment, tool-build, tool-validate, data, data-preprocess, data-analyze, paper]`
+- A grant-seeking early-stage project: `[ideation, preregistration, grant-proposal, experiment, data, data-analyze, paper]`
 
 Print the suggested sequence clearly before creating `.neuroflow/`:
 
@@ -202,8 +202,7 @@ Based on what you described, here is the expected phase sequence for this projec
   → experiment
   → data-preprocess
   → data-analyze
-  → paper-write
-  → paper-review
+  → paper
   → export
 
 You can always run /neuroflow:phase to see your position in this sequence or adjust it.
@@ -298,5 +297,5 @@ Tell the user what was created. Then suggest the logical next command based on t
 | tool | `/neuroflow:tool-build` |
 | data | `/neuroflow:data` |
 | analysis | `/neuroflow:data-analyze` |
-| writing | `/neuroflow:paper-write` |
-| review | `/neuroflow:paper-review` |
+| writing | `/neuroflow:paper` |
+| peer review | `/neuroflow:review` |

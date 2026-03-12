@@ -164,9 +164,8 @@ Any phase command or agent can activate the worker-critic loop by invoking the `
 | data | `data` |
 | data-preprocess | `data-preprocess` |
 | data-analyze | `data-analyze` |
-| paper-write | `paper-write` |
-| paper-review | `paper-review` |
 | paper | `paper-writer` |
+| review | `review` |
 | notes | `notes` |
 | write-report | `write-report` |
 | slideshow | `write-report` |

@@ -145,8 +145,8 @@ Based on the interview content and the user's current research context, suggest 
 ```
 ideation → preregistration → grant-proposal → experiment →
 tool-build → tool-validate → data → data-preprocess →
-data-analyze → paper-write → paper-review → write-report →
-export → notes → finance
+data-analyze → paper → write-report →
+notes → finance
 ```
 
 Print a brief phase outlook at the end of the session:
@@ -155,8 +155,7 @@ Print a brief phase outlook at the end of the session:
 Based on this session, here are the neuroflow phases most relevant to where you are heading:
 
   → data-analyze         ← your next likely phase
-  → paper-write
-  → paper-review
+  → paper
 
 Run /neuroflow:phase at any time to see your full phase map.
 ```

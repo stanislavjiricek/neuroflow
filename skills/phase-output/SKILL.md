@@ -47,7 +47,7 @@ Where `project-slug` is the project name from `project_config.md`, lowercased wi
 
 ## What to suggest if the user asks "what else can I export?"
 
-- **Manuscript draft** — if `paper-write/` exists, offer to run `/write-report` to generate a summary first, then include it in the export alongside any manuscript files from the `paper-write` output path
+- **Manuscript draft** — if `paper/` exists, offer to run `/write-report` to generate a summary first, then include it in the export alongside any manuscript files from the `paper` output path
 - **Analysis report** — run `/write-report` first to generate a summary, then include it in the export
 - **Reasoning log** — mention that `.neuroflow/reasoning/` is included in the memory export and contains all documented decisions
 
