@@ -92,7 +92,7 @@ After presenting a draft:
 
 - `"revise"` — iterate on the current section with new instructions (outside the critic loop)
 - `"next section"` — move to the next section in drafting order
-- `"save draft"` — write the approved manuscript to `output_path` (`manuscript/`) — **only after `[STATUS: APPROVED]` from paper-critic or explicit user acceptance of an unresolved draft**
+- `"save draft"` — present this option to the user after an `[STATUS: APPROVED]` verdict from `paper-critic`; the orchestrator executes the save to `output_path` (`manuscript/`) — the agent does not write files unilaterally
 - `"save plan"` — write `manuscript-plan.md` to `.neuroflow/paper/`
 - `"abstract"` — draft the abstract — only after all other sections are complete
 

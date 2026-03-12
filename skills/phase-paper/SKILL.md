@@ -60,7 +60,7 @@ If the user has not set a target journal and requests recommendations:
    - **Typical length** — does the journal's word-count range suit the planned manuscript?
    - **Prestige vs. speed** — balance impact factor with typical time-to-decision
 5. Present the shortlist in priority order. For each journal: name, publisher, one-sentence scope, why it fits this project, notable constraints (page limits, OA fees, data sharing policy).
-6. Ask the user to pick or skip. If they pick, write `target_journal: <name>` to `project_config.md`. Also write it to `.neuroflow/paper/flow.md` only if that file already exists — do not create the folder or file.
+6. Ask the user to pick or skip. If they pick, write `target_journal: <name>` to `project_config.md` — this is the authoritative location. Also write it to `.neuroflow/paper/flow.md` only if that file already exists — do not create the folder or file.
 
 ## Output paths
 
