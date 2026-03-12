@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.1.9
+
+- **Worker-critic agentic loop** — new [`orchestrator`](agents/orchestrator.md) and [`critic`](agents/critic.md) agents coordinate up to 3 revision cycles for any phase output; the orchestrator routes to the correct phase worker, the critic returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific actionable feedback, and the loop halts cleanly with a logged critique if approval is not reached
+- **New [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) skill** — defines the full loop protocol, worker modes (Initial Draft / Revision), rubric construction, critic output format, and `critic-log.md` state tracking
+- **Loop integrates with all 15 existing phase agents** — the orchestrator auto-selects the right worker for the active phase from `project_config.md`, covering 18 phases (preregistration, finance, and slideshow share workers with ideation, grant-proposal, and write-report respectively)
+
 ## What's new in 0.1.8
 
 - **Target journal clarification in [`/neuroflow`](commands/neuroflow.md)** — on startup, if `paper-write` or `paper-review` is the active phase or in `recommended_phases` and no target journal is set, neuroflow asks whether the user wants a recommendation. If yes: searches PubMed and bioRxiv via the `scholar` agent, ranks 3–5 candidate journals by scope alignment, paper type, OA requirements, length, and prestige vs. speed, then writes the chosen journal to `project_config.md` (and `paper-write/flow.md` if it already exists).
@@ -169,6 +175,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:auto-issue`](skills/auto-issue/SKILL.md) | Passively monitors the conversation for frustration signals, bug reports, or dissatisfaction; automatically classifies the category and files a GitHub issue without requiring any explicit user invocation |
 | [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`nomistake`, `snowflake`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
+| [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) | Worker-critic agentic loop protocol — orchestrator coordinates a worker agent and a critic agent across up to 3 revision cycles to produce a vetted output for any phase |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
 | [`neuroflow:phase-git`](skills/phase-git/SKILL.md) | Phase guidance for /git — context-aware git shorthand rules, smart push/pull logic, commit message generation, branch management, and PR creation |
@@ -207,6 +214,8 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`scholar`](agents/scholar.md) | Searches PubMed and bioRxiv simultaneously, returns a clean paper list with ⚠️ preprint and 🔒 paywall markers, supports follow-up synthesis and saving |
 | [`sentinel`](agents/sentinel.md) | Project coherence guard — audits `.neuroflow/` for drift, broken references, preregistration deviations, and plugin version sync; clears report after fixes |
 | [`sentinel-dev`](agents/sentinel-dev.md) | Plugin development coherence guard — checks folder names vs frontmatter, README tables, version sync, dead references, command frontmatter completeness |
+| [`critic`](agents/critic.md) | Critic agent — audits worker drafts against a provided rubric; returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific, actionable feedback; used by the orchestrator in the worker-critic loop |
+| [`orchestrator`](agents/orchestrator.md) | Orchestrator agent — manages the worker-critic loop for any phase; decomposes the task, routes to the appropriate phase worker agent, submits output to the critic, tracks iterations, and delivers the final vetted result |
 | [`ideation`](agents/ideation.md) | Ideation phase specialist — crystallises research questions via brainstorm, literature explore (via scholar), formalise, or proposal modes |
 | [`grant-proposal`](agents/grant-proposal.md) | Grant writing specialist — structures proposals section by section for a target funder (NIH, ERC, Wellcome, MRC); confirms limits before drafting |
 | [`experiment`](agents/experiment.md) | Experiment design specialist — paradigm design (PsychoPy), recording setup, and instrument configuration for EEG, fMRI, eye-tracking, ECG |

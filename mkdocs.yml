@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.1.8"
+  version: "0.1.9"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -160,6 +160,7 @@ nav:
       - Overview: concepts/skills.md
       - Expert:
           - "review-neuro": skills/review-neuro/SKILL.md
+          - "worker-critic": skills/worker-critic/SKILL.md
       - Phases:
           - "phase-git": skills/phase-git/SKILL.md
           - "phase-ideation": skills/phase-ideation/SKILL.md
@@ -191,7 +192,10 @@ nav:
           - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
           - "skill-creator": skills/skill-creator/SKILL.md
-  - Agents: concepts/agents.md
+  - Agents:
+      - Overview: concepts/agents.md
+      - "critic": agents/critic.md
+      - "orchestrator": agents/orchestrator.md
   - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
