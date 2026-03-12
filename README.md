@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.1.8
+
+- **[`auto-issue`](skills/auto-issue/SKILL.md)** — passive frustration detection; automatically files a GitHub issue when the user expresses dissatisfaction, without requiring any explicit invocation
+
 ## What's new in 0.1.7
 
 - **[`neuroflow-developer`](.github/agents/neuroflow-developer.md)** — superspecialized GitHub agent for developing and maintaining the neuroflow plugin; merges `neuroflow-core` lifecycle rules and `neuroflow-develop` guidance into one repo-aware agent; reads the live state of every skill, command, agent, and hook at the start of each session so it is always operating on what the repo actually contains
@@ -147,6 +151,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 
 | Skill | What it does |
 |---|---|
+| [`neuroflow:auto-issue`](skills/auto-issue/SKILL.md) | Passively monitors the conversation for frustration signals, bug reports, or dissatisfaction; automatically classifies the category and files a GitHub issue without requiring any explicit user invocation |
 | [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`nomistake`, `snowflake`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
