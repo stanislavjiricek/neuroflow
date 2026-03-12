@@ -17,6 +17,11 @@
 
 ---
 
+## What's new in 0.1.8
+
+- **Target journal clarification in [`/neuroflow`](commands/neuroflow.md)** — on startup, if `paper-write` or `paper-review` is the active phase or in `recommended_phases` and no target journal is set, neuroflow asks whether the user wants a recommendation. If yes: searches PubMed and bioRxiv via the `scholar` agent, ranks 3–5 candidate journals by scope alignment, paper type, OA requirements, length, and prestige vs. speed, then writes the chosen journal to `project_config.md` (and `paper-write/flow.md` if it already exists).
+- **Journal recommendation guidance in [`neuroflow:phase-paper-write`](skills/phase-paper-write/SKILL.md)** — new `## Journal recommendation` section: same search-and-rank workflow available when the skill is invoked directly via `/paper-write`, with explicit recency (past 3 years) and recurrence (≥3 of top 20 results) thresholds.
+
 ## What's new in 0.1.7
 
 - **[`neuroflow-developer`](.github/agents/neuroflow-developer.md)** — superspecialized GitHub agent for developing and maintaining the neuroflow plugin; merges `neuroflow-core` lifecycle rules and `neuroflow-develop` guidance into one repo-aware agent; reads the live state of every skill, command, agent, and hook at the start of each session so it is always operating on what the repo actually contains

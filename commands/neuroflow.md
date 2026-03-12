@@ -43,7 +43,57 @@ Check whether `.neuroflow/` exists in the current working directory.
 2. Read `flow.md`
 3. Print a brief status: current phase(s), research question (if set), last session date (from `sessions/` folder)
 4. Ask if the user wants to continue, switch phase, or do something specific
-5. Stop — do not run the interview
+5. Run the journal check (Step 0b) before stopping
+6. Stop — do not run the interview
+
+---
+
+## Step 0b — Journal check
+
+Run this check whenever Step 0 finds an existing project. Skip entirely when **both** of the following are true: (1) the current active phase is not `paper-write` or `paper-review`, and (2) neither `paper-write` nor `paper-review` appears in `recommended_phases`. If either condition is false, run the check.
+
+**Trigger condition:** `paper-write` or `paper-review` is the active phase, or appears in `recommended_phases`.
+
+1. Look for a `target_journal:` field in `project_config.md`.
+2. If not found there, check `.neuroflow/paper-write/flow.md` for a line that starts with `target_journal:`.
+3. **If a journal is already set:** print it as part of the status line — e.g. `Target journal: NeuroImage` — and continue. No further action needed.
+4. **If no journal is set:**
+   - Print: `No target journal has been set for your manuscript.`
+   - Ask: `Would you like a journal recommendation? (Y/n)`
+   - **If yes:** run the journal recommendation workflow below.
+   - **If no:** note it briefly — `"You can set the target journal when you run /neuroflow:paper-write."` — and continue.
+
+### Journal recommendation workflow
+
+When the user asks for a recommendation:
+
+1. Read the following from `project_config.md`: modality, research question, tools, and any keywords.
+2. If `.neuroflow/ideation/` exists, read it for topic keywords and literature already collected.
+3. Use the `neuroflow:scholar` agent (PubMed + bioRxiv) to search for recent papers in the same area. Note which journals those papers appear in most frequently.
+4. Apply the following ranking criteria to generate a shortlist of 3–5 candidate journals:
+
+   | Criterion | What to check |
+   |---|---|
+   | Scope alignment | Does the journal publish papers on this modality and methodology? |
+   | Paper type | Does the journal accept the expected paper type (methods, empirical, review)? |
+   | Open access | If the user mentioned OA requirements, filter accordingly |
+   | Typical length | Does the journal's word-count range fit the expected manuscript size? |
+   | Prestige vs. speed | Balance impact factor with typical time-to-decision for the field |
+
+5. Present the shortlist in priority order. For each journal include:
+   - Journal name and publisher
+   - One-sentence scope summary
+   - Why it fits this project specifically
+   - Any notable constraints (page limits, OA fees, data sharing policy)
+
+6. Ask: `Which journal should I set as the target? (Enter number or type a name, or "skip" to decide later)`
+
+7. If the user picks a journal (by number or name):
+   - Write `target_journal: <journal name>` to `project_config.md`
+   - If `.neuroflow/paper-write/` exists, also write `target_journal: <journal name>` to `.neuroflow/paper-write/flow.md`; do not create the folder or file if they do not exist yet
+   - Confirm: `Target journal set to <journal name>.`
+
+8. If the user says skip: note it and continue without writing.
 
 **If `.neuroflow/` does not exist:**
 Continue to Step 1.
