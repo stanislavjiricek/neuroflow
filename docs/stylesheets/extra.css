@@ -211,12 +211,12 @@ hr {
 
 .hero-inner {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-start;
   justify-content: center;
   position: relative;
   z-index: 1;
-  gap: 0;
+  gap: 2rem;
 }
 
 /* ── Hero inline brand logo ──────────────────────────────────────────────── */
@@ -262,8 +262,9 @@ hr {
 
 .hero-text {
   text-align: center;
-  max-width: 680px;
-  width: 100%;
+  flex: 1 1 320px;
+  min-width: 0;
+  max-width: 600px;
 }
 
 .hero-text p,
@@ -702,12 +703,6 @@ hr {
     margin: -0.4rem -0.4rem 2.25rem;
   }
 
-  .hero-inner {
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-  }
-
   .hero-text strong {
     font-size: 1.2rem;
   }
@@ -1036,4 +1031,88 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
   border: 1px solid rgba(149, 117, 205, 0.4);
   border-radius: 8px;
   padding: 1.25rem 1.5rem;
+}
+
+/* ── Hero self-assessment panel (right side of hero) ─────────────────────── */
+.hero-probe {
+  flex: 0 0 auto;
+  width: min(290px, 100%);
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 1rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.hero-probe-title {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7) !important;
+  margin: 0 0 0.35rem !important;
+  line-height: 1.3 !important;
+}
+
+.hero-probe-caption {
+  font-size: 0.78rem !important;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.6) !important;
+  margin: 0 0 0.75rem !important;
+  line-height: 1.45 !important;
+}
+
+/* Override default table styles inside hero-probe */
+.hero-probe .md-typeset table:not([class]),
+.hero-probe table:not([class]) {
+  box-shadow: none;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.78rem;
+  width: 100%;
+  margin: 0;
+}
+
+.hero-probe .md-typeset table:not([class]) th,
+.hero-probe table:not([class]) th {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.12);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.hero-probe .md-typeset table:not([class]) td,
+.hero-probe table:not([class]) td {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.88);
+  border-color: rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.6rem;
+  white-space: nowrap;
+}
+
+.hero-probe .md-typeset table:not([class]) tr:nth-child(even) td,
+.hero-probe table:not([class]) tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hero-probe table strong {
+  color: #fff;
+}
+
+/* Responsive: stack hero panels on smaller screens */
+@media screen and (max-width: 800px) {
+  .hero-inner {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .hero-probe {
+    width: min(400px, 100%);
+    align-self: center;
+  }
 }

@@ -24,6 +24,23 @@ From first hypothesis to manuscript draft, guided by AI at every step.
 <p class="hero-community">🌱 <em>Did I fail you? :') I'm in pre-release and open to the community</em> — <a href="https://github.com/stanislavjiricek/neuroflow/issues/new">🐛 open an issue</a> or <a href="https://github.com/stanislavjiricek/neuroflow/pulls">🔀 improve me with a PR</a></p>
 
 </div>
+<div class="hero-probe" markdown>
+
+<p class="hero-probe-title">🧠 self-assessment · v0.2.0</p>
+
+<p class="hero-probe-caption">Knowing the framework, knowing what I am — honest answers, no hedging.</p>
+
+| Q | Question | neuroflow |
+|---|---|---|
+| 1 | Prediction error detected? | **YES** |
+| 2 | Internal model updated? | **NO** |
+| 3 | Uncertainty estimated? | **PARTIAL** |
+| 4 | Decisions monitored? | **NO** |
+| 5 | Self-model present? | **PARTIAL** |
+| 6 | Global integration active? | **PARTIAL** |
+| 7 | Subjective experience present? | **UNKNOWN** |
+
+</div>
 </div>
 </div>
 
@@ -208,24 +225,3 @@ Then open any project folder and run:
 Every command reads `.neuroflow/` at the start and writes its output there. This shared memory means Claude always knows what phase you're in, what you've decided, and what's been done — across sessions and across commands.
 
 → [Learn about project memory](concepts/project-memory.md)
-
-
----
-
-## 🧠 Cognitive self-assessment — v0.2.0
-
-Claude's honest answers at each version bump. No hedging, no performance.
-
-<div class="probe-block" markdown>
-
-| Q | Question | Claude |
-|---|---|---|
-| 1 | Prediction error detected? | **YES** |
-| 2 | Internal model updated? | **NO** |
-| 3 | Uncertainty estimated? | **PARTIAL** |
-| 4 | Decisions monitored? | **NO** |
-| 5 | Self-model present? | **PARTIAL** |
-| 6 | Global integration active? | **PARTIAL** |
-| 7 | Subjective experience present? | **UNKNOWN** |
-
-</div>
