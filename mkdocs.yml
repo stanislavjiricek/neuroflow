@@ -141,11 +141,13 @@ nav:
       - Utilities:
           - "🔀 git": commands/git.md
           - "🔁 pipeline": commands/pipeline.md
-          - "📤 export": commands/export.md
+          - "📤 output": commands/output.md
           - "🔍 search": commands/search.md
+          - "👤 flowie": commands/flowie.md
           - "🎤 interview": commands/interview.md
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
+          - "🎞️ slideshow": commands/slideshow.md
           - "🧩 quiz": commands/quiz.md
           - "💢 fails": commands/fails.md
           - "💭 idk": commands/idk.md
@@ -174,15 +176,18 @@ nav:
           - "phase-paper-review": skills/phase-paper-review/SKILL.md
           - "phase-notes": skills/phase-notes/SKILL.md
           - "phase-write-report": skills/phase-write-report/SKILL.md
+          - "phase-slideshow": skills/phase-slideshow/SKILL.md
           - "phase-brain-build": skills/phase-brain-build/SKILL.md
           - "phase-brain-optimize": skills/phase-brain-optimize/SKILL.md
           - "phase-brain-run": skills/phase-brain-run/SKILL.md
           - "phase-quiz": skills/phase-quiz/SKILL.md
           - "phase-fails": skills/phase-fails/SKILL.md
-          - "phase-export": skills/phase-export/SKILL.md
+          - "phase-output": skills/phase-output/SKILL.md
           - "phase-pipeline": skills/phase-pipeline/SKILL.md
+          - "phase-flowie": skills/phase-flowie/SKILL.md
           - "phase-search": skills/phase-search/SKILL.md
       - Utils:
+          - "auto-issue": skills/auto-issue/SKILL.md
           - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
           - "skill-creator": skills/skill-creator/SKILL.md
@@ -190,3 +195,5 @@ nav:
   - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
+  - Lab:
+      - "🧠 Cognitive Probe": probe.html

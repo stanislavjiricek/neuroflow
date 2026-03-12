@@ -21,6 +21,18 @@
 
 - **Target journal clarification in [`/neuroflow`](commands/neuroflow.md)** — on startup, if `paper-write` or `paper-review` is the active phase or in `recommended_phases` and no target journal is set, neuroflow asks whether the user wants a recommendation. If yes: searches PubMed and bioRxiv via the `scholar` agent, ranks 3–5 candidate journals by scope alignment, paper type, OA requirements, length, and prestige vs. speed, then writes the chosen journal to `project_config.md` (and `paper-write/flow.md` if it already exists).
 - **Journal recommendation guidance in [`neuroflow:phase-paper-write`](skills/phase-paper-write/SKILL.md)** — new `## Journal recommendation` section: same search-and-rank workflow available when the skill is invoked directly via `/paper-write`, with explicit recency (past 3 years) and recurrence (≥3 of top 20 results) thresholds.
+- **[`/flowie`](commands/flowie.md)** — personal identity layer: link a private GitHub repository to store your research profile (stances, writing style, methodological preferences, key beliefs); Claude reads the profile to personalize assistance across all neuroflow phases; supports `--init`, `--sync`, `--link`, `--view`, and `--identify` modes
+- **[`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md)** — phase skill covering how to read and apply the flowie profile in every other phase, write rules for `.neuroflow/.flowie/`, and a privacy-conscious GitHub sync protocol (always pull before push, diffs before applying, conflicts shown side by side)
+- **[`flowie` agent](agents/flowie.md)** — autonomous personalization agent that reads the user's profile at session start and shapes all assistance to their documented intellectual fingerprint; never exposes profile data in external-facing outputs
+- **New fixed quote** — added *"I will jump to version 1.0.0 once I manage to publish the first paper"* to the [homepage quote bubbles](https://stanislavjiricek.github.io/neuroflow/)
+- **Two new fixed quotes added to the homepage hero** — "We will probably be the first ones to understand the brain." and "When I said we, I meant you as well, are you in?" appended as adjacent entries in the [`overrides/main.html`](overrides/main.html) quotes rotation
+- **[`/output`](commands/output.md)** — renamed from `/export` to avoid conflict with Claude's built-in `/export` command (which exports conversations); functionality is identical; skill renamed to [`neuroflow:phase-output`](skills/phase-output/SKILL.md)
+- **[`auto-issue`](skills/auto-issue/SKILL.md)** — passive frustration detection; automatically files a GitHub issue when the user expresses dissatisfaction, without requiring any explicit invocation
+- **New quote** — added "Can you collect some brain data for me?" to the homepage quote carousel in [`overrides/main.html`](overrides/main.html)
+- **[Cognitive Development Probe](docs/probe.html)** — a self-contained interactive diagnostic: 7 neuroscience-inspired yes/no questions (prediction error, model update, uncertainty, decision monitoring, self-model, global integration, subjective experience); Q7 locked until Q1–Q6 are all YES; color-coded status indicators, "Cognitive Level" progress bar, reset button; includes a read-only **Claude's honest self-assessment** section where the model answers each question as of this version — no hedging, no performance
+- **[`/grant-proposal`](commands/grant-proposal.md) dramatically improved** — auto-discovers ideation outputs, fetches funder calls from URLs, supports NIH/ERC/Wellcome/MRC/GAČR/DFG/Horizon Europe with built-in review criteria, and drafts section by section with word-count tracking and quality checklists
+- **[`grant-proposal` agent](agents/grant-proposal.md) upgraded** — autonomous funder call parsing, neuroscience-aware Approach drafting (EEG/fMRI/iEEG/eye-tracking), and per-section confirmation loop
+- **[`phase-grant-proposal` skill](skills/phase-grant-proposal/SKILL.md) expanded** — deep funder knowledge base, review criteria alignment table, common fatal weaknesses guide, and neuroscience-specific power analysis and preprocessing standards
 
 ## What's new in 0.1.7
 
@@ -36,7 +48,7 @@
 ## What's new in 0.1.5
 
 - **[`/git`](commands/git.md)** — context-aware git utility with smart shorthand aliases (`p`, `pl`, `ps`, `a`, `c`, `ac`, `acp`, `b`, `pr`); reads repo state to decide push vs pull, suggests commit messages, and can open PRs via `gh` CLI
-- **[`/export`](commands/export.md)** — new utility command and [`neuroflow:phase-export`](skills/phase-export/SKILL.md) skill: export project memory or the whole project as a zip archive or folder copy; always excludes sessions and credentials; logs each export run to `.neuroflow/export/`
+- **[`/output`](commands/output.md)** — new utility command and [`neuroflow:phase-output`](skills/phase-output/SKILL.md) skill: export project memory or the whole project as a zip archive or folder copy; always excludes sessions and credentials; logs each export run to `.neuroflow/output/`
 - **Slash command availability in all skills** — when any phase skill is invoked directly without its slash command, it now runs the full workflow and mentions the corresponding `/neuroflow:<command>` at the end; behavior defined in [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) and declared in each phase skill's `## Slash command` section
 - **[`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md)** — added **Default agent behavior** section: scientific honesty (no sugar-coating), dry English humor, and conservative-by-default mode (follow neuroflow-core; only add new functionality when explicitly asked)
 - **[`/neuroflow`](commands/neuroflow.md) greeting** — on start, neuroflow now greets with `Hi, neuroflow here (v0.1.5)` followed by a randomly chosen line (*let's do some magic today*, *let's go hack some stuff*, or *I heard HARKing is fun*)
@@ -138,11 +150,13 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/interview`](commands/interview.md) | Interview preparation from either side — generate tailored questions grounded in your research context, run practice Q&A, and optionally evaluate readiness |
 | [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
+| [`/slideshow`](commands/slideshow.md) | Build a presentation from selected areas of the project — pick phases, figures, and key findings, then get a structured slide deck ready to export |
 | [`/quiz`](commands/quiz.md) | Neuroscience quiz — flashcards, pub quiz, or rapid-fire throw questions; covers any subfield or general neuroscience |
 | [`/fails`](commands/fails.md) | Log dissatisfaction — record core behavior, science quality, or UX issues; optionally opens a GitHub issue report |
-| [`/export`](commands/export.md) | Export project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
+| [`/output`](commands/output.md) | Output project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
 | [`/idk`](commands/idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
 | [`/search`](commands/search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase; uses `flow.md` as a fast index |
+| [`/flowie`](commands/flowie.md) | Personal identity layer — link a private GitHub repository to store your research profile; Claude reads it to personalize assistance across all phases |
 
 ---
 
@@ -152,6 +166,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 
 | Skill | What it does |
 |---|---|
+| [`neuroflow:auto-issue`](skills/auto-issue/SKILL.md) | Passively monitors the conversation for frustration signals, bug reports, or dissatisfaction; automatically classifies the category and files a GitHub issue without requiring any explicit user invocation |
 | [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`nomistake`, `snowflake`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
@@ -173,12 +188,13 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-write-report`](skills/phase-write-report/SKILL.md) | Phase guidance for /write-report |
 | [`neuroflow:phase-quiz`](skills/phase-quiz/SKILL.md) | Phase guidance for /quiz — mode behaviour, question quality standards, mode-specific workflow |
 | [`neuroflow:phase-fails`](skills/phase-fails/SKILL.md) | Phase guidance for /fails — categorisation approach, GitHub reporting, and dissatisfaction capture rules |
-| [`neuroflow:phase-export`](skills/phase-export/SKILL.md) | Phase guidance for /export — scope selection, safe exclusions, file naming, and output format guidance |
+| [`neuroflow:phase-output`](skills/phase-output/SKILL.md) | Phase guidance for /output — scope selection, safe exclusions, file naming, and output format guidance |
 | [`neuroflow:phase-brain-build`](skills/phase-brain-build/SKILL.md) | Phase guidance for /brain-build — neuron models, connectivity, simulation framework |
 | [`neuroflow:phase-brain-optimize`](skills/phase-brain-optimize/SKILL.md) | Phase guidance for /brain-optimize — parameter sweeps, data fitting, optimisation algorithms |
 | [`neuroflow:phase-brain-run`](skills/phase-brain-run/SKILL.md) | Phase guidance for /brain-run — run configuration, simulation launch, output sanity checks |
 | [`neuroflow:phase-search`](skills/phase-search/SKILL.md) | Phase guidance for /search — tag-based scoping, flow.md-first indexing strategy, compact summary format |
 | [`neuroflow:phase-pipeline`](skills/phase-pipeline/SKILL.md) | Phase guidance for /pipeline — interactive vs brutal mode behaviour, pipeline plan format, resume logic, error handling |
+| [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) | Phase guidance for /flowie — profile read and apply rules, write rules for `.neuroflow/.flowie/`, GitHub sync protocol, cross-phase personalization |
 
 ---
 
@@ -207,6 +223,7 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`brain-optimize`](agents/brain-optimize.md) | Parameter optimisation specialist — plans sweeps or data-fitting runs; selects the right algorithm (grid, differential evolution, Bayesian, BluePyOpt) |
 | [`brain-run`](agents/brain-run.md) | Simulation runner — configures and executes runs, sanity-checks outputs for silence, runaway activity, or NaN values; supports HPC job submission |
 | [`neuroflow-developer`](.github/agents/neuroflow-developer.md) | Superspecialized plugin development agent — merges neuroflow-core and neuroflow-develop into one repo-aware agent; reads live repo state at session start; handles skills, commands, agents, hooks, docs, and releases |
+| [`flowie`](agents/flowie.md) | Personal identity agent — reads the user's flowie profile and applies their research stances, writing style, and methodological preferences throughout the session; never exposes profile data in external-facing outputs |
 
 ---
 
@@ -253,7 +270,7 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 ├── notes/                  ← structured notes from meetings and talks
 └── write-report/           ← project reports
 └── fails/                  ← dissatisfaction log: core.md, science.md, ux.md
-└── export/                 ← export log: one .md per export run
+└── output/                 ← output log: one .md per export run
 ```
 
 ---

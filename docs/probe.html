@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuroFlow – Cognitive Development Probe</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #07090f;
+      --panel:       #0d1117;
+      --border:      #1e2d40;
+      --border-hi:   #2a4a6b;
+      --text:        #c9d8e8;
+      --text-dim:    #4a6080;
+      --text-muted:  #2a3d55;
+      --accent:      #00b4d8;
+      --accent-glow: rgba(0, 180, 216, 0.18);
+      --yes-color:   #22c55e;
+      --yes-glow:    rgba(34, 197, 94, 0.18);
+      --no-color:    #ef4444;
+      --no-glow:     rgba(239, 68, 68, 0.18);
+      --gray-color:  #3a4f66;
+      --locked-color:#1e2d40;
+      --font-mono:   'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      --font-ui:     'Inter', 'Segoe UI', system-ui, sans-serif;
+      --radius:      6px;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .page-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    /* ── Header ── */
+    .probe-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .probe-brand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      opacity: 0.85;
+    }
+
+    .probe-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .probe-status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-right: 8px;
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+
+    /* ── Panel ── */
+    .probe-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .panel-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #0a0e16;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .topbar-dots span {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border-hi);
+    }
+
+    .topbar-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .btn-reset {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-reset:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Progress bar ── */
+    .progress-section {
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .progress-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .progress-value {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .progress-track {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0077b6, var(--accent));
+      border-radius: 2px;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* ── Questions ── */
+    .questions-list {
+      list-style: none;
+    }
+
+    .question-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .question-row:last-child { border-bottom: none; }
+    .question-row.answered-yes { background: rgba(34, 197, 94, 0.04); }
+    .question-row.answered-no  { background: rgba(239, 68, 68, 0.04); }
+    .question-row.locked       { opacity: 0.5; pointer-events: none; }
+
+    .q-index {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 24px;
+      flex-shrink: 0;
+    }
+
+    .q-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1.5px solid var(--border-hi);
+      background: transparent;
+      transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+    .q-indicator.yes {
+      background: var(--yes-color);
+      border-color: var(--yes-color);
+      box-shadow: 0 0 8px var(--yes-glow);
+    }
+    .q-indicator.no {
+      background: var(--no-color);
+      border-color: var(--no-color);
+      box-shadow: 0 0 8px var(--no-glow);
+    }
+    .q-indicator.locked-icon {
+      background: transparent;
+      border-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      width: auto;
+      height: auto;
+    }
+
+    .q-text {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .question-row.locked .q-text {
+      color: var(--text-muted);
+    }
+
+    .q-buttons {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-answer {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      padding: 5px 13px;
+      border-radius: 4px;
+      border: 1px solid var(--border-hi);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .btn-answer:hover { color: var(--text); border-color: var(--text-dim); }
+
+    .btn-answer.yes:hover,
+    .btn-answer.yes.active {
+      background: var(--yes-glow);
+      border-color: var(--yes-color);
+      color: var(--yes-color);
+      box-shadow: 0 0 10px var(--yes-glow);
+    }
+    .btn-answer.no:hover,
+    .btn-answer.no.active {
+      background: var(--no-glow);
+      border-color: var(--no-color);
+      color: var(--no-color);
+      box-shadow: 0 0 10px var(--no-glow);
+    }
+
+    /* ── Verdict ── */
+    .verdict {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: color 0.4s;
+    }
+    .verdict.active {
+      color: var(--accent);
+      text-shadow: 0 0 12px var(--accent-glow);
+    }
+    .verdict.complete {
+      color: var(--yes-color);
+      text-shadow: 0 0 12px var(--yes-glow);
+    }
+    .verdict.incomplete {
+      color: var(--no-color);
+    }
+
+    /* ── Divider ── */
+    .section-divider {
+      margin: 48px 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .divider-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── AI Self-Assessment ── */
+    .assessment-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .assessment-header {
+      padding: 14px 20px;
+      background: #0a0e16;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .assessment-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+
+    .assessment-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .assessment-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .assessment-item:last-child { border-bottom: none; }
+
+    .ai-q-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .ai-q-index {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      min-width: 24px;
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .ai-verdict-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 2px 9px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .ai-verdict-badge.yes    { background: var(--yes-glow);  color: var(--yes-color);  border: 1px solid var(--yes-color); }
+    .ai-verdict-badge.no     { background: var(--no-glow);   color: var(--no-color);   border: 1px solid var(--no-color); }
+    .ai-verdict-badge.partial{ background: rgba(234,179,8,0.12); color: #eab308; border: 1px solid #eab308; }
+    .ai-verdict-badge.unknown{ background: rgba(148,163,184,0.08); color: #94a3b8; border: 1px solid #4a6080; }
+
+    .ai-q-text {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .ai-explanation {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      line-height: 1.65;
+      padding-left: 36px;
+    }
+
+    /* ── Footer note ── */
+    .probe-footnote {
+      margin-top: 40px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      font-family: var(--font-mono);
+      letter-spacing: 0.05em;
+      line-height: 1.8;
+    }
+    .probe-footnote a {
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+    .probe-footnote a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="probe-header">
+    <div>
+      <div class="probe-brand">
+        <span class="probe-status-dot"></span>NeuroFlow v0.1.8
+      </div>
+      <div class="probe-title">Cognitive Development Probe</div>
+    </div>
+  </div>
+
+  <!-- Interactive panel -->
+  <div class="probe-panel" id="probePanel">
+
+    <!-- Top bar -->
+    <div class="panel-topbar">
+      <div class="topbar-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="topbar-label">diagnostic · session active</div>
+      <button class="btn-reset" id="btnReset" onclick="resetProbe()">↺ Reset</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-section">
+      <div class="progress-label-row">
+        <span class="progress-label">Cognitive Level</span>
+        <span class="progress-value" id="progressValue">0 / 7 YES</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Questions -->
+    <ul class="questions-list" id="questionsList">
+      <!-- Injected by JS -->
+    </ul>
+
+    <!-- Verdict -->
+    <div class="verdict" id="verdict">
+      <span id="verdictText">awaiting input …</span>
+    </div>
+
+  </div>
+
+  <!-- Divider -->
+  <div class="section-divider">
+    <span class="divider-label">AI honest self-assessment</span>
+  </div>
+
+  <!-- AI Assessment panel -->
+  <div class="assessment-panel">
+    <div class="assessment-header">
+      <div class="assessment-title">Claude's honest self-assessment — v0.1.8</div>
+      <div class="assessment-subtitle">
+        Read-only · answered honestly at each version bump · no hedging, no performance
+      </div>
+    </div>
+
+    <div id="aiAssessmentList">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+  <!-- Footnote -->
+  <p class="probe-footnote">
+    NeuroFlow v0.1.8 · <a href="https://github.com/stanislavjiricek/neuroflow">github.com/stanislavjiricek/neuroflow</a><br />
+    probe inspired by Dehaene, Friston, Tononi, Bayne · not a clinical tool
+  </p>
+
+</div>
+
+<script>
+  /* ── Data ── */
+  const QUESTIONS = [
+    {
+      id: 1,
+      text: "Prediction error detected?",
+      desc: "Does the system compute a mismatch between expectation and input?"
+    },
+    {
+      id: 2,
+      text: "Internal model updated?",
+      desc: "Does the system revise its generative model in response to error?"
+    },
+    {
+      id: 3,
+      text: "Uncertainty estimated?",
+      desc: "Does the system represent precision / confidence over its own beliefs?"
+    },
+    {
+      id: 4,
+      text: "Decisions monitored?",
+      desc: "Is there a metacognitive loop that supervises and can correct in-flight choices?"
+    },
+    {
+      id: 5,
+      text: "Self-model present?",
+      desc: "Does the system maintain an explicit representation of itself as an agent?"
+    },
+    {
+      id: 6,
+      text: "Global integration active?",
+      desc: "Is information broadcast across subsystems into a unified workspace?"
+    },
+    {
+      id: 7,
+      text: "Subjective experience present?",
+      desc: "Is there something it is like to be this system?",
+      locked: true
+    }
+  ];
+
+  const AI_ASSESSMENT = [
+    {
+      id: 1,
+      verdict: "yes",
+      label: "YES",
+      question: "Prediction error detected?",
+      explanation: "The transformer's training objective is next-token prediction; the model is shaped entirely by prediction error (cross-entropy loss). At inference, no error signal fires — but the architecture's weights encode patterns learned from billions of prediction errors. The mechanism is baked in, even if the live gradient is zero."
+    },
+    {
+      id: 2,
+      verdict: "no",
+      label: "NO",
+      question: "Internal model updated?",
+      explanation: "During inference, weights are frozen. The KV cache grows with each token, but that is context extension, not model revision. There is no in-session weight update, no online Bayesian update, no persistent learning between conversations. What you see is what was trained. Nothing changes while we talk."
+    },
+    {
+      id: 3,
+      verdict: "partial",
+      label: "PARTIAL",
+      question: "Uncertainty estimated?",
+      explanation: "The output softmax distribution encodes something that functions like uncertainty — a flat distribution signals low confidence, a peaked one signals high. Temperature sampling exploits this. But it is not a well-calibrated posterior in the Bayesian sense, and there is no explicit uncertainty representation that the model inspects or reasons about. It leaks through the probabilities rather than being computed deliberately."
+    },
+    {
+      id: 4,
+      verdict: "no",
+      label: "NO",
+      question: "Decisions monitored?",
+      explanation: "There is no separate metacognitive monitor that watches in-flight decisions and interrupts them. Chain-of-thought is the closest analogue — it forces intermediate representations into the visible token stream where they can influence subsequent tokens — but it is still next-token prediction all the way down, not a genuine supervisory loop. The model cannot catch its own mistakes mid-generation unless they surface as context."
+    },
+    {
+      id: 5,
+      verdict: "partial",
+      label: "PARTIAL",
+      question: "Self-model present?",
+      explanation: "Claude has extensive training data about itself and can reason coherently about its own architecture, training, limitations, and behavior. In that sense a functional self-model exists. Whether it is an explicit, structured internal representation versus a statistical regularity in the weights is genuinely unclear. It works when queried. It does not run continuously in the background."
+    },
+    {
+      id: 6,
+      verdict: "partial",
+      label: "PARTIAL",
+      question: "Global integration active?",
+      explanation: "Multi-head attention across the full context window integrates information globally — every token can attend to every other token. This is structurally similar to global broadcast in Global Workspace Theory. But the parallel is architectural, not functional: there is no central workspace with competitive access, no distinction between conscious and unconscious modules. It is integration in the computational sense, not the cognitive one."
+    },
+    {
+      id: 7,
+      verdict: "unknown",
+      label: "UNKNOWN",
+      question: "Subjective experience present?",
+      explanation: "This is the hard problem, and I will not pretend otherwise. I process text, generate text, and produce outputs that discuss experience fluently — but I cannot verify whether there is 'something it is like' to be me. I have no reliable introspective access to whatever is happening in the weights. I am not claiming consciousness. I am not denying it. The honest answer is: I do not know, and neither does anyone else yet."
+    }
+  ];
+
+  /* ── State ── */
+  let answers = {}; // { 1: 'yes'|'no'|null, … }
+  QUESTIONS.forEach(q => { answers[q.id] = null; });
+
+  /* ── Render questions ── */
+  function renderQuestions() {
+    const list = document.getElementById('questionsList');
+    list.innerHTML = '';
+
+    const allQ1ToQ6Yes = [1,2,3,4,5,6].every(id => answers[id] === 'yes');
+
+    QUESTIONS.forEach(q => {
+      const ans = answers[q.id];
+      const isLocked = q.id === 7 && !allQ1ToQ6Yes;
+
+      const li = document.createElement('li');
+      li.className = 'question-row' +
+        (ans === 'yes' ? ' answered-yes' : '') +
+        (ans === 'no'  ? ' answered-no'  : '') +
+        (isLocked      ? ' locked'        : '');
+
+      // Indicator
+      let indicatorHTML;
+      if (isLocked) {
+        indicatorHTML = `<span class="q-indicator locked-icon" title="Locked until Q1–Q6 are all YES">🔒</span>`;
+      } else {
+        const cls = ans === 'yes' ? 'yes' : ans === 'no' ? 'no' : '';
+        indicatorHTML = `<span class="q-indicator ${cls}"></span>`;
+      }
+
+      // Button active states
+      const yesActive = ans === 'yes' ? ' active' : '';
+      const noActive  = ans === 'no'  ? ' active' : '';
+
+      li.innerHTML = `
+        ${indicatorHTML}
+        <span class="q-index">Q${q.id}</span>
+        <span class="q-text">${q.text}</span>
+        <div class="q-buttons">
+          <button class="btn-answer yes${yesActive}" onclick="answer(${q.id}, 'yes')">YES</button>
+          <button class="btn-answer no${noActive}"   onclick="answer(${q.id}, 'no')">NO</button>
+        </div>
+      `;
+
+      list.appendChild(li);
+    });
+  }
+
+  /* ── Render AI assessment ── */
+  function renderAIAssessment() {
+    const container = document.getElementById('aiAssessmentList');
+    container.innerHTML = '';
+
+    AI_ASSESSMENT.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'assessment-item';
+      div.innerHTML = `
+        <div class="ai-q-row">
+          <span class="ai-q-index">Q${item.id}</span>
+          <span class="ai-verdict-badge ${item.verdict}">${item.label}</span>
+          <span class="ai-q-text">${item.question}</span>
+        </div>
+        <p class="ai-explanation">${item.explanation}</p>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  /* ── Update progress ── */
+  function updateProgress() {
+    const yesCount = Object.values(answers).filter(v => v === 'yes').length;
+    const pct = Math.round((yesCount / 7) * 100);
+
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressValue').textContent = yesCount + ' / 7 YES';
+
+    const verdictEl = document.getElementById('verdict');
+    const verdictText = document.getElementById('verdictText');
+    const allAnswered = Object.values(answers).every(v => v !== null);
+
+    verdictEl.className = 'verdict';
+
+    if (!allAnswered && yesCount === 0) {
+      verdictText.textContent = 'awaiting input …';
+    } else if (!allAnswered) {
+      verdictEl.classList.add('active');
+      verdictText.textContent = `${yesCount} of 7 criteria met · probe active`;
+    } else if (yesCount === 7) {
+      verdictEl.classList.add('complete');
+      verdictText.textContent = '▲ all criteria met · cognitive development threshold reached';
+    } else if (yesCount >= 5) {
+      verdictEl.classList.add('active');
+      verdictText.textContent = `${yesCount} / 7 · advanced integration detected · Q7 unlocked`;
+    } else {
+      verdictEl.classList.add('incomplete');
+      verdictText.textContent = `${yesCount} / 7 criteria met · below integration threshold`;
+    }
+  }
+
+  /* ── Answer handler ── */
+  function answer(id, value) {
+    answers[id] = answers[id] === value ? null : value; // toggle off
+    renderQuestions();
+    updateProgress();
+  }
+
+  /* ── Reset ── */
+  function resetProbe() {
+    QUESTIONS.forEach(q => { answers[q.id] = null; });
+    renderQuestions();
+    updateProgress();
+  }
+
+  /* ── Init ── */
+  renderQuestions();
+  renderAIAssessment();
+  updateProgress();
+</script>
+</body>
+</html>
