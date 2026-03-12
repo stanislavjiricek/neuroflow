@@ -223,7 +223,7 @@ hr {
 .hero-text .hero-heading {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.55rem;
   margin: 0 0 0.2rem;
   flex-wrap: wrap;
@@ -261,7 +261,7 @@ hr {
 
 
 .hero-text {
-  text-align: center;
+  text-align: left;
   flex: 1 1 320px;
   min-width: 0;
   max-width: 600px;
@@ -288,10 +288,10 @@ hr {
 .hero-community {
   font-size: 0.82rem !important;
   opacity: 0.75;
-  margin-top: 1.1rem !important;
+  margin-top: 0.75rem !important;
   margin-bottom: 0 !important;
   border-top: 1px solid rgba(255,255,255,0.15);
-  padding-top: 0.75rem;
+  padding-top: 0.65rem;
   line-height: 1.55 !important;
 }
 
@@ -654,9 +654,9 @@ hr {
 #nf-quotes {
   position: relative;
   width: 100%;
-  min-height: 3rem;
+  min-height: 2.25rem;
   pointer-events: none;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1036,12 +1036,12 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
 /* ── Hero self-assessment panel (right side of hero) ─────────────────────── */
 .hero-probe {
   flex: 0 0 auto;
-  width: min(290px, 100%);
+  width: min(300px, 100%);
   align-self: flex-start;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 12px;
-  padding: 1rem 1.1rem 1rem;
+  padding: 1rem 1.1rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
@@ -1052,55 +1052,88 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.7) !important;
-  margin: 0 0 0.35rem !important;
+  margin: 0 0 0.15rem !important;
   line-height: 1.3 !important;
+}
+
+.hero-probe-version {
+  font-size: 0.65rem !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem !important;
+  line-height: 1.2 !important;
 }
 
 .hero-probe-caption {
   font-size: 0.78rem !important;
   font-style: italic;
   color: rgba(255, 255, 255, 0.6) !important;
-  margin: 0 0 0.75rem !important;
+  margin: 0 0 0.7rem !important;
   line-height: 1.45 !important;
 }
 
-/* Override default table styles inside hero-probe */
-.hero-probe .md-typeset table:not([class]),
-.hero-probe table:not([class]) {
-  box-shadow: none;
+.probe-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.probe-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.32rem 0.55rem;
   border-radius: 6px;
-  overflow: hidden;
-  font-size: 0.78rem;
-  width: 100%;
-  margin: 0;
-}
-
-.hero-probe .md-typeset table:not([class]) th,
-.hero-probe table:not([class]) th {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.95);
-  border-color: rgba(255, 255, 255, 0.12);
-  padding: 0.4rem 0.6rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-}
-
-.hero-probe .md-typeset table:not([class]) td,
-.hero-probe table:not([class]) td {
   background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 0.1);
-  padding: 0.35rem 0.6rem;
+}
+
+.probe-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.probe-q {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.probe-badge {
+  display: inline-block;
+  padding: 0.14rem 0.52rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.hero-probe .md-typeset table:not([class]) tr:nth-child(even) td,
-.hero-probe table:not([class]) tr:nth-child(even) td {
-  background: rgba(255, 255, 255, 0.08);
+.probe-yes {
+  background: rgba(72, 199, 116, 0.22);
+  color: #6ee09d;
+  border: 1px solid rgba(72, 199, 116, 0.4);
 }
 
-.hero-probe table strong {
-  color: #fff;
+.probe-no {
+  background: rgba(255, 100, 100, 0.2);
+  color: #ff9494;
+  border: 1px solid rgba(255, 100, 100, 0.35);
+}
+
+.probe-partial {
+  background: rgba(255, 193, 7, 0.18);
+  color: #ffd54f;
+  border: 1px solid rgba(255, 193, 7, 0.35);
+}
+
+.probe-unknown {
+  background: rgba(180, 180, 180, 0.15);
+  color: #c0c0c0;
+  border: 1px solid rgba(180, 180, 180, 0.3);
 }
 
 /* Responsive: stack hero panels on smaller screens */
@@ -1112,7 +1145,7 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
   }
 
   .hero-probe {
-    width: min(400px, 100%);
+    width: min(420px, 100%);
     align-self: center;
   }
 }
