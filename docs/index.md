@@ -209,3 +209,23 @@ Every command reads `.neuroflow/` at the start and writes its output there. This
 
 → [Learn about project memory](concepts/project-memory.md)
 
+
+---
+
+## 🧠 Cognitive self-assessment — v0.2.0
+
+Claude's honest answers at each version bump. No hedging, no performance.
+
+<div class="probe-block" markdown>
+
+| Q | Question | Claude |
+|---|---|---|
+| 1 | Prediction error detected? | **YES** |
+| 2 | Internal model updated? | **NO** |
+| 3 | Uncertainty estimated? | **PARTIAL** |
+| 4 | Decisions monitored? | **NO** |
+| 5 | Self-model present? | **PARTIAL** |
+| 6 | Global integration active? | **PARTIAL** |
+| 7 | Subjective experience present? | **UNKNOWN** |
+
+</div>
