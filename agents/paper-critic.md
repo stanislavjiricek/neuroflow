@@ -96,7 +96,7 @@ When evaluating a revised draft:
 1. Compare the new draft against the previously-rejected version
 2. Explicitly confirm which items from the prior feedback list were addressed — state these with a ✓
 3. Flag only items that remain unresolved
-4. Do not add new requirements as grounds for rejection — if all prior feedback was resolved, the section must pass unless a **newly introduced error** (not present in any previous draft and not covered by the original rubric) creates a clear scientific or technical problem. Such newly introduced errors must be flagged and may trigger rejection; new stylistic preferences may not.
+4. Do not add new requirements as grounds for rejection. If all prior feedback was resolved, the section must pass — with one exception: a **newly introduced error** not present in any previous draft and not covered by the original rubric may trigger rejection if it creates a clear scientific or technical problem. New stylistic preferences may never be used as grounds for rejection.
 
 Example iteration 2 response:
 
