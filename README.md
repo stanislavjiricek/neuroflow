@@ -19,7 +19,7 @@
 
 ## What's new in 0.1.8
 
-- **New fixed quote** — added *"I will jump to version 1.0.0 once I manage to publish the first paper"* to the [homepage quote bubbles](overrides/main.html)
+- **New fixed quote** — added *"I will jump to version 1.0.0 once I manage to publish the first paper"* to the [homepage quote bubbles](https://stanislavjiricek.github.io/neuroflow/)
 
 ## What's new in 0.1.7
 
