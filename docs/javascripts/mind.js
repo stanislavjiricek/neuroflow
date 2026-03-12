@@ -298,8 +298,9 @@
     var root = document.getElementById("nf-mind-root");
     if (!root) return;
 
-    /* Clear any previous render (instant-nav support) */
-    root.innerHTML = "";
+    /* Clear any previous render (instant-nav support) — remove only the SVG
+       and panel so the topbar / back-to-docs buttons are preserved. */
+    root.querySelectorAll("svg, #nf-mind-panel").forEach(function(el) { el.remove(); });
 
     var W = root.clientWidth  || window.innerWidth;
     var H = root.clientHeight || window.innerHeight - 60;
