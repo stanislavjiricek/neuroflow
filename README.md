@@ -17,10 +17,11 @@
 
 ---
 
-## What's new in 0.1.10
+## What's new in 0.2.0
 
 - **Auto-issue consent gate** — `auto-issue` now checks `auto_issue_reporting:` in `project_config.md` before filing any issue; issues are only sent if the user explicitly opted in during project setup; missing or `no` value silently suppresses all automatic filing
 - **Consent question in [`/neuroflow`](commands/neuroflow.md)** — project setup now asks whether the user allows anonymous issue reporting to the developers and saves the answer as `auto_issue_reporting: yes/no` in `project_config.md`
+- **Cognitive probe embedded on home page** — simple static self-assessment block replaces the separate probe page
 
 ## What's new in 0.1.9
 
