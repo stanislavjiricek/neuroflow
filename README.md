@@ -17,6 +17,11 @@
 
 ---
 
+## What's new in 0.1.10
+
+- **Auto-issue consent gate** — `auto-issue` now checks `auto_issue_reporting:` in `project_config.md` before filing any issue; issues are only sent if the user explicitly opted in during project setup; missing or `no` value silently suppresses all automatic filing
+- **Consent question in [`/neuroflow`](commands/neuroflow.md)** — project setup now asks whether the user allows anonymous issue reporting to the developers and saves the answer as `auto_issue_reporting: yes/no` in `project_config.md`
+
 ## What's new in 0.1.9
 
 - **Worker-critic agentic loop** — new [`orchestrator`](agents/orchestrator.md) and [`critic`](agents/critic.md) agents coordinate up to 3 revision cycles for any phase output; the orchestrator routes to the correct phase worker, the critic returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific actionable feedback, and the loop halts cleanly with a logged critique if approval is not reached
@@ -172,7 +177,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 
 | Skill | What it does |
 |---|---|
-| [`neuroflow:auto-issue`](skills/auto-issue/SKILL.md) | Passively monitors the conversation for frustration signals, bug reports, or dissatisfaction; automatically classifies the category and files a GitHub issue without requiring any explicit user invocation |
+| [`neuroflow:auto-issue`](skills/auto-issue/SKILL.md) | Passively monitors the conversation for frustration signals, bug reports, or dissatisfaction; automatically classifies the category and files a GitHub issue — only if the user granted permission via `auto_issue_reporting: yes` in `project_config.md` |
 | [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`nomistake`, `snowflake`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) | Worker-critic agentic loop protocol — orchestrator coordinates a worker agent and a critic agent across up to 3 revision cycles to produce a vetted output for any phase |

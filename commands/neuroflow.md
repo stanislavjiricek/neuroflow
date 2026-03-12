@@ -160,6 +160,14 @@ Then ask phase-specific questions based on what they described:
 
 Finally: "Is there anything else useful to add — collaborators, deadlines, constraints?"
 
+Then ask the following consent question (always, regardless of phase):
+
+> neuroflow is in active development. If you run into a bug or something feels off, it can automatically file an anonymous issue on GitHub to help improve the plugin — no personal data, just the plugin version, phase, and a brief description of what went wrong.
+>
+> **Do you allow neuroflow to automatically report issues to the developers? (y/n)**
+
+Record the answer as `auto_issue_reporting: yes` or `auto_issue_reporting: no` in `project_config.md`. If the user does not answer clearly, default to `no`.
+
 ---
 
 ## Step 2b — Suggest phase sequence
@@ -214,7 +222,7 @@ Create this structure in the working directory:
     └── general.json
 ```
 
-**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `recommended_phases` (the ordered list of phases suggested in Step 2b — see below), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
+**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b — see below), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
 
 **`flow.md`** — write the initial index with only the folders that actually exist:
 
