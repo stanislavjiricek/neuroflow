@@ -1,22 +1,22 @@
 ---
-name: export
-description: Export project memory or the whole project — pack it as a zip archive or copy it to a target location for sharing, archiving, or handoff.
-phase: export
+name: output
+description: Output project memory or the whole project — pack it as a zip archive or copy it to a target location for sharing, archiving, or handoff.
+phase: output
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - .neuroflow/export/flow.md
+  - .neuroflow/output/flow.md
 writes:
-  - .neuroflow/export/
-  - .neuroflow/export/flow.md
+  - .neuroflow/output/
+  - .neuroflow/output/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
-# /export
+# /output
 
 Pack and move project data out of the current workspace. Useful for sharing with collaborators, handing off to a supervisor, archiving before a major change, or backing up project state.
 
-Read the `neuroflow:phase-export` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-output` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
 ---
 
@@ -30,11 +30,11 @@ If `.neuroflow/` does not exist, stop and tell the user to run `/neuroflow` firs
 
 Read `.neuroflow/project_config.md` and `.neuroflow/flow.md`.
 
-If `.neuroflow/export/` does not exist yet, create it now:
-- Create `export/flow.md` with the standard index table (empty, today's date)
-- Update the root `.neuroflow/flow.md` to add a row for `export/`
+If `.neuroflow/output/` does not exist yet, create it now:
+- Create `output/flow.md` with the standard index table (empty, today's date)
+- Update the root `.neuroflow/flow.md` to add a row for `output/`
 
-If `export/` exists, read `export/flow.md`.
+If `output/` exists, read `output/flow.md`.
 
 ---
 
@@ -69,7 +69,7 @@ Default: **Zip archive**.
 
 Ask: *"Where should the export be saved?"*
 
-Suggest a sensible default: `./export-[project-slug]-[YYYY-MM-DD].zip` (or folder) in the current working directory, where `project-slug` is the project name from `project_config.md` lowercased with spaces replaced by hyphens.
+Suggest a sensible default: `./output-[project-slug]-[YYYY-MM-DD].zip` (or folder) in the current working directory, where `project-slug` is the project name from `project_config.md` lowercased with spaces replaced by hyphens.
 
 ---
 
@@ -124,11 +124,11 @@ Tell the user what was excluded and why:
 
 ---
 
-## Step 7 — Log the export
+## Step 7 — Log the output
 
-Write an export log entry to `.neuroflow/export/`:
+Write an output log entry to `.neuroflow/output/`:
 
-Save as `export-[YYYY-MM-DD-HH-mm].md`:
+Save as `output-[YYYY-MM-DD-HH-mm].md`:
 
 ```
 date: YYYY-MM-DD HH:MM
@@ -139,18 +139,18 @@ excluded: sessions/, integrations.json
 size: <file size or file count>
 ```
 
-Update `.neuroflow/export/flow.md` immediately.
+Update `.neuroflow/output/flow.md` immediately.
 
 Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ```
-[HH:MM] /export — Exported <scope> as <format> to <destination>.
+[HH:MM] /output — Output <scope> as <format> to <destination>.
 ```
 
 ---
 
 ## At end
 
-- Updated `export/flow.md` with the new log entry
+- Updated `output/flow.md` with the new log entry
 - Appended to `sessions/YYYY-MM-DD.md`
 - Confirmed the export file or folder exists at destination
