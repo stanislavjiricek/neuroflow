@@ -5,7 +5,7 @@ phase: grant-proposal
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - .neuroflow/ideation/flow.md
+  - .neuroflow/ideation/           # all .md files discovered in Step 0
   - .neuroflow/grant-proposal/flow.md
 writes:
   - .neuroflow/grant-proposal/
