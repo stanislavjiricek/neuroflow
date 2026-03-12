@@ -42,7 +42,8 @@ For a literature search: defer to the `scholar` agent output format.
 After presenting a research question or proposal, offer:
 
 - `"refine"` — iterate on the research question with the user
-- `"literature"` — hand off to `scholar` for a targeted search
+- `"literature"` — hand off to `scholar` for a targeted search (papers will be downloaded automatically to `.neuroflow/ideation/papers/`)
+- `"literature-review"` — invoke the `literature-review` agent to run all 12 analytical protocols on papers already in `.neuroflow/ideation/papers/`
 - `"save"` — write the research question to `.neuroflow/ideation/research-question.md`
 - `"proposal"` — draft a one-page project proposal once the question is locked
 
