@@ -25,7 +25,7 @@ Manage the workflow between the worker (phase agent) and the critic. The orchest
 
 ### Step 2 — Select the worker agent
 
-Select the appropriate phase agent as the worker based on the active phase (17 phases map to 15 unique worker agents; preregistration shares the `ideation` worker and finance shares the `grant-proposal` worker):
+Select the appropriate phase agent as the worker based on the active phase (18 phases map to 15 unique worker agents; preregistration shares the `ideation` worker, finance shares the `grant-proposal` worker, and slideshow shares the `write-report` worker):
 
 | Phase | Worker agent |
 |---|---|
@@ -43,6 +43,7 @@ Select the appropriate phase agent as the worker based on the active phase (17 p
 | paper-review | `paper-review` |
 | notes | `notes` |
 | write-report | `write-report` |
+| slideshow | `write-report` |
 | brain-build | `brain-build` |
 | brain-optimize | `brain-optimize` |
 | brain-run | `brain-run` |
