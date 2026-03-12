@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.1.8
+
+- **[`/lit-review`](commands/lit-review.md)** — structured post-retrieval literature analysis; applies 12 named protocols to a paper corpus retrieved by `/ideation` or the `scholar` agent: [The Intake Protocol](skills/lit-review-protocols/SKILL.md), [The Contradiction Hunter](skills/lit-review-protocols/SKILL.md), [The Knowledge Gap Detector](skills/lit-review-protocols/SKILL.md), [The Timeline Builder](skills/lit-review-protocols/SKILL.md), [The Methodology Auditor](skills/lit-review-protocols/SKILL.md), [The Citation Network Map](skills/lit-review-protocols/SKILL.md), [The Lit Review Writer](skills/lit-review-protocols/SKILL.md), [The Devil's Advocate](skills/lit-review-protocols/SKILL.md), [The Theoretical Framework Extractor](skills/lit-review-protocols/SKILL.md), [The Variable Map](skills/lit-review-protocols/SKILL.md), [The Plain Language Translator](skills/lit-review-protocols/SKILL.md), and [The Future Research Agenda](skills/lit-review-protocols/SKILL.md)
+- **[`neuroflow:lit-review-protocols`](skills/lit-review-protocols/SKILL.md)** — skill implementing all 12 protocols; invoked by `/lit-review` and the `lit-review` agent
+- **[`lit-review`](agents/lit-review.md)** — autonomous literature review agent; delegates all protocol execution to `neuroflow:lit-review-protocols`
+
 ## What's new in 0.1.7
 
 - **[`neuroflow-developer`](.github/agents/neuroflow-developer.md)** — superspecialized GitHub agent for developing and maintaining the neuroflow plugin; merges `neuroflow-core` lifecycle rules and `neuroflow-develop` guidance into one repo-aware agent; reads the live state of every skill, command, agent, and hook at the start of each session so it is always operating on what the repo actually contains
@@ -102,6 +108,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | Command | What it does |
 |---|---|
 | [`/ideation`](commands/ideation.md) | Brainstorm a research question, explore literature via scholar, formalize an idea, or produce a project proposal |
+| [`/lit-review`](commands/lit-review.md) | Structured post-retrieval literature analysis — run 12 protocols (synthesis, contradiction map, knowledge gaps, timeline, methodology audit, citation network, lit review draft, devil's advocate, theoretical frameworks, variable map, plain language, future agenda) |
 | [`/preregistration`](commands/preregistration.md) | Pre-register study design and analysis plan on OSF or AsPredicted; review for completeness; log deviations; link registered reports |
 | [`/grant-proposal`](commands/grant-proposal.md) | Write a grant application — specific aims, significance, innovation, approach, budget, timeline |
 | [`/finance`](commands/finance.md) | Manage the project budget, log expenses, produce financial reports, and check grant compliance |
@@ -149,6 +156,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 |---|---|
 | [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`nomistake`, `snowflake`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
+| [`neuroflow:lit-review-protocols`](skills/lit-review-protocols/SKILL.md) | 12 post-retrieval literature analysis protocols — Intake, Contradiction Hunter, Knowledge Gap Detector, Timeline Builder, Methodology Auditor, Citation Network Map, Lit Review Writer, Devil's Advocate, Theoretical Framework Extractor, Variable Map, Plain Language Translator, Future Research Agenda |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
 | [`neuroflow:phase-git`](skills/phase-git/SKILL.md) | Phase guidance for /git — context-aware git shorthand rules, smart push/pull logic, commit message generation, branch management, and PR creation |
@@ -174,6 +182,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-brain-run`](skills/phase-brain-run/SKILL.md) | Phase guidance for /brain-run — run configuration, simulation launch, output sanity checks |
 | [`neuroflow:phase-search`](skills/phase-search/SKILL.md) | Phase guidance for /search — tag-based scoping, flow.md-first indexing strategy, compact summary format |
 | [`neuroflow:phase-pipeline`](skills/phase-pipeline/SKILL.md) | Phase guidance for /pipeline — interactive vs brutal mode behaviour, pipeline plan format, resume logic, error handling |
+| [`neuroflow:phase-lit-review`](skills/phase-lit-review/SKILL.md) | Phase guidance for /lit-review — protocol ordering, output conventions, delegation to lit-review-protocols |
 
 ---
 
@@ -202,6 +211,7 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`brain-optimize`](agents/brain-optimize.md) | Parameter optimisation specialist — plans sweeps or data-fitting runs; selects the right algorithm (grid, differential evolution, Bayesian, BluePyOpt) |
 | [`brain-run`](agents/brain-run.md) | Simulation runner — configures and executes runs, sanity-checks outputs for silence, runaway activity, or NaN values; supports HPC job submission |
 | [`neuroflow-developer`](.github/agents/neuroflow-developer.md) | Superspecialized plugin development agent — merges neuroflow-core and neuroflow-develop into one repo-aware agent; reads live repo state at session start; handles skills, commands, agents, hooks, docs, and releases |
+| [`lit-review`](agents/lit-review.md) | Literature review specialist — runs 12 structured protocols on a retrieved paper corpus; delegates all analysis to `neuroflow:lit-review-protocols`; scoped to the ideation phase |
 
 ---
 
