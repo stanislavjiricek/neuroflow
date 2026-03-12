@@ -1029,3 +1029,11 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
   .nf-mind-topbar-hint { display: none; }
   .nf-mind-panel { width: 100%; right: -100%; }
 }
+
+/* ── Cognitive self-assessment probe block ────────────────────────────────── */
+.probe-block {
+  background: rgba(103, 58, 183, 0.08);
+  border: 1px solid rgba(149, 117, 205, 0.4);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+}

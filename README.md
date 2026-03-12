@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.2.0
+
+- **Cognitive probe embedded on home page** — simple static self-assessment block replaces the separate probe page
+
 ## What's new in 0.1.9
 
 - **Worker-critic agentic loop** — new [`orchestrator`](agents/orchestrator.md) and [`critic`](agents/critic.md) agents coordinate up to 3 revision cycles for any phase output; the orchestrator routes to the correct phase worker, the critic returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific actionable feedback, and the loop halts cleanly with a logged critique if approval is not reached
