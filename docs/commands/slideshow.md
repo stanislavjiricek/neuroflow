@@ -156,5 +156,5 @@ The slide deck is saved as `slideshow-YYYY-MM-DD.md` in `.neuroflow/slideshow/`.
 
 - [`/write-report`](write-report.md) — generate a prose report rather than a slide deck
 - [`/notes`](notes.md) — capture rough notes that can seed a future slideshow
-- [`/export`](export.md) — package the slideshow file along with figures for sharing
+- [`/output`](output.md) — package the slideshow file along with figures for sharing
 - [`/sentinel`](sentinel.md) — audit project consistency before presenting

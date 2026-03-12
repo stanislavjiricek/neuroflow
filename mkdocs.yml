@@ -115,6 +115,7 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quickstart: quickstart.md
+  - Mind Map: mind.md
   - Commands:
       - Overview: commands/index.md
       - "🚀 neuroflow": commands/neuroflow.md

@@ -106,4 +106,4 @@ The `--sync` mode always pulls before pushing:
 
 - [`/neuroflow`](neuroflow.md) — project setup and status; run before `/flowie`
 - [`flowie` agent](../concepts/agents.md) — apply the profile autonomously during a session
-- [`/export`](export.md) — flowie data is excluded from project exports by default
+- [`/output`](output.md) — flowie data is excluded from project exports by default
