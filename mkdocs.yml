@@ -192,3 +192,5 @@ nav:
   - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
+  - Lab:
+      - "🧠 Cognitive Probe": probe.html
