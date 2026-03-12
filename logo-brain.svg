@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="g" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ce93d8"/>
+      <stop offset="45%" stop-color="#8e24aa"/>
+      <stop offset="100%" stop-color="#4a148c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main brain body — two-lobed front-view silhouette -->
+  <path fill="url(#g)" d="
+    M 50 82
+    C 62 82 74 76 80 68
+    C 86 60 88 50 86 40
+    C 84 30 78 22 70 16
+    C 64 10 56 10 52 16
+    C 51 17 50 18 50 18
+    C 50 18 49 17 48 16
+    C 44 10 36 10 30 16
+    C 22 22 16 30 14 40
+    C 12 50 14 60 20 68
+    C 26 76 38 82 50 82 Z
+  "/>
+
+  <!-- Longitudinal fissure (center groove) -->
+  <path stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round"
+    d="M 50 18 C 49.5 38 49.5 60 50 82"/>
+
+  <!-- Cerebellum -->
+  <ellipse fill="#5e1291" cx="50" cy="88" rx="15" ry="7.5"/>
+  <path stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none" stroke-linecap="round"
+    d="M 38 88 Q 50 85 62 88"/>
+
+  <!-- Left hemisphere gyri (fold lines) -->
+  <path stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"
+    d="M 17 40 Q 30 33 46 38"/>
+  <path stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"
+    d="M 14 57 Q 28 50 46 55"/>
+  <path stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"
+    d="M 20 71 Q 32 65 46 69"/>
+
+  <!-- Right hemisphere gyri (fold lines) -->
+  <path stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"
+    d="M 83 40 Q 70 33 54 38"/>
+  <path stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"
+    d="M 86 57 Q 72 50 54 55"/>
+  <path stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"
+    d="M 80 71 Q 68 65 54 69"/>
+
+  <!-- Subtle highlight ellipses for depth -->
+  <ellipse fill="rgba(255,255,255,0.13)" cx="33" cy="25" rx="9" ry="5"
+    transform="rotate(-20 33 25)"/>
+  <ellipse fill="rgba(255,255,255,0.13)" cx="67" cy="25" rx="9" ry="5"
+    transform="rotate(20 67 25)"/>
+</svg>
