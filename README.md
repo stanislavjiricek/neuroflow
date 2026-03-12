@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.2.2
+
+- **Unified [`/paper`](commands/paper.md) command** — combines paper-write and paper-review into a single command and phase; every section draft goes through a brutal `paper-writer` → `paper-critic` loop (up to 3 iterations per section) before anything is saved; nothing reaches disk without critic approval or explicit user acceptance
+- **New [`paper-writer`](agents/paper-writer.md) and [`paper-critic`](agents/paper-critic.md) agents** — the writer drafts section-by-section from upstream project memory; the critic applies the full six-area `neuroflow:review-neuro` methodology to every draft with zero tolerance for overclaims, statistical errors, or underreported methods
+- **New [`neuroflow:phase-paper`](skills/phase-paper/SKILL.md) skill** — unified phase guidance covering journal recommendation, the write→critique loop protocol, critic standards, and output paths for the paper phase
+
 ## What's new in 0.2.1
 
 - **ASCII welcome logo in [`/neuroflow`](commands/neuroflow.md)** — the main entry command now greets with a full ASCII logo for "neuroflow", the current version number, and the tagline *agentic neuroscience research, from hypothesis to publication*, followed by one of the three witty one-liners
@@ -146,6 +152,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/data-analyze`](commands/data-analyze.md) | Run an analysis pipeline — ERPs, time-frequency, connectivity, decoding, GLM |
 | [`/paper-write`](commands/paper-write.md) | Generate a manuscript draft from results and figures |
 | [`/paper-review`](commands/paper-review.md) | Pre-submission peer review — logic, methods, statistics, writing, figures |
+| [`/paper`](commands/paper.md) | Unified manuscript writing and review — draft section by section, brutal write→critique loop, nothing saved without approval |
 | [`/notes`](commands/notes.md) | Live note-taking — capture freeform input, then reformat into a clean structured document |
 | [`/write-report`](commands/write-report.md) | Generate a structured report from `.neuroflow/` contents for any phase or the whole project |
 
@@ -201,6 +208,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-data-analyze`](skills/phase-data-analyze/SKILL.md) | Phase guidance for /data-analyze |
 | [`neuroflow:phase-paper-write`](skills/phase-paper-write/SKILL.md) | Phase guidance for /paper-write |
 | [`neuroflow:phase-paper-review`](skills/phase-paper-review/SKILL.md) | Phase guidance for /paper-review — delegates review to neuroflow:review-neuro |
+| [`neuroflow:phase-paper`](skills/phase-paper/SKILL.md) | Phase guidance for /paper — unified write→critique loop, journal recommendation, critic standards |
 | [`neuroflow:phase-notes`](skills/phase-notes/SKILL.md) | Phase guidance for /notes |
 | [`neuroflow:phase-write-report`](skills/phase-write-report/SKILL.md) | Phase guidance for /write-report |
 | [`neuroflow:phase-quiz`](skills/phase-quiz/SKILL.md) | Phase guidance for /quiz — mode behaviour, question quality standards, mode-specific workflow |
@@ -236,6 +244,8 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`data-analyze`](agents/data-analyze.md) | Statistical analysis specialist — ERPs, time-frequency, connectivity, decoding, GLM; audits assumptions and applies multiple-comparison correction |
 | [`paper-write`](agents/paper-write.md) | Manuscript writing specialist — drafts section by section from project memory; journal-targeted; always writes abstract last |
 | [`paper-review`](agents/paper-review.md) | Pre-submission peer review specialist — gathers manuscript, journal, and focus, then delegates to the review-neuro skill |
+| [`paper-writer`](agents/paper-writer.md) | Unified paper phase writer — drafts sections from upstream memory inside the brutal write→critique loop; revises against every critic bullet |
+| [`paper-critic`](agents/paper-critic.md) | Unified paper phase critic — applies full six-area review-neuro methodology to every draft; returns [STATUS: APPROVED] or [STATUS: REJECTED] with specific actionable feedback |
 | [`notes`](agents/notes.md) | Live note-taking specialist — captures freeform input without interruption; reformats into a structured document only when asked |
 | [`write-report`](agents/write-report.md) | Report generation specialist — synthesises `.neuroflow/` memory into a structured report for any phase or the full project |
 | [`brain-build`](agents/brain-build.md) | Computational brain model builder — spec-first design of neuron models and network topology for NEURON, Brian2, NetPyNE, NEST, tvb-library |
