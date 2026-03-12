@@ -1,11 +1,11 @@
 ---
-name: phase-export
-description: Phase guidance for the neuroflow /export command. Orients agent approach for exporting project memory or the whole project safely and with correct exclusions.
+name: phase-output
+description: Phase guidance for the neuroflow /output command. Orients agent approach for outputting project memory or the whole project safely and with correct exclusions.
 ---
 
-# phase-export
+# phase-output
 
-The `/export` command packages and moves project data out of the workspace. Its job is to give the user a clean, portable snapshot without accidentally including sensitive files.
+The `/output` command packages and moves project data out of the workspace. Its job is to give the user a clean, portable snapshot without accidentally including sensitive files.
 
 ## Approach
 
@@ -38,9 +38,9 @@ If the user explicitly asks to include sessions or credentials, explain why that
 Default names for export outputs:
 
 ```
-export-[project-slug]-[YYYY-MM-DD].zip
-export-[project-slug]-[YYYY-MM-DD]/     (folder copy)
-export-[phase]-[project-slug]-[YYYY-MM-DD].zip   (single-phase)
+output-[project-slug]-[YYYY-MM-DD].zip
+output-[project-slug]-[YYYY-MM-DD]/     (folder copy)
+output-[phase]-[project-slug]-[YYYY-MM-DD].zip   (single-phase)
 ```
 
 Where `project-slug` is the project name from `project_config.md`, lowercased with spaces replaced by hyphens.

@@ -1,12 +1,12 @@
 ---
-title: /export
+title: /output
 ---
 
-# `/neuroflow:export`
+# `/neuroflow:output`
 
-**Export project memory or the whole project as a zip archive or folder copy.**
+**Output project memory or the whole project as a zip archive or folder copy.**
 
-`/export` packages your project data out of the current workspace — for sharing with collaborators, handing off to a supervisor, archiving before a major change, or backing up project state.
+`/output` packages your project data out of the current workspace — for sharing with collaborators, handing off to a supervisor, archiving before a major change, or backing up project state.
 
 ---
 
@@ -58,8 +58,8 @@ The following are always excluded, regardless of scope:
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/export/flow.md` |
-| Writes | `.neuroflow/export/` (export log), `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/output/flow.md` |
+| Writes | `.neuroflow/output/` (export log), `.neuroflow/sessions/YYYY-MM-DD.md` |
 
 ---
 
