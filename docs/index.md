@@ -8,9 +8,12 @@ hide:
 <div class="hero" markdown>
 <div id="nf-quotes"></div>
 <div class="hero-inner" markdown>
+<div class="hero-brain-wrap" markdown>
+![neuroflow brain](assets/logo-brain.svg){ .hero-brain }
+</div>
 <div class="hero-text" markdown>
 
-**Hi, I'm neuroflow** — a Claude Code plugin and full neuroscience cycle AI assistant.
+**hi, I am neuroflow** — a Claude Code plugin and full neuroscience cycle AI assistant.
 From first hypothesis to manuscript draft, guided by AI at every step.
 
 <div class="hero-buttons" markdown>
