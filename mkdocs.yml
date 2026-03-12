@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.1.7"
+  version: "0.1.8"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -141,7 +141,7 @@ nav:
       - Utilities:
           - "🔀 git": commands/git.md
           - "🔁 pipeline": commands/pipeline.md
-          - "📤 export": commands/export.md
+          - "📤 output": commands/output.md
           - "🔍 search": commands/search.md
           - "🎤 interview": commands/interview.md
           - "📍 phase": commands/phase.md
@@ -179,7 +179,7 @@ nav:
           - "phase-brain-run": skills/phase-brain-run/SKILL.md
           - "phase-quiz": skills/phase-quiz/SKILL.md
           - "phase-fails": skills/phase-fails/SKILL.md
-          - "phase-export": skills/phase-export/SKILL.md
+          - "phase-output": skills/phase-output/SKILL.md
           - "phase-pipeline": skills/phase-pipeline/SKILL.md
           - "phase-search": skills/phase-search/SKILL.md
       - Utils:
