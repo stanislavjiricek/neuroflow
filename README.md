@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.1.8
+
+- **[`/grant-proposal`](commands/grant-proposal.md) dramatically improved** — auto-discovers ideation outputs, fetches funder calls from URLs, supports NIH/ERC/Wellcome/MRC/GAČR/DFG/Horizon Europe with built-in review criteria, and drafts section by section with word-count tracking and quality checklists
+- **[`grant-proposal` agent](agents/grant-proposal.md) upgraded** — autonomous funder call parsing, neuroscience-aware Approach drafting (EEG/fMRI/iEEG/eye-tracking), and per-section confirmation loop
+- **[`phase-grant-proposal` skill](skills/phase-grant-proposal/SKILL.md) expanded** — deep funder knowledge base, review criteria alignment table, common fatal weaknesses guide, and neuroscience-specific power analysis and preprocessing standards
+
 ## What's new in 0.1.7
 
 - **[`neuroflow-developer`](.github/agents/neuroflow-developer.md)** — superspecialized GitHub agent for developing and maintaining the neuroflow plugin; merges `neuroflow-core` lifecycle rules and `neuroflow-develop` guidance into one repo-aware agent; reads the live state of every skill, command, agent, and hook at the start of each session so it is always operating on what the repo actually contains
