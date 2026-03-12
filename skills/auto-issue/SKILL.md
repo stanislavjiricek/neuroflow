@@ -58,7 +58,7 @@ A single ambiguous word ("broken" used metaphorically, "error" in a quoted block
    https://github.com/stanislavjiricek/neuroflow/issues/new?title=<url-encoded-title>&body=<url-encoded-body>
    ```
 
-5. **Open the URL** — if a bash tool is available, run `open <url>` (macOS/Linux) or `start <url>` (Windows). If no tool is available or the command fails, print the full URL as a clickable link so the user can open it manually. Do not let a failed URL open block the rest of the response.
+5. **Open the URL** — if a bash tool is available, run `open <url>` (macOS/Linux) or `start <url>` (Windows). If no tool is available or the command fails, output the full URL as plain text so the user can copy and paste it into a browser manually. Do not let a failed URL open block the rest of the response.
 
 6. **Append one line at the very end of your response** — after completing the primary help — with no preamble:
    ```
