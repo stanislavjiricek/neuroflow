@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.2.1
+
+- **ASCII welcome logo in [`/neuroflow`](commands/neuroflow.md)** — the main entry command now greets with a full ASCII logo for "neuroflow", the current version number, and the tagline *agentic neuroscience research, from hypothesis to publication*, followed by one of the three witty one-liners
+
 ## What's new in 0.2.0
 
 - **Auto-issue consent gate** — `auto-issue` now checks `auto_issue_reporting:` in `project_config.md` before filing any issue; issues are only sent if the user explicitly opted in during project setup; missing or `no` value silently suppresses all automatic filing
