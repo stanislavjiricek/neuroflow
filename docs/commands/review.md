@@ -2,7 +2,7 @@
 
 > **You are the reviewer.** A colleague has sent you their paper and you need to produce a formal referee report. This command is for reviewing someone else's work — not for self-review before your own submission (use [`/paper`](paper.md) for that).
 
-The `/review` command gathers the paper, the target journal, and your review focus, then delegates the full analysis to the [`neuroflow:review-neuro`](../../skills/review-neuro/SKILL.md) skill. The result is a structured referee report saved to your `reviews/` folder.
+The `/review` command gathers the paper, the target journal, and your review focus, then delegates the full analysis to the [`neuroflow:review-neuro`](../skills/review-neuro/SKILL.md) skill. The result is a structured referee report saved to your `reviews/` folder.
 
 ---
 
@@ -67,4 +67,4 @@ Review saved to reviews/review-default-mode-connectivity-2025-06-15.md
 ## Related
 
 - [`/paper`](paper.md) — for writing and reviewing **your own** manuscript before submission
-- [`neuroflow:review-neuro`](../../skills/review-neuro/SKILL.md) — the core six-area review engine
+- [`neuroflow:review-neuro`](../skills/review-neuro/SKILL.md) — the core six-area review engine
