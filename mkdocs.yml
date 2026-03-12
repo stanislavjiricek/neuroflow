@@ -15,7 +15,7 @@ exclude_docs: |
 theme:
   name: material
   custom_dir: overrides
-  logo: assets/logo-brain.svg
+  logo: assets/logo-full.svg
   favicon: assets/logo.png
   features:
     - navigation.tabs
