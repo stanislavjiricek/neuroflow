@@ -294,7 +294,7 @@ Use academic prose. Cite papers as (Author, Year). Do not use bullet points in t
 **Steps:**
 1. Extract all independent variables (IVs), dependent variables (DVs), and moderators/mediators from each paper
 2. Build a frequency table: how many papers include each variable
-3. Flag variables present in 70% or more of papers (dominant variables)
+3. Flag variables present in 70% or more of papers (dominant variables — this threshold is a heuristic for "appears in the large majority"; adjust if the corpus is very small or very large)
 4. Flag variables present in only one paper (never replicated)
 5. Identify combinations of variables that have never been tested together in the corpus
 
