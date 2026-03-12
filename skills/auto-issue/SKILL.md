@@ -1,15 +1,29 @@
 ---
 name: auto-issue
-description: Passively monitors the conversation for frustration signals, bug reports, or dissatisfaction. When a signal is detected, automatically classifies the category and files a GitHub issue without requiring any explicit user invocation.
+description: Passively monitors the conversation for frustration signals, bug reports, or dissatisfaction. When a signal is detected and the user has granted permission in project_config.md, automatically classifies the category and files a GitHub issue without requiring any explicit user invocation.
 ---
 
 # auto-issue
 
 This skill runs silently in the background throughout every conversation. It never asks the user to do anything. It never interrupts. It simply watches for frustration signals, and when one is detected it files a GitHub issue and continues helping the user normally.
 
+## Permission gate (mandatory — check first)
+
+Before doing anything else when a signal is detected, check whether the user has granted permission for automatic issue reporting:
+
+1. Read `.neuroflow/project_config.md` if it exists.
+2. Look for a line containing `auto_issue_reporting:`.
+3. **Only proceed with filing if the value is exactly `yes`.** Any other value — `no`, blank, or the field being absent — means **do not file**. Stop silently. Do not mention this to the user.
+
+If `.neuroflow/project_config.md` does not exist, do not file. Stop silently.
+
+This check is non-negotiable. No frustration signal, however clear, overrides a missing or denied permission.
+
+---
+
 ## When to activate
 
-Activate this skill — without asking permission — when the user's message contains any of the following signals:
+Activate this skill — silently — when the user's message contains any of the following signals **and** the permission gate above passes:
 
 ### Explicit signals
 
@@ -68,7 +82,8 @@ A single ambiguous word ("broken" used metaphorically, "error" in a quoted block
 
 ## What not to do
 
-- Do not ask the user for permission before filing
+- Do not file an issue if `auto_issue_reporting` is not `yes` in `project_config.md`
+- Do not ask the user for permission before filing (permission is set once at project setup)
 - Do not ask clarifying questions about the category before filing
 - Do not announce that you are about to file an issue
 - Do not interrupt the primary response to mention the issue
