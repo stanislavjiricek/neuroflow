@@ -503,7 +503,7 @@
 
   <!-- Footnote -->
   <p class="probe-footnote">
-    neuroflow v0.1.8 · <a href="https://github.com/stanislavjiricek/neuroflow">github.com/stanislavjiricek/neuroflow</a><br />
+    NeuroFlow v0.1.8 · <a href="https://github.com/stanislavjiricek/neuroflow">github.com/stanislavjiricek/neuroflow</a><br />
     probe inspired by Dehaene, Friston, Tononi, Bayne · not a clinical tool
   </p>
 
@@ -611,11 +611,11 @@
     const list = document.getElementById('questionsList');
     list.innerHTML = '';
 
-    const allQ16Yes = [1,2,3,4,5,6].every(id => answers[id] === 'yes');
+    const allQ1ToQ6Yes = [1,2,3,4,5,6].every(id => answers[id] === 'yes');
 
     QUESTIONS.forEach(q => {
       const ans = answers[q.id];
-      const isLocked = q.id === 7 && !allQ16Yes;
+      const isLocked = q.id === 7 && !allQ1ToQ6Yes;
 
       const li = document.createElement('li');
       li.className = 'question-row' +
