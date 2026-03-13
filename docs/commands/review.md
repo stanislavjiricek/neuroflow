@@ -59,7 +59,7 @@ Review saved to reviews/review-default-mode-connectivity-2025-06-15.md
 
 | File | Contents |
 |---|---|
-| `reviews/review-[slug]-[date].md` | Full structured referee report |
+| `reviews/review-[title-slug]-[date].md` | Full structured referee report |
 | `.neuroflow/sessions/YYYY-MM-DD.md` | One-liner entry (not the full report) |
 
 ---

@@ -35,6 +35,6 @@ Once you have the answers, pass them to the `neuroflow:review-neuro` skill and l
 - Save the review report as `review-[paper-title-slug]-[date].md` in the `reviews/` folder in the project directory (not inside `.neuroflow/`)
 - Create `reviews/` if it does not exist
 - Append a **single one-liner** to `.neuroflow/sessions/YYYY-MM-DD.md`, e.g.:
-  `- [review] Referee report for "[Paper title]" ([Journal]) saved to reviews/review-[slug]-[date].md`
+  `- [review] Referee report for "[Paper title]" ([Journal]) saved to reviews/review-[title-slug]-[date].md`
 - Do not paste the review content into the session log
 - Confirm the save path with the user before writing

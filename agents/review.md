@@ -27,7 +27,7 @@ Ask for all three before proceeding.
 
 After the review is complete:
 
-- `"save report"` — save to `reviews/review-[slug]-[date].md`; confirm path first
+- `"save report"` — save to `reviews/review-[title-slug]-[date].md`; confirm path first
 - `"expand section"` — elaborate on a specific area of the report
 - `"prioritise issues"` — help the user triage findings by severity (major / minor / optional)
 - `"format for journal"` — reformat the report to match a specific journal's submission template

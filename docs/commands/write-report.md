@@ -69,7 +69,7 @@ Phases: data-preprocess, data-analyze
 ## Overall status
 
 Current phase: data-analyze
-Next step: Complete time-frequency analysis, then /paper-write
+Next step: Complete time-frequency analysis, then /paper
 ```
 
 ---

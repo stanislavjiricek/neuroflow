@@ -297,14 +297,14 @@ Paper: [title, authors if available]
 Present the full report to the user.
 
 **Immediately after presenting the report, save it automatically:**
-1. Write the full report to `reviews/review-[date].md` in the project directory (e.g. `reviews/review-2026-03-10.md`). Create the `reviews/` folder if it does not exist.
+1. Write the full report to `reviews/review-[title-slug]-[date].md` in the project directory (e.g. `reviews/review-default-mode-connectivity-2026-03-10.md`). Create the `reviews/` folder if it does not exist.
 2. Append a **single one-liner** to `.neuroflow/sessions/YYYY-MM-DD.md` — e.g.:
-   `- [review] Referee report for "[Paper title]" ([Journal]) saved to reviews/review-[date].md`
+   `- [review] Referee report for "[Paper title]" ([Journal]) saved to reviews/review-[title-slug]-[date].md`
    Do **not** paste the review content into the session log.
 
 Then tell the user:
 
-> Review saved to `reviews/review-[date].md`.
+> Review saved to `reviews/review-[title-slug]-[date].md`.
 >
 > Would you like to:
 > - Expand any section in more detail

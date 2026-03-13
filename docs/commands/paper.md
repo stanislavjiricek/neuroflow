@@ -14,7 +14,7 @@ title: /paper
 
 - After `/data-analyze` — results and figures are ready
 - You want to produce a manuscript that has been through rigorous internal review before it reaches a real journal
-- You want drafting and critique in one workflow instead of running `/paper-write` followed by `/paper-review`
+- You want drafting and critique in one integrated workflow with automatic critic approval gates
 
 ---
 

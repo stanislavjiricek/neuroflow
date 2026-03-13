@@ -154,7 +154,7 @@ The orchestrator constructs the rubric at the start of each loop and holds it co
 
 The rubric must be grounded in project reality — not a generic quality checklist. It should reflect:
 - The specific output being requested (e.g. "ERP analysis report comparing conditions A and B at Fz and Pz")
-- Phase-specific conventions (e.g. statistical standards for data-analyze, journal style guide for paper-write)
+- Phase-specific conventions (e.g. statistical standards for data-analyze, journal style guide for paper)
 - Any explicit user-stated acceptance criteria
 - Relevant constraints from `project_config.md` (modality, registered plan, target journal)
 
