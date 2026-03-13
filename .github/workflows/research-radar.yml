@@ -2,7 +2,7 @@ name: Research Radar (Weekly)
 
 on:
   schedule:
-    - cron: '0 8 * * 1'   # 08:00 UTC every Monday
+    - cron: '0 20 * * 5'   # 20:00 UTC every Friday
   workflow_dispatch:
 
 permissions:
