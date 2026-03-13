@@ -82,95 +82,130 @@ ERPs, time-frequency, connectivity, decoding, and GLM — with pre-registration 
 
 ---
 
-## The research pipeline
+## Research pipelines
 
-<div class="pipeline-wrap" markdown>
-<div class="pipeline" markdown>
-<span class="pipeline-step">/ideation</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/experiment</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/data</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/data-preprocess</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/data-analyze</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/paper</span>
-<span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/review</span>
+<p class="rp-intro">neuroflow adapts to your research — click a pipeline to see how the commands connect.</p>
+
+<div class="rp-grid">
+
+<details class="rp-card rp-card--full">
+<summary class="rp-summary">
+  <span class="rp-summary-left">
+    <span class="rp-icon">🔬</span>
+    <span class="rp-title">Full research cycle</span>
+  </span>
+  <span class="rp-badge rp-badge--full">Full cycle</span>
+</summary>
+<div class="rp-body">
+  <p class="rp-desc">From first hypothesis to peer-reviewed manuscript — the complete end-to-end journey. Ideate, run an experiment, collect and preprocess data, analyze, write, and get it reviewed.</p>
+  <div class="rp-pipeline">
+    <span class="pipeline-step">/ideation</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/experiment</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data-preprocess</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data-analyze</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/paper</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/review</span>
+  </div>
+  <p class="rp-caption">All context is stored in <code>.neuroflow/</code> — shared memory that carries every decision forward.</p>
 </div>
-<p class="pipeline-caption">Each command picks up where the last one left off. All context is stored in <code>.neuroflow/</code> — shared project memory that Claude reads at the start of every session.</p>
+</details>
+
+<details class="rp-card rp-card--analysis">
+<summary class="rp-summary">
+  <span class="rp-summary-left">
+    <span class="rp-icon">📊</span>
+    <span class="rp-title">Data analysis study</span>
+  </span>
+  <span class="rp-badge rp-badge--analysis">Analysis</span>
+</summary>
+<div class="rp-body">
+  <p class="rp-desc">You already have data collected. Inventory it, run preprocessing, extract results, and write them up — without touching the experiment design phase.</p>
+  <div class="rp-pipeline">
+    <span class="pipeline-step">/data</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data-preprocess</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data-analyze</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/paper</span>
+  </div>
+  <p class="rp-caption">ERPs, time-frequency, connectivity, decoding, GLM — automatically reported with pre-registration compliance checks.</p>
 </div>
+</details>
 
----
-
-## Commands at a glance
-
-<div class="command-grid" markdown>
-
-<div class="command-card" markdown>
-<span class="command-icon">🚀</span>
-### /neuroflow:neuroflow
-Main entry point. Scans your project, interviews you, and creates `.neuroflow/` project memory.
-[Learn more →](commands/neuroflow.md)
+<details class="rp-card rp-card--tool">
+<summary class="rp-summary">
+  <span class="rp-summary-left">
+    <span class="rp-icon">🔧</span>
+    <span class="rp-title">Research tool build</span>
+  </span>
+  <span class="rp-badge rp-badge--tool">Engineering</span>
+</summary>
+<div class="rp-body">
+  <p class="rp-desc">Building a new analysis algorithm, preprocessing library, or experiment software? Ideate the design, scaffold the implementation, validate it — and optionally write it up as a methods paper.</p>
+  <div class="rp-pipeline">
+    <span class="pipeline-step">/ideation</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/tool-build</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/tool-validate</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step rp-step--optional">/paper</span>
+  </div>
+  <p class="rp-caption">The paper step is optional — publish a methods article or keep the tool as internal infrastructure.</p>
 </div>
+</details>
 
-<div class="command-card" markdown>
-<span class="command-icon">💡</span>
-### /neuroflow:ideation
-Brainstorm research questions, search PubMed and bioRxiv via the scholar agent, and formalize a project proposal.
-[Learn more →](commands/ideation.md)
+<details class="rp-card rp-card--model">
+<summary class="rp-summary">
+  <span class="rp-summary-left">
+    <span class="rp-icon">🧮</span>
+    <span class="rp-title">Computational modelling</span>
+  </span>
+  <span class="rp-badge rp-badge--model">Modelling</span>
+</summary>
+<div class="rp-body">
+  <p class="rp-desc">Fit a computational or mathematical model to empirical neural or behavioral data. Define the model during ideation, prepare and preprocess data, then run model fitting and inference as part of analysis.</p>
+  <div class="rp-pipeline">
+    <span class="pipeline-step">/ideation</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data-preprocess</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/data-analyze</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step rp-step--optional">/paper</span>
+  </div>
+  <p class="rp-caption">The paper step is optional — some modelling projects feed directly into grant applications or internal reports.</p>
 </div>
+</details>
 
-<div class="command-card" markdown>
-<span class="command-icon">📝</span>
-### /neuroflow:grant-proposal
-Write a full grant application — specific aims, significance, innovation, approach, budget, and timeline.
-[Learn more →](commands/grant-proposal.md)
+<details class="rp-card rp-card--ideation">
+<summary class="rp-summary">
+  <span class="rp-summary-left">
+    <span class="rp-icon">📚</span>
+    <span class="rp-title">Literature review & ideation</span>
+  </span>
+  <span class="rp-badge rp-badge--ideation">Ideation</span>
+</summary>
+<div class="rp-body">
+  <p class="rp-desc">Start with a broad question, search PubMed and bioRxiv, synthesise the field, sharpen a novel hypothesis, and convert it into a grant proposal — without writing a single line of analysis code yet.</p>
+  <div class="rp-pipeline">
+    <span class="pipeline-step">/ideation</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">/grant-proposal</span>
+  </div>
+  <p class="rp-caption">The scholar agent searches PubMed, bioRxiv, and Semantic Scholar in real time to ground every idea in the current literature.</p>
 </div>
-
-<div class="command-card" markdown>
-<span class="command-icon">🧪</span>
-### /neuroflow:experiment
-Design a PsychoPy paradigm, define recording parameters, and configure LSL hardware integration.
-[Learn more →](commands/experiment.md)
-</div>
-
-<div class="command-card" markdown>
-<span class="command-icon">📁</span>
-### /neuroflow:data
-Locate, inventory, validate BIDS structure, and convert raw data formats.
-[Learn more →](commands/data.md)
-</div>
-
-<div class="command-card" markdown>
-<span class="command-icon">🔬</span>
-### /neuroflow:data-preprocess
-Build and run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, QC.
-[Learn more →](commands/data-preprocess.md)
-</div>
-
-<div class="command-card" markdown>
-<span class="command-icon">📊</span>
-### /neuroflow:data-analyze
-ERPs, time-frequency, connectivity, decoding, GLM — across EEG, iEEG, fMRI, and other modalities.
-[Learn more →](commands/data-analyze.md)
-</div>
-
-<div class="command-card" markdown>
-<span class="command-icon">📝</span>
-### /neuroflow:paper
-Unified manuscript writing — draft section by section through a brutal write→critique loop.
-[Learn more →](commands/paper.md)
-</div>
-
-<div class="command-card" markdown>
-<span class="command-icon">🔍</span>
-### /neuroflow:review
-Peer review a colleague's paper — structured referee report calibrated to the target journal.
-[Learn more →](commands/review.md)
-</div>
+</details>
 
 </div>
 
