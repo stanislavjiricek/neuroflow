@@ -33,8 +33,7 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 ├── data/                   ← data inventory and intake reports
 ├── data-preprocess/        ← preprocessing configs and QC reports
 ├── data-analyze/           ← analysis plans and result summaries
-├── paper-write/            ← manuscript drafts
-├── paper-review/           ← review reports
+├── paper/                  ← manuscript drafts and critic logs
 ├── notes/                  ← structured notes from meetings and talks
 └── write-report/           ← project reports
 ```
@@ -79,7 +78,7 @@ tools: Python 3.11, MNE 1.6, PsychoPy 2024
 | experiment | paradigm/ |
 | data-preprocess | scripts/preprocessing/ |
 | data-analyze | scripts/analysis/, results/, figures/ |
-| paper-write | manuscript/ |
+| paper | manuscript/ |
 ```
 
 ### `flow.md`

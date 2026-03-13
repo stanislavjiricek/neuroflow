@@ -172,4 +172,4 @@ Claude: Analysis plan:
 ## Related commands
 
 - [`/data-preprocess`](data-preprocess.md) — preprocess your data first
-- [`/paper-write`](paper-write.md) — write the manuscript from your results
+- [`/paper`](paper.md) — write the manuscript from your results

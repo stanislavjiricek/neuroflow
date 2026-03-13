@@ -93,8 +93,8 @@ Default output paths (used when the repo has no existing structure):
 | `tool-build` / `tool-validate` | `tools/` |
 | `data-preprocess` | `scripts/preprocessing/` |
 | `data-analyze` | `scripts/analysis/` (code) + `results/` (outputs) + `figures/` |
-| `paper-write` | `manuscript/` |
-| `paper-review` | `manuscript/review/` |
+| `paper` | `manuscript/` |
+| `review` | `reviews/` |
 | `grant-proposal` | `grant/` |
 
 ---
@@ -116,7 +116,7 @@ Every command must follow this order:
 3. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — do this at **each meaningful milestone** during the session (new output file created, significant correction made, new tool or approach used), not only once at the start or end
 4. Write to `.neuroflow/reasoning/{phase}.json` at natural decision points **during** the session — not only at the end. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
    - `"statement"` — what was decided (one clear sentence)
-   - `"source"` — where the decision originated (e.g. `"command:paper-write | 2026-03-10"`)
+   - `"source"` — where the decision originated (e.g. `"command:paper | 2026-03-10"`)
    - `"reasoning"` — why this choice was made over alternatives
 5. Update `.neuroflow/{phase}/flow.md` **immediately** when each new file is created in the phase subfolder — treat it as a live index, not a one-time snapshot taken at the end
 6. Update `.neuroflow/flow.md` if new subfolders were created
@@ -234,4 +234,4 @@ writes:
 ---
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `utility`
+Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `utility`

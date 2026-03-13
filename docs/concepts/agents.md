@@ -124,8 +124,7 @@ Each phase agent has deep domain knowledge scoped to its phase. It operates with
 | `data` | data | Inventory → BIDS validation → conversion sequence; confirms modality before touching anything |
 | `data-preprocess` | data-preprocess | Modality-aware preprocessing pipeline (EEG, fMRI, ECG, eye-tracking); documents all parameters before running |
 | `data-analyze` | data-analyze | Statistical analysis — ERPs, time-frequency, connectivity, decoding, GLM; audits assumptions and applies multiple-comparison correction |
-| `paper-write` | paper-write | Drafts manuscript section by section from project memory; journal-targeted; always writes abstract last |
-| `paper-review` | paper-review | Gathers manuscript, journal, and focus, then delegates to the `review-neuro` skill |
+| `review` | review | Reads a colleague's paper and produces a structured referee report calibrated to the target journal; delegates to the `review-neuro` skill |
 | `notes` | notes | Captures freeform input without interruption; reformats into a structured document only when asked |
 | `write-report` | write-report | Synthesises `.neuroflow/` memory into a structured report for any phase or the full project |
 | `brain-build` | brain-build | Spec-first design of neuron models and network topology for NEURON, Brian2, NetPyNE, NEST, tvb-library |

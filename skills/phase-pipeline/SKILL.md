@@ -30,12 +30,12 @@ The `/pipeline` command orchestrates a sequence of neuroflow commands in order �
 Use this as the default order when inferring a pipeline from project state:
 
 ```
-ideation → grant-proposal (optional) → experiment (optional) → tool-build (optional) → tool-validate (optional) → data → data-preprocess → data-analyze → paper-write → paper-review
+ideation → grant-proposal (optional) → experiment (optional) → tool-build (optional) → tool-validate (optional) → data → data-preprocess → data-analyze → paper
 ```
 
-Brain simulation phases insert between `data-analyze` and `paper-write`:
+Brain simulation phases insert between `data-analyze` and `paper`:
 ```
-… → data-analyze → brain-build → brain-optimize → brain-run → paper-write → …
+… → data-analyze → brain-build → brain-optimize → brain-run → paper → …
 ```
 
 Phases marked `optional` should only be included if:

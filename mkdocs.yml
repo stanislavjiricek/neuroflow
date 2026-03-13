@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.2"
+  version: "0.2.3"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -131,9 +131,8 @@ nav:
           - "📁 data": commands/data.md
           - "🔬 data-preprocess": commands/data-preprocess.md
           - "📊 data-analyze": commands/data-analyze.md
-          - "📄 paper-write": commands/paper-write.md
-          - "🔍 paper-review": commands/paper-review.md
           - "📝 paper": commands/paper.md
+          - "🔍 review": commands/review.md
           - "📓 notes": commands/notes.md
           - "📋 write-report": commands/write-report.md
       - Brain Simulation:
@@ -175,9 +174,8 @@ nav:
           - "phase-data": skills/phase-data/SKILL.md
           - "phase-data-preprocess": skills/phase-data-preprocess/SKILL.md
           - "phase-data-analyze": skills/phase-data-analyze/SKILL.md
-          - "phase-paper-write": skills/phase-paper-write/SKILL.md
-          - "phase-paper-review": skills/phase-paper-review/SKILL.md
           - "phase-paper": skills/phase-paper/SKILL.md
+          - "phase-review": skills/phase-review/SKILL.md
           - "phase-notes": skills/phase-notes/SKILL.md
           - "phase-write-report": skills/phase-write-report/SKILL.md
           - "phase-slideshow": skills/phase-slideshow/SKILL.md

@@ -14,7 +14,7 @@ title: /paper
 
 - After `/data-analyze` — results and figures are ready
 - You want to produce a manuscript that has been through rigorous internal review before it reaches a real journal
-- You want drafting and critique in one workflow instead of running `/paper-write` followed by `/paper-review`
+- You want drafting and critique in one integrated workflow with automatic critic approval gates
 
 ---
 
@@ -103,5 +103,4 @@ Approved sections are saved to `manuscript/` (or the path set in `.neuroflow/pap
 ## Related commands
 
 - [`/data-analyze`](data-analyze.md) — generate the results that go into the paper
-- [`/paper-write`](paper-write.md) — draft-only command without the built-in critique loop
-- [`/paper-review`](paper-review.md) — standalone peer review of an existing manuscript
+- [`/review`](review.md) — peer review a colleague's paper using the same six-area methodology

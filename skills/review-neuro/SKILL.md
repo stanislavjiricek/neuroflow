@@ -297,15 +297,14 @@ Paper: [title, authors if available]
 Present the full report to the user.
 
 **Immediately after presenting the report, save it automatically:**
-1. Write the full report to `.neuroflow/paper-review/review-[date].md` (e.g. `review-2026-03-10.md`).
-2. Update `.neuroflow/paper-review/flow.md` to list the new file.
-3. Append a **single one-liner** to `.neuroflow/sessions/YYYY-MM-DD.md` — e.g.:
-   `- [paper-review] Review of "[Paper title]" for [Journal] saved to .neuroflow/paper-review/review-[date].md`
+1. Write the full report to `reviews/review-[title-slug]-[date].md` in the project directory (e.g. `reviews/review-default-mode-connectivity-2026-03-10.md`). Create the `reviews/` folder if it does not exist.
+2. Append a **single one-liner** to `.neuroflow/sessions/YYYY-MM-DD.md` — e.g.:
+   `- [review] Referee report for "[Paper title]" ([Journal]) saved to reviews/review-[title-slug]-[date].md`
    Do **not** paste the review content into the session log.
 
 Then tell the user:
 
-> Review saved to `.neuroflow/paper-review/review-[date].md`.
+> Review saved to `reviews/review-[title-slug]-[date].md`.
 >
 > Would you like to:
 > - Expand any section in more detail
@@ -326,6 +325,6 @@ Then tell the user:
 
 ## Slash command
 
-This skill is invoked as part of the `/neuroflow:paper-review` command. If used directly without that command, run the full review workflow as normal and mention at the end:
+This skill is invoked as part of the `/neuroflow:review` command. If used directly without that command, run the full review workflow as normal and mention at the end:
 
-> 💡 You can also run `/neuroflow:paper-review` to start the full paper review workflow as a slash command next time.
+> 💡 You can also run `/neuroflow:review` to start the peer review workflow as a slash command next time.

@@ -64,7 +64,7 @@ If no mode flag is provided, `/flowie` shows the mode menu.
 Once a project is linked (via `--link`), Claude reads the profile at the start of each session and applies it:
 
 - In **`/ideation`**: suggestions are framed around your research domain and existing ideas from `ideas.md`
-- In **`/paper-write`**: drafts match your documented writing style and register
+- In **`/paper`**: drafts match your documented writing style and register
 - In **`/data-analyze`**: statistical approaches are presented in your preferred framework (e.g. Bayesian-first if that is your stance)
 - In **all phases**: if a documented stance or belief is relevant to a decision, Claude surfaces it once and asks whether it applies
 

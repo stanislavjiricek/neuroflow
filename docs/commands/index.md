@@ -21,8 +21,8 @@ flowchart LR
     E --> F["/data"]
     F --> G["/data-preprocess"]
     G --> H["/data-analyze"]
-    H --> I["/paper-write"]
-    I --> J["/paper-review"]
+    H --> I["/paper"]
+    I --> J["/review"]
 ```
 
 !!! tip
@@ -53,8 +53,8 @@ flowchart LR
 | [`/data`](data.md) | data | Data inventory, BIDS validation, format conversion |
 | [`/data-preprocess`](data-preprocess.md) | data-preprocess | Filtering, ICA, epoching, artifact rejection, QC |
 | [`/data-analyze`](data-analyze.md) | data-analyze | ERPs, time-frequency, connectivity, decoding, GLM |
-| [`/paper-write`](paper-write.md) | paper-write | Full manuscript draft from results and figures |
-| [`/paper-review`](paper-review.md) | paper-review | Pre-submission peer review — logic, methods, stats, writing |
+| [`/paper`](paper.md) | paper | Unified manuscript writing — draft section by section, write→critique loop |
+| [`/review`](review.md) | review | Peer review a colleague's paper — structured referee report |
 | [`/notes`](notes.md) | notes | Live note-taking — capture rough input, reformat into a clean document |
 | [`/write-report`](write-report.md) | write-report | Generate a structured report from `.neuroflow/` for any phase or the whole project |
 

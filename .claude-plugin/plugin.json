@@ -1,6 +1,6 @@
 {
   "name": "neuroflow",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and other neuroscience modalities.",
   "author": {
     "name": "Stanislav Jiricek"

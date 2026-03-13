@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.2.3
+
+- **Removed `/paper-write` and `/paper-review`** — superseded by [`/paper`](commands/paper.md), which covers the full write→critique loop; nothing is lost
+- **New [`/review`](commands/review.md) command** — for when YOU are the reviewer reading a colleague's paper; produces a structured referee report calibrated to the target journal by delegating to `neuroflow:review-neuro`
+- **New [`review`](agents/review.md) agent and [`neuroflow:phase-review`](skills/phase-review/SKILL.md) skill** — autonomous peer reviewer agent and phase orientation skill for the referee workflow
+
 ## What's new in 0.2.2
 
 - **Unified [`/paper`](commands/paper.md) command** — combines paper-write and paper-review into a single command and phase; every section draft goes through a brutal `paper-writer` → `paper-critic` loop (up to 3 iterations per section) before anything is saved; nothing reaches disk without critic approval or explicit user acceptance
@@ -42,7 +48,7 @@
 ## What's new in 0.1.8
 
 - **Target journal clarification in [`/neuroflow`](commands/neuroflow.md)** — on startup, if `paper-write` or `paper-review` is the active phase or in `recommended_phases` and no target journal is set, neuroflow asks whether the user wants a recommendation. If yes: searches PubMed and bioRxiv via the `scholar` agent, ranks 3–5 candidate journals by scope alignment, paper type, OA requirements, length, and prestige vs. speed, then writes the chosen journal to `project_config.md` (and `paper-write/flow.md` if it already exists).
-- **Journal recommendation guidance in [`neuroflow:phase-paper-write`](skills/phase-paper-write/SKILL.md)** — new `## Journal recommendation` section: same search-and-rank workflow available when the skill is invoked directly via `/paper-write`, with explicit recency (past 3 years) and recurrence (≥3 of top 20 results) thresholds.
+- **Journal recommendation guidance in `neuroflow:phase-paper-write`** — new `## Journal recommendation` section: same search-and-rank workflow available when the skill is invoked directly via `/paper-write`, with explicit recency (past 3 years) and recurrence (≥3 of top 20 results) thresholds.
 - **[`/flowie`](commands/flowie.md)** — personal identity layer: link a private GitHub repository to store your research profile (stances, writing style, methodological preferences, key beliefs); Claude reads the profile to personalize assistance across all neuroflow phases; supports `--init`, `--sync`, `--link`, `--view`, and `--identify` modes
 - **[`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md)** — phase skill covering how to read and apply the flowie profile in every other phase, write rules for `.neuroflow/.flowie/`, and a privacy-conscious GitHub sync protocol (always pull before push, diffs before applying, conflicts shown side by side)
 - **[`flowie` agent](agents/flowie.md)** — autonomous personalization agent that reads the user's profile at session start and shapes all assistance to their documented intellectual fingerprint; never exposes profile data in external-facing outputs
@@ -74,7 +80,7 @@
 - **Slash command availability in all skills** — when any phase skill is invoked directly without its slash command, it now runs the full workflow and mentions the corresponding `/neuroflow:<command>` at the end; behavior defined in [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) and declared in each phase skill's `## Slash command` section
 - **[`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md)** — added **Default agent behavior** section: scientific honesty (no sugar-coating), dry English humor, and conservative-by-default mode (follow neuroflow-core; only add new functionality when explicitly asked)
 - **[`/neuroflow`](commands/neuroflow.md) greeting** — on start, neuroflow now greets with `Hi, neuroflow here (v0.1.5)` followed by a randomly chosen line (*let's do some magic today*, *let's go hack some stuff*, or *I heard HARKing is fun*)
-- **15 phase agents** — [`ideation`](agents/ideation.md), [`grant-proposal`](agents/grant-proposal.md), [`experiment`](agents/experiment.md), [`tool-build`](agents/tool-build.md), [`tool-validate`](agents/tool-validate.md), [`data`](agents/data.md), [`data-preprocess`](agents/data-preprocess.md), [`data-analyze`](agents/data-analyze.md), [`paper-write`](agents/paper-write.md), [`paper-review`](agents/paper-review.md), [`notes`](agents/notes.md), [`write-report`](agents/write-report.md), [`brain-build`](agents/brain-build.md), [`brain-optimize`](agents/brain-optimize.md), [`brain-run`](agents/brain-run.md) — each agent is a specialist autonomous subprocess scoped to its phase, with a plan-first / confirm-before-executing discipline
+- **15 phase agents** — [`ideation`](agents/ideation.md), [`grant-proposal`](agents/grant-proposal.md), [`experiment`](agents/experiment.md), [`tool-build`](agents/tool-build.md), [`tool-validate`](agents/tool-validate.md), [`data`](agents/data.md), [`data-preprocess`](agents/data-preprocess.md), [`data-analyze`](agents/data-analyze.md), [`notes`](agents/notes.md), [`write-report`](agents/write-report.md), [`brain-build`](agents/brain-build.md), [`brain-optimize`](agents/brain-optimize.md), [`brain-run`](agents/brain-run.md) — each agent is a specialist autonomous subprocess scoped to its phase, with a plan-first / confirm-before-executing discipline
 - **[`/preregistration`](commands/preregistration.md)** — new command and [`neuroflow:phase-preregistration`](skills/phase-preregistration/SKILL.md) skill: draft OSF, AsPredicted, or registered-report pre-registrations; review for completeness; log deviations; link registered reports
 - **[`/finance`](commands/finance.md)** — new command and [`neuroflow:phase-finance`](skills/phase-finance/SKILL.md) skill: budget planning, expense logging, funder-facing financial reports, and grant compliance checks
 - **[`/pipeline`](commands/pipeline.md)** — define and run a multi-step research pipeline across any sequence of neuroflow phases; interactive by default (pauses for approval between steps), or pass `--nomistake` for brutal mode (runs straight through without stops); supports resuming from a saved plan and graceful error handling
@@ -99,7 +105,7 @@
 
 ## What's new in 0.1.1
 
-- Full research pipeline — 15 commands from [`/neuroflow`](commands/neuroflow.md) through [`/paper-review`](commands/paper-review.md), each writing to `.neuroflow/` project memory
+- Full research pipeline — commands from [`/neuroflow`](commands/neuroflow.md) through `/paper` and `/review`, each writing to `.neuroflow/` project memory
 - [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) — shared lifecycle and `.neuroflow/` folder spec that every command and agent follows; commands now automatically append significant decisions to `.neuroflow/reasoning/{phase}.json`
 - [`scholar`](agents/scholar.md), [`sentinel`](agents/sentinel.md), [`sentinel-dev`](agents/sentinel-dev.md) agents
 - `sentinel` checks plugin version against `project_config.md` and flags when the plugin has been updated; both sentinels clear their report to "All clear" after fixing issues
@@ -150,9 +156,8 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/data`](commands/data.md) | Data intake — locate data, validate BIDS structure, run conversion scripts |
 | [`/data-preprocess`](commands/data-preprocess.md) | Run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, QC |
 | [`/data-analyze`](commands/data-analyze.md) | Run an analysis pipeline — ERPs, time-frequency, connectivity, decoding, GLM |
-| [`/paper-write`](commands/paper-write.md) | Generate a manuscript draft from results and figures |
-| [`/paper-review`](commands/paper-review.md) | Pre-submission peer review — logic, methods, statistics, writing, figures |
 | [`/paper`](commands/paper.md) | Unified manuscript writing and review — draft section by section, brutal write→critique loop, nothing saved without approval |
+| [`/review`](commands/review.md) | Peer review a colleague's paper — structured referee report calibrated to the target journal |
 | [`/notes`](commands/notes.md) | Live note-taking — capture freeform input, then reformat into a clean structured document |
 | [`/write-report`](commands/write-report.md) | Generate a structured report from `.neuroflow/` contents for any phase or the whole project |
 
@@ -206,9 +211,8 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-data`](skills/phase-data/SKILL.md) | Phase guidance for /data |
 | [`neuroflow:phase-data-preprocess`](skills/phase-data-preprocess/SKILL.md) | Phase guidance for /data-preprocess |
 | [`neuroflow:phase-data-analyze`](skills/phase-data-analyze/SKILL.md) | Phase guidance for /data-analyze |
-| [`neuroflow:phase-paper-write`](skills/phase-paper-write/SKILL.md) | Phase guidance for /paper-write |
-| [`neuroflow:phase-paper-review`](skills/phase-paper-review/SKILL.md) | Phase guidance for /paper-review — delegates review to neuroflow:review-neuro |
 | [`neuroflow:phase-paper`](skills/phase-paper/SKILL.md) | Phase guidance for /paper — unified write→critique loop, journal recommendation, critic standards |
+| [`neuroflow:phase-review`](skills/phase-review/SKILL.md) | Phase guidance for /review — referee orientation, delegation to review-neuro, output to reviews/ |
 | [`neuroflow:phase-notes`](skills/phase-notes/SKILL.md) | Phase guidance for /notes |
 | [`neuroflow:phase-write-report`](skills/phase-write-report/SKILL.md) | Phase guidance for /write-report |
 | [`neuroflow:phase-quiz`](skills/phase-quiz/SKILL.md) | Phase guidance for /quiz — mode behaviour, question quality standards, mode-specific workflow |
@@ -242,10 +246,9 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`data`](agents/data.md) | Data intake specialist — inventory → BIDS validation → conversion sequence; confirms modality before touching anything |
 | [`data-preprocess`](agents/data-preprocess.md) | Preprocessing specialist — modality-aware pipeline (EEG, fMRI, ECG, eye-tracking); documents all parameters before running |
 | [`data-analyze`](agents/data-analyze.md) | Statistical analysis specialist — ERPs, time-frequency, connectivity, decoding, GLM; audits assumptions and applies multiple-comparison correction |
-| [`paper-write`](agents/paper-write.md) | Manuscript writing specialist — drafts section by section from project memory; journal-targeted; always writes abstract last |
-| [`paper-review`](agents/paper-review.md) | Pre-submission peer review specialist — gathers manuscript, journal, and focus, then delegates to the review-neuro skill |
 | [`paper-writer`](agents/paper-writer.md) | Unified paper phase writer — drafts sections from upstream memory inside the brutal write→critique loop; revises against every critic bullet |
 | [`paper-critic`](agents/paper-critic.md) | Unified paper phase critic — applies full six-area review-neuro methodology to every draft; returns [STATUS: APPROVED] or [STATUS: REJECTED] with specific actionable feedback |
+| [`review`](agents/review.md) | Peer reviewer agent — reads a colleague's paper and produces a structured referee report calibrated to the target journal; delegates to review-neuro |
 | [`notes`](agents/notes.md) | Live note-taking specialist — captures freeform input without interruption; reformats into a structured document only when asked |
 | [`write-report`](agents/write-report.md) | Report generation specialist — synthesises `.neuroflow/` memory into a structured report for any phase or the full project |
 | [`brain-build`](agents/brain-build.md) | Computational brain model builder — spec-first design of neuron models and network topology for NEURON, Brian2, NetPyNE, NEST, tvb-library |
@@ -294,8 +297,7 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 ├── data/                   ← data inventory and intake reports
 ├── data-preprocess/        ← preprocessing configs and QC reports
 ├── data-analyze/           ← analysis plans and result summaries
-├── paper-write/            ← manuscript drafts
-├── paper-review/           ← review reports
+├── paper/                  ← manuscript drafts and critic logs
 ├── notes/                  ← structured notes from meetings and talks
 └── write-report/           ← project reports
 └── fails/                  ← dissatisfaction log: core.md, science.md, ux.md
