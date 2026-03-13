@@ -9,6 +9,7 @@
   --nf-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.14);
   --nf-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --nf-glow: 0 0 0 3px rgba(103, 58, 183, 0.18);
+  --nf-z-sa-bar: 9999;
 }
 
 [data-md-color-scheme="slate"] {
@@ -74,11 +75,25 @@ body:has(.hero) .md-main {
   overflow-x: hidden;
 }
 
+/* ── Self-assessment bar: push header below it when fixed at top ─────────── */
+body.has-sa-bar .md-header {
+  top: var(--sa-bar-height, 20px);
+}
+
+body.has-sa-bar {
+  padding-top: var(--sa-bar-height, 20px);
+}
+
 /* ── Section separators ───────────────────────────────────────────────────── */
 hr {
   border: none;
   border-top: 1px solid var(--md-default-fg-color--lightest);
   margin: 2.8rem 0;
+}
+
+/* Reduce section separator spacing on homepage */
+body:has(.hero) hr {
+  margin: 1rem 0;
 }
 
 /* ── Admonition tweaks ────────────────────────────────────────────────────── */
@@ -182,15 +197,21 @@ hr {
 /* ── Hero button group ────────────────────────────────────────────────────── */
 .hero-buttons {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin: 0.6rem 0 0.3rem;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+  margin: 0.5rem 0 0.3rem;
 }
 
 .hero-buttons .md-button {
   margin: 0;
+}
+
+@media screen and (max-width: 480px) {
+  .hero-buttons {
+    flex-wrap: wrap;
+  }
 }
 
 /* ── Hero section ─────────────────────────────────────────────────────────── */
@@ -208,7 +229,7 @@ hr {
   margin-left: calc(50% - 50vw);
   margin-right: 0;
   margin-top: 0;
-  margin-bottom: 3rem;
+  margin-bottom: 0;
   position: relative;
   overflow: hidden;
 }
@@ -338,11 +359,12 @@ hr {
 .hero .md-button {
   position: relative;
   z-index: 1;
-  margin: 0.25rem 0.4rem 0.25rem 0;
+  margin: 0;
   border-radius: 50px;
   font-weight: 700;
+  font-size: 0.82rem;
   letter-spacing: 0.01em;
-  padding: 0.55rem 1.4rem;
+  padding: 0.32rem 0.85rem;
   transition: transform var(--nf-transition), box-shadow var(--nf-transition), background var(--nf-transition);
 }
 
@@ -1461,8 +1483,11 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
 
 /* ── Self-assessment bar (between nav tabs and hero) ─────────────────────── */
 .sa-bar {
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   background: linear-gradient(90deg,
     rgba(55, 0, 110, 0.97) 0%,
     rgba(90, 20, 140, 0.97) 50%,
@@ -1470,14 +1495,12 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.28rem 1.5rem;
+  padding: 0.06rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 0;
-  margin-bottom: 0.5rem;
+  margin: 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  position: relative;
-  z-index: 5;
+  z-index: var(--nf-z-sa-bar);
 }
 
 .sa-bar-label {
@@ -1559,7 +1582,7 @@ body:has(.nf-mind-fullscreen) .md-content__inner {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
-  z-index: 9999;
+  z-index: var(--nf-z-sa-bar);
   backdrop-filter: blur(12px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(180, 100, 255, 0.12);
 }
