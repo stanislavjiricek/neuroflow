@@ -172,19 +172,31 @@ ERPs, time-frequency, connectivity, decoding, and GLM — with pre-registration 
   <span class="rp-badge rp-badge--model">Modelling</span>
 </summary>
 <div class="rp-body">
-  <p class="rp-desc">Fit a computational or mathematical model to empirical neural or behavioral data. Define the model during ideation, prepare and preprocess data, then run model fitting and inference as part of analysis.</p>
-  <div class="rp-pipeline">
-    <span class="pipeline-step">/ideation</span>
-    <span class="pipeline-arrow">→</span>
-    <span class="pipeline-step">/data</span>
-    <span class="pipeline-arrow">→</span>
-    <span class="pipeline-step">/data-preprocess</span>
-    <span class="pipeline-arrow">→</span>
-    <span class="pipeline-step">/data-analyze</span>
-    <span class="pipeline-arrow">→</span>
-    <span class="pipeline-step rp-step--optional">/paper</span>
+  <p class="rp-desc">Build and run a brain simulation model. Ideate the architecture, construct the model, then optimize and run it — with empirical data analysis running in parallel and feeding into the optimization step.</p>
+  <div class="rp-pipeline rp-pipeline--parallel">
+    <div class="pipeline-track">
+      <span class="pipeline-step">/ideation</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-step">/brain-build</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-step">/brain-optimize</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-step">/brain-run</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-step rp-step--optional">/paper</span>
+    </div>
+    <div class="pipeline-track pipeline-track--parallel">
+      <span class="pipeline-parallel-label">parallel ↗</span>
+      <span class="pipeline-step">/data</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-step">/data-preprocess</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-step">/data-analyze</span>
+      <span class="pipeline-arrow">→</span>
+      <span class="pipeline-parallel-merge">merges before optimize</span>
+    </div>
   </div>
-  <p class="rp-caption">The paper step is optional — some modelling projects feed directly into grant applications or internal reports.</p>
+  <p class="rp-caption">Data analysis runs in parallel with model construction and merges before optimization — the paper step is optional.</p>
 </div>
 </details>
 
@@ -197,11 +209,13 @@ ERPs, time-frequency, connectivity, decoding, and GLM — with pre-registration 
   <span class="rp-badge rp-badge--ideation">Ideation</span>
 </summary>
 <div class="rp-body">
-  <p class="rp-desc">Start with a broad question, search PubMed and bioRxiv, synthesise the field, sharpen a novel hypothesis, and convert it into a grant proposal — without writing a single line of analysis code yet.</p>
+  <p class="rp-desc">Start with a broad question, search PubMed and bioRxiv, synthesise the field, and sharpen a novel hypothesis — then write it up as a review article and optionally convert it into a grant proposal.</p>
   <div class="rp-pipeline">
     <span class="pipeline-step">/ideation</span>
     <span class="pipeline-arrow">→</span>
-    <span class="pipeline-step">/grant-proposal</span>
+    <span class="pipeline-step">/paper</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step rp-step--optional">/grant-proposal</span>
   </div>
   <p class="rp-caption">The scholar agent searches PubMed, bioRxiv, and Semantic Scholar in real time to ground every idea in the current literature.</p>
 </div>
