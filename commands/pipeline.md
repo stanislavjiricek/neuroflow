@@ -59,7 +59,7 @@ If `.neuroflow/` does not exist: ask the user to run `/neuroflow:neuroflow` firs
 
 Parse the user's description into an ordered list of neuroflow commands. For example:
 
-> "Run ideation, then data, then data-analyze, then paper-write"
+> "Run ideation, then data, then data-analyze, then paper"
 
 becomes:
 
@@ -67,7 +67,7 @@ becomes:
 Step 1: /ideation
 Step 2: /data
 Step 3: /data-analyze
-Step 4: /paper-write
+Step 4: /paper
 ```
 
 Validate that each step is a known neuroflow command. If an unknown command appears, flag it and ask the user to clarify before proceeding.
@@ -80,7 +80,7 @@ Infer the full natural pipeline from the project state:
 2. Map what remains using the standard research sequence:
 
 ```
-ideation → grant-proposal? → experiment? → data → data-preprocess → data-analyze → paper-write → paper-review
+ideation → grant-proposal? → experiment? → data → data-preprocess → data-analyze → paper
 ```
 
 Mark completed phases with `[done]`. Propose the remaining phases as the pipeline steps.
@@ -97,8 +97,7 @@ Steps:
   [ ] data              ← start here
   [ ] data-preprocess
   [ ] data-analyze
-  [ ] paper-write
-  [ ] paper-review
+  [ ] paper              ← start here
 ```
 
 Ask the user:
@@ -133,7 +132,7 @@ Mode: interactive | brutal (--nomistake)
 | 2 | /data | pending | — |
 | 3 | /data-preprocess | pending | — |
 | 4 | /data-analyze | pending | — |
-| 5 | /paper-write | pending | — |
+| 5 | /paper | pending | — |
 ```
 
 Create `.neuroflow/pipeline/flow.md` referencing this file.
@@ -202,13 +201,13 @@ Steps executed:
   ✅ data           — intake report saved, BIDS validated
   ✅ data-preprocess — preprocessing config saved, QC passed
   ✅ data-analyze   — analysis plan and results saved
-  ✅ paper-write    — manuscript draft saved
+  ✅ paper          — manuscript draft saved
 
 Skipped:
-  — paper-review (skipped by user)
+  — review (not part of this pipeline)
 
 Files written: [list of key outputs]
-Next suggested step: /neuroflow:paper-review
+Next suggested step: /neuroflow:review
 ```
 
 Update `pipeline-plan.md` with final statuses.

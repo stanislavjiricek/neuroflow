@@ -111,10 +111,10 @@ Run the command for your current phase:
 === "Writing"
 
     ```
-    /neuroflow:paper-write
+    /neuroflow:paper
     ```
 
-    Generate a manuscript draft from your results and figures.
+    Draft your manuscript section by section through the write→critique loop.
 
 ---
 

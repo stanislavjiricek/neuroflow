@@ -38,8 +38,8 @@ Available phases to switch to:
   [ ] data
   [ ] data-preprocess
   [ ] data-analyze
-  [ ] paper-write
-  [ ] paper-review
+  [ ] paper
+  [ ] review
   [ ] notes
 ```
 

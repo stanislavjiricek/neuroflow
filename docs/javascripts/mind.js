@@ -37,8 +37,8 @@
     { id: "cmd-data",            label: "/data",            type: "command", phase: "data",           tags: ["eeg","fmri","memory"],      desc: "Locate, inventory, validate BIDS structure, and convert raw data formats. Generates a data intake report.",                                                        url: "commands/data/" },
     { id: "cmd-data-preprocess", label: "/data-preprocess", type: "command", phase: "data-preprocess",tags: ["eeg","fmri","code"],        desc: "Build and run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, and QC reports.",                                                           url: "commands/data-preprocess/" },
     { id: "cmd-data-analyze",    label: "/data-analyze",    type: "command", phase: "data-analyze",   tags: ["stats","ml","eeg"],         desc: "ERPs, time-frequency, connectivity, decoding, GLM — with built-in stats auditing for reproducibility.",                                                           url: "commands/data-analyze/" },
-    { id: "cmd-paper-write",     label: "/paper-write",     type: "command", phase: "paper-write",    tags: ["writing","stats"],          desc: "Generate a full manuscript draft from your analysis results and figures, following IMRAD structure.",                                                              url: "commands/paper-write/" },
-    { id: "cmd-paper-review",    label: "/paper-review",    type: "command", phase: "paper-review",   tags: ["writing","stats"],          desc: "Pre-submission peer review — scientific logic, methods, statistics, writing quality, and figures.",                                                                url: "commands/paper-review/" },
+    { id: "cmd-paper",           label: "/paper",           type: "command", phase: "paper",          tags: ["writing","stats"],          desc: "Unified manuscript command — drafts each section with paper-writer, then runs it through paper-critic in a brutal write→critique loop before saving.",              url: "commands/paper/" },
+    { id: "cmd-review",          label: "/review",          type: "command", phase: "review",         tags: ["writing","stats"],          desc: "Peer reviewer command — you are the referee. Reads a colleague's paper and produces a structured six-area referee report via the review-neuro skill.",          url: "commands/review/" },
     { id: "cmd-notes",           label: "/notes",           type: "command", phase: "notes",          tags: ["human","memory"],           desc: "Capture session notes, meeting minutes, and ad-hoc observations in structured format to .neuroflow/notes/.",                                                       url: "commands/notes/" },
     { id: "cmd-write-report",    label: "/write-report",    type: "command", phase: "write-report",   tags: ["writing","memory"],         desc: "Generate a project status or phase summary report from .neuroflow/ contents.",                                                                                    url: "commands/write-report/" },
     { id: "cmd-brain-build",     label: "/brain-build",     type: "command", phase: "brain-build",    tags: ["brain-sim","code"],         desc: "Build a computational neural model with NEURON, Brian2, NetPyNE, or NEST.",                                                                                       url: "commands/brain-build/" },
@@ -59,8 +59,8 @@
     { id: "sk-data",          label: "phase-data",             type: "skill", tags: ["eeg","fmri","memory"], desc: "Data management — BIDS structure, provenance tracking, format conversion (EDF, BrainVision, NWB).",                                 url: "skills/phase-data/SKILL/" },
     { id: "sk-data-pre",      label: "phase-data-preprocess",  type: "skill", tags: ["eeg","fmri","code"],   desc: "Preprocessing — filtering, ICA, epoching, artifact rejection, channel interpolation, QC.",                                          url: "skills/phase-data-preprocess/SKILL/" },
     { id: "sk-data-analyze",  label: "phase-data-analyze",     type: "skill", tags: ["stats","ml"],          desc: "Analysis methods — ERPs, TFR, connectivity, decoding, GLM, and statistical testing.",                                               url: "skills/phase-data-analyze/SKILL/" },
-    { id: "sk-paper-write",   label: "phase-paper-write",      type: "skill", tags: ["writing"],             desc: "Scientific writing — IMRAD structure, figures, supplementary materials, journal formatting.",                                       url: "skills/phase-paper-write/SKILL/" },
-    { id: "sk-paper-review",  label: "phase-paper-review",     type: "skill", tags: ["writing","stats"],     desc: "Peer review — methods critique, statistical rigor, reproducibility, and writing quality assessment.",                               url: "skills/phase-paper-review/SKILL/" },
+    { id: "sk-paper",         label: "phase-paper",            type: "skill", tags: ["writing"],             desc: "Unified paper phase — write→critique loop guidance, section order, critic rubric, and critic-log conventions.",                     url: "skills/phase-paper/SKILL/" },
+    { id: "sk-phase-review",  label: "phase-review",           type: "skill", tags: ["writing","stats"],     desc: "Peer reviewer orientation — external referee posture, journal calibration, delegation to review-neuro, output to reviews/ folder.", url: "skills/phase-review/SKILL/" },
     { id: "sk-notes",         label: "phase-notes",            type: "skill", tags: ["human"],               desc: "Note-taking conventions — structured session logs, meeting minutes, and observation formats.",                                       url: "skills/phase-notes/SKILL/" },
     { id: "sk-write-report",  label: "phase-write-report",     type: "skill", tags: ["writing"],             desc: "Report generation — executive summaries, phase milestone reports, and stakeholder-ready formats.",                                  url: "skills/phase-write-report/SKILL/" },
     { id: "sk-brain-build",   label: "phase-brain-build",      type: "skill", tags: ["brain-sim"],           desc: "Neural simulation model building — NEURON, Brian2, NetPyNE, NEST, tvb-library model definitions.",                                  url: "skills/phase-brain-build/SKILL/" },
@@ -84,8 +84,7 @@
     { id: "ag-data",         label: "data",           type: "agent", tags: ["eeg","fmri"],          desc: "Data management specialist — BIDS validation, format conversion, provenance checks.",                          url: "concepts/agents/" },
     { id: "ag-data-pre",     label: "data-preprocess",type: "agent", tags: ["eeg","fmri"],          desc: "Preprocessing specialist — MNE pipeline execution, ICA, artifact rejection, QC reporting.",                   url: "concepts/agents/" },
     { id: "ag-data-analyze", label: "data-analyze",   type: "agent", tags: ["stats","ml"],          desc: "Analysis specialist — ERPs, time-frequency, connectivity, decoding, stats auditing.",                         url: "concepts/agents/" },
-    { id: "ag-paper-write",  label: "paper-write",    type: "agent", tags: ["writing"],             desc: "Writing specialist — manuscript drafting from analysis results and figures.",                                  url: "concepts/agents/" },
-    { id: "ag-paper-review", label: "paper-review",   type: "agent", tags: ["writing","stats"],     desc: "Review specialist — methods critique, statistical rigour, reproducibility checks.",                           url: "concepts/agents/" },
+    { id: "ag-review",       label: "review",         type: "agent", tags: ["writing","stats"],     desc: "Peer reviewer agent — external referee for a colleague's paper; delegates six-area review to review-neuro; saves report to reviews/.", url: "concepts/agents/" },
     { id: "ag-notes",        label: "notes",          type: "agent", tags: ["human"],               desc: "Note-taking specialist — structured session logs and observation records.",                                    url: "concepts/agents/" },
     { id: "ag-write-report", label: "write-report",   type: "agent", tags: ["writing"],             desc: "Report specialist — phase summaries and stakeholder-ready executive reports.",                                url: "concepts/agents/" },
     { id: "ag-brain-build",  label: "brain-build",    type: "agent", tags: ["brain-sim"],           desc: "Neural model specialist — NEURON, Brian2, NetPyNE, NEST model construction.",                                 url: "concepts/agents/" },
@@ -119,8 +118,8 @@
     { source: "cmd-data",            target: "core", type: "rw" },
     { source: "cmd-data-preprocess", target: "core", type: "rw" },
     { source: "cmd-data-analyze",    target: "core", type: "rw" },
-    { source: "cmd-paper-write",     target: "core", type: "rw" },
-    { source: "cmd-paper-review",    target: "core", type: "rw" },
+    { source: "cmd-paper",           target: "core", type: "rw" },
+    { source: "cmd-review",          target: "core", type: "rw" },
     { source: "cmd-notes",           target: "core", type: "rw" },
     { source: "cmd-write-report",    target: "core", type: "rw" },
     { source: "cmd-brain-build",     target: "core", type: "rw" },
@@ -142,8 +141,8 @@
     { source: "sk-data",          target: "cmd-data",            type: "uses" },
     { source: "sk-data-pre",      target: "cmd-data-preprocess", type: "uses" },
     { source: "sk-data-analyze",  target: "cmd-data-analyze",    type: "uses" },
-    { source: "sk-paper-write",   target: "cmd-paper-write",     type: "uses" },
-    { source: "sk-paper-review",  target: "cmd-paper-review",    type: "uses" },
+    { source: "sk-paper",         target: "cmd-paper",           type: "uses" },
+    { source: "sk-phase-review",  target: "cmd-review",          type: "uses" },
     { source: "sk-notes",         target: "cmd-notes",           type: "uses" },
     { source: "sk-write-report",  target: "cmd-write-report",    type: "uses" },
     { source: "sk-brain-build",   target: "cmd-brain-build",     type: "uses" },
@@ -167,8 +166,7 @@
     { source: "cmd-data",            target: "ag-data",         type: "spawns" },
     { source: "cmd-data-preprocess", target: "ag-data-pre",     type: "spawns" },
     { source: "cmd-data-analyze",    target: "ag-data-analyze", type: "spawns" },
-    { source: "cmd-paper-write",     target: "ag-paper-write",  type: "spawns" },
-    { source: "cmd-paper-review",    target: "ag-paper-review", type: "spawns" },
+    { source: "cmd-review",          target: "ag-review",      type: "spawns" },
     { source: "cmd-notes",           target: "ag-notes",        type: "spawns" },
     { source: "cmd-write-report",    target: "ag-write-report", type: "spawns" },
     { source: "cmd-brain-build",     target: "ag-brain-build",  type: "spawns" },
@@ -180,7 +178,7 @@
     { source: "cmd-pipeline", target: "cmd-ideation",        type: "orchestrates" },
     { source: "cmd-pipeline", target: "cmd-data-preprocess", type: "orchestrates" },
     { source: "cmd-pipeline", target: "cmd-data-analyze",    type: "orchestrates" },
-    { source: "cmd-pipeline", target: "cmd-paper-write",     type: "orchestrates" }
+    { source: "cmd-pipeline", target: "cmd-paper",         type: "orchestrates" }
   ];
 
   /* ── Visual config ───────────────────────────────────────────────────────── */
@@ -218,7 +216,7 @@
   /* Clockwise degrees from 12 o'clock for each research phase.
      Nodes are pulled toward their phase angle in concentric arcs
      (commands inner, skills middle, agents outer).
-     Cycle: utility → ideation → … → paper-review → back to utility.        */
+     Cycle: utility → ideation → … → review → back to utility.        */
   var PHASE_ANGLES = {
     "ideation":        15,
     "preregistration": 42,
@@ -233,10 +231,10 @@
     "brain-build":     248,
     "brain-optimize":  262,
     "brain-run":       276,
-    "paper-write":     298,
+    "paper":           298,
     "notes":           310,
     "write-report":    318,
-    "paper-review":    332,
+    "review":          332,
     "utility":         350
   };
 
@@ -255,8 +253,8 @@
     "sk-data":          "data",
     "sk-data-pre":      "data-preprocess",
     "sk-data-analyze":  "data-analyze",
-    "sk-paper-write":   "paper-write",
-    "sk-paper-review":  "paper-review",
+    "sk-paper":         "paper",
+    "sk-phase-review":  "review",
     "sk-notes":         "notes",
     "sk-write-report":  "write-report",
     "sk-brain-build":   "brain-build",
@@ -268,7 +266,7 @@
     "sk-export":        "utility",
     "sk-fails":         "utility",
     "sk-quiz":          "utility",
-    "sk-review-neuro":  "paper-review",
+    "sk-review-neuro":  "review",
     "ag-ideation":      "ideation",
     "ag-scholar":       "ideation",
     "ag-grant":         "grant-proposal",
@@ -278,8 +276,7 @@
     "ag-data":          "data",
     "ag-data-pre":      "data-preprocess",
     "ag-data-analyze":  "data-analyze",
-    "ag-paper-write":   "paper-write",
-    "ag-paper-review":  "paper-review",
+    "ag-review":        "review",
     "ag-notes":         "notes",
     "ag-write-report":  "write-report",
     "ag-brain-build":   "brain-build",

@@ -39,8 +39,8 @@ Shows a visual phase map of the project — current phase, visited phases, recom
    ```
    ideation → preregistration → grant-proposal → experiment →
    tool-build → tool-validate → data → data-preprocess →
-   data-analyze → paper-write → paper-review → write-report →
-   export → notes → finance
+   data-analyze → paper → write-report →
+   notes → finance
    ```
 
    Print the map in order. Example output:
@@ -52,15 +52,14 @@ Shows a visual phase map of the project — current phase, visited phases, recom
      ◉ experiment          ← current
      → data-preprocess     ← recommended
      → data-analyze        ← recommended
-     → paper-write         ← recommended
+     → paper               ← recommended
      ○ preregistration
      ○ grant-proposal
      ○ tool-build
      ○ tool-validate
      ○ data
-     ○ paper-review
+     ○ review
      ○ write-report
-     ○ export
      ○ notes
      ○ finance
 

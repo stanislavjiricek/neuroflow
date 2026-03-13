@@ -34,7 +34,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 - Save the final research question to `.neuroflow/ideation/research-question.md`
 - Update `project_config.md` if the research question is defined or changed
 - Downloaded papers live in `.neuroflow/ideation/papers/` — this folder is the input for the `literature-review` agent
-- The compiled literature review (`literature-review-[date].md`) feeds directly into the `paper-write` phase; reference it there
+- The compiled literature review (`literature-review-[date].md`) feeds directly into the `paper` phase; reference it there
 
 ## Slash command
 

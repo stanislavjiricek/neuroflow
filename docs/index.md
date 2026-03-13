@@ -96,9 +96,9 @@ ERPs, time-frequency, connectivity, decoding, and GLM — with pre-registration 
 <span class="pipeline-arrow">→</span>
 <span class="pipeline-step">/data-analyze</span>
 <span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/paper-write</span>
+<span class="pipeline-step">/paper</span>
 <span class="pipeline-arrow">→</span>
-<span class="pipeline-step">/paper-review</span>
+<span class="pipeline-step">/review</span>
 </div>
 <p class="pipeline-caption">Each command picks up where the last one left off. All context is stored in <code>.neuroflow/</code> — shared project memory that Claude reads at the start of every session.</p>
 </div>
@@ -159,17 +159,17 @@ ERPs, time-frequency, connectivity, decoding, GLM — across EEG, iEEG, fMRI, an
 </div>
 
 <div class="command-card" markdown>
-<span class="command-icon">📄</span>
-### /neuroflow:paper-write
-Generate a full manuscript draft from your analysis results and figures.
-[Learn more →](commands/paper-write.md)
+<span class="command-icon">📝</span>
+### /neuroflow:paper
+Unified manuscript writing — draft section by section through a brutal write→critique loop.
+[Learn more →](commands/paper.md)
 </div>
 
 <div class="command-card" markdown>
 <span class="command-icon">🔍</span>
-### /neuroflow:paper-review
-Pre-submission peer review — scientific logic, methods, statistics, writing quality, and figures.
-[Learn more →](commands/paper-review.md)
+### /neuroflow:review
+Peer review a colleague's paper — structured referee report calibrated to the target journal.
+[Learn more →](commands/review.md)
 </div>
 
 </div>
@@ -211,8 +211,7 @@ Then open any project folder and run:
 ├── data/                ← data inventory and intake reports
 ├── data-preprocess/     ← preprocessing configs and QC reports
 ├── data-analyze/        ← analysis plans and result summaries
-├── paper-write/         ← manuscript drafts
-├── paper-review/        ← review reports
+├── paper/               ← manuscript drafts and critic logs
 ├── notes/               ← session and meeting notes
 └── write-report/        ← generated project reports
 ```

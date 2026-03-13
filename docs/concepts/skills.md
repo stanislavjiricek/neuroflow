@@ -33,7 +33,7 @@ Skills give Claude phase-specific expertise without you having to instruct it ma
 | Skill | What it does |
 |---|---|
 | `neuroflow:neuroflow-core` | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, command lifecycle, frontmatter standard |
-| `neuroflow:review-neuro` | Rigorous pre-submission peer review of a neuroscience manuscript — invoked by `/paper-review` |
+| `neuroflow:review-neuro` | Rigorous six-area peer review of a neuroscience manuscript — invoked by `/review` |
 
 ### Phase skills
 
@@ -52,8 +52,8 @@ Each research phase has a corresponding skill that orients Claude's approach, su
 | `neuroflow:phase-data` | `/data` |
 | `neuroflow:phase-data-preprocess` | `/data-preprocess` |
 | `neuroflow:phase-data-analyze` | `/data-analyze` |
-| `neuroflow:phase-paper-write` | `/paper-write` |
-| `neuroflow:phase-paper-review` | `/paper-review` |
+| `neuroflow:phase-paper` | `/paper` |
+| `neuroflow:phase-review` | `/review` |
 | `neuroflow:phase-notes` | `/notes` |
 | `neuroflow:phase-write-report` | `/write-report` |
 | `neuroflow:phase-brain-build` | `/brain-build` |

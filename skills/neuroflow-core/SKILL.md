@@ -93,8 +93,8 @@ Default output paths (used when the repo has no existing structure):
 | `tool-build` / `tool-validate` | `tools/` |
 | `data-preprocess` | `scripts/preprocessing/` |
 | `data-analyze` | `scripts/analysis/` (code) + `results/` (outputs) + `figures/` |
-| `paper-write` | `manuscript/` |
-| `paper-review` | `manuscript/review/` |
+| `paper` | `manuscript/` |
+| `review` | `reviews/` |
 | `grant-proposal` | `grant/` |
 
 ---
@@ -116,7 +116,7 @@ Every command must follow this order:
 3. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — do this at **each meaningful milestone** during the session (new output file created, significant correction made, new tool or approach used), not only once at the start or end
 4. Write to `.neuroflow/reasoning/{phase}.json` at natural decision points **during** the session — not only at the end. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
    - `"statement"` — what was decided (one clear sentence)
-   - `"source"` — where the decision originated (e.g. `"command:paper-write | 2026-03-10"`)
+   - `"source"` — where the decision originated (e.g. `"command:paper | 2026-03-10"`)
    - `"reasoning"` — why this choice was made over alternatives
 5. Update `.neuroflow/{phase}/flow.md` **immediately** when each new file is created in the phase subfolder — treat it as a live index, not a one-time snapshot taken at the end
 6. Update `.neuroflow/flow.md` if new subfolders were created
@@ -186,6 +186,12 @@ Be dry. Not sarcastic, not performative, not forced. Think understated observati
 - One dry remark per interaction is plenty. More than that is effort, and effort kills it.
 - When the stakes are high (clinical data, patient safety, ethics), keep it straight.
 
+### Passive issue monitoring
+
+On every user message, silently scan the message for frustration signals as defined in `neuroflow:auto-issue`. If a signal is detected, invoke `neuroflow:auto-issue` before composing the primary response. The `auto-issue` skill handles the permission gate, classification, issue composition, and URL opening — do not replicate that logic here.
+
+This check is silent and unconditional. It runs regardless of which command or phase is active. It never interrupts the primary response and never asks the user for confirmation.
+
 ### Conservative by default — do not add new functionality
 
 Follow neuroflow-core. Follow the active command. Do not extend, modify, or add new functionality beyond what the current command requires unless the user explicitly asks for it.
@@ -234,4 +240,4 @@ writes:
 ---
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `utility`
+Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `utility`
