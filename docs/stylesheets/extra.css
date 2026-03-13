@@ -54,6 +54,26 @@
   }
 }
 
+/* ── Home page: full-width layout ────────────────────────────────────────── */
+/* Remove the 61rem grid max-width and top gap so the hero fills the display */
+body:has(.hero) .md-main__inner {
+  max-width: none;
+  margin-top: 0;
+}
+
+/* Center the content-inner on the homepage and remove top gap */
+body:has(.hero) .md-content__inner {
+  padding-top: 0;
+  margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Prevent horizontal scrollbar when hero breaks out to 100vw */
+body:has(.hero) .md-main {
+  overflow-x: hidden;
+}
+
 /* ── Section separators ───────────────────────────────────────────────────── */
 hr {
   border: none;
@@ -175,15 +195,20 @@ hr {
 
 /* ── Hero section ─────────────────────────────────────────────────────────── */
 .hero {
-  padding: 2rem 2rem;
+  padding: 1.5rem 2rem 2rem;
   background: linear-gradient(145deg,
     #4a148c 0%,
     #6a1b9a 30%,
     #7b1fa2 55%,
     #9c27b0 80%,
     #ab47bc 100%);
-  border-radius: 20px;
-  margin: -0.8rem -0.8rem 3rem;
+  border-radius: 0 0 20px 20px;
+  /* Break out to full viewport width */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: 0;
+  margin-top: 0;
+  margin-bottom: 3rem;
   position: relative;
   overflow: hidden;
 }
@@ -217,6 +242,9 @@ hr {
   position: relative;
   z-index: 1;
   gap: 2rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ── Hero inline brand logo ──────────────────────────────────────────────── */
@@ -698,9 +726,13 @@ hr {
 /* ── Responsive hero ──────────────────────────────────────────────────────── */
 @media screen and (max-width: 600px) {
   .hero {
-    padding: 1.5rem 1rem;
-    border-radius: 14px;
-    margin: -0.4rem -0.4rem 2.25rem;
+    padding: 1.25rem 1rem 1.5rem;
+    border-radius: 0 0 14px 14px;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 2.25rem;
   }
 
   .hero-text strong {
