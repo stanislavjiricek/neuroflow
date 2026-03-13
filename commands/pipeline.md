@@ -94,10 +94,10 @@ Active phase: [current]
 Steps:
   [done] ideation
   [done] experiment
-  [ ] data              ← start here
+  [ ] data              ← next step
   [ ] data-preprocess
   [ ] data-analyze
-  [ ] paper              ← start here
+  [ ] paper
 ```
 
 Ask the user:
@@ -115,14 +115,48 @@ If the project mentions tool development, ask:
 
 ---
 
+## Step 3b — Ask where to stop
+
+After the plan is confirmed, **always** ask the user how far they want to go before executing anything. Present numbered options based on the pending steps in the plan, plus an "all the way through" option:
+
+```
+How far would you like to run the pipeline?
+
+  1. Stop after ideation
+  2. Stop after experiment
+  3. Stop after data-analyze
+  4. All the way through → paper  ← full journey
+  (or type a custom stop point)
+```
+
+- If the user picks **a specific phase**: set that phase as the `stop_after` boundary. Execute only steps up to and including that phase. Phases after the boundary are shown as `[deferred]` in the plan and are not executed this run.
+- If the user picks **all the way through** (or there are only 1–2 steps in the plan): proceed with the full plan unchanged.
+- In **brutal mode** (`--nomistake`): skip this question and run all pending steps (the mode already implies full execution).
+
+### Full-journey joke
+
+If the user selects the full pipeline from `ideation` all the way to `paper` (i.e., the pipeline spans the complete research journey with no custom stop point), generate and display a **fresh, unique, original joke** before starting execution. The joke must be:
+
+- **Newly composed each time** — never reuse a preset joke. Generate it spontaneously.
+- **Themed around the absurdity of doing an entire research project in one go** — self-aware academic humour is ideal (neuroscience, statistics, publication, grant pressure, etc. are all fair game).
+- **Short** — one or two lines maximum.
+- Followed by: "Alright, brave soul. Let's do this. 🚀"
+
+Example style (do NOT reuse this — always write a fresh one):
+> "Why did the researcher run the full pipeline in one sitting? Because their grant ends tomorrow and denial is a legitimate cognitive strategy."
+> Alright, brave soul. Let's do this. 🚀
+
+---
+
 ## Step 4 — Save the pipeline plan
 
-Before running anything, write the confirmed plan to `.neuroflow/pipeline/pipeline-plan.md`:
+Before running anything, write the confirmed plan to `.neuroflow/pipeline/pipeline-plan.md`. Include the `Stop after` field if the user chose a specific stop point:
 
 ```markdown
 # Pipeline plan
 Generated: YYYY-MM-DD
 Mode: interactive | brutal (--nomistake)
+Stop after: /data-analyze | all the way through
 
 ## Steps
 
@@ -132,7 +166,7 @@ Mode: interactive | brutal (--nomistake)
 | 2 | /data | pending | — |
 | 3 | /data-preprocess | pending | — |
 | 4 | /data-analyze | pending | — |
-| 5 | /paper | pending | — |
+| 5 | /paper | deferred | Beyond stop point — run /pipeline again to continue |
 ```
 
 Create `.neuroflow/pipeline/flow.md` referencing this file.
@@ -144,7 +178,7 @@ Log a decision to `.neuroflow/reasoning/pipeline.json`:
 {
   "statement": "Pipeline defined with N steps: [list]",
   "source": "command:pipeline | YYYY-MM-DD",
-  "reasoning": "Steps inferred from project state / supplied by user. Mode: interactive|brutal."
+  "reasoning": "Steps inferred from project state / supplied by user. Mode: interactive|brutal. Stop after: [phase or 'all']."
 }
 ```
 
@@ -152,7 +186,7 @@ Log a decision to `.neuroflow/reasoning/pipeline.json`:
 
 ## Step 5 — Execute the pipeline
 
-Work through the pipeline steps in order, skipping any already marked `[done]`.
+Work through the pipeline steps in order, skipping any already marked `[done]` or `[deferred]` (steps beyond the chosen stop point).
 
 ### Interactive mode (default)
 
@@ -189,7 +223,7 @@ After each step completes:
 
 ## Step 6 — Pipeline completion
 
-When all steps are done (or the user stops):
+When all steps up to the stop point are done (or the user stops):
 
 Print a pipeline summary:
 
@@ -201,14 +235,18 @@ Steps executed:
   ✅ data           — intake report saved, BIDS validated
   ✅ data-preprocess — preprocessing config saved, QC passed
   ✅ data-analyze   — analysis plan and results saved
-  ✅ paper          — manuscript draft saved
+
+Deferred (beyond stop point):
+  ⏸ paper          — run /neuroflow:pipeline again to continue
 
 Skipped:
   — review (not part of this pipeline)
 
 Files written: [list of key outputs]
-Next suggested step: /neuroflow:review
+Next suggested step: /neuroflow:pipeline  (to continue from /paper) or /neuroflow:review
 ```
+
+If all steps including deferred ones are done, omit the "Deferred" section and suggest `/neuroflow:review` as the next step.
 
 Update `pipeline-plan.md` with final statuses.
 
@@ -231,10 +269,12 @@ When the user runs `/neuroflow:pipeline` again on a project that already has a `
 
 1. Read the existing plan
 2. Show status:
-   > "Resuming pipeline. 2 of 5 steps complete. Next step: /data-analyze."
-3. Ask: "Continue from where we left off? (Y / restart from scratch)"
-4. If **Y**: skip `[done]` and `[skipped]` steps, continue from the first `pending` step
+   > "Resuming pipeline. 2 of 5 steps complete. Next step: /[next-pending-command]."
+   > If there are `[deferred]` steps: "You previously stopped after /[stop-phase]. The following steps were deferred: /[deferred-phases]."
+3. Ask: "Continue from where we left off? (Y / restart from scratch / extend stop point)"
+4. If **Y**: skip `[done]` and `[skipped]` steps, promote any `[deferred]` steps to `[pending]` and re-run Step 3b to ask the new stop point, then continue from the first `pending` step
 5. If **restart**: prompt the user to build a new plan from Step 3
+6. If **extend stop point**: re-run Step 3b only, keeping completed steps intact
 
 ---
 
