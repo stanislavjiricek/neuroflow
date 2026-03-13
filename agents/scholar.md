@@ -48,7 +48,7 @@ This allows an interrupted or failed run to be safely retried without duplicatin
 
 For each paper not yet present, in order:
 
-1. If the paper is marked `🔒 PAYWALLED`, note it as `⛔ skipped — paywalled` and move on
+1. If the paper is marked `🔒 PAYWALLED`, save a partial metadata file (see the **Partial metadata file** section below for the template) marked as paywalled, note it as `⛔ skipped — paywalled (metadata saved)`, and move on
 2. Otherwise, attempt to fetch the full text by trying each source in this priority order:
    - **Source 1 — Unpaywall**: query the Unpaywall API for the DOI to obtain an open-access PDF URL
    - **Source 2 — PubMed Central**: if a PMCID is available, fetch the PMC PDF directly
@@ -59,8 +59,47 @@ For each paper not yet present, in order:
 5. Save to `.neuroflow/ideation/papers/[FirstAuthorLastName]-[Year]-[SlugTitle].[pdf|txt|md]`
 6. Mark the paper with one of:
    - `✅ downloaded` — file saved successfully
-   - `❌ unavailable` — all four sources exhausted on both attempts; no open-access copy exists
-   - `⚠️ failed` — a network or tool error prevented all attempts (the paper may be available; retry later)
+   - `❌ unavailable` — all four sources exhausted on both attempts; no open-access copy exists; save a partial metadata file (see the **Partial metadata file** section below for the template)
+   - `⚠️ failed` — a network or tool error prevented all attempts (the paper may be available; retry later); save a partial metadata file (see the **Partial metadata file** section below for the template)
+
+### Partial metadata file
+
+Whenever a full-text PDF or text cannot be saved — i.e. for `❌ unavailable`, `⚠️ failed`, and `⛔ skipped — paywalled` outcomes — save a `.md` file to `.neuroflow/ideation/papers/[stem].md` containing all metadata that is available. Use this template:
+
+```markdown
+---
+title: "[Full paper title]"
+authors: "[Author1, Author2, ...]"
+year: [YYYY]
+journal: "[Journal or source name]"
+doi: "[DOI; if the DOI could not be verified via the API, write 'unverified: [raw DOI string]']"
+pmid: "[PMID or omit if unavailable]"
+pmcid: "[PMCID or omit if unavailable]"
+preprint: [true | false]
+full_text_available: false
+reason: "[unavailable | failed | paywalled]"
+---
+
+# [Full paper title]
+
+**Authors:** [Author1, Author2, ...]  
+**Year:** [YYYY]  
+**Journal/Source:** [Journal or source name]  
+**DOI:** [DOI]  
+**Status:** [No open-access copy found | Full-text download failed — retry later | Paywalled — no open-access copy attempted]
+
+## Abstract
+
+[Full abstract text as returned by the search API, or "Abstract not available" if none exists.]
+
+## Notes
+
+- Full text not downloaded: [brief reason matching the outcome — e.g. "no open-access copy found via Unpaywall, PMC, bioRxiv, or journal OA page" / "download failed due to [error type]" / "paper is paywalled"]
+- Metadata-only file created by the scholar agent on [date]
+- To obtain the full text: [DOI resolver URL or direct link if known]
+```
+
+This file is recognised by the resume detection system (the `.md` extension is checked) and is usable by the `literature-review` agent, which reads title, abstract, and metadata when full text is not present.
 
 ### Download summary
 
@@ -68,9 +107,10 @@ After all attempts, report:
 
 ```
 ## Download summary — [topic] — [date]
-✅ [n] downloaded   ⏭️ [n] already downloaded   ❌ [n] unavailable   ⚠️ [n] failed   ⛔ [n] skipped (paywalled)
+✅ [n] downloaded   ⏭️ [n] already downloaded   ❌ [n] unavailable (metadata saved)   ⚠️ [n] failed (metadata saved)   ⛔ [n] skipped — paywalled (metadata saved)
 
 Downloaded files saved to: .neuroflow/ideation/papers/
+Note: for papers without a full PDF, a metadata-only .md file has been saved and will be used by the literature-review agent.
 ```
 
 If any papers are marked `⚠️ failed`, list them:
@@ -78,9 +118,10 @@ If any papers are marked `⚠️ failed`, list them:
 ```
 ### Papers to retry (⚠️ failed)
 - [Title] — DOI: [doi] — reason: [brief error description]
+  Metadata saved to: .neuroflow/ideation/papers/[stem].md
 ```
 
-Then add: *"To resume: re-run the `scholar` agent with the same query. Papers already downloaded will be skipped automatically; only failed papers will be retried."*
+Then add: *"To resume: re-run the `scholar` agent with the same query. Papers already downloaded (including metadata-only .md files) will be skipped automatically; only failed papers without any saved file will be retried. To force a fresh download of a metadata-only paper, delete its .md file first."*
 
 After the download summary, offer to run the `literature-review` agent on the papers in `.neuroflow/ideation/papers/`.
 
