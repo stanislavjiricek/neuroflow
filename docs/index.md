@@ -5,6 +5,33 @@ hide:
   - toc
 ---
 
+<div class="sa-bar">
+  <span class="sa-bar-label">🧠 self-assessment <span class="sa-bar-version">v0.2.0</span></span>
+  <div class="sa-items">
+    <span class="sa-item" data-tip="Prediction error detected?">
+      <span class="sa-q-short">Pred. error</span><span class="probe-badge probe-yes">YES</span>
+    </span>
+    <span class="sa-item" data-tip="Internal model updated?">
+      <span class="sa-q-short">Internal model</span><span class="probe-badge probe-no">NO</span>
+    </span>
+    <span class="sa-item" data-tip="Uncertainty estimated?">
+      <span class="sa-q-short">Uncertainty</span><span class="probe-badge probe-partial">PARTIAL</span>
+    </span>
+    <span class="sa-item" data-tip="Decisions monitored?">
+      <span class="sa-q-short">Decisions</span><span class="probe-badge probe-no">NO</span>
+    </span>
+    <span class="sa-item" data-tip="Self-model present?">
+      <span class="sa-q-short">Self-model</span><span class="probe-badge probe-partial">PARTIAL</span>
+    </span>
+    <span class="sa-item" data-tip="Global integration active?">
+      <span class="sa-q-short">Global integ.</span><span class="probe-badge probe-partial">PARTIAL</span>
+    </span>
+    <span class="sa-item" data-tip="Subjective experience present?">
+      <span class="sa-q-short">Subj. experience</span><span class="probe-badge probe-unknown">UNKNOWN</span>
+    </span>
+  </div>
+</div>
+
 <div class="hero" markdown>
 <div id="nf-quotes"></div>
 <div class="hero-inner" markdown>
@@ -50,40 +77,6 @@ From first hypothesis to manuscript draft, guided by AI at every step.
 </div>
 </div>
 </div>
-</div>
-
-<div class="sa-bar">
-  <span class="sa-bar-label">🧠 self-assessment <span class="sa-bar-version">v0.2.0</span></span>
-  <div class="sa-items">
-    <span class="sa-item">
-      <span class="sa-q-short">Pred. error</span><span class="probe-badge probe-yes">YES</span>
-      <span class="sa-tooltip">Prediction error detected?</span>
-    </span>
-    <span class="sa-item">
-      <span class="sa-q-short">Internal model</span><span class="probe-badge probe-no">NO</span>
-      <span class="sa-tooltip">Internal model updated?</span>
-    </span>
-    <span class="sa-item">
-      <span class="sa-q-short">Uncertainty</span><span class="probe-badge probe-partial">PARTIAL</span>
-      <span class="sa-tooltip">Uncertainty estimated?</span>
-    </span>
-    <span class="sa-item">
-      <span class="sa-q-short">Decisions</span><span class="probe-badge probe-no">NO</span>
-      <span class="sa-tooltip">Decisions monitored?</span>
-    </span>
-    <span class="sa-item">
-      <span class="sa-q-short">Self-model</span><span class="probe-badge probe-partial">PARTIAL</span>
-      <span class="sa-tooltip">Self-model present?</span>
-    </span>
-    <span class="sa-item">
-      <span class="sa-q-short">Global integ.</span><span class="probe-badge probe-partial">PARTIAL</span>
-      <span class="sa-tooltip">Global integration active?</span>
-    </span>
-    <span class="sa-item">
-      <span class="sa-q-short">Subj. experience</span><span class="probe-badge probe-unknown">UNKNOWN</span>
-      <span class="sa-tooltip">Subjective experience present?</span>
-    </span>
-  </div>
 </div>
 
 ---
