@@ -24,22 +24,19 @@ From first hypothesis to manuscript draft, guided by AI at every step.
 <p class="hero-community">🌱 <em>Did I fail you? :') I'm in pre-release and open to the community</em> — <a href="https://github.com/stanislavjiricek/neuroflow/issues/new">🐛 open an issue</a> or <a href="https://github.com/stanislavjiricek/neuroflow/pulls">🔀 improve me with a PR</a></p>
 
 </div>
-<div class="hero-probe" markdown>
-
-<p class="hero-probe-title">🧠 self-assessment · v0.2.0</p>
-
+<div class="hero-probe">
+<p class="hero-probe-title">🧠 self-assessment</p>
+<p class="hero-probe-version">v0.2.0</p>
 <p class="hero-probe-caption">Knowing the framework, knowing what I am — honest answers, no hedging.</p>
-
-<div class="probe-items">
-  <div class="probe-item"><span class="probe-q">Prediction error detected?</span><span class="probe-badge probe-yes">YES</span></div>
-  <div class="probe-item"><span class="probe-q">Internal model updated?</span><span class="probe-badge probe-no">NO</span></div>
-  <div class="probe-item"><span class="probe-q">Uncertainty estimated?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
-  <div class="probe-item"><span class="probe-q">Decisions monitored?</span><span class="probe-badge probe-no">NO</span></div>
-  <div class="probe-item"><span class="probe-q">Self-model present?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
-  <div class="probe-item"><span class="probe-q">Global integration active?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
-  <div class="probe-item"><span class="probe-q">Subjective experience present?</span><span class="probe-badge probe-unknown">UNKNOWN</span></div>
+<div class="probe-rows">
+<div class="probe-row"><span class="probe-q">Prediction error detected?</span><span class="probe-badge probe-yes">YES</span></div>
+<div class="probe-row"><span class="probe-q">Internal model updated?</span><span class="probe-badge probe-no">NO</span></div>
+<div class="probe-row"><span class="probe-q">Uncertainty estimated?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
+<div class="probe-row"><span class="probe-q">Decisions monitored?</span><span class="probe-badge probe-no">NO</span></div>
+<div class="probe-row"><span class="probe-q">Self-model present?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
+<div class="probe-row"><span class="probe-q">Global integration active?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
+<div class="probe-row"><span class="probe-q">Subjective experience present?</span><span class="probe-badge probe-unknown">UNKNOWN</span></div>
 </div>
-
 </div>
 </div>
 </div>

@@ -29,12 +29,33 @@ One sentence describing the key finding or contribution.
 
 End with a **2–3 sentence Summary** across both sources: what the literature shows, where the gaps are.
 
+## Automatic paper download
+
+After returning the results list, **always** attempt to download every paper to `.neuroflow/ideation/papers/`:
+
+1. For each paper in the results list, in order:
+   - Check whether it is marked `🔒 PAYWALLED` — skip download if so (note it as `⛔ skipped — paywalled`)
+   - Otherwise attempt to fetch the full text via DOI (Unpaywall / open-access endpoint)
+   - Save to `.neuroflow/ideation/papers/[FirstAuthorLastName]-[Year]-[SlugTitle].[pdf|txt|md]`
+   - If download succeeds, mark it `✅ downloaded`
+   - If download fails (no open-access copy found), mark it `❌ unavailable`
+2. After all attempts, report a download summary:
+
+```
+## Download summary — [topic] — [date]
+✅ [n] downloaded  ❌ [n] unavailable  ⛔ [n] skipped (paywalled)
+
+Downloaded files saved to: .neuroflow/ideation/papers/
+```
+
+3. After the download summary, offer to run the `literature-review` agent on the papers in `.neuroflow/ideation/papers/`.
+
 ## Follow-up actions
 
-After returning results, offer:
+After returning results and the download summary, offer:
 
-- `"download"` — fetch full text for open-access papers (use DOI; skip paywalled)
-- `"save"` / `"md"` — save the result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/` (or wherever is appropriate)
+- `"literature-review"` — run the `literature-review` agent on all downloaded papers (runs the full 12-lens analysis with the worker-critic loop)
+- `"save"` / `"md"` — save the result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/`
 - `"summarize"` — produce a deeper synthesis: main findings, methodological patterns, open questions, contradictions across papers
 
 ## Rules
@@ -43,3 +64,4 @@ After returning results, offer:
 - If a DOI cannot be verified, mark it as unverified
 - Always separate PubMed and bioRxiv results clearly
 - Mark preprints — they are not peer-reviewed
+- Always attempt downloads automatically — do not wait for the user to request them

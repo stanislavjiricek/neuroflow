@@ -10,6 +10,7 @@ reads:
   - skills/phase-ideation/SKILL.md
 writes:
   - .neuroflow/ideation/
+  - .neuroflow/ideation/papers/
   - .neuroflow/ideation/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
@@ -26,6 +27,7 @@ Handles the very beginning of a research project. Four possible entry points —
 2. **Explore literature** — the user wants to search what is already known before committing to a question
 3. **Formalize** — the user has an idea and wants to sharpen it into a concrete, testable research question
 4. **Proposal** — the user wants to produce a written project proposal document
+5. **Literature review** — papers have been retrieved (automatically downloaded by `scholar`, or manually placed in `.neuroflow/ideation/papers/`) and the user wants to run the full 12-protocol analysis
 
 If `project_config.md` already has a research question, confirm whether they want to build on it or start fresh.
 
@@ -64,7 +66,32 @@ If the user skips: proceed using bioRxiv only, and note PubMed results will be u
 
 Use the `scholar` agent to search PubMed and bioRxiv for relevant papers. Use the user's topic as the starting query, then try synonyms and broader/narrower terms if first results are thin.
 
-Save the output as `literature-[topic]-[date].md` in `.neuroflow/ideation/`.
+The `scholar` agent will automatically attempt to download all open-access papers to `.neuroflow/ideation/papers/` and report a download summary. No additional action is required to trigger downloads.
+
+Save the search result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/`.
+
+### Literature review
+
+After papers have been retrieved and downloaded, run the full 12-protocol literature review using the `literature-review` agent:
+
+1. Confirm the contents of `.neuroflow/ideation/papers/` with the user
+2. Invoke the `literature-review` agent — it will run all 12 analytical protocols through the worker-critic loop automatically
+3. The agent saves the compiled review to `.neuroflow/ideation/literature-review-[date].md`
+
+The 12 protocols the `literature-review` agent runs:
+
+1. **Intake Protocol** — map every paper by author + year + core claim; cluster by shared assumptions; flag contradictions
+2. **Contradiction Hunter** — expose every head-to-head conflict between papers with evidence assessment
+3. **Knowledge Gap Detector** — identify what all papers assume but never prove; missing methodologies; missing populations
+4. **Timeline Builder** — reconstruct the intellectual history of the field from these papers alone
+5. **Methodology Auditor** — extract study designs, sample sizes, and limitations; name what the dominant method cannot prove
+6. **Citation Network Map** — identify which paper everything else builds on and which is the field's Achilles heel
+7. **Lit Review Writer** — produce the prose literature review (opening → thematic body → transition → close)
+8. **Devil's Advocate** — build the strongest case against the dominant consensus using the papers themselves
+9. **Theoretical Framework Extractor** — map all theoretical models in use; name the missing lens
+10. **Variable Map** — inventory every IV/DV/moderator; surface the never-studied variable combination
+11. **Plain Language Translator** — rewrite the 5 most complex findings for a non-academic audience; identify the best headline
+12. **Future Research Agenda** — write a 5-point agenda grounded in gaps, contradictions, and unreplicated variables
 
 ### Proposal
 
@@ -74,7 +101,7 @@ Produce a structured project proposal document covering: research question, back
 
 ## At end
 
-- Update `.neuroflow/ideation/flow.md` with any new files created
+- Update `.neuroflow/ideation/flow.md` with any new files created (including files in `papers/` and the compiled literature review)
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
 - If a research question was defined or updated, update `project_config.md`
 
