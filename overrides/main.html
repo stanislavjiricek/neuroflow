@@ -62,5 +62,37 @@
     showQuote();
     setInterval(showQuote, 10000);
   });
+  /* ── Self-assessment bar: floating tooltip (escapes overflow context) ─────── */
+  document$.subscribe(function () {
+    /* Guard: create the shared tooltip element only once */
+    var tip = document.getElementById('sa-float-tip-singleton');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'sa-float-tip-singleton';
+      tip.className = 'sa-float-tip';
+      document.body.appendChild(tip);
+    }
+
+    /* Event delegation on the bar — one listener set, guarded against re-subscription */
+    var bar = document.querySelector('.sa-items');
+    if (!bar || bar.dataset.saListening) return;
+    bar.dataset.saListening = '1';
+
+    bar.addEventListener('mouseover', function (e) {
+      var item = e.target.closest('.sa-item[data-tip]');
+      if (!item) return;
+      var r = item.getBoundingClientRect();
+      tip.textContent = item.getAttribute('data-tip');
+      tip.style.left = (r.left + r.width / 2) + 'px';
+      tip.style.top = (r.bottom + 9) + 'px';
+      tip.classList.add('sa-float-tip--visible');
+    });
+
+    bar.addEventListener('mouseout', function (e) {
+      var item = e.target.closest('.sa-item[data-tip]');
+      if (!item) return;
+      tip.classList.remove('sa-float-tip--visible');
+    });
+  });
 </script>
 {% endblock %}
