@@ -1,0 +1,36 @@
+name: Sentinel-dev Consistency Check
+
+on:
+  schedule:
+    - cron: '0 20 * * *'   # 20:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write       # needed to create branches and push fixes
+  discussions: write
+  pull-requests: write  # needed to open PRs with fixes
+
+jobs:
+  sentinel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so branch creation works cleanly
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install automation dependencies
+        run: pip install -r scripts/automation/requirements.txt
+
+      - name: Run sentinel checks and post report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/automation/sentinel_check.py \
+            --repo "${{ github.repository }}" \
+            --discussion-number 168

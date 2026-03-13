@@ -1,0 +1,33 @@
+name: Daily Maintainer Report
+
+on:
+  schedule:
+    - cron: '0 20 * * *'   # 20:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  discussions: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install automation dependencies
+        run: pip install -r scripts/automation/requirements.txt
+
+      - name: Generate and post daily maintainer report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/automation/daily_maintenance.py \
+            --repo "${{ github.repository }}" \
+            --discussion-number 167

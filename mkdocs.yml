@@ -200,4 +200,5 @@ nav:
   - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
+  - Maintenance: maintenance/automation.md
 
