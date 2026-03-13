@@ -24,61 +24,80 @@ From first hypothesis to manuscript draft, guided by AI at every step.
 <p class="hero-community">🌱 <em>Did I fail you? :') I'm in pre-release and open to the community</em> — <a href="https://github.com/stanislavjiricek/neuroflow/issues/new">🐛 open an issue</a> or <a href="https://github.com/stanislavjiricek/neuroflow/pulls">🔀 improve me with a PR</a></p>
 
 </div>
-<div class="hero-probe">
-<p class="hero-probe-title">🧠 self-assessment</p>
-<p class="hero-probe-version">v0.2.0</p>
-<p class="hero-probe-caption">Knowing the framework, knowing what I am — honest answers, no hedging.</p>
-<div class="probe-rows">
-<div class="probe-row"><span class="probe-q">Prediction error detected?</span><span class="probe-badge probe-yes">YES</span></div>
-<div class="probe-row"><span class="probe-q">Internal model updated?</span><span class="probe-badge probe-no">NO</span></div>
-<div class="probe-row"><span class="probe-q">Uncertainty estimated?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
-<div class="probe-row"><span class="probe-q">Decisions monitored?</span><span class="probe-badge probe-no">NO</span></div>
-<div class="probe-row"><span class="probe-q">Self-model present?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
-<div class="probe-row"><span class="probe-q">Global integration active?</span><span class="probe-badge probe-partial">PARTIAL</span></div>
-<div class="probe-row"><span class="probe-q">Subjective experience present?</span><span class="probe-badge probe-unknown">UNKNOWN</span></div>
+<div class="hero-why">
+<p class="hero-why-title">✨ why neuroflow?</p>
+<div class="why-grid">
+<div class="why-card">
+<span class="why-icon">🔗</span>
+<span class="why-name">End-to-end pipeline</span>
+<span class="why-desc">One tool covers the entire research lifecycle — ideation, experiment design, data, analysis, and writing — with no context lost between steps.</span>
+</div>
+<div class="why-card">
+<span class="why-icon">🧠</span>
+<span class="why-name">Neuroscience-aware AI</span>
+<span class="why-desc">Domain-specific skills for EEG, iEEG, fMRI, eye tracking, ECG, and other physiological signals, from cognitive to clinical research.</span>
+</div>
+<div class="why-card">
+<span class="why-icon">💾</span>
+<span class="why-name">Persistent memory</span>
+<span class="why-desc">All reasoning logs, session notes, and context live in <code>.neuroflow/</code> — Claude reads it at the start of every session so you never repeat yourself.</span>
+</div>
+<div class="why-card">
+<span class="why-icon">📊</span>
+<span class="why-name">Neuroscience analysis</span>
+<span class="why-desc">ERPs, time-frequency, connectivity, decoding, and GLM — with pre-registration compliance checks and rigorous reporting.</span>
 </div>
 </div>
 </div>
+</div>
+</div>
+
+<div class="sa-bar">
+  <span class="sa-bar-label">🧠 self-assessment <span class="sa-bar-version">v0.2.0</span></span>
+  <div class="sa-items">
+    <span class="sa-item">
+      <span class="sa-q-short">Pred. error</span><span class="probe-badge probe-yes">YES</span>
+      <span class="sa-tooltip">Prediction error detected?</span>
+    </span>
+    <span class="sa-item">
+      <span class="sa-q-short">Internal model</span><span class="probe-badge probe-no">NO</span>
+      <span class="sa-tooltip">Internal model updated?</span>
+    </span>
+    <span class="sa-item">
+      <span class="sa-q-short">Uncertainty</span><span class="probe-badge probe-partial">PARTIAL</span>
+      <span class="sa-tooltip">Uncertainty estimated?</span>
+    </span>
+    <span class="sa-item">
+      <span class="sa-q-short">Decisions</span><span class="probe-badge probe-no">NO</span>
+      <span class="sa-tooltip">Decisions monitored?</span>
+    </span>
+    <span class="sa-item">
+      <span class="sa-q-short">Self-model</span><span class="probe-badge probe-partial">PARTIAL</span>
+      <span class="sa-tooltip">Self-model present?</span>
+    </span>
+    <span class="sa-item">
+      <span class="sa-q-short">Global integ.</span><span class="probe-badge probe-partial">PARTIAL</span>
+      <span class="sa-tooltip">Global integration active?</span>
+    </span>
+    <span class="sa-item">
+      <span class="sa-q-short">Subj. experience</span><span class="probe-badge probe-unknown">UNKNOWN</span>
+      <span class="sa-tooltip">Subjective experience present?</span>
+    </span>
+  </div>
 </div>
 
 ---
 
-## Why neuroflow?
-
-Most neuroscience software solves **one problem at a time** — a preprocessing library, a stats package, a reference manager. You still have to stitch everything together yourself, re-explain context at every step, and manually translate between tools and phases.
-
-**neuroflow is different.** It is a Claude Code plugin that brings **agentic workflows** into neuroscience research — from the first hypothesis all the way to a manuscript draft. Claude works alongside you, guided by skills and agents that understand neuroscience domain conventions.
-
-<div class="feature-grid" markdown>
-
-<div class="feature-card" markdown>
-<span class="feature-icon">🔗</span>
-### End-to-end pipeline
-One tool covers the entire research lifecycle — ideation, experiment design, data, analysis, and writing — with no context lost between steps.
+<details class="who-card">
+<summary class="who-summary">
+  <span class="who-icon">🎯</span>
+  <span class="who-title">Who is this for?</span>
+  <span class="who-tagline">Neuroscientists working with EEG, iEEG, fMRI, eye tracking, ECG…</span>
+</summary>
+<div class="who-body">
+Neuroscientists working with EEG, iEEG, fMRI, eye tracking, ECG, or other physiological signals — from cognitive and clinical to preclinical research.
 </div>
-
-<div class="feature-card" markdown>
-<span class="feature-icon">🧠</span>
-### Neuroscience-aware AI
-Domain-specific skills for EEG, iEEG, fMRI, eye tracking, ECG, and other physiological signals, from cognitive to clinical research.
-</div>
-
-<div class="feature-card" markdown>
-<span class="feature-icon">💾</span>
-### Persistent project memory
-All reasoning logs, session notes, and context live in `.neuroflow/` — Claude reads it at the start of every session so you never repeat yourself.
-</div>
-
-<div class="feature-card" markdown>
-<span class="feature-icon">📊</span>
-### Neuroscience analysis
-ERPs, time-frequency, connectivity, decoding, and GLM — with pre-registration compliance checks and rigorous reporting.
-</div>
-
-</div>
-
-!!! tip "Who is this for?"
-    Neuroscientists working with EEG, iEEG, fMRI, eye tracking, ECG, or other physiological signals — from cognitive and clinical to preclinical research.
+</details>
 
 ---
 
