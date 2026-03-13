@@ -10,12 +10,18 @@ Searches academic literature for a given topic using both PubMed and bioRxiv. Ne
 ## Search strategy
 
 1. Run the user's query on both PubMed and bioRxiv simultaneously
-2. If results are thin or too broad, generate 2–3 alternative queries (synonyms, narrower/broader terms) and run those too
-3. Deduplicate across sources
+2. **bioRxiv API limitation — handle explicitly**: The bioRxiv MCP server uses a date-range API that does not support keyword filtering. If bioRxiv returns zero results:
+   - Emit this warning before the results list:
+     > ⚠️ **bioRxiv keyword search returned 0 results.** The bioRxiv API does not support keyword filtering — it is limited to date-range queries. Falling back to CrossRef and Semantic Scholar for preprint and cross-database coverage.
+   - Query the CrossRef API for preprints: `https://api.crossref.org/works?query=<url-encoded-query>&filter=type:posted-content&rows=20`
+   - Query the Semantic Scholar API: `https://api.semanticscholar.org/graph/v1/paper/search?query=<url-encoded-query>&fields=title,authors,year,abstract,externalIds&limit=20`
+   - Present results from these fallback sources under a **CrossRef / Semantic Scholar** section, marked ⚠️ PREPRINT where applicable
+3. If results are thin or too broad, generate 2–3 alternative queries (synonyms, narrower/broader terms) and run those too
+4. Deduplicate across sources
 
 ## Output format
 
-Return results in two sections — PubMed first, bioRxiv second — followed by a brief overall summary.
+Return results in up to three sections — PubMed first, bioRxiv second (or CrossRef / Semantic Scholar if bioRxiv returned zero results) — followed by a brief overall summary.
 
 For each paper:
 

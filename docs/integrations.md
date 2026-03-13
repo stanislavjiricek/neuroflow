@@ -61,6 +61,9 @@ The bioRxiv integration enables the [scholar agent](concepts/agents.md) to searc
 !!! warning "Preprints are not peer-reviewed"
     The scholar agent marks all bioRxiv results with ⚠️ PREPRINT. Preprints have not been peer-reviewed and should be treated with appropriate caution.
 
+!!! warning "bioRxiv API keyword-search limitation"
+    The bioRxiv MCP server uses a date-range API that does not support keyword filtering. When a keyword search returns zero results, the scholar agent will warn you and automatically fall back to **CrossRef** and **Semantic Scholar** — both free public APIs that support full keyword search across preprints and peer-reviewed literature. No additional setup is required for the fallback.
+
 ---
 
 ## Miro
