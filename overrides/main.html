@@ -13,6 +13,20 @@
     inner.appendChild(badge);
   });
 
+  /* ── Self-assessment bar: fix at very top and push header below ──────────── */
+  document$.subscribe(function () {
+    var bar = document.querySelector('.sa-bar');
+    if (bar) {
+      document.body.classList.add('has-sa-bar');
+      /* Use measured height; fall back to 20px (typical thin-bar height) */
+      var h = bar.getBoundingClientRect().height || 20;
+      document.documentElement.style.setProperty('--sa-bar-height', h + 'px');
+    } else {
+      document.body.classList.remove('has-sa-bar');
+      document.documentElement.style.removeProperty('--sa-bar-height');
+    }
+  });
+
   /* ── Quote bubbles on homepage ───────────────────────────────────────────── */
   document$.subscribe(function () {
     var container = document.getElementById('nf-quotes');
