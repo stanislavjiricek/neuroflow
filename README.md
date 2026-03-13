@@ -19,6 +19,10 @@
 
 ## What's new in 0.2.3
 
+- **PDF download resume and retry logic** — the `scholar` agent now checks which papers are already present in `.neuroflow/ideation/papers/` before downloading; interrupted runs are safely retried without duplicating work
+- **Four-source fallback chain** — downloads now try Unpaywall → PubMed Central → bioRxiv direct → journal OA page in sequence; each source is attempted before moving to the next
+- **Per-paper retry** — if all four sources fail, the agent waits 2 seconds and retries the full chain once more before marking a paper as unavailable
+- **`⚠️ failed` vs `❌ unavailable` distinction** — transient network failures are now reported separately from confirmed no-OA-copy papers, with a named list of papers to retry and instructions to re-run the agent to resume
 - **Removed `/paper-write` and `/paper-review`** — superseded by [`/paper`](commands/paper.md), which covers the full write→critique loop; nothing is lost
 - **New [`/review`](commands/review.md) command** — for when YOU are the reviewer reading a colleague's paper; produces a structured referee report calibrated to the target journal by delegating to `neuroflow:review-neuro`
 - **New [`review`](agents/review.md) agent and [`neuroflow:phase-review`](skills/phase-review/SKILL.md) skill** — autonomous peer reviewer agent and phase orientation skill for the referee workflow
