@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.png" alt="neuroflow" width="80%" />
+  <img src="logo-full.svg" alt="neuroflow" width="80%" />
   <h1>neuroflow</h1>
   <p><strong>A Claude Code plugin for agentic neuroscience research.</strong></p>
   <p>
