@@ -291,6 +291,32 @@ claude --plugin-dir /path/to/plugin
 # Verify skill loads correctly
 ```
 
+## Examples from neuroflow
+
+Study the skills in this plugin as examples of best practices:
+
+**neuroflow-core skill:**
+- Excellent trigger phrases: "running any neuroflow command", "understand .neuroflow/ folder structure"
+- Focused SKILL.md covering core lifecycle rules
+- Single source of truth for lifecycle knowledge shared across all commands
+
+**neuroflow-develop skill:**
+- Strong triggers: "adding skills", "commands", "agents", "hooks", "bumping the version"
+- Focused SKILL.md with development workflow
+- Covers the full plugin development lifecycle clearly and concisely
+
+**phase-data-analyze skill:**
+- Specific trigger: loaded automatically when /data-analyze is invoked
+- Phase-scoped SKILL.md — knows exactly when it applies
+- Demonstrates how to scope a skill tightly to a single command
+
+**worker-critic skill:**
+- Precise trigger: "worker-critic agentic loop protocol"
+- Describes a reusable protocol pattern (orchestrator + worker + critic)
+- Demonstrates skills that encode workflow patterns, not just domain knowledge
+
+Each demonstrates lean SKILL.md content with strong, specific triggering.
+
 ## Progressive Disclosure in Practice
 
 ### What Goes in SKILL.md
@@ -575,6 +601,23 @@ Good for: Complex domains with validation utilities
 - Leave resources unreferenced
 - Include broken or incomplete examples
 - Skip validation
+
+## Additional Resources
+
+### Study These Skills
+
+neuroflow's own skills demonstrate best practices:
+- `../neuroflow-core/` — core lifecycle rules, single-responsibility design
+- `../neuroflow-develop/` — plugin development workflow, lean body with clear triggers
+- `../worker-critic/` — reusable agentic protocol pattern, tight scoping
+- `../phase-data-analyze/` — phase-scoped skill, auto-load trigger pattern
+- `../phase-fails/` — lightweight phase skill, focused on a single concern
+- `../auto-issue/` — passive monitoring pattern, permission-gated behavior
+
+### Reference Files
+
+For the original standalone skill-creator methodology:
+- **`references/skill-creator-original.md`** — full original skill-creator content (generic, non-plugin variant)
 
 ## Implementation Workflow
 

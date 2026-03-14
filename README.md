@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.2.4
+
+- **Updated [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) skill** — synced with the latest upstream `anthropics/claude-code` `plugin-dev` skill; adds "Examples from neuroflow" section with annotated neuroflow skill studies, "Study These Skills" reference block, and the original standalone skill-creator content in `references/skill-creator-original.md`
+
 ## What's new in 0.2.3
 
 - **PDF download resume and retry logic** — the `scholar` agent now checks which papers are already present in `.neuroflow/ideation/papers/` before downloading; interrupted runs are safely retried without duplicating work
