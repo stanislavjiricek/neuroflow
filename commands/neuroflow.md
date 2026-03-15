@@ -6,6 +6,8 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/integrations.json
+  - .neuroflow/.flowie/profile.md        # optional — only if flowie profile exists or user provides one
+  - .neuroflow/.flowie/sync.json         # optional — only if flowie profile exists
 writes:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
@@ -161,6 +163,107 @@ Also detect existing output folders to infer output paths per phase:
 | Nothing found | use defaults from neuroflow-core |
 
 Summarise what you found in one sentence before the first question. Use it to skip or pre-answer obvious questions.
+
+---
+
+## Step 1b — Check for existing profiles
+
+Before asking any interview questions, ask the user this as the **first question**:
+
+> **Do you have a flowie or hive profile I can read to pre-fill the setup?** (Y/n)
+>
+> - **Flowie** — your personal research identity (stored in a private GitHub repo named `flowie`)
+> - **Hive** — your team's shared research profile (stored in a team GitHub org repo)
+> - **Neither / not sure** — press Enter to start the interview from scratch
+
+**If the user says no or presses Enter:** skip to Step 2 (full interview, unchanged).
+
+**If the user says yes:** ask which type(s) of profile they have — Flowie, Hive, or both — then follow the relevant sub-section(s) below. After reading all available profiles, go to the **Confirmation summary** sub-section instead of running Step 2.
+
+---
+
+### Flowie profile
+
+**Check locally first:** if `.neuroflow/.flowie/profile.md` already exists in the current working directory, read it directly. No network fetch is needed — go straight to the field mapping table below.
+
+**If no local profile:** ask: *"What is your GitHub username?"*
+
+Since flowie repositories are always private, use authenticated access to fetch the profile:
+
+- **If `gh` CLI is available and authenticated** (`gh auth status` succeeds): run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch the file content.
+- **If `gh` CLI is not available or not authenticated**: ask the user for a GitHub Personal Access Token (PAT) with `repo` scope. Use it in the Authorization header to call `GET https://api.github.com/repos/{username}/flowie/contents/profile.md`. Decode the base64 `content` field.
+- **If neither works**: fall back to the full interview (Step 2).
+
+If the profile is found, extract the following fields and map them to interview answers:
+
+| Profile field | Maps to |
+|---|---|
+| `name` | Researcher / PI name — stored in `project_config.md` |
+| `research_domain` | Context for "What are you working on?" |
+| Methodological preferences (tools, paradigms) | Neuroscience modality and programming tools |
+| Writing style | Stored as `writing_style` in `project_config.md` |
+
+If the profile cannot be fetched, report the cause clearly:
+
+```
+Could not read flowie profile from github.com/{username}/flowie.
+Possible causes: authentication failure, network error, or repository does not exist yet.
+Falling back to the full interview.
+```
+
+Then continue to Step 2.
+
+---
+
+### Hive profile
+
+Ask: *"What is your team's Hive repo? (e.g. my-lab/hive-research)"*
+
+**Check locally first:** if `.neuroflow/hive/` already exists, read the index files from there directly.
+
+**If no local hive data:** fetch the Hive index using the same authentication approach as for flowie above (`gh` CLI preferred, PAT as fallback). Try the following locations in order:
+
+1. Root `README.md`: `GET https://api.github.com/repos/{org}/{repo}/contents/README.md`
+2. `directions.md` at the repo root: `GET https://api.github.com/repos/{org}/{repo}/contents/directions.md`
+
+Use whichever file is found first. Decode the base64 `content` field and extract any shared research directions, modalities, and tools. Use these as additional context when pre-filling the interview answers.
+
+If the Hive repo cannot be read (authentication failure, network error, repo not found), report it and continue with whatever profile data is already available.
+
+---
+
+### Confirmation summary
+
+Once one or more profiles have been read, **do not run the full Step 2 interview**. Instead, display a pre-filled summary of every field that could be inferred. Label the source(s) clearly:
+
+```
+Based on your flowie profile [and team hive profile], here is what I've inferred for this project:
+
+  Researcher:      {name from flowie, or "—"}
+  Research area:   {research_domain from flowie, or team direction from hive, or "—"}
+  Modality:        {inferred from methodological preferences, or "—"}
+  Tools:           {inferred from methodological preferences, or "—"}
+  Writing style:   {from flowie profile, or "—"}
+
+Does this look right? Confirm with Y, type a correction for any field, or add anything that's missing.
+```
+
+Wait for the user to respond. Accept corrections inline (e.g. *"Modality is MEG, not EEG"*) and update the pre-filled values accordingly.
+
+After the user confirms, ask **only** the Step 2 questions that could not be pre-filled from the profile:
+
+| Step 2 question | When to skip |
+|---|---|
+| What are you working on? | Skip if `research_domain` was confirmed |
+| Project name and institution? | **Always ask** — this is the project name, not the researcher's name |
+| Neuroscience modality? | Skip if modality was confirmed |
+| Programming language and tools? | Skip if tools were confirmed |
+| Phase-specific questions (ethics, BIDS, target journal, etc.) | Always ask — profile does not contain project-specific phase data |
+| "Anything else to add?" | Always ask |
+| Consent question (auto issue reporting) | Always ask |
+| Personality mode question | Always ask |
+
+Then continue directly to Step 2b.
 
 ---
 
