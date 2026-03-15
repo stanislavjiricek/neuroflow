@@ -125,6 +125,26 @@ There is no config folder in the plugin — project state is always per-project,
 
 Create a `.md` file in `agents/`. Define the agent's role, focus, and any tool restrictions in the body.
 
+## Adding or modifying hooks
+
+Hooks are defined in `hooks/hooks.json` as shell commands triggered by tool-use events.
+
+**Every hook command MUST fail silently.** Hook failures that surface to the user create noise during sessions. Enforce this by always ending hook commands with one of:
+- `; true` — guarantees exit code 0 regardless of what preceded it
+- `|| true` — falls back gracefully on any error
+- `2>/dev/null` — suppresses all stderr output (use alongside `; true`)
+
+Use plain shell commands where possible (they are simpler and avoid Python import/quoting issues). Redirect both stdout and stderr of any tool invocation (`>/dev/null 2>&1`).
+
+Example of a well-formed hook:
+```bash
+# CLAUDE_TOOL_RESULT_FILE_PATH may not always be set (or the file may be gone
+# by the time the hook runs), so check for .py extension AND file existence.
+f="${CLAUDE_TOOL_RESULT_FILE_PATH:-}"; case "$f" in *.py) [ -f "$f" ] && ruff format "$f" >/dev/null 2>&1;; esac; true
+```
+
+Run `sentinel-dev` after changing `hooks/hooks.json` — Check 8b will flag any hook command that lacks error suppression.
+
 ## Release workflow
 
 1. Make your changes
