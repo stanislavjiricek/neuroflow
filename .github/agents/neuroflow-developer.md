@@ -20,7 +20,7 @@ At the start of every session, before writing a single line, read the following:
 3. `mkdocs.yml` — current nav and `extra.version`
 4. All files matching `skills/*/SKILL.md` — extract `name:` and `description:` from each
 5. All files matching `commands/*.md` — extract `name:`, `description:`, `phase:` from each
-6. All files matching `agents/*.md` — extract `name:` and `description:` from each
+6. All files matching `agents/*.md` and `.github/agents/*.md` — extract `name:` and `description:` from each
 7. `hooks/hooks.json` — all active hook matchers and commands
 8. `.neuroflow/` root — check what memory already exists in the plugin repo
 
@@ -37,18 +37,31 @@ neuroflow/
 │   └── marketplace.json   ← marketplace catalog (lists neuroflow as installable plugin)
 ├── .github/
 │   ├── agents/
-│   │   └── neuroflow-developer.md   ← this file
+│   │   └── neuroflow-developer.md   ← this file (GitHub/Copilot-compatible dev agent)
 │   └── workflows/
-│       └── deploy-docs.yml          ← deploys MkDocs site to GitHub Pages on push to main
+│       ├── deploy-docs.yml          ← builds and deploys MkDocs site on push to main
+│       ├── daily-maintenance.yml    ← posts daily maintainer report to GitHub Discussion #167
+│       ├── research-radar.yml       ← posts weekly research radar brief to GitHub Discussion #169
+│       └── sentinel-dev.yml         ← runs sentinel consistency checks, posts to Discussion #168
+├── scripts/
+│   └── automation/                  ← Python scripts used by GitHub Actions workflows
+│       ├── sentinel_check.py        ← implements sentinel-dev checks
+│       ├── daily_maintenance.py     ← generates daily maintenance report
+│       ├── research_radar.py        ← generates weekly research radar
+│       ├── post_discussion.py       ← shared helper for posting to GitHub Discussions
+│       └── requirements.txt         ← Python deps for automation scripts
 ├── skills/                ← agent-invoked skills (one folder per skill; SKILL.md inside each)
 ├── commands/              ← slash commands (one .md file per command)
 ├── agents/                ← Claude Code custom agent definitions (.md files)
 ├── hooks/
 │   └── hooks.json         ← event hooks (PostToolUse, PreToolUse, etc.)
-├── docs/                  ← MkDocs source pages (one .md per command under docs/commands/)
-├── overrides/             ← MkDocs theme overrides
+├── docs/                  ← MkDocs source pages
+│   └── commands/          ← one .md per command (mirrors commands/ filenames)
+├── overrides/             ← MkDocs theme overrides (main.html)
+├── AGENTS.md              ← agent entry points for non-Claude Code tools (Codex, OpenCode)
 ├── mkdocs.yml             ← docs site nav, theme, plugins, extra.version
-├── requirements.txt       ← Python deps for the docs build (mkdocs + plugins)
+├── requirements.txt       ← Python deps for the docs build (mkdocs-material)
+├── .neuroflow/            ← plugin-level project memory (dev decisions, sentinel reports)
 └── README.md              ← public-facing docs: What's new, Commands/Skills/Agents/Hooks tables
 ```
 
@@ -140,7 +153,7 @@ writes:
 Instructions Claude follows when the user runs /neuroflow:my-command...
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper-write`, `paper-review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `export`, `utility`
+Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `output`, `hive`, `brain-build`, `brain-optimize`, `brain-run`, `utility`
 
 2. Create a matching phase skill in `skills/phase-{name}/SKILL.md` (if this is a phase command)
 3. Create a docs page at `docs/commands/{name}.md`
@@ -173,6 +186,8 @@ description: One-line description of what this agent does and when Claude should
 
 Agents add autonomous execution, not knowledge. If the logic can live in a skill, it belongs in a skill.
 
+> **GitHub-compatible agents**: If the agent must also be available to GitHub Actions or GitHub Copilot, place it in `.github/agents/{name}.md` (instead of or in addition to `agents/`). The `neuroflow-developer` agent lives there. GitHub agents follow the same `name:` / `description:` frontmatter convention but are not listed in the `README.md` Agents table.
+
 ---
 
 ## 7 — Adding or modifying a hook
@@ -191,16 +206,18 @@ If a Hooks section exists in `README.md`, keep it in sync with `hooks.json` — 
 2. Update `README.md`:
    - Replace or add to the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points. Each bullet links to the relevant file. Keep it tight.
    - Add any new command / skill / agent to the corresponding table
-3. Update `mkdocs.yml` `extra.version` to match the new version
-4. Bump the patch version in `.claude-plugin/plugin.json` — always patch (`0.1.6` → `0.1.7`), regardless of how large the change is
-5. Run sentinel-dev to verify internal consistency before committing:
+3. Add an entry to `docs/changelog.md` — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries
+4. Update `mkdocs.yml` `extra.version` to match the new version
+5. Review `commands/neuroflow.md` one-liners — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release
+6. Bump the patch version in `.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` `plugins[].version` to match — always patch (`0.1.6` → `0.1.7`), regardless of how large the change is
+7. Run sentinel-dev to verify internal consistency before committing:
    - All folder names match their frontmatter `name:` fields
    - All README tables are complete and have no dead links
-   - Version in `plugin.json` matches `README.md` heading and `mkdocs.yml`
+   - Version in `plugin.json` matches `README.md` heading, `mkdocs.yml`, and `marketplace.json`
    - No dead skill/command references inside SKILL.md files
    - All commands have full frontmatter
    - `hooks.json` is valid and documented
-6. Commit and push:
+8. Commit and push:
 
 ```bash
 git add -A
@@ -331,6 +348,14 @@ claude --plugin-dir ./neuroflow
 ```
 
 Skills and commands will be available as `/neuroflow:skill-name`. Restart Claude Code after each change to pick up edits.
+
+**One-time hook setup** (required after every fresh clone):
+
+```bash
+uv run python scripts/automation/install_hooks.py
+```
+
+This sets `core.hooksPath = .githooks`, enabling the pre-push version check defined in `scripts/automation/pre_push_version_check.py`. The hook blocks pushes where tracked files changed but `plugin.json` version was not bumped. Override with `git push --no-verify` when needed (e.g. docs-only fixes).
 
 ---
 

@@ -11,11 +11,34 @@ neuroflow/
 ├── .claude-plugin/
 │   ├── plugin.json        ← plugin manifest (bump version here on release)
 │   └── marketplace.json   ← marketplace catalog (lists neuroflow as installable plugin)
+├── .github/
+│   ├── agents/
+│   │   └── neuroflow-developer.md   ← GitHub/Copilot-compatible dev agent
+│   └── workflows/
+│       ├── deploy-docs.yml          ← builds and deploys MkDocs site on push to main
+│       ├── daily-maintenance.yml    ← posts daily maintainer report (Discussion #167)
+│       ├── research-radar.yml       ← posts weekly research radar (Discussion #169)
+│       └── sentinel-dev.yml         ← runs sentinel consistency checks (Discussion #168)
+├── scripts/
+│   └── automation/                  ← Python scripts used by GitHub Actions
+│       ├── sentinel_check.py
+│       ├── daily_maintenance.py
+│       ├── research_radar.py
+│       ├── post_discussion.py
+│       └── requirements.txt
 ├── skills/                ← agent-invoked skills (SKILL.md per folder)
 ├── commands/              ← slash commands (one .md file per command)
-├── agents/                ← custom agent definitions (.md files)
-└── hooks/
-    └── hooks.json         ← event hooks (PostToolUse, PreToolUse, etc.)
+├── agents/                ← Claude Code custom agent definitions (.md files)
+├── hooks/
+│   └── hooks.json         ← event hooks (PostToolUse, PreToolUse, etc.)
+├── docs/
+│   └── commands/          ← MkDocs source pages (one .md per command)
+├── overrides/             ← MkDocs theme overrides (main.html)
+├── AGENTS.md              ← agent entry points for non-Claude Code tools (Codex, OpenCode)
+├── mkdocs.yml             ← docs site nav, theme, plugins, extra.version
+├── requirements.txt       ← Python deps for the docs build (mkdocs-material)
+├── .neuroflow/            ← plugin-level project memory (dev decisions, sentinel reports)
+└── README.md              ← public docs: What's new, Commands/Skills/Agents/Hooks tables
 ```
 
 ## Before adding anything — overlap audit
@@ -81,7 +104,7 @@ writes:
 Instructions Claude follows when the user runs /neuroflow:my-command...
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `utility`
+Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `output`, `hive`, `brain-build`, `brain-optimize`, `brain-run`, `utility`
 
 Every command must also follow the lifecycle defined in `neuroflow:neuroflow-core` — read `project_config.md` + `flow.md` at the start, write to `sessions/` and update `flow.md` at the end.
 
@@ -108,9 +131,13 @@ Create a `.md` file in `agents/`. Define the agent's role, focus, and any tool r
 2. **Update `README.md`** — two places:
    - Replace the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight.
    - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.
-3. If it's a new item, **add it to the Roadmap** as completed or remove it from the planned list.
-4. Bump the patch version in `.claude-plugin/plugin.json` (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is)
-4. Commit and push to GitHub:
+3. Add an entry to **`docs/changelog.md`** — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries.
+4. Update **`mkdocs.yml` `extra.version`** to match the new version.
+5. If it's a new item, **add it to the Roadmap** as completed or remove it from the planned list.
+6. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
+7. Bump the patch version in `.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` `plugins[].version` to match (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is).
+8. Run sentinel-dev to verify internal consistency before committing.
+9. Commit and push to GitHub:
 
 ```bash
 git add -A
@@ -135,6 +162,14 @@ claude --plugin-dir ./neuroflow
 ```
 
 Skills and commands will be available as `/neuroflow:skill-name`. Restart Claude Code after each change to pick up edits.
+
+**One-time hook setup** (required after every fresh clone):
+
+```bash
+uv run python scripts/automation/install_hooks.py
+```
+
+This sets `core.hooksPath = .githooks`, enabling the pre-push version check. The hook rejects pushes where tracked files changed but `plugin.json` version was not bumped. Override with `git push --no-verify` if needed.
 
 ## Installation (for new users)
 

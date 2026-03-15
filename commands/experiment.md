@@ -43,7 +43,7 @@ Produce a PsychoPy script following neuroscience paradigm best practices. Save a
 ## Recording setup
 
 Ask:
-- Modality and hardware (EEG amp, eye tracker, etc.)
+- Modality and hardware (EEG amp, eye tracker, Pupil Labs Neon, etc.)
 - Number of channels and electrode placement
 - Sampling rate, reference, ground
 - File format and storage location

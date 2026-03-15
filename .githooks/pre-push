@@ -1,0 +1,9 @@
+#!/bin/sh
+# neuroflow pre-push hook
+# Enforces version bump whenever tracked files change between the remote
+# branch and the commits being pushed.
+#
+# Installed via: uv run python scripts/automation/install_hooks.py
+# Skip with:     git push --no-verify  (use sparingly)
+
+exec uv run python "$(git rev-parse --show-toplevel)/scripts/automation/pre_push_version_check.py"

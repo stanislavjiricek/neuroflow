@@ -17,6 +17,7 @@ The tool-build phase designs and implements lab tools or software pipelines — 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:pupil-labs-neon-realtime` — if the tool involves Pupil Labs Neon hardware, use this skill for device discovery, multi-threaded streaming architecture, and real-time data collection
 
 ## Workflow hints
 

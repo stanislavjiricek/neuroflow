@@ -23,7 +23,7 @@ Helps the user design and build a lab tool or software pipeline. No research que
 
 Ask:
 1. What kind of tool? (real-time EEG feedback, data acquisition pipeline, BCI system, LSL integration, paradigm, preprocessing pipeline, other)
-2. What hardware or software does it interface with? (amplifier, eye tracker, PsychoPy, BrainFlow, LSL, MNE, other)
+2. What hardware or software does it interface with? (amplifier, eye tracker including Pupil Labs Neon, PsychoPy, BrainFlow, LSL, MNE, other)
 3. What programming language?
 4. Standalone or integrates with an existing setup?
 5. What is the definition of "done" — what must the tool do to be considered working?

@@ -18,6 +18,7 @@ The slideshow phase generates a structured slide deck outline from `.neuroflow/`
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:notebooklm` — when the user says "use NotebookLM" or wants AI-narrated slides / an audio walkthrough of the slides, route the output to the `notebooklm` skill instead of (or in addition to) generating Markdown/reveal.js
 
 ## Audience calibration
 

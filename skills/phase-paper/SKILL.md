@@ -13,14 +13,15 @@ The paper phase produces a reviewed and approved neuroscience manuscript. Every 
 - Confirm target journal before writing any section; it determines structure, length, style, and the critic's review persona
 - Draft section by section in logical order; write the abstract last
 - Distinguish what the results show (Results) from what they mean (Discussion) — flag if they become conflated
-- Every section draft is routed through the `paper-critic` agent using the full six-area `neuroflow:review-neuro` methodology before saving
+- Every section draft is routed through the `paper-critic` agent using the full eight-area `neuroflow:review-neuro` methodology before saving
 - Nothing is saved to `output_path` without a `[STATUS: APPROVED]` verdict or explicit user acceptance of an unresolved draft
 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
 - `neuroflow:worker-critic` — defines the multi-agent revision loop protocol (max 3 iterations per section)
-- `neuroflow:review-neuro` — the six-area review methodology used by the `paper-critic` agent on every draft
+- `neuroflow:review-neuro` — the eight-area review methodology used by the `paper-critic` agent on every draft
+- `neuroflow:notebooklm` — use when the user wants a podcast, slide deck, or infographic generated from manuscript sections
 
 ## Two-agent write→critique loop
 
@@ -35,7 +36,7 @@ On the third rejection the loop halts. The orchestrator presents draft v3 and th
 
 ## Critic standards
 
-The `paper-critic` agent applies the FULL six-area `neuroflow:review-neuro` methodology to every draft — including partial section drafts. The six areas are:
+The `paper-critic` agent applies the FULL eight-area `neuroflow:review-neuro` methodology to every draft — including partial section drafts. The eight areas are:
 
 1. **Language, Style & Terminology** — spelling, grammar, notation, neuroscience terminology errors, causality language
 2. **Internal Consistency & Cross-Reference Integrity** — figure/table references, value consistency across sections
@@ -43,6 +44,8 @@ The `paper-critic` agent applies the FULL six-area `neuroflow:review-neuro` meth
 4. **Statistics, Network Inference & Multiple Comparisons** — effect sizes, correction procedures, null models, estimator specification
 5. **Methods Reproducibility, Reporting Standards & Open Science** — COBIDAS/ARRIVE compliance, data/code availability
 6. **Contribution, Novelty & Journal Fit** — novelty assessment, prior work comparison, journal fit, referee recommendation
+7. **Literature Gap** — whether key prior work is cited; uses Zotero or `.neuroflow/ideation/papers/` as reference database
+8. **Figure Review** — colormaps, font sizes, caption completeness, axis labels, figure–text consistency
 
 A section is approved only if it would survive peer review at a top-tier neuroscience journal. The bar is not "acceptable draft" — it is "ready for submission".
 
@@ -52,7 +55,7 @@ If the user has not set a target journal and requests recommendations:
 
 1. Read `project_config.md` for modality, research question, and tools.
 2. Read `.neuroflow/ideation/` if it exists for topic keywords and collected literature.
-3. Use the `neuroflow:scholar` agent to search PubMed and bioRxiv for recent papers (past 3 years) in the same area. A journal is considered recurring if it appears in at least 3 of the top 20 results.
+3. Use the `scholar` agent to search PubMed and bioRxiv for recent papers (past 3 years) in the same area. A journal is considered recurring if it appears in at least 3 of the top 20 results.
 4. Rank 3–5 candidate journals using these criteria (in order of priority):
    - **Scope alignment** — does the journal publish this modality and methodology?
    - **Paper type fit** — empirical, methods, review, brief communication?

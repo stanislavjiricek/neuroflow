@@ -1,7 +1,7 @@
 <div align="center">
   <img src="logo-full.svg" alt="neuroflow" width="80%" />
   <h1>neuroflow</h1>
-  <p><strong>A Claude Code plugin for agentic neuroscience research.</strong></p>
+  <p><strong>The agentic operating system for neuroscience research.</strong></p>
   <p>
     <a href="#whats-new">What's new</a> ·
     <a href="#why-neuroflow">Why</a> ·
@@ -16,6 +16,12 @@
 </div>
 
 ---
+
+## What's new in 0.2.4
+
+- **Sentinel Check 3b** — sentinel now validates that `.claude-plugin/marketplace.json` version matches `plugin.json`; the marketplace version was silently stuck at `0.1.0` with no existing check to catch it
+- **Hardened release checklist** — both [`neuroflow-developer.md`](.github/agents/neuroflow-developer.md) and [`neuroflow-develop/SKILL.md`](skills/neuroflow-develop/SKILL.md) now require `docs/changelog.md` entry, one-liner review, and `marketplace.json` bump on every release; `SKILL.md` synced to match `neuroflow-developer.md` (was missing `mkdocs.yml` and sentinel-dev steps)
+- **Internal consistency fixes** — dead `neuroflow:scholar` skill ref in [`phase-paper`](skills/phase-paper/SKILL.md) corrected; [`/hive` docs page](docs/commands/hive.md) created; [`neuroflow-developer.md`](.github/agents/neuroflow-developer.md) and [`orchestrator`](agents/orchestrator.md) synced to full repo structure (22 phases, all 4 workflows, `scripts/automation/`)
 
 ## What's new in 0.2.3
 
@@ -122,7 +128,7 @@
 
 Most neuroscience software solves one problem at a time — a preprocessing library, a stats package, a reference manager. You still have to stitch everything together yourself, re-explain context at every step, and manually translate between tools and phases.
 
-neuroflow is different. It is not a toolbox. It is a **Claude Code plugin** that brings agentic workflows into neuroscience research — from the first hypothesis all the way to a manuscript draft.
+neuroflow is different. It is not a toolbox. It is the **agentic operating system for neuroscience research** — orchestrating every phase from the first hypothesis all the way to a manuscript draft.
 
 You work in your editor. Claude works alongside you — reading your data, writing analysis code, reviewing your paper, auditing your statistics — guided by skills and agents that understand neuroscience domain conventions.
 

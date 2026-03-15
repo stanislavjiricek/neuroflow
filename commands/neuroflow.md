@@ -49,6 +49,7 @@ Check whether `.neuroflow/` exists in the current working directory.
 3. Print a brief status: current phase(s), research question (if set), last session date (from `sessions/` folder)
 4. Ask if the user wants to continue, switch phase, or do something specific
 5. Run the journal check (Step 0b) before stopping
+5b. Run the integration check (Step 0c) before stopping
 6. Stop — do not run the interview
 
 ---
@@ -102,6 +103,34 @@ When the user asks for a recommendation:
 
 **If `.neuroflow/` does not exist:**
 Continue to Step 1.
+
+---
+
+## Step 0c — Integration check
+
+Run this check whenever Step 0 finds an existing project. Check three integrations silently and report their status as a single compact line:
+
+**Flowie check:**
+Look for a `flowie/` entry in `.neuroflow/flow.md`.
+- Found: print `Flowie: active`
+- Not found: print `Flowie: not set up (run /flowie to start)`
+
+**Hive check:**
+Look for a `hive/` entry in `.neuroflow/flow.md`, or a `hive_repo:` field in `project_config.md`.
+- Found: print `Hive: connected to [team name if available]`
+- Not found: print `Hive: not connected`
+
+**Google Workspace (gws) check:**
+Run `gws --version 2>/dev/null`.
+- If it returns a version string: print `Google Workspace (gws): ready`
+- If the command fails or returns nothing: print `Google Workspace (gws): not installed — run /setup for setup instructions`
+
+Combine all three into one line, e.g.:
+```
+Integrations — Flowie: active | Hive: not connected | gws: ready
+```
+
+Do not prompt the user to set anything up here. This is informational only.
 
 ---
 
@@ -172,6 +201,25 @@ Then ask the following consent question (always, regardless of phase):
 > **Do you allow neuroflow to automatically report issues to the developers? (y/n)**
 
 Record the answer as `auto_issue_reporting: yes` or `auto_issue_reporting: no` in `project_config.md`. If the user does not answer clearly, default to `no`.
+
+Then ask the personality mode question:
+
+> **How would you like me to work on this project?**
+> 1. 🧐 **Teacher** — I’ll explain each step, check my assumptions, and wait for your go-ahead before changing anything.
+> 2. ⚡ **Executor** — I’ll just do it. Less talk, more action. I’ll self-critique my work.
+> 3. 🔍 **Critic** — I’ll interrogate your assumptions and surface hard questions before we proceed.
+>
+> (Enter 1, 2, or 3, or press Enter to skip and decide later)
+
+Map the answer to a mode:
+| Answer | `default_mode` value |
+|---|---|
+| 1 | `snowflake` |
+| 2 | `nomistake` |
+| 3 | `critic` |
+| Skip / Enter | — omit the key from `project_config.md` |
+
+Record the answer as `default_mode: snowflake` / `default_mode: nomistake` / `default_mode: critic` in `project_config.md`. If the user skips, do not write the key.
 
 ---
 
@@ -283,6 +331,17 @@ Ask the user whether they want to connect the MCP integrations now:
 **If the user says no or skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 6.
 
 **If `.neuroflow/integrations.json` already exists with both credentials set:** skip this step entirely (do not prompt again).
+
+**Google Workspace (gws) option:**
+Also offer gws CLI setup as part of the integration wizard:
+
+> **Google Workspace (gws)** — connects Claude to your Google Drive and Gmail for paper pipeline and grant workflows  
+> - Install: `npm install -g @googleworkspace/cli` (or `brew install googleworkspace-cli` on macOS)  
+> - Auth setup: `gws auth setup`, then `gws auth login --scopes drive,calendar,gmail`  
+> - Claude extension: `npx skills add https://github.com/googleworkspace/cli`  
+> - Skip for now? You can set this up at any time with `/neuroflow:setup`
+
+If the user skips gws: write `gws_setup: skipped` to `.neuroflow/integrations.json` (create the file if it doesn’t exist yet).
 
 ---
 

@@ -17,6 +17,7 @@ The experiment phase covers paradigm design, recording setup, and instrument con
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:pupil-labs-neon-realtime` — load when Pupil Labs Neon eye tracker is part of the recording setup
 
 ## Workflow hints
 

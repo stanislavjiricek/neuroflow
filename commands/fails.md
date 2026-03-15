@@ -138,3 +138,14 @@ Append a brief entry to `.neuroflow/sessions/YYYY-MM-DD.md`:
 ```
 [HH:MM] /fails — Logged a <category> fail: <one-line summary>. GitHub issue: [opened in browser / not reported].
 ```
+
+---
+
+## Passive monitoring
+
+neuroflow passively monitors every user message for frustration or problem signals (as defined in `neuroflow:neuroflow-core`). When a signal fires:
+
+- If `auto_issue_reporting: yes`: a GitHub issue is opened automatically in the background.
+- Always: a one-liner is appended to the appropriate `fails/` file silently.
+
+Use `/fails` when you want to describe an issue in detail, review past fails, or file a structured GitHub report manually. The passive system is a low-friction supplement — not a replacement.

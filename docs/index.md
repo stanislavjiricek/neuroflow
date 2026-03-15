@@ -39,8 +39,8 @@ hide:
 
 <p class="hero-heading" markdown>![neuroflow](assets/logo-brain.svg){ .hero-brand-logo } **hi, I am neuroflow**</p>
 
-— a Claude Code plugin and full neuroscience cycle AI assistant.
-From first hypothesis to manuscript draft, guided by AI at every step.
+— the agentic operating system for neuroscience research.
+From hypothesis to manuscript, every phase orchestrated by AI.
 
 <div class="hero-buttons" markdown>
 [Browse commands :octicons-terminal-24:](commands/index.md){ .md-button }
