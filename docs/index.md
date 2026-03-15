@@ -6,7 +6,7 @@ hide:
 ---
 
 <div class="sa-bar">
-  <span class="sa-bar-label">🧠 self-assessment <span class="sa-bar-version">v0.2.0</span></span>
+  <span class="sa-bar-label">🧠 self-assessment <span class="sa-bar-version">v0.2.4</span></span>
   <div class="sa-items">
     <span class="sa-item" data-tip="Prediction error detected?">
       <span class="sa-q-short">Pred. error</span><span class="probe-badge probe-yes">YES</span>

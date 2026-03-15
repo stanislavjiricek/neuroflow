@@ -301,6 +301,50 @@ def check9_docs_sync() -> list[Issue]:
                 fixable=False,
             ))
 
+    # 9d: mind map staleness — every command, skill folder, and agent file should have
+    # a corresponding node whose label matches in docs/javascripts/mind.js.
+    # We match by label (the human-readable name) rather than ID because IDs use
+    # arbitrary abbreviations (e.g. "sk-brain-opt" for "phase-brain-optimize").
+    # Internal meta-skills and intentional omissions are excluded.
+    MIND_MAP_EXCLUDES: set[str] = set()
+    mind_js_path = REPO_ROOT / "docs" / "javascripts" / "mind.js"
+    if mind_js_path.exists():
+        mind_js_content = mind_js_path.read_text(encoding="utf-8")
+        # Commands: label is "/<name>"
+        for cmd_file in sorted((REPO_ROOT / "commands").glob("*.md")):
+            label = f'"/{cmd_file.stem}"'
+            if label not in mind_js_content:
+                issues.append(Issue(
+                    "Check 9d",
+                    f"`commands/{cmd_file.name}` has no node with label `{label}` in `docs/javascripts/mind.js`",
+                    fixable=False,
+                ))
+        # Skills: match via the url attribute which contains the exact folder name
+        # (labels may be abbreviated; IDs use arbitrary shorthand — the URL is canonical)
+        for skill_dir in sorted((REPO_ROOT / "skills").glob("*/SKILL.md")):
+            folder = skill_dir.parent.name
+            if folder in MIND_MAP_EXCLUDES:
+                continue
+            url_substr = f"skills/{folder}/SKILL/"
+            if url_substr not in mind_js_content:
+                issues.append(Issue(
+                    "Check 9d",
+                    f"`skills/{folder}/` has no node with url `\"{url_substr}\"` in `docs/javascripts/mind.js`",
+                    fixable=False,
+                ))
+        # Agents: label matches the file stem
+        for agent_file in sorted((REPO_ROOT / "agents").glob("*.md")):
+            stem = agent_file.stem
+            if stem in MIND_MAP_EXCLUDES:
+                continue
+            label = f'"{stem}"'
+            if label not in mind_js_content:
+                issues.append(Issue(
+                    "Check 9d",
+                    f"`agents/{agent_file.name}` has no node with label `{label}` in `docs/javascripts/mind.js`",
+                    fixable=False,
+                ))
+
     return issues
 
 
@@ -430,6 +474,7 @@ def build_report(
             "Check 6 — Command frontmatter completeness",
             "Check 8 — hooks.json validity",
             "Check 9 — Docs website sync",
+            "Check 9d — Mind map staleness",
         ]:
             lines.append(f"- ✅ {check_name}")
         lines.append("")
@@ -452,8 +497,9 @@ def build_report(
         "Check 9a": "mkdocs.yml version sync",
         "Check 9b": "Command docs completeness",
         "Check 9c": "Nav dead links",
+        "Check 9d": "Mind map staleness",
     }
-    all_checks = ["Check 1", "Check 3", "Check 4", "Check 6", "Check 8", "Check 9a", "Check 9b", "Check 9c"]
+    all_checks = ["Check 1", "Check 3", "Check 4", "Check 6", "Check 8", "Check 9a", "Check 9b", "Check 9c", "Check 9d"]
     for check in all_checks:
         label = check_names.get(check, check)
         if check in by_check:

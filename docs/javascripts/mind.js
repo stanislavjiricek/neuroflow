@@ -21,7 +21,7 @@
     { id: "cmd-search",          label: "/search",          type: "command", phase: "utility",        tags: ["literature","memory"],      desc: "Search PubMed and bioRxiv for relevant literature using PICO queries via the scholar agent.",                                                                      url: "commands/search/" },
     { id: "cmd-sentinel",        label: "/sentinel",        type: "command", phase: "utility",        tags: ["memory"],                   desc: "Audit your project memory — checks for completeness, consistency, and stale entries across all .neuroflow/ subfolders.",                                           url: "commands/sentinel/" },
     { id: "cmd-git",             label: "/git",             type: "command", phase: "utility",        tags: ["code","memory"],            desc: "Version control integration — commit, branch, tag, and review diffs for your research project.",                                                                   url: "commands/git/" },
-    { id: "cmd-export",          label: "/export",          type: "command", phase: "utility",        tags: ["memory","code"],            desc: "Export project memory, reports, and figures to shareable formats (PDF, ZIP, HTML).",                                                                               url: "commands/export/" },
+    { id: "cmd-output",          label: "/output",          type: "command", phase: "output",         tags: ["memory","code"],            desc: "Output project memory or the whole project — pack it as a zip archive or copy it to a target location for sharing, archiving, or handoff.",                      url: "commands/output/" },
     { id: "cmd-interview",       label: "/interview",       type: "command", phase: "utility",        tags: ["human"],                    desc: "Run an interactive interview to capture or update project context stored in project_config.md.",                                                                   url: "commands/interview/" },
     { id: "cmd-quiz",            label: "/quiz",            type: "command", phase: "utility",        tags: ["human","literature"],       desc: "Test your neuroscience knowledge with AI-generated spaced-repetition quizzes tailored to your research domain.",                                                   url: "commands/quiz/" },
     { id: "cmd-fails",           label: "/fails",           type: "command", phase: "utility",        tags: ["human","memory"],           desc: "Log and review failed experiments or analysis attempts. Structured failure reports help avoid repeating mistakes.",                                                 url: "commands/fails/" },
@@ -44,11 +44,14 @@
     { id: "cmd-brain-build",     label: "/brain-build",     type: "command", phase: "brain-build",    tags: ["brain-sim","code"],         desc: "Build a computational neural model with NEURON, Brian2, NetPyNE, or NEST.",                                                                                       url: "commands/brain-build/" },
     { id: "cmd-brain-optimize",  label: "/brain-optimize",  type: "command", phase: "brain-optimize", tags: ["brain-sim","stats"],        desc: "Tune model parameters to match experimental data — sensitivity analysis, fitting algorithms.",                                                                     url: "commands/brain-optimize/" },
     { id: "cmd-brain-run",       label: "/brain-run",       type: "command", phase: "brain-run",      tags: ["brain-sim","code"],         desc: "Execute neural simulations and collect output metrics, logs, and visualizations.",                                                                                 url: "commands/brain-run/" },
+    { id: "cmd-flowie",          label: "/flowie",          type: "command", phase: "flowie",         tags: ["human","memory"],           desc: "Personal identity layer — link a private GitHub repo to store your research profile (stances, writing style, methodological preferences). Supports profile creation, sync, and cross-project linking.",     url: "commands/flowie/" },
+    { id: "cmd-hive",            label: "/hive",            type: "command", phase: "hive",           tags: ["memory","human"],           desc: "Connect neuroflow to a shared team GitHub org repo for research direction coordination and explicit knowledge sharing. Never auto-shares personal project data.",                                         url: "commands/hive/" },
+    { id: "cmd-slideshow",       label: "/slideshow",       type: "command", phase: "slideshow",      tags: ["writing","human"],          desc: "Build a presentation from selected project areas — pick phases, figures, and key findings, then get a structured slide deck ready to export.",                   url: "commands/slideshow/" },
 
     /* ── Skills ── */
     { id: "sk-core",          label: "neuroflow-core",         type: "skill", tags: ["memory"],              desc: "Core lifecycle rules — what every command must read, write, and follow across all phases.",                                           url: "skills/neuroflow-core/SKILL/" },
     { id: "sk-develop",       label: "neuroflow-develop",      type: "skill", tags: ["code","memory"],       desc: "Development guide — how to add new skills, commands, agents, and hooks to the neuroflow plugin.",                                    url: "skills/neuroflow-develop/SKILL/" },
-    { id: "sk-creator",       label: "skill-creator",          type: "skill", tags: ["code"],                desc: "Guide for creating and structuring new neuroflow skills, including overlap audits and frontmatter conventions.",                     url: "concepts/skills/" },
+    { id: "sk-creator",       label: "skill-creator",          type: "skill", tags: ["code"],                desc: "Guide for creating and structuring new neuroflow skills, including overlap audits and frontmatter conventions.",                     url: "skills/skill-creator/SKILL/" },
     { id: "sk-ideation",      label: "phase-ideation",         type: "skill", tags: ["literature"],          desc: "Neuroscience ideation best practices — hypothesis formation, literature strategy, feasibility assessment.",                          url: "skills/phase-ideation/SKILL/" },
     { id: "sk-prereg",        label: "phase-preregistration",  type: "skill", tags: ["writing","stats"],     desc: "Preregistration guidelines — OSF templates, CONSORT, STROBE, AsPredicted formats.",                                                url: "skills/phase-preregistration/SKILL/" },
     { id: "sk-grant",         label: "phase-grant-proposal",   type: "skill", tags: ["writing"],             desc: "Grant writing strategy — NIH R01/R21, ERC, Wellcome Trust, DFG formats and review criteria.",                                       url: "skills/phase-grant-proposal/SKILL/" },
@@ -69,10 +72,16 @@
     { id: "sk-git",           label: "phase-git",              type: "skill", tags: ["code"],                desc: "Version control conventions — branching strategy, commit message standards, tagging releases.",                                      url: "skills/phase-git/SKILL/" },
     { id: "sk-pipeline",      label: "phase-pipeline",         type: "skill", tags: ["code","memory"],       desc: "Pipeline orchestration — multi-step workflows, dependency ordering, --nomistake strict mode.",                                       url: "skills/phase-pipeline/SKILL/" },
     { id: "sk-search",        label: "phase-search",           type: "skill", tags: ["literature"],          desc: "Literature search — PubMed PICO queries, bioRxiv preprints, synthesis and citation management.",                                    url: "skills/phase-search/SKILL/" },
-    { id: "sk-export",        label: "phase-export",           type: "skill", tags: ["code","memory"],       desc: "Export conventions — PDF reports, ZIP archives, shareable HTML summaries.",                                                         url: "skills/phase-export/SKILL/" },
+    { id: "sk-output",        label: "phase-output",           type: "skill", tags: ["code","memory"],       desc: "Output conventions - ZIP archives, folder copies, shareable exports; always excludes credentials and session logs.",                                    url: "skills/phase-output/SKILL/" },
     { id: "sk-fails",         label: "phase-fails",            type: "skill", tags: ["human"],               desc: "Failure logging — structured failure reports, root-cause analysis, lessons learned.",                                               url: "skills/phase-fails/SKILL/" },
     { id: "sk-quiz",          label: "phase-quiz",             type: "skill", tags: ["human"],               desc: "Quiz generation — spaced repetition, domain-specific neuroscience questions, progress tracking.",                                   url: "skills/phase-quiz/SKILL/" },
     { id: "sk-review-neuro",  label: "review-neuro",           type: "skill", tags: ["writing","stats"],     desc: "Expert neuroscience manuscript review — rigorous scientific critique of methods, statistics, and interpretation.",                  url: "skills/review-neuro/SKILL/" },
+    { id: "sk-flowie",        label: "phase-flowie",           type: "skill", tags: ["human","memory"],     desc: "Personal identity layer guidance — how to read and use the flowie profile for personalization, write rules, GitHub sync, and profile-aware assistance across all phases.",                          url: "skills/phase-flowie/SKILL/" },
+    { id: "sk-hive",          label: "phase-hive",             type: "skill", tags: ["memory","human"],     desc: "Team-level knowledge layer — connects a researcher's neuroflow project to a shared GitHub org repo for coordinating directions, sharing findings, and team-aware recommendations.",                 url: "skills/phase-hive/SKILL/" },
+    { id: "sk-slideshow",     label: "phase-slideshow",        type: "skill", tags: ["writing"],            desc: "Presentation guidance — slide structure decisions, format selection, and audience calibration for building slide decks from project memory.",                                                        url: "skills/phase-slideshow/SKILL/" },
+    { id: "sk-notebooklm",   label: "notebooklm",             type: "skill", tags: ["literature","human"], desc: "Google NotebookLM integration — create notebooks, add sources, generate podcasts, quizzes, infographics, slide decks, and mind maps from research materials.",                                    url: "skills/notebooklm/SKILL/" },
+    { id: "sk-pupil-labs",   label: "pupil-labs-neon",        type: "skill", tags: ["eeg","code"],         desc: "Pupil Labs Neon real-time eye-tracking — connect to Neon glasses and collect live gaze, video, and IMU streams via the Real-time API.",                                                               url: "skills/pupil-labs-neon-realtime/SKILL/" },
+    { id: "sk-worker-critic",label: "worker-critic",          type: "skill", tags: ["code"],               desc: "Worker-critic agentic loop — orchestrator coordinates a worker and a critic across up to 3 revision cycles to produce a vetted output for any phase.",                                              url: "skills/worker-critic/SKILL/" },
 
     /* ── Agents ── */
     { id: "ag-ideation",     label: "ideation",      type: "agent", tags: ["literature","human"],  desc: "Autonomous ideation specialist — literature review, hypothesis formation, feasibility assessment.",                url: "concepts/agents/" },
@@ -91,7 +100,13 @@
     { id: "ag-brain-opt",    label: "brain-optimize", type: "agent", tags: ["brain-sim","stats"],   desc: "Optimization specialist — parameter fitting, sensitivity analysis, adaptive search.",                         url: "concepts/agents/" },
     { id: "ag-brain-run",    label: "brain-run",      type: "agent", tags: ["brain-sim"],           desc: "Simulation specialist — runtime execution, parallel job management, output collection.",                      url: "concepts/agents/" },
     { id: "ag-sentinel",     label: "sentinel",       type: "agent", tags: ["memory"],              desc: "Audit specialist — project memory completeness, phase consistency, stale-entry detection.",                   url: "concepts/agents/" },
-    { id: "ag-sentinel-dev", label: "sentinel-dev",   type: "agent", tags: ["code","memory"],       desc: "Dev audit specialist — plugin integrity checks, overlap detection, version consistency.",                     url: "concepts/agents/" }
+    { id: "ag-sentinel-dev",  label: "sentinel-dev",    type: "agent", tags: ["code","memory"],      desc: "Dev audit specialist — plugin integrity checks, overlap detection, version consistency.",                                                                     url: "concepts/agents/" },
+    { id: "ag-flowie",        label: "flowie",          type: "agent", tags: ["human","memory"],     desc: "Personal identity agent — reads the user's flowie profile and generates deeply personalized assistance based on research stances, writing style, and methodological preferences.",                   url: "concepts/agents/" },
+    { id: "ag-orchestrator",  label: "orchestrator",    type: "agent", tags: ["memory","code"],      desc: "Orchestrator agent — manages the worker-critic loop for any phase, decomposes tasks, routes to phase workers, submits output to critic, and delivers the final vetted result.",                        url: "concepts/agents/" },
+    { id: "ag-paper-writer",  label: "paper-writer",    type: "agent", tags: ["writing"],            desc: "Manuscript writer — drafts neuroscience manuscript sections from upstream project memory inside a brutal write→critique loop with the paper-critic agent.",                                             url: "concepts/agents/" },
+    { id: "ag-paper-critic",  label: "paper-critic",    type: "agent", tags: ["writing","stats"],    desc: "Hyper-critical manuscript reviewer — applies full six-area review-neuro methodology to every draft and returns APPROVED or REJECTED with zero tolerance for overclaims.",                               url: "concepts/agents/" },
+    { id: "ag-lit-review",    label: "literature-review",type: "agent",tags: ["literature"],          desc: "Literature review specialist — runs 12 sequential analytical lenses on downloaded papers using the worker-critic loop to ensure rigour. Scoped to the ideation phase.",                              url: "concepts/agents/" },
+    { id: "ag-critic",        label: "critic",           type: "agent", tags: ["code"],               desc: "Critic agent — audits worker drafts against a provided rubric; returns APPROVED or REJECTED with specific actionable feedback; used by the orchestrator in the worker-critic loop.",                url: "concepts/agents/" }
   ];
 
   var LINKS = [
@@ -102,7 +117,10 @@
     { source: "cmd-search",          target: "core", type: "rw" },
     { source: "cmd-sentinel",        target: "core", type: "rw" },
     { source: "cmd-git",             target: "core", type: "rw" },
-    { source: "cmd-export",          target: "core", type: "r"  },
+    { source: "cmd-output",          target: "core", type: "rw" },
+    { source: "cmd-flowie",          target: "core", type: "rw" },
+    { source: "cmd-hive",            target: "core", type: "rw" },
+    { source: "cmd-slideshow",       target: "core", type: "r"  },
     { source: "cmd-interview",       target: "core", type: "rw" },
     { source: "cmd-quiz",            target: "core", type: "r"  },
     { source: "cmd-fails",           target: "core", type: "rw" },
@@ -151,9 +169,12 @@
     { source: "sk-git",           target: "cmd-git",             type: "uses" },
     { source: "sk-pipeline",      target: "cmd-pipeline",        type: "uses" },
     { source: "sk-search",        target: "cmd-search",          type: "uses" },
-    { source: "sk-export",        target: "cmd-export",          type: "uses" },
-    { source: "sk-fails",         target: "cmd-fails",           type: "uses" },
-    { source: "sk-quiz",          target: "cmd-quiz",            type: "uses" },
+    { source: "sk-output",        target: "cmd-output",          type: "uses" },
+    { source: "sk-fails",          target: "cmd-fails",           type: "uses" },
+    { source: "sk-quiz",           target: "cmd-quiz",            type: "uses" },
+    { source: "sk-flowie",         target: "cmd-flowie",          type: "uses" },
+    { source: "sk-hive",           target: "cmd-hive",            type: "uses" },
+    { source: "sk-slideshow",      target: "cmd-slideshow",       type: "uses" },
 
     /* Commands → Agents (spawns) */
     { source: "cmd-ideation",        target: "ag-ideation",     type: "spawns" },
@@ -173,6 +194,10 @@
     { source: "cmd-brain-optimize",  target: "ag-brain-opt",    type: "spawns" },
     { source: "cmd-brain-run",       target: "ag-brain-run",    type: "spawns" },
     { source: "cmd-sentinel",        target: "ag-sentinel",     type: "spawns" },
+    { source: "cmd-flowie",          target: "ag-flowie",       type: "spawns" },
+    { source: "cmd-paper",           target: "ag-paper-writer", type: "spawns" },
+    { source: "cmd-paper",           target: "ag-paper-critic", type: "spawns" },
+    { source: "cmd-ideation",        target: "ag-lit-review",   type: "spawns" },
 
     /* Pipeline orchestrates many commands */
     { source: "cmd-pipeline", target: "cmd-ideation",        type: "orchestrates" },
@@ -235,7 +260,11 @@
     "notes":           310,
     "write-report":    318,
     "review":          332,
-    "utility":         350
+    "slideshow":       338,
+    "output":          344,
+    "utility":         350,
+    "hive":            355,
+    "flowie":          359
   };
 
   /* Phase for each skill / agent node (commands already carry d.phase) */
@@ -263,27 +292,19 @@
     "sk-git":           "utility",
     "sk-pipeline":      "utility",
     "sk-search":        "utility",
-    "sk-export":        "utility",
+    "sk-output":        "output",
     "sk-fails":         "utility",
     "sk-quiz":          "utility",
     "sk-review-neuro":  "review",
     "ag-ideation":      "ideation",
-    "ag-scholar":       "ideation",
-    "ag-grant":         "grant-proposal",
-    "ag-experiment":    "experiment",
-    "ag-tool-build":    "tool-build",
-    "ag-tool-val":      "tool-validate",
-    "ag-data":          "data",
-    "ag-data-pre":      "data-preprocess",
-    "ag-data-analyze":  "data-analyze",
-    "ag-review":        "review",
-    "ag-notes":         "notes",
-    "ag-write-report":  "write-report",
-    "ag-brain-build":   "brain-build",
-    "ag-brain-opt":     "brain-optimize",
-    "ag-brain-run":     "brain-run",
-    "ag-sentinel":      "utility",
-    "ag-sentinel-dev":  "utility"
+    "sk-notebooklm":    "utility",
+    "sk-pupil-labs":    "experiment",
+    "sk-worker-critic": "utility",
+    "ag-flowie":        "flowie",
+    "ag-orchestrator":  "utility",
+    "ag-paper-writer":  "paper",
+    "ag-paper-critic":  "paper",
+    "ag-lit-review":    "ideation"
   };
 
   /* ── State ───────────────────────────────────────────────────────────────── */
