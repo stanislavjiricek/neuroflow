@@ -203,21 +203,23 @@ If a Hooks section exists in `README.md`, keep it in sync with `hooks.json` — 
 ## 8 — Release workflow
 
 1. Make your changes (skill / command / agent / hook / doc fix)
+   - If you added, renamed, or removed a **command, skill, or agent**: update `docs/javascripts/mind.js` — add (or remove) the node in `NODES`, the link in `LINKS`, the phase angle in `PHASE_ANGLES` (if a new phase), and the entry in `NODE_PHASE_MAP`. Verify with `Select-String -Pattern "sk-|cmd-|ag-"` that the new IDs appear in the file before committing.
 2. Update `README.md`:
    - Replace or add to the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points. Each bullet links to the relevant file. Keep it tight.
    - Add any new command / skill / agent to the corresponding table
 3. Add an entry to `docs/changelog.md` — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries
 4. Update `mkdocs.yml` `extra.version` to match the new version
-5. Review `commands/neuroflow.md` one-liners — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release
-6. Bump the patch version in `.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` `plugins[].version` to match — always patch (`0.1.6` → `0.1.7`), regardless of how large the change is
-7. Run sentinel-dev to verify internal consistency before committing:
+5. Update the **self-assessment bar** in `docs/index.md` — change `sa-bar-version` to the new version number, and re-run the probe honestly for this version of Claude before committing (answers may change as the model evolves)
+6. Review `commands/neuroflow.md` one-liners — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release
+7. Bump the patch version in `.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` `plugins[].version` to match — always patch (`0.1.6` → `0.1.7`), regardless of how large the change is
+8. Run sentinel-dev to verify internal consistency before committing:
    - All folder names match their frontmatter `name:` fields
    - All README tables are complete and have no dead links
    - Version in `plugin.json` matches `README.md` heading, `mkdocs.yml`, and `marketplace.json`
    - No dead skill/command references inside SKILL.md files
    - All commands have full frontmatter
    - `hooks.json` is valid and documented
-8. Commit and push:
+9. Commit and push:
 
 ```bash
 git add -A

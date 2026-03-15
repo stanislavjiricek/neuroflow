@@ -128,16 +128,18 @@ Create a `.md` file in `agents/`. Define the agent's role, focus, and any tool r
 ## Release workflow
 
 1. Make your changes
+   - If you added, renamed, or removed a **command, skill, or agent**: update `docs/javascripts/mind.js` — add (or remove) the node in `NODES`, the link in `LINKS`, the phase angle in `PHASE_ANGLES` (if a new phase), and the entry in `NODE_PHASE_MAP`. Run a quick `Select-String -Pattern "sk-|cmd-|ag-" docs/javascripts/mind.js` sanity check after editing.
 2. **Update `README.md`** — two places:
    - Replace the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight.
    - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.
 3. Add an entry to **`docs/changelog.md`** — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries.
 4. Update **`mkdocs.yml` `extra.version`** to match the new version.
 5. If it's a new item, **add it to the Roadmap** as completed or remove it from the planned list.
-6. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
-7. Bump the patch version in `.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` `plugins[].version` to match (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is).
-8. Run sentinel-dev to verify internal consistency before committing.
-9. Commit and push to GitHub:
+6. Update the **self-assessment bar** in `docs/index.md` — change `sa-bar-version` to the new version, and re-run the probe honestly for this version of Claude (answers may change as the model evolves).
+7. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
+8. Bump the patch version in `.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` `plugins[].version` to match (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is).
+9. Run sentinel-dev to verify internal consistency before committing.
+10. Commit and push to GitHub:
 
 ```bash
 git add -A
