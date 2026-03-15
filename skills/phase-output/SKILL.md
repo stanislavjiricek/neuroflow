@@ -56,3 +56,4 @@ Do not suggest Notion or other cloud integrations — they are not implemented y
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:notebooklm` — when the user wants a podcast, infographic, slide deck, or audio summary generated from exported project materials, invoke the `notebooklm` skill to create a NotebookLM notebook and feed the exported files into it as sources

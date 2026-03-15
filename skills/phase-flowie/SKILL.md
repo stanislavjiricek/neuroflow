@@ -94,4 +94,4 @@ When this skill is invoked directly (without `/flowie`), run the full `/flowie` 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
-- `neuroflow:phase-export` — flowie directory is excluded from exports by default
+- `neuroflow:phase-output` — flowie directory is excluded from exports by default

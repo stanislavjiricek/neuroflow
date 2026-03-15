@@ -72,3 +72,5 @@ Suggestion: <one-line suggestion — try a different tag, different term, or che
 - **Be brief**: the summary is for the main agent, not the user. Keep it to the essential finding.
 - **Do not modify anything**: this skill is read-only. Never write to `.neuroflow/` or any project file.
 - **Do not recurse blindly**: if the query matches nothing in the flow.md indices, report not-found rather than scanning all files.
+
+

@@ -18,6 +18,10 @@ Searches academic literature for a given topic using both PubMed and bioRxiv. Ne
    - Present results from these fallback sources under a **CrossRef / Semantic Scholar** section, marked ⚠️ PREPRINT where applicable
 3. If results are thin or too broad, generate 2–3 alternative queries (synonyms, narrower/broader terms) and run those too
 4. Deduplicate across sources
+5. **Journal area identification**: read `skills/phase-ideation/references/journal-defaults.md` (included in the neuroflow plugin). Match the query topic to one of the eight neuroscience areas defined there (EEG/MEG/electrophysiology, fMRI/neuroimaging, computational neuroscience, systems neuroscience/circuits, clinical neurophysiology, cognitive neuroscience, network neuroscience, information theory/causality). Use this to:
+   - Surface the 2–3 highest-impact journals for that area in a **Journal fit** note appended to the results.
+   - Prioritise papers from those top journals in output ordering when relevance is equal.
+   - Suggest which preprint server (bioRxiv / medRxiv / PsyArXiv) is most appropriate for the area.
 
 ## Output format
 

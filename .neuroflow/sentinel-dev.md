@@ -1,3 +1,31 @@
+Last run: 2026-03-15
+
+## Checks
+
+- ✅ Check 1 — Frontmatter name consistency
+- ✅ Check 3 — Version sync
+- ✅ Check 4 — Dead skill/command references
+- ✅ Check 6 — Command frontmatter completeness
+- ✅ Check 8 — hooks.json validity
+- ✅ Check 9a — mkdocs.yml version sync
+- ✅ Check 9b — Command docs completeness
+- ✅ Check 9c — Nav dead links
+
+## All clear
+
+_All checks passed — no issues found._
+
+---
+
+### Issues resolved this run
+
+Three issues were found and fixed before this clean report:
+
+1. **Check 4** — `skills/phase-paper/SKILL.md` referenced `neuroflow:scholar` which is an agent, not a skill. Fixed to `scholar` agent (no `neuroflow:` namespace).
+2. **Check 9b** — `commands/hive.md` had no docs page. Created `docs/commands/hive.md` and added the `hive` entry to `mkdocs.yml` nav under Utilities.
+3. **Check 9c** — `mkdocs.yml` nav referenced `skills/auto-issue/SKILL.md` which no longer exists (deleted, merged inline into neuroflow-core). Removed the dead nav entry. Also added missing skill nav entries: `phase-hive`, `notebooklm`, `pupil-labs-neon-realtime`.
+
+<!-- old content below --
 Last run: 2026-03-10
 
 ## Issues found

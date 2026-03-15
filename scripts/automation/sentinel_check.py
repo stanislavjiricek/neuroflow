@@ -140,7 +140,7 @@ def check1_frontmatter_names() -> list[Issue]:
 
 
 def check3_version_sync() -> list[Issue]:
-    """Check 3: version in plugin.json vs README.md heading."""
+    """Check 3: version in plugin.json vs README.md heading and marketplace.json."""
     issues = []
     version = get_plugin_version()
     if version == "unknown":
@@ -154,6 +154,26 @@ def check3_version_sync() -> list[Issue]:
             f"README.md is missing heading `{heading}` (plugin.json version is `{version}`)",
             fixable=False,
         ))
+
+    # 3b: marketplace.json version must match plugin.json
+    marketplace_path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
+    if marketplace_path.exists():
+        try:
+            marketplace_data = json.loads(marketplace_path.read_text(encoding="utf-8"))
+            plugins = marketplace_data.get("plugins", [])
+            for entry in plugins:
+                mp_version = entry.get("version", "unknown")
+                if mp_version != version:
+                    issues.append(Issue(
+                        "Check 3b",
+                        f"`marketplace.json` version `{mp_version}` differs from "
+                        f"`plugin.json` version `{version}`",
+                        fixable=True,
+                        fix_description=f"Update `marketplace.json` plugins[].version to `{version}`",
+                    ))
+        except (json.JSONDecodeError, OSError):
+            pass
+
     return issues
 
 

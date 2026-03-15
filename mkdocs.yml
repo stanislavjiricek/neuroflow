@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.3"
+  version: "0.2.4"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -145,6 +145,7 @@ nav:
           - "📤 output": commands/output.md
           - "🔍 search": commands/search.md
           - "👤 flowie": commands/flowie.md
+          - "🐝 hive": commands/hive.md
           - "🎤 interview": commands/interview.md
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
@@ -187,11 +188,13 @@ nav:
           - "phase-output": skills/phase-output/SKILL.md
           - "phase-pipeline": skills/phase-pipeline/SKILL.md
           - "phase-flowie": skills/phase-flowie/SKILL.md
+          - "phase-hive": skills/phase-hive/SKILL.md
           - "phase-search": skills/phase-search/SKILL.md
       - Utils:
-          - "auto-issue": skills/auto-issue/SKILL.md
           - "neuroflow-core": skills/neuroflow-core/SKILL.md
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
+          - "notebooklm": skills/notebooklm/SKILL.md
+          - "pupil-labs-neon-realtime": skills/pupil-labs-neon-realtime/SKILL.md
           - "skill-creator": skills/skill-creator/SKILL.md
   - Agents:
       - Overview: concepts/agents.md

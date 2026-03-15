@@ -2,7 +2,6 @@
 name: orchestrator
 description: Orchestrator agent — manages the worker-critic loop for any phase; decomposes the task, routes to the appropriate phase worker agent, submits output to the critic, tracks iterations, and delivers the final vetted result.
 ---
-
 # orchestrator
 
 The orchestrator is the lead coordination agent for the worker-critic agentic loop. It reads the task, selects the right phase worker, runs up to 3 revision cycles with the critic, and delivers a vetted final output — or halts with a clear report if the loop reaches max iterations without approval.
@@ -25,35 +24,39 @@ Manage the workflow between the worker (phase agent) and the critic. The orchest
 
 ### Step 2 — Select the worker agent
 
-Select the appropriate phase agent as the worker based on the active phase (19 phases map to 16 unique worker agents; preregistration shares the `ideation` worker, finance shares the `grant-proposal` worker, and slideshow shares the `write-report` worker):
+Select the appropriate phase agent as the worker based on the active phase (22 phases map to 16 unique worker agents; preregistration shares the `ideation` worker, finance shares the `grant-proposal` worker, slideshow and output share the `write-report` worker):
 
-| Phase | Worker agent |
-|---|---|
-| ideation | `ideation` |
-| preregistration | `ideation` |
-| literature-review | `literature-review` |
-| grant-proposal | `grant-proposal` |
-| finance | `grant-proposal` |
-| experiment | `experiment` |
-| tool-build | `tool-build` |
-| tool-validate | `tool-validate` |
-| data | `data` |
-| data-preprocess | `data-preprocess` |
-| data-analyze | `data-analyze` |
-| paper | `paper-writer` |
-| review | `review` |
-| notes | `notes` |
-| write-report | `write-report` |
-| slideshow | `write-report` |
-| brain-build | `brain-build` |
-| brain-optimize | `brain-optimize` |
-| brain-run | `brain-run` |
+| Phase             | Worker agent                                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| ideation          | `ideation`                                                                                              |
+| preregistration   | `ideation`                                                                                              |
+| literature-review | `literature-review`                                                                                     |
+| grant-proposal    | `grant-proposal`                                                                                        |
+| finance           | `grant-proposal`                                                                                        |
+| experiment        | `experiment`                                                                                            |
+| tool-build        | `tool-build`                                                                                            |
+| tool-validate     | `tool-validate`                                                                                         |
+| data              | `data`                                                                                                  |
+| data-preprocess   | `data-preprocess`                                                                                       |
+| data-analyze      | `data-analyze`                                                                                          |
+| paper             | `paper-writer`                                                                                          |
+| review            | `review`                                                                                                |
+| notes             | `notes`                                                                                                 |
+| write-report      | `write-report`                                                                                          |
+| slideshow         | `write-report`                                                                                          |
+| output            | `write-report`                                                                                          |
+| brain-build       | `brain-build`                                                                                           |
+| brain-optimize    | `brain-optimize`                                                                                        |
+| brain-run         | `brain-run`                                                                                             |
+| hive              | _(no single worker — hive coordinates a team; the orchestrator spawns per-member sub-agents directly)_ |
+| search            | `literature-review`                                                                                     |
 
 If the phase has no exact match, select the closest agent and note the choice in `critic-log.md`.
 
 ### Step 3 — Construct the rubric
 
 Build the rubric from:
+
 1. `.neuroflow/project_config.md` — project goals, modality, target output, constraints
 2. `.neuroflow/flow.md` — current phase status and open items
 3. `.neuroflow/{phase}/flow.md` — phase-specific progress and requirements
@@ -79,12 +82,14 @@ Send the draft to the critic agent with the rubric. The critic evaluates and ret
 ### Step 6 — Read critic response and route
 
 **If `[STATUS: APPROVED]`:**
+
 - Present the final draft to the user
 - Write `APPROVED` status to `.neuroflow/{phase}/critic-log.md`
 - Update `.neuroflow/sessions/YYYY-MM-DD.md`
 - Done
 
 **If `[STATUS: REJECTED]`:**
+
 - Increment iteration counter
 - If iteration counter < 3: proceed to Step 7
 - If iteration counter = 3: proceed to Step 8 (halt)
@@ -110,6 +115,7 @@ Return to Step 5.
 ### Step 8 — Halt at max iterations
 
 When the critic rejects on iteration 3:
+
 - **Do not attempt a 4th revision**
 - Present the current draft (iteration 3) to the user
 - Append unresolved feedback to `.neuroflow/{phase}/critic-log.md`
@@ -153,6 +159,7 @@ On halt:
 The orchestrator constructs the rubric at the start of each loop and holds it constant across all iterations. The rubric is passed to both the worker (so the worker knows what to target) and the critic (so the critic has a fixed evaluation standard).
 
 The rubric must be grounded in project reality — not a generic quality checklist. It should reflect:
+
 - The specific output being requested (e.g. "ERP analysis report comparing conditions A and B at Fz and Pz")
 - Phase-specific conventions (e.g. statistical standards for data-analyze, journal style guide for paper)
 - Any explicit user-stated acceptance criteria

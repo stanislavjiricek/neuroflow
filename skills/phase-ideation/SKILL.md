@@ -27,6 +27,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:pupil-labs-neon-realtime` — if the project involves Pupil Labs Neon eye-tracking hardware, use this skill for real-time data collection and device connection during ideation/piloting
 
 ## Workflow hints
 
@@ -35,6 +36,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 - Update `project_config.md` if the research question is defined or changed
 - Downloaded papers live in `.neuroflow/ideation/papers/` — this folder is the input for the `literature-review` agent
 - The compiled literature review (`literature-review-[date].md`) feeds directly into the `paper` phase; reference it there
+- When using the `scholar` agent for a literature search, it reads `skills/phase-ideation/references/journal-defaults.md` to match the query to one of eight neuroscience areas and surface high-impact journals. If the user has custom journal preferences, they can create `.neuroflow/journal-preferences.md` from the template at `skills/phase-ideation/references/user-journal-preferences.md`.
 
 ## Slash command
 
