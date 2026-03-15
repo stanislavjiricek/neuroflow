@@ -247,6 +247,25 @@ def check8_hooks_json() -> list[Issue]:
                         f"`hooks/hooks.json` hook is missing `type` or `command` field",
                         fixable=False,
                     ))
+                    continue
+                # Check 8b: hook commands must have error suppression so they
+                # fail silently and never surface noise to the user.
+                cmd = h.get("command", "")
+                has_suppression = bool(
+                    re.search(r";\s*true\b", cmd)
+                    or re.search(r"\|\|\s*true\b", cmd)
+                    or "2>/dev/null" in cmd
+                    or re.search(r"\btry\s*:", cmd)
+                )
+                if not has_suppression:
+                    issues.append(Issue(
+                        "Check 8b",
+                        f"`hooks/hooks.json` hook command under `{event}` "
+                        f"(matcher: {entry.get('matcher','?')}) has no error "
+                        f"suppression — add `; true`, `|| true`, or `2>/dev/null`, "
+                        f"or wrap in try/except",
+                        fixable=False,
+                    ))
     return issues
 
 
@@ -473,6 +492,7 @@ def build_report(
             "Check 4 — Dead skill/command references",
             "Check 6 — Command frontmatter completeness",
             "Check 8 — hooks.json validity",
+            "Check 8b — Hook error suppression",
             "Check 9 — Docs website sync",
             "Check 9d — Mind map staleness",
         ]:
@@ -494,12 +514,13 @@ def build_report(
         "Check 4": "Dead skill/command references",
         "Check 6": "Command frontmatter completeness",
         "Check 8": "hooks.json validity",
+        "Check 8b": "Hook error suppression",
         "Check 9a": "mkdocs.yml version sync",
         "Check 9b": "Command docs completeness",
         "Check 9c": "Nav dead links",
         "Check 9d": "Mind map staleness",
     }
-    all_checks = ["Check 1", "Check 3", "Check 4", "Check 6", "Check 8", "Check 9a", "Check 9b", "Check 9c", "Check 9d"]
+    all_checks = ["Check 1", "Check 3", "Check 4", "Check 6", "Check 8", "Check 8b", "Check 9a", "Check 9b", "Check 9c", "Check 9d"]
     for check in all_checks:
         label = check_names.get(check, check)
         if check in by_check:
