@@ -68,6 +68,16 @@ Read `hooks/hooks.json`. Check:
 
 Flag any hooks present in `hooks.json` but missing from README, or documented in README but absent from `hooks.json`.
 
+**8b — Hook error suppression:**
+
+For every hook `command`, check that it has explicit error suppression so that failures never surface noise to the user. A command passes if it contains at least one of:
+- `; true` (ensures exit code 0)
+- `|| true` (fallback on failure)
+- `2>/dev/null` (suppresses stderr)
+- A Python `try:` / `except` block
+
+Flag any hook command that lacks all of these.
+
 ### 9 — Docs website sync
 
 Read `mkdocs.yml`. Check:
