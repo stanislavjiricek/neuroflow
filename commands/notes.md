@@ -38,6 +38,8 @@ Tell the user: "Ready. Type your notes — as rough as you like. Send them in an
 
 Accept freeform input prompts until the user says "done" or "finish". Do not restructure anything yet — just acknowledge each input and wait for the next.
 
+**Auto-save:** After every 3 prompts received, write all captured notes so far to `.neuroflow/notes/notes-[context]-[date]-draft.md` (overwriting any previous draft). Notify the user with a brief inline message: `💾 Auto-saved draft — [N] entries captured so far.` (where N is the total number of entries captured in this session). Continue capturing without interruption.
+
 ### 3 — Reformat
 
 Once done, reformat everything into a clean structured document:
@@ -47,7 +49,7 @@ Once done, reformat everything into a clean structured document:
 
 ### 4 — Save
 
-Save as `notes-[context]-[date].md` in `.neuroflow/notes/`.
+Save as `notes-[context]-[date].md` in `.neuroflow/notes/`. Delete the draft file `notes-[context]-[date]-draft.md` if it exists, since the final formatted file supersedes it.
 
 ---
 

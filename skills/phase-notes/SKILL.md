@@ -12,6 +12,7 @@ The notes phase captures live notes during a meeting, talk, or session, then ref
 - Accept freeform input without correcting or restructuring until the user signals they are done
 - Do not prompt for formatting, completeness, or clarification during capture — just record
 - Only reformat when explicitly asked, or when the user signals the session is over
+- Auto-save the raw capture to a draft file every 3 prompts to prevent data loss in long sessions
 
 ## Relevant skills
 
@@ -19,7 +20,9 @@ The notes phase captures live notes during a meeting, talk, or session, then ref
 
 ## Workflow hints
 
+- Auto-save raw notes to `.neuroflow/notes/notes-[date]-draft.md` after every 3 prompts; notify the user briefly each time
 - Save the final formatted notes to `.neuroflow/notes/notes-[date].md`
+- Delete the draft file once the final formatted file has been written
 - Keep the raw capture separate from the reformatted version if both are useful
 
 ## Slash command
