@@ -47,6 +47,7 @@
     { id: "cmd-flowie",          label: "/flowie",          type: "command", phase: "flowie",         tags: ["human","memory"],           desc: "Personal identity layer — link a private GitHub repo to store your research profile (stances, writing style, methodological preferences). Supports profile creation, sync, and cross-project linking.",     url: "commands/flowie/" },
     { id: "cmd-hive",            label: "/hive",            type: "command", phase: "hive",           tags: ["memory","human"],           desc: "Connect neuroflow to a shared team GitHub org repo for research direction coordination and explicit knowledge sharing. Never auto-shares personal project data.",                                         url: "commands/hive/" },
     { id: "cmd-slideshow",       label: "/slideshow",       type: "command", phase: "slideshow",      tags: ["writing","human"],          desc: "Build a presentation from selected project areas — pick phases, figures, and key findings, then get a structured slide deck ready to export.",                   url: "commands/slideshow/" },
+    { id: "cmd-poster",          label: "/poster",          type: "command", phase: "poster",         tags: ["writing","human"],          desc: "Generate a LaTeX conference poster from project memory — five templates (A0/A1, portrait/landscape, US size), QR code support, and iterative poster-critic review loop.",  url: "commands/poster/" },
 
     /* ── Skills ── */
     { id: "sk-core",          label: "neuroflow-core",         type: "skill", tags: ["memory"],              desc: "Core lifecycle rules — what every command must read, write, and follow across all phases.",                                           url: "skills/neuroflow-core/SKILL/" },
@@ -79,6 +80,7 @@
     { id: "sk-flowie",        label: "phase-flowie",           type: "skill", tags: ["human","memory"],     desc: "Personal identity layer guidance — how to read and use the flowie profile for personalization, write rules, GitHub sync, and profile-aware assistance across all phases.",                          url: "skills/phase-flowie/SKILL/" },
     { id: "sk-hive",          label: "phase-hive",             type: "skill", tags: ["memory","human"],     desc: "Team-level knowledge layer — connects a researcher's neuroflow project to a shared GitHub org repo for coordinating directions, sharing findings, and team-aware recommendations.",                 url: "skills/phase-hive/SKILL/" },
     { id: "sk-slideshow",     label: "phase-slideshow",        type: "skill", tags: ["writing"],            desc: "Presentation guidance — slide structure decisions, format selection, and audience calibration for building slide decks from project memory.",                                                        url: "skills/phase-slideshow/SKILL/" },
+    { id: "sk-poster",        label: "phase-poster",           type: "skill", tags: ["writing"],            desc: "LaTeX poster generation — five conference templates (A0/A1, portrait/landscape, US size), QR code blocks, content extraction from project memory, and compilation instructions.",                 url: "skills/phase-poster/SKILL/" },
     { id: "sk-notebooklm",   label: "notebooklm",             type: "skill", tags: ["literature","human"], desc: "Google NotebookLM integration — create notebooks, add sources, generate podcasts, quizzes, infographics, slide decks, and mind maps from research materials.",                                    url: "skills/notebooklm/SKILL/" },
     { id: "sk-pupil-labs",   label: "pupil-labs-neon",        type: "skill", tags: ["eeg","code"],         desc: "Pupil Labs Neon real-time eye-tracking — connect to Neon glasses and collect live gaze, video, and IMU streams via the Real-time API.",                                                               url: "skills/pupil-labs-neon-realtime/SKILL/" },
     { id: "sk-worker-critic",label: "worker-critic",          type: "skill", tags: ["code"],               desc: "Worker-critic agentic loop — orchestrator coordinates a worker and a critic across up to 3 revision cycles to produce a vetted output for any phase.",                                              url: "skills/worker-critic/SKILL/" },
@@ -106,7 +108,8 @@
     { id: "ag-paper-writer",  label: "paper-writer",    type: "agent", tags: ["writing"],            desc: "Manuscript writer — drafts neuroscience manuscript sections from upstream project memory inside a brutal write→critique loop with the paper-critic agent.",                                             url: "concepts/agents/" },
     { id: "ag-paper-critic",  label: "paper-critic",    type: "agent", tags: ["writing","stats"],    desc: "Hyper-critical manuscript reviewer — applies full six-area review-neuro methodology to every draft and returns APPROVED or REJECTED with zero tolerance for overclaims.",                               url: "concepts/agents/" },
     { id: "ag-lit-review",    label: "literature-review",type: "agent",tags: ["literature"],          desc: "Literature review specialist — runs 12 sequential analytical lenses on downloaded papers using the worker-critic loop to ensure rigour. Scoped to the ideation phase.",                              url: "concepts/agents/" },
-    { id: "ag-critic",        label: "critic",           type: "agent", tags: ["code"],               desc: "Critic agent — audits worker drafts against a provided rubric; returns APPROVED or REJECTED with specific actionable feedback; used by the orchestrator in the worker-critic loop.",                url: "concepts/agents/" }
+    { id: "ag-critic",        label: "critic",           type: "agent", tags: ["code"],               desc: "Critic agent — audits worker drafts against a provided rubric; returns APPROVED or REJECTED with specific actionable feedback; used by the orchestrator in the worker-critic loop.",                url: "concepts/agents/" },
+    { id: "ag-poster-critic", label: "poster-critic",    type: "agent", tags: ["writing"],            desc: "Conference poster critic — audits every LaTeX poster draft across five areas; returns APPROVED or REJECTED with specific, actionable feedback; operates inside the /poster worker-critic loop.",     url: "concepts/agents/" }
   ];
 
   var LINKS = [
@@ -121,6 +124,7 @@
     { source: "cmd-flowie",          target: "core", type: "rw" },
     { source: "cmd-hive",            target: "core", type: "rw" },
     { source: "cmd-slideshow",       target: "core", type: "r"  },
+    { source: "cmd-poster",          target: "core", type: "rw" },
     { source: "cmd-interview",       target: "core", type: "rw" },
     { source: "cmd-quiz",            target: "core", type: "r"  },
     { source: "cmd-fails",           target: "core", type: "rw" },
@@ -175,6 +179,7 @@
     { source: "sk-flowie",         target: "cmd-flowie",          type: "uses" },
     { source: "sk-hive",           target: "cmd-hive",            type: "uses" },
     { source: "sk-slideshow",      target: "cmd-slideshow",       type: "uses" },
+    { source: "sk-poster",         target: "cmd-poster",          type: "uses" },
 
     /* Commands → Agents (spawns) */
     { source: "cmd-ideation",        target: "ag-ideation",     type: "spawns" },
@@ -197,6 +202,7 @@
     { source: "cmd-flowie",          target: "ag-flowie",       type: "spawns" },
     { source: "cmd-paper",           target: "ag-paper-writer", type: "spawns" },
     { source: "cmd-paper",           target: "ag-paper-critic", type: "spawns" },
+    { source: "cmd-poster",          target: "ag-poster-critic",type: "spawns" },
     { source: "cmd-ideation",        target: "ag-lit-review",   type: "spawns" },
 
     /* Pipeline orchestrates many commands */
@@ -261,6 +267,7 @@
     "write-report":    318,
     "review":          332,
     "slideshow":       338,
+    "poster":          341,
     "output":          344,
     "utility":         350,
     "hive":            355,
@@ -304,7 +311,9 @@
     "ag-orchestrator":  "utility",
     "ag-paper-writer":  "paper",
     "ag-paper-critic":  "paper",
-    "ag-lit-review":    "ideation"
+    "ag-lit-review":    "ideation",
+    "sk-poster":        "poster",
+    "ag-poster-critic": "poster"
   };
 
   /* ── State ───────────────────────────────────────────────────────────────── */

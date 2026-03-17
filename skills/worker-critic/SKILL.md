@@ -169,6 +169,7 @@ Any phase command or agent can activate the worker-critic loop by invoking the `
 | notes | `notes` |
 | write-report | `write-report` |
 | slideshow | `write-report` |
+| poster | `/poster` command (command acts as worker; `poster-critic` is the critic) |
 | brain-build | `brain-build` |
 | brain-optimize | `brain-optimize` |
 | brain-run | `brain-run` |
