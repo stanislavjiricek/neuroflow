@@ -29,9 +29,19 @@ Flag missing entries and dead links.
 
 ### 3 — Version sync
 
-Read the version from `.claude-plugin/plugin.json`. Check that the same version appears in the `## What's new in X.Y.Z` heading in `README.md`.
+Read the version from `.claude-plugin/plugin.json`. Check that the same version appears in:
 
-Flag if they differ.
+- The `## What's new in X.Y.Z` heading in `README.md`
+- The `extra.version` field in `mkdocs.yml` (also covered by Check 9a)
+- The `sa-bar-version` span in `docs/index.md` — search for `class="sa-bar-version"` and extract the version text inside it
+
+Flag if any of the three differ from `plugin.json`.
+
+**3b — Self-assessment bar sync:**
+
+Read `docs/index.md`. Find the element with `class="sa-bar-version"` and extract its text content (e.g. `v0.2.5`). Strip the leading `v` and compare to the version in `.claude-plugin/plugin.json`.
+
+Flag if they differ. This check exists because the self-assessment bar must be updated on every release and is the item most commonly missed during manual releases.
 
 ### 4 — Dead references inside SKILL.md files
 

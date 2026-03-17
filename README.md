@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.2.5
+
+- **[`/poster`](commands/poster.md)** — generate a LaTeX conference poster from project memory; five templates (A0/A1 portrait, A0 landscape, 90×120 cm, 48×36 in); QR code support via the `qrcode` package; iterative `poster-critic` review loop (up to 3 cycles) before the `.tex` file is saved
+- **New [`poster-critic`](agents/poster-critic.md) agent** — audits every poster draft across five areas (content accuracy, visual balance, scientific communication, QR code, LaTeX correctness); returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific, actionable feedback; never rewrites content
+- **New [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) skill** — full LaTeX template catalogue with embedded QR code blocks, template selection guide, content extraction logic, and compilation instructions
+
 ## What's new in 0.2.4
 
 - **Sentinel Check 3b** — sentinel now validates that `.claude-plugin/marketplace.json` version matches `plugin.json`; the marketplace version was silently stuck at `0.1.0` with no existing check to catch it
@@ -149,7 +155,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | Command | What it does |
 |---|---|
 | [`/neuroflow`](commands/neuroflow.md) | Main entry point — if `.neuroflow/` exists, shows current phase and status; if not, interviews the user and creates the project memory structure |
-| [`/setup`](commands/setup.md) | Interactive credential wizard — configure PubMed email and Miro access token; saves to `.neuroflow/integrations.json` |
+| [`/setup`](commands/setup.md) | Interactive credential wizard — configure PubMed email, Miro access token, and Google Workspace CLI; saves to `.neuroflow/integrations.json` |
 
 ### Research pipeline
 
@@ -188,6 +194,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
 | [`/slideshow`](commands/slideshow.md) | Build a presentation from selected areas of the project — pick phases, figures, and key findings, then get a structured slide deck ready to export |
+| [`/poster`](commands/poster.md) | Generate a LaTeX conference poster from project memory — choose template size, add a QR code, and get an iteratively reviewed `.tex` file ready to compile |
 | [`/quiz`](commands/quiz.md) | Neuroscience quiz — flashcards, pub quiz, or rapid-fire throw questions; covers any subfield or general neuroscience |
 | [`/fails`](commands/fails.md) | Log dissatisfaction — record core behavior, science quality, or UX issues; optionally opens a GitHub issue report |
 | [`/output`](commands/output.md) | Output project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
@@ -232,6 +239,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-search`](skills/phase-search/SKILL.md) | Phase guidance for /search — tag-based scoping, flow.md-first indexing strategy, compact summary format |
 | [`neuroflow:phase-pipeline`](skills/phase-pipeline/SKILL.md) | Phase guidance for /pipeline — interactive vs brutal mode behaviour, pipeline plan format, resume logic, error handling |
 | [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) | Phase guidance for /flowie — profile read and apply rules, write rules for `.neuroflow/.flowie/`, GitHub sync protocol, cross-phase personalization |
+| [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) | LaTeX poster generation — five templates (A0/A1/A2, portrait/landscape, US size), QR code integration, template selection guide, content extraction logic |
 
 ---
 
@@ -263,6 +271,7 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`brain-optimize`](agents/brain-optimize.md) | Parameter optimisation specialist — plans sweeps or data-fitting runs; selects the right algorithm (grid, differential evolution, Bayesian, BluePyOpt) |
 | [`brain-run`](agents/brain-run.md) | Simulation runner — configures and executes runs, sanity-checks outputs for silence, runaway activity, or NaN values; supports HPC job submission |
 | [`neuroflow-developer`](.github/agents/neuroflow-developer.md) | Superspecialized plugin development agent — merges neuroflow-core and neuroflow-develop into one repo-aware agent; reads live repo state at session start; handles skills, commands, agents, hooks, docs, and releases |
+| [`poster-critic`](agents/poster-critic.md) | Conference poster critic — audits every LaTeX poster draft across five areas (content, layout, scientific communication, QR code, LaTeX correctness); returns APPROVED or REJECTED with actionable feedback; operates inside the /poster worker-critic loop |
 | [`flowie`](agents/flowie.md) | Personal identity agent — reads the user's flowie profile and applies their research stances, writing style, and methodological preferences throughout the session; never exposes profile data in external-facing outputs |
 
 ---
@@ -350,12 +359,21 @@ neuroflow uses four MCP servers that Claude Code launches automatically via `npx
 | Miro | `@k-jarzyna/mcp-miro` | `MIRO_ACCESS_TOKEN` — personal access token from Miro |
 | Context7 | `@upstash/context7-mcp` | none |
 
+neuroflow also supports an optional **Google Workspace CLI** (`gws`) for Gmail, Calendar, Drive, Sheets, and more. It is separate from the MCP servers and must be installed manually:
+
+| Tool | Install | Credentials needed |
+|---|---|---|
+| Google Workspace CLI | `npm install -g @googleworkspace/cli` (requires Node.js 18+) | OAuth client_secret.json from Google Cloud Console → `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` |
+
+> **Note:** `gws auth setup` requires the `gcloud` CLI. If `gcloud` is not installed, use the manual OAuth path: create credentials in [Google Cloud Console](https://console.cloud.google.com), download `client_secret.json`, place it at `~/.config/gws/client_secret.json`, and run `gws auth login`.
+
 ### Setup wizard
 
 Run `/neuroflow:setup` (or answer **Y** when prompted during `/neuroflow:neuroflow`) to enter a guided wizard:
 
 1. **PubMed** — enter your email address. Validated for `@` format. Skippable.
 2. **Miro** — paste a personal access token from your [Miro developer settings](https://miro.com/app/settings/user-profile/apps). Skippable.
+3. **Google Workspace CLI** — checks if `gws` is installed; offers to install via npm if not; guides through the manual OAuth credential path (no `gcloud` required). Skippable.
 
 Credentials are saved to **`.neuroflow/integrations.json`** in your project folder. This file is excluded from git (see `.gitignore`) so it is never committed.
 
@@ -366,6 +384,7 @@ After running `/setup`, export the env vars in your shell before starting Claude
 ```bash
 export PUBMED_EMAIL="you@example.com"
 export MIRO_ACCESS_TOKEN="eyJ..."
+export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$HOME/.config/gws/client_secret.json"
 ```
 
 Add these to your shell profile (`~/.zshrc`, `~/.bashrc`) so they load automatically on every session.
@@ -380,6 +399,8 @@ Alternatively, you can set the env vars directly without running the wizard — 
 | PubMed email entry | ✅ Prompted by `/setup` wizard | — |
 | Miro token entry | ✅ Prompted by `/setup` wizard | ⚠️ You must create the token in the Miro browser UI first |
 | Miro OAuth browser login | ❌ Not implemented (by design — browser OAuth from a terminal subprocess is not feasible without a redirect server) | Use a personal access token instead |
+| Google Workspace CLI install | ✅ `/setup` wizard can run `npm install -g` if you confirm | Requires Node.js 18+ |
+| Google Workspace OAuth | ❌ `gws auth setup` requires `gcloud` CLI | Manual path: download `client_secret.json` from GCP Console, run `gws auth login` |
 | Env var export | ❌ Not automatic | Run `export …` or add to shell profile |
 
 ### Reminder behavior
