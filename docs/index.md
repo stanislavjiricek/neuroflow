@@ -239,10 +239,18 @@ Neuroscientists working with EEG, iEEG, fMRI, eye tracking, ECG, or other physio
 
 ## Quick install
 
-```bash
-claude plugin marketplace add stanislavjiricek/neuroflow
-claude plugin install neuroflow@neuroflow
-```
+=== "Claude Code"
+
+    ```bash
+    claude plugin marketplace add stanislavjiricek/neuroflow
+    claude plugin install neuroflow@neuroflow
+    ```
+
+=== "GitHub Copilot CLI"
+
+    ```bash
+    copilot plugin install stanislavjiricek/neuroflow
+    ```
 
 Then open any project folder and run:
 

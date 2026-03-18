@@ -4,29 +4,29 @@ title: Installation
 
 # Installation
 
-neuroflow is a [Claude Code](https://claude.ai/code) plugin. You need Claude Code installed before proceeding.
+neuroflow is a plugin for [Claude Code](https://claude.ai/code) and [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing). Install it with whichever AI assistant you use.
 
 ---
 
-## From the marketplace
+## Claude Code
 
-The easiest way to install neuroflow:
+### From the marketplace
+
+The easiest way to install neuroflow in Claude Code:
 
 ```bash
 claude plugin marketplace add stanislavjiricek/neuroflow
 claude plugin install neuroflow@neuroflow
 ```
 
-Or from within Claude Code:
+Or from within an interactive Claude Code session:
 
 ```
 /plugin marketplace add stanislavjiricek/neuroflow
 /plugin install neuroflow@neuroflow
 ```
 
----
-
-## Local development
+### Local development (Claude Code)
 
 Clone the repo and point Claude Code at it:
 
@@ -39,9 +39,41 @@ This is the recommended way to contribute or test changes before they are releas
 
 ---
 
+## GitHub Copilot CLI
+
+neuroflow installs natively into the GitHub Copilot CLI — no workarounds needed.
+
+### Install directly from GitHub
+
+```bash
+copilot plugin install stanislavjiricek/neuroflow
+```
+
+Or from within an interactive Copilot session:
+
+```
+/plugin install stanislavjiricek/neuroflow
+```
+
+### Install from a registered marketplace
+
+If `stanislavjiricek/neuroflow` is available in a registered marketplace (e.g. `awesome-copilot`):
+
+```bash
+copilot plugin install neuroflow@awesome-copilot
+```
+
+### Uninstall (Copilot)
+
+```bash
+copilot plugin uninstall neuroflow
+```
+
+---
+
 ## Verify installation
 
-Once installed, open any project folder and run:
+Once installed (in either tool), open any project folder and run:
 
 ```
 /neuroflow:neuroflow
@@ -53,7 +85,7 @@ You should see neuroflow scan your project and offer to set up `.neuroflow/` pro
 
 ## MCP server requirements
 
-neuroflow uses four MCP (Model Context Protocol) servers that Claude Code launches automatically via `npx`. No manual installation is needed — they are pulled from npm on first use.
+neuroflow uses four MCP (Model Context Protocol) servers that are launched automatically via `npx`. No manual installation is needed — they are pulled from npm on first use.
 
 | Server | npm package | Purpose |
 |---|---|---|
@@ -70,13 +102,13 @@ Two of these require credentials — see the [Integrations](integrations.md) pag
 
 | Requirement | Notes |
 |---|---|
-| Claude Code | Any recent version |
+| Claude Code **or** GitHub Copilot CLI | Any recent version |
 | Node.js | Required for MCP servers via `npx` |
-| Python | Optional — only needed if you run preprocessing / analysis scripts Claude generates |
+| Python | Optional — only needed if you run preprocessing / analysis scripts the AI generates |
 
 ---
 
-## Uninstall
+## Uninstall (Claude Code)
 
 ```bash
 claude plugin uninstall neuroflow
@@ -86,11 +118,11 @@ claude plugin uninstall neuroflow
 
 ## Using on other platforms
 
-neuroflow is designed for Claude Code, but its skills and commands can be adapted for other AI coding assistants.
+neuroflow's skills and commands can also be adapted for other AI coding assistants.
 
-### GitHub Copilot (VS Code)
+### GitHub Copilot (VS Code extension)
 
-GitHub Copilot does not have a native plugin system equivalent to Claude Code's `/plugin` command, but you can make neuroflow's instructions available to Copilot agent mode by adding them as instruction files.
+The VS Code Copilot extension does not share the same plugin system as the Copilot CLI, but you can make neuroflow's instructions available to Copilot agent mode via instruction files.
 
 **Option 1 — Project-level instructions (recommended):**
 
@@ -109,7 +141,7 @@ Open VS Code Settings → search for `github.copilot.chat.codeGeneration.instruc
 
 VS Code Copilot also reads `*.instructions.md` files from `.github/instructions/`. Copy individual skill files there and rename them with the `.instructions.md` extension.
 
-**Limitations on Copilot:**
+**Limitations on VS Code Copilot extension:**
 - No native slash command routing — commands must be triggered by natural language
 - No automatic `.neuroflow/` project memory creation — do this manually or prompt Copilot Agent to create it
 - MCP server connections work the same way (configured in VS Code MCP settings)

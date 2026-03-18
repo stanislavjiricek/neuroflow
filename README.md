@@ -325,6 +325,8 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 
 ## Installation
 
+**Claude Code:**
+
 ```bash
 claude plugin marketplace add stanislavjiricek/neuroflow
 claude plugin install neuroflow@neuroflow
@@ -337,7 +339,19 @@ Or from within Claude Code:
 /plugin install neuroflow@neuroflow
 ```
 
-For local development:
+**GitHub Copilot CLI:**
+
+```bash
+copilot plugin install stanislavjiricek/neuroflow
+```
+
+Or from within an interactive Copilot session:
+
+```
+/plugin install stanislavjiricek/neuroflow
+```
+
+For local development (Claude Code):
 
 ```bash
 git clone https://github.com/stanislavjiricek/neuroflow
@@ -350,7 +364,7 @@ Once installed, run `/neuroflow:neuroflow` in any project folder to get started.
 
 ## MCP server credentials
 
-neuroflow uses four MCP servers that Claude Code launches automatically via `npx`. Two require credentials:
+neuroflow uses four MCP servers that are launched automatically via `npx`. Two require credentials:
 
 | Server | Package | Credentials needed |
 |---|---|---|
@@ -395,7 +409,7 @@ Alternatively, you can set the env vars directly without running the wizard — 
 
 | Step | Automatic | Manual |
 |---|---|---|
-| MCP server processes started | ✅ Claude Code launches them via `npx` | — |
+| MCP server processes started | ✅ Launched automatically via `npx` | — |
 | PubMed email entry | ✅ Prompted by `/setup` wizard | — |
 | Miro token entry | ✅ Prompted by `/setup` wizard | ⚠️ You must create the token in the Miro browser UI first |
 | Miro OAuth browser login | ❌ Not implemented (by design — browser OAuth from a terminal subprocess is not feasible without a redirect server) | Use a personal access token instead |
