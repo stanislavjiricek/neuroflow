@@ -188,11 +188,14 @@ Before asking any interview questions, ask the user this as the **first question
 
 **If no local profile:** ask: *"What is your GitHub username?"*
 
-Since flowie repositories are always private, use authenticated access to fetch the profile:
+Since flowie repositories are always private, use the following fetch order:
 
-- **If `gh` CLI is available and authenticated** (`gh auth status` succeeds): run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch the file content.
-- **If `gh` CLI is not available or not authenticated**: ask the user for a GitHub Personal Access Token (PAT) with `repo` scope. Use it in the Authorization header to call `GET https://api.github.com/repos/{username}/flowie/contents/profile.md`. Decode the base64 `content` field.
-- **If neither works**: fall back to the full interview (Step 2).
+1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch the file content. If this succeeds, proceed to the field mapping table.
+2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
+3. **Only if both of the above fail**, ask the user for a GitHub Personal Access Token (PAT) with `repo` scope. Use it in the Authorization header to call `GET https://api.github.com/repos/{username}/flowie/contents/profile.md`. Decode the base64 `content` field.
+4. **If none of the above works**: fall back to the full interview (Step 2).
+
+Do not attempt additional `gh` commands (config file paths, env var checks, etc.) between steps 1 and 2. One `gh auth status` check is sufficient — if it fails, move directly to the git clone attempt.
 
 If the profile is found, extract the following fields and map them to interview answers:
 
