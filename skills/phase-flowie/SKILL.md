@@ -78,7 +78,7 @@ The flowie profile is mirrored to a private GitHub repository. The sync protocol
 3. **Handle merge conflicts explicitly.** If local and remote have diverged, show both versions side by side. Do not silently pick one. Ask the user to resolve each conflict.
 4. **Update `last_synced` only on success.** If the push fails (auth error, network issue), do not update the timestamp. Report the error clearly.
 5. **Never push to any repo other than the one in `sync.json`.** Confirm the repo URL before any push operation.
-6. **Respect `gh` CLI availability.** Prefer `gh` CLI for auth and repo operations. Fall back to raw git + PAT if `gh` is not installed.
+6. **Respect `gh` CLI availability.** Use the following order for auth and fetch operations: (1) try `gh auth status` — if authenticated, use `gh` CLI; (2) if not, try `git clone --depth 1` directly (works when the user has standard git credentials configured); (3) only fall back to raw git + PAT if both of the above fail. Do not attempt additional `gh` diagnostics between steps 1 and 2.
 
 ## Privacy rules
 
