@@ -55,7 +55,8 @@ When composing the issue:
 - Use the category tag in brackets in the title: `[core]`, `[science]`, or `[ux]`
 - Keep the description factual and specific — avoid emotive language
 - Include the plugin version if available in `project_config.md`
-- Open the URL using `open` (macOS/Linux) or `start` (Windows) rather than presenting it as text — the user should be one click from submitting
+- **URL-encode the title and body using Node.js** (`node -e "process.stdout.write(encodeURIComponent('...'))"`) — probe once; if unavailable, encode manually (space→`%20`, newline→`%0A`, `#`→`%23`, `&`→`%26`, `=`→`%3D`, `?`→`%3F`, `+`→`%2B`, `/`→`%2F`, `:`→`%3A`). **Never use `gh` CLI** — it requires authentication and is not needed here.
+- Open the URL using `open` (macOS/Linux) or `start "" "<url>"` (Windows) rather than presenting it as text — the user should be one click from submitting
 - If the browser open fails, print the full URL so the user can paste it manually
 
 ## Relevant skills

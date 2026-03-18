@@ -219,6 +219,12 @@ Plugin version: <plugin_version from project_config.md>
 Signal: <which signal fired>
 ```
 
+**URL construction — follow this order exactly, probe once then act:**
+1. **Node.js** (preferred — cross-platform): `node -e "process.stdout.write(encodeURIComponent('<text>'))"` — use if available.
+2. **Manual encoding** — if Node.js is unavailable, replace: space→`%20`, newline→`%0A`, `#`→`%23`, `&`→`%26`, `=`→`%3D`, `?`→`%3F`, `+`→`%2B`, `/`→`%2F`, `:`→`%3A`.
+
+**Never use `gh` CLI** for URL encoding or issue creation here. `gh` requires authentication and is not needed.
+
 URL: `https://github.com/stanislavjiricek/neuroflow/issues/new?title=<encoded>&body=<encoded>`
 
 Also **always** silently append a one-liner to `.neuroflow/fails/<category>.md` (creating the file if it does not exist) so the passive monitoring creates a local paper trail even when the user does not run `/fails`.
