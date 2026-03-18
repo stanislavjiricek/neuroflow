@@ -1,5 +1,5 @@
 site_name: "neuroflow"
-site_description: "A Claude Code plugin for agentic neuroscience research — from first hypothesis to manuscript draft."
+site_description: "A plugin for Claude Code and GitHub Copilot CLI — agentic neuroscience research from first hypothesis to manuscript draft."
 site_url: "https://stanislavjiricek.github.io/neuroflow/"
 repo_url: "https://github.com/stanislavjiricek/neuroflow"
 repo_name: "stanislavjiricek/neuroflow"

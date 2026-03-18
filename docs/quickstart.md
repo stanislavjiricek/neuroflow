@@ -10,10 +10,18 @@ Get from zero to a running neuroflow project in under five minutes.
 
 ## Step 1 — Install
 
-```bash
-claude plugin marketplace add stanislavjiricek/neuroflow
-claude plugin install neuroflow@neuroflow
-```
+=== "Claude Code"
+
+    ```bash
+    claude plugin marketplace add stanislavjiricek/neuroflow
+    claude plugin install neuroflow@neuroflow
+    ```
+
+=== "GitHub Copilot CLI"
+
+    ```bash
+    copilot plugin install stanislavjiricek/neuroflow
+    ```
 
 → [Full installation guide](installation.md)
 
@@ -21,12 +29,21 @@ claude plugin install neuroflow@neuroflow
 
 ## Step 2 — Open your project
 
-Navigate to your project folder (or any empty folder to start fresh) and open Claude Code:
+Navigate to your project folder (or any empty folder to start fresh) and open your AI assistant:
 
-```bash
-cd ~/my-eeg-study
-claude
-```
+=== "Claude Code"
+
+    ```bash
+    cd ~/my-eeg-study
+    claude
+    ```
+
+=== "GitHub Copilot CLI"
+
+    ```bash
+    cd ~/my-eeg-study
+    copilot
+    ```
 
 ---
 
