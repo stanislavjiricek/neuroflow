@@ -199,6 +199,7 @@ After each section, offer:
 - `neuroflow:phase-ideation` — if user needs to define the research question first
 - `neuroflow:phase-experiment` — paradigm design details for the Approach section
 - `neuroflow:phase-preregistration` — link registered analysis plan
+- `neuroflow:stop-slop` — apply to every drafted section to eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures before saving
 
 ## Slash command
 

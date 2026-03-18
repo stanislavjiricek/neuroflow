@@ -17,6 +17,8 @@ writes:
 
 Read the `neuroflow:phase-grant-proposal` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
+Apply `neuroflow:stop-slop` to every drafted section before saving — eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures from all prose.
+
 ---
 
 ## Step 0 — Discover the research idea
