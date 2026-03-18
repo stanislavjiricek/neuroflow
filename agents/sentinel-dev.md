@@ -1,6 +1,6 @@
 ---
 name: sentinel-dev
-description: Plugin development coherence guard. Monitors consistency of the neuroflow plugin itself — folder names vs frontmatter, version sync (plugin.json, README, mkdocs.yml), README tables, docs website navigation, dead references inside SKILL.md files, naming overlaps between skills and agents.
+description: Plugin development coherence guard. Monitors consistency of the neuroflow plugin itself — folder names vs frontmatter, version sync (plugin.json, README, mkdocs.yml), README tables, docs website navigation, dead references inside SKILL.md files, naming overlaps between skills and agents, and personal sensitive information (emails, passwords, private keys, names, institutions).
 ---
 
 # sentinel-dev
@@ -104,6 +104,33 @@ For every folder in `skills/` (e.g. `skills/phase-ideation/`): the skill's `SKIL
 
 **9d — No dead nav links:**
 For every path listed in the `mkdocs.yml` nav, check that the referenced file actually exists under `docs/`. Flag any nav entry pointing to a non-existent file.
+
+### 10 — Personal sensitive information
+
+Scan the plugin file tree for patterns that suggest personal sensitive information has been hardcoded into the plugin. Check the following paths:
+
+- `agents/` — agent definitions
+- `commands/` — command definitions
+- `skills/` — skill documentation (all `SKILL.md` files and any other `.md` files)
+- `docs/` — documentation website content
+- `hooks/hooks.json` — hook definitions
+- `scripts/` — automation scripts
+- `.neuroflow/` — plugin-level project memory
+- `README.md`, `AGENTS.md`
+
+For each file, look for:
+
+- **Email addresses**: search for strings matching `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`. This pattern covers the most common address formats; it does not handle quoted local parts, IP-address domains, or internationalised domain names — note any such edge cases manually. Skip addresses whose domain is one of the clearly synthetic domains: `example.com`, `example.org`, `test.com`, `domain.com`, or `localhost`. All other addresses should be flagged.
+- **Passwords and secrets**: flag lines where a key matching `password`, `passwd`, `secret`, `api_key`, `token`, or `private_key` (case-insensitive, with `:` or `=` separator) is followed by a non-empty value. A value is considered a placeholder — and should be skipped — if it is all-uppercase (e.g. `YOUR_API_KEY`), enclosed in angle brackets (e.g. `<token>`), or contains the word `placeholder`, `example`, or `changeme`.
+- **Private keys**: strings beginning with `-----BEGIN` (PEM-format private keys, certificates, or similar).
+- **Real personal names in non-example context**: if a sequence of two or more capitalised words (likely a full name) appears in a non-example, non-template context (i.e. not clearly labelled as a sample such as `e.g. Jane Smith`, not inside an HTML comment, and not in a heading or list item that names an author credit), flag it. Mark each finding as `[needs human review]`, as automated name detection may produce false positives on proper nouns and tool names.
+- **Institutional affiliations in non-example context**: real institution names, department names, or postal addresses that appear outside of clearly-labelled example content. Mark each finding as `[needs human review]`, as false positives on common terms are possible.
+
+Do not print the sensitive value verbatim in the report. Mask it (e.g. `email: j***@exam***.com`, `password: ***`, `private key at line 14 of scripts/setup.py`).
+
+Flag each file and line number where a match is found.
+
+**Note**: sentinel-dev does **not** auto-remove or redact sensitive content. Each finding must be reviewed by the plugin maintainer, who decides whether to redact, remove, or confirm the value is intentionally included.
 
 ## Report
 
