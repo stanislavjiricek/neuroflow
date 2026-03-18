@@ -17,6 +17,11 @@
 
 ---
 
+## What's new in 0.2.6
+
+- **Scholar agent: download reporting fixes** — `.pdf`/`.txt` files now correctly marked `⏭️ already downloaded`; `.md`-only stubs re-attempt download unless `reason: unavailable`; `✅ downloaded` is gated on a confirmed `.pdf` or `.txt` write; download summary counter now labelled `✅ [n] downloaded (PDF/text)` with a new `⏭️ [n] unavailable (metadata cached)` bucket
+- **Scholar agent: search coverage fixes** — Semantic Scholar 429 rate-limit triggers a 3 s wait + retry then falls back to CrossRef/arXiv with a visible warning; PubMed query-overlap detection auto-generates 2–3 diversified queries when < 15 unique results or > 80% overlap; arXiv keyword fallback added when bioRxiv returns 0 results; mandatory coverage summary table printed before results, with any ⚠️/❌ row also surfaced as an inline warning block
+
 ## What's new in 0.2.5
 
 - **[`/poster`](commands/poster.md)** — generate a LaTeX conference poster from project memory; five templates (A0/A1 portrait, A0 landscape, 90×120 cm, 48×36 in); QR code support via the `qrcode` package; iterative `poster-critic` review loop (up to 3 cycles) before the `.tex` file is saved
