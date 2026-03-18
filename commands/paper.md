@@ -23,6 +23,8 @@ writes:
 
 Read the `neuroflow:phase-paper` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/paper/flow.md` before starting. Load upstream context from `.neuroflow/ideation/` (research question, hypothesis) and `.neuroflow/data-analyze/` (results summary, figures).
 
+Apply `neuroflow:stop-slop` to every section draft before passing it to the critic — eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures from all prose.
+
 ## What this command does
 
 Produces a reviewed and approved manuscript — not a raw draft. Every section goes through a structured write→critique loop before it is saved. Nothing is written to disk without critic approval or an explicit user decision to accept an unresolved draft.

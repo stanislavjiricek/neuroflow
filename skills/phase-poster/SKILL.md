@@ -502,6 +502,11 @@ If a same-date `.tex` file exists, append `-v2`, `-v3`, etc.
 
 ---
 
+## Relevant skills
+
+- `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:stop-slop` — apply to all text blocks (Introduction, Methods, Results, Discussion, Conclusions) to eliminate AI writing patterns and filler phrases before saving the `.tex` file
+
 ## Slash command
 
 `/neuroflow:poster` — runs this workflow as a slash command.

@@ -21,6 +21,7 @@ The paper phase produces a reviewed and approved neuroscience manuscript. Every 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
 - `neuroflow:worker-critic` — defines the multi-agent revision loop protocol (max 3 iterations per section)
 - `neuroflow:review-neuro` — the eight-area review methodology used by the `paper-critic` agent on every draft
+- `neuroflow:stop-slop` — run on every drafted section before the critic review; eliminates AI writing patterns, filler phrases, passive voice, and formulaic structures from prose
 - `neuroflow:notebooklm` — use when the user wants a podcast, slide deck, or infographic generated from manuscript sections
 
 ## Two-agent write→critique loop

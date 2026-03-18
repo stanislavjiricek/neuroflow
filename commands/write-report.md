@@ -18,6 +18,8 @@ writes:
 
 Read the `neuroflow:phase-write-report` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
+Apply `neuroflow:stop-slop` before saving the report — eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures from all prose.
+
 ## What this command does
 
 Generates a structured report from `.neuroflow/` contents. Useful for progress updates, lab meeting summaries, supervision reports, or internal documentation.
