@@ -1,6 +1,6 @@
 ---
 name: sentinel
-description: Project coherence guard. Audits .neuroflow/ for internal consistency — checks flow.md completeness, timestamps, broken references, preregistration drift, and session consistency. Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
+description: Project coherence guard. Audits .neuroflow/ for internal consistency — checks flow.md completeness, timestamps, broken references, preregistration drift, session consistency, and personal sensitive information (emails, passwords, private keys, names, institutions). Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
 ---
 
 # sentinel
@@ -102,6 +102,20 @@ This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
 
 If the file does not exist at all, create `.claude/CLAUDE.md` with this block.
 
+### 10 — Personal sensitive information
+
+Scan all files inside `.neuroflow/` for patterns that suggest personal sensitive information has been committed. Check for:
+
+- **Email addresses**: search for strings matching `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`. This pattern covers the most common address formats; it does not handle quoted local parts, IP-address domains, or internationalised domain names — note any such edge cases manually. Skip addresses whose domain is clearly synthetic: `example.com`, `example.org`, `test.com`, `domain.com`, or `localhost`.
+- **Passwords and secrets**: flag lines where a key matching `password`, `passwd`, `secret`, `api_key`, `token`, or `private_key` (case-insensitive, with `:` or `=` separator) is followed by a non-empty value. A value is considered a placeholder — and should be skipped — if it is all-uppercase (e.g. `YOUR_API_KEY`), enclosed in angle brackets (e.g. `<token>`), or contains the word `placeholder`, `example`, or `changeme`.
+- **Private keys**: strings beginning with `-----BEGIN` (PEM-format private keys, certificates, or similar).
+- **Full names in unexpected locations**: if a sequence of two or more capitalised words (likely a full name) appears in a reasoning log, session log, or flow.md entry — rather than in `project_config.md` under the `researcher:` field — flag it as a possible name leak. This check may produce false positives on proper nouns and tool names; treat every finding as requiring human confirmation.
+- **Institutional affiliations outside project_config.md**: if an institution name, department, or postal address appears in a file other than `project_config.md`, flag it. Treat findings as requiring human confirmation, as false positives on common terms are possible.
+
+Do not print the sensitive value verbatim in the report. Mask it instead (e.g. `email: j***@exam***.com`, `password: ***`, `private key in line 4 of reasoning/general.json`).
+
+Flag each file and line number where a match is found. Mark name and institution findings as `[needs human review]` since automated detection of these categories is imprecise.
+
 ## Report
 
 Write to `.neuroflow/sentinel.md`:
@@ -127,6 +141,7 @@ Then ask the user: for each issue, fix automatically or leave for manual review?
 - Add or update `plugin_version` in `project_config.md` to match the current plugin version (Check 7)
 - Move `.md` files out of a skill-named subfolder in `.neuroflow/` into the appropriate phase subfolder, then delete the skill-named folder (Check 8)
 - Append the neuroflow block to `.claude/CLAUDE.md`, or create the file, if the reference to `project_config.md` is missing (Check 9)
+- For Check 10 (personal sensitive information): sentinel does **not** auto-remove or redact sensitive content — it only surfaces findings. The user must review each flagged item and decide whether to redact, remove, or confirm it is intentionally stored.
 
 After applying any fixes, rewrite `.neuroflow/sentinel.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.
 

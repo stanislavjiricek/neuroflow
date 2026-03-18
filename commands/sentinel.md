@@ -1,6 +1,6 @@
 ---
 name: sentinel
-description: Audit of .neuroflow/ — checks flow.md completeness, timestamps, broken references, preregistration drift, and session consistency. Scoped to .neuroflow/ by default; asks before scanning the full workspace. Writes a report to .neuroflow/sentinel.md.
+description: Audit of .neuroflow/ — checks flow.md completeness, timestamps, broken references, preregistration drift, session consistency, and personal sensitive information (emails, passwords, private keys, names, institutions). Scoped to .neuroflow/ by default; asks before scanning the full workspace. Writes a report to .neuroflow/sentinel.md.
 phase: utility
 reads:
   - .neuroflow/project_config.md
