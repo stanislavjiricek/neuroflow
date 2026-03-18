@@ -56,20 +56,21 @@ This allows an interrupted or failed run to be safely retried without duplicatin
 
 ### Download procedure
 
+**Timeout rule**: if a download tool call does not return within ~20 seconds or returns an error/empty response, mark that source as failed immediately and move to the next source in the chain. Do not wait or retry a timed-out call.
+
 For each paper not yet present, in order:
 
 1. If the paper is marked `🔒 PAYWALLED`, save a partial metadata file (see the **Partial metadata file** section below for the template) marked as paywalled, note it as `⛔ skipped — paywalled (metadata saved)`, and move on
 2. Otherwise, attempt to fetch the full text by trying each source in this priority order:
-   - **Source 1 — Unpaywall**: query the Unpaywall API for the DOI to obtain an open-access PDF URL
-   - **Source 2 — PubMed Central**: if a PMCID is available, fetch the PMC PDF directly
-   - **Source 3 — bioRxiv direct**: if the paper is a bioRxiv preprint, use the direct PDF link from the search result
-   - **Source 4 — Journal OA page**: follow the DOI resolver and check for a visible open-access PDF link
+   - **Source 1 — Unpaywall**: query the Unpaywall API for the DOI to obtain an open-access PDF URL, then call `download_paper` with that URL
+   - **Source 2 — PubMed Central**: if a PMCID is available, call `download_paper` with the PMC PDF URL (`https://www.ncbi.nlm.nih.gov/pmc/articles/[PMCID]/pdf/`). **Never use `get_full_text_article`** — it returns the full article body as text into the context window and is extremely token-expensive.
+   - **Source 3 — bioRxiv direct**: if the paper is a bioRxiv preprint, use the direct PDF link from the search result with `download_paper`
 3. Move to the next source immediately if a source returns no PDF, a 404, or an access-denied response
-4. If all four sources fail, **pause 2 seconds as a backoff, then retry the full source chain once** before giving up
+4. If all three sources fail, **pause 2 seconds as a backoff, then retry the full source chain once** before giving up
 5. Save to `.neuroflow/ideation/papers/[FirstAuthorLastName]-[Year]-[SlugTitle].[pdf|txt|md]`
 6. Mark the paper with one of:
    - `✅ downloaded` — file saved successfully
-   - `❌ unavailable` — all four sources exhausted on both attempts; no open-access copy exists; save a partial metadata file (see the **Partial metadata file** section below for the template)
+   - `❌ unavailable` — all three sources exhausted on both attempts; no open-access copy exists; save a partial metadata file (see the **Partial metadata file** section below for the template)
    - `⚠️ failed` — a network or tool error prevented all attempts (the paper may be available; retry later); save a partial metadata file (see the **Partial metadata file** section below for the template)
 
 ### Partial metadata file
