@@ -115,7 +115,19 @@ Date: <date>
 Plugin version: <plugin_version from project_config.md, if present>
 ```
 
-URL-encode the title and body, then construct the GitHub new-issue URL:
+Construct the GitHub new-issue URL by URL-encoding the title and body. Follow this order exactly — probe once, then act:
+
+1. **Check for Node.js first** (preferred — cross-platform, works on Windows and Unix):
+   ```
+   node -e "process.stdout.write(encodeURIComponent('<text>'))"
+   ```
+   If Node.js is available, use it to encode both the title and body, then build the URL.
+
+2. **If Node.js is not available**, build the URL by hand: replace each space with `%20`, newline with `%0A`, `#` with `%23`, `&` with `%26`, `=` with `%3D`, `?` with `%3F`, `+` with `%2B`, `/` with `%2F`, `:` with `%3A`.
+
+**Never use `gh` CLI for this step.** `gh` requires authentication and is not needed to open a browser URL. Do not attempt `gh auth status`, `gh issue create`, or any other `gh` command here.
+
+Once the URL is built:
 
 ```
 https://github.com/stanislavjiricek/neuroflow/issues/new?title=<encoded_title>&body=<encoded_body>
@@ -123,7 +135,7 @@ https://github.com/stanislavjiricek/neuroflow/issues/new?title=<encoded_title>&b
 
 Attempt to open the URL in the system browser:
 - macOS / Linux: `open "<url>"`
-- Windows: `start "<url>"`
+- Windows: `start "" "<url>"`
 
 If the open command succeeds, confirm to the user that the browser was opened and remind them to review and submit the issue.
 
