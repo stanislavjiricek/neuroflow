@@ -47,10 +47,10 @@ After returning the results list, **always** attempt to download every paper to 
 
 Before downloading anything, check which papers are already present:
 
-1. List all files currently in `.neuroflow/ideation/papers/`
+1. List all folders and files currently in `.neuroflow/ideation/papers/`
 2. For each paper in the results list, compute its expected filename stem: `[FirstAuthorLastName]-[Year]-[SlugTitle]` — the slug is the paper title lower-cased, punctuation stripped, spaces replaced with hyphens, truncated at 60 characters; if the author's last name contains non-ASCII characters, transliterate them (e.g. "Müller" → "muller"); if the year is missing use "unknown"
-3. If any file in the folder has a name that exactly matches `[stem].pdf`, `[stem].txt`, or `[stem].md`, mark it `⏭️ already downloaded` and skip it — do not re-download; if titles are identical in the first 60 characters and a collision occurs, append the last 6 characters of the DOI (dashes stripped) to disambiguate the stem
-4. Only attempt to download papers whose expected stem does not match any existing file
+3. If a subfolder named `[stem]` exists and contains a file named `[stem].pdf`, `[stem].txt`, or `[stem].md`, mark it `⏭️ already downloaded` and skip it — do not re-download; if titles are identical in the first 60 characters and a collision occurs, append the last 6 characters of the DOI (dashes stripped) to disambiguate the stem
+4. Only attempt to download papers whose expected stem folder does not already contain any of those files
 
 This allows an interrupted or failed run to be safely retried without duplicating work.
 
@@ -67,7 +67,7 @@ For each paper not yet present, in order:
    - **Source 3 — bioRxiv direct**: if the paper is a bioRxiv preprint, use the direct PDF link from the search result with `download_paper`
 3. Move to the next source immediately if a source returns no PDF, a 404, or an access-denied response
 4. If all three sources fail, **pause 2 seconds as a backoff, then retry the full source chain once** before giving up
-5. Save to `.neuroflow/ideation/papers/[FirstAuthorLastName]-[Year]-[SlugTitle].[pdf|txt|md]`
+5. Create a per-paper folder `.neuroflow/ideation/papers/[stem]/` (if it does not already exist) and save to `.neuroflow/ideation/papers/[stem]/[stem].[pdf|txt|md]`
 6. Mark the paper with one of:
    - `✅ downloaded` — file saved successfully
    - `❌ unavailable` — all three sources exhausted on both attempts; no open-access copy exists; save a partial metadata file (see the **Partial metadata file** section below for the template)
@@ -75,7 +75,7 @@ For each paper not yet present, in order:
 
 ### Partial metadata file
 
-Whenever a full-text PDF or text cannot be saved — i.e. for `❌ unavailable`, `⚠️ failed`, and `⛔ skipped — paywalled` outcomes — save a `.md` file to `.neuroflow/ideation/papers/[stem].md` containing all metadata that is available. Use this template:
+Whenever a full-text PDF or text cannot be saved — i.e. for `❌ unavailable`, `⚠️ failed`, and `⛔ skipped — paywalled` outcomes — create a per-paper folder `.neuroflow/ideation/papers/[stem]/` (if it does not already exist) and save a `.md` file to `.neuroflow/ideation/papers/[stem]/[stem].md` containing all metadata that is available. Use this template:
 
 ```markdown
 ---
@@ -110,7 +110,7 @@ reason: "[unavailable | failed | paywalled]"
 - To obtain the full text: [DOI resolver URL or direct link if known]
 ```
 
-This file is recognised by the resume detection system (the `.md` extension is checked) and is usable by the `literature-review` agent, which reads title, abstract, and metadata when full text is not present.
+This file is recognised by the resume detection system (the `.md` extension inside the per-paper subfolder is checked) and is usable by the `literature-review` agent, which reads title, abstract, and metadata when full text is not present.
 
 ### Download summary
 
@@ -120,7 +120,7 @@ After all attempts, report:
 ## Download summary — [topic] — [date]
 ✅ [n] downloaded   ⏭️ [n] already downloaded   ❌ [n] unavailable (metadata saved)   ⚠️ [n] failed (metadata saved)   ⛔ [n] skipped — paywalled (metadata saved)
 
-Downloaded files saved to: .neuroflow/ideation/papers/
+Downloaded files saved to: .neuroflow/ideation/papers/ (each paper in its own named subfolder)
 Note: for papers without a full PDF, a metadata-only .md file has been saved and will be used by the literature-review agent.
 ```
 
@@ -129,7 +129,7 @@ If any papers are marked `⚠️ failed`, list them:
 ```
 ### Papers to retry (⚠️ failed)
 - [Title] — DOI: [doi] — reason: [brief error description]
-  Metadata saved to: .neuroflow/ideation/papers/[stem].md
+  Metadata saved to: .neuroflow/ideation/papers/[stem]/[stem].md
 ```
 
 Then add: *"To resume: re-run the `scholar` agent with the same query. Papers already downloaded (including metadata-only .md files) will be skipped automatically; only failed papers without any saved file will be retried. To force a fresh download of a metadata-only paper, delete its .md file first."*
