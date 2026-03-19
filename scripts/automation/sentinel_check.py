@@ -26,6 +26,11 @@ from post_discussion import post_discussion_comment
 
 REPO_ROOT = Path(__file__).parent.parent.parent
 
+# Regex for matching the Plugin version line in .neuroflow/project_config.md
+_PROJECT_CONFIG_VERSION_RE = re.compile(
+    r"(\*\*Plugin version:\*\*\s*)([0-9]+\.[0-9]+\.[0-9]+)"
+)
+
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -173,6 +178,28 @@ def check3_version_sync() -> list[Issue]:
                     ))
         except (json.JSONDecodeError, OSError):
             pass
+
+    # 3c: .neuroflow/project_config.md plugin_version must match plugin.json
+    project_config_path = REPO_ROOT / ".neuroflow" / "project_config.md"
+    if project_config_path.exists():
+        config_content = read_file_safe(project_config_path)
+        version_match = _PROJECT_CONFIG_VERSION_RE.search(config_content)
+        if version_match:
+            config_version = version_match.group(2)
+            if config_version != version:
+                issues.append(Issue(
+                    "Check 3c",
+                    f"`.neuroflow/project_config.md` `Plugin version: {config_version}` differs from "
+                    f"`plugin.json` version `{version}`",
+                    fixable=True,
+                    fix_description=f"Update `.neuroflow/project_config.md` Plugin version to `{version}`",
+                ))
+        else:
+            issues.append(Issue(
+                "Check 3c",
+                "`.neuroflow/project_config.md` is missing `**Plugin version:**` line",
+                fixable=False,
+            ))
 
     return issues
 
@@ -415,6 +442,43 @@ def fix_mkdocs_version(plugin_version: str) -> bool:
     return True
 
 
+def fix_marketplace_version(plugin_version: str) -> bool:
+    """Update plugins[].version in marketplace.json to match plugin.json. Returns True if changed."""
+    marketplace_path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
+    try:
+        data = json.loads(marketplace_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    changed = False
+    for entry in data.get("plugins", []):
+        if entry.get("version") != plugin_version:
+            entry["version"] = plugin_version
+            changed = True
+    if not changed:
+        return False
+    marketplace_path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    return True
+
+
+def fix_project_config_version(plugin_version: str) -> bool:
+    """Update Plugin version line in .neuroflow/project_config.md. Returns True if changed."""
+    config_path = REPO_ROOT / ".neuroflow" / "project_config.md"
+    try:
+        content = config_path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    new_content, n = _PROJECT_CONFIG_VERSION_RE.subn(
+        lambda m: f"{m.group(1)}{plugin_version}",
+        content,
+    )
+    if n == 0:
+        return False
+    config_path.write_text(new_content, encoding="utf-8")
+    return True
+
+
 # ---------------------------------------------------------------------------
 # GitHub API helpers
 # ---------------------------------------------------------------------------
@@ -489,6 +553,8 @@ def build_report(
         for check_name in [
             "Check 1 — Frontmatter name consistency",
             "Check 3 — Version sync",
+            "Check 3b — marketplace.json version sync",
+            "Check 3c — project_config.md version sync",
             "Check 4 — Dead skill/command references",
             "Check 6 — Command frontmatter completeness",
             "Check 8 — hooks.json validity",
@@ -511,6 +577,8 @@ def build_report(
     check_names = {
         "Check 1": "Frontmatter name consistency",
         "Check 3": "Version sync",
+        "Check 3b": "marketplace.json version sync",
+        "Check 3c": "project_config.md version sync",
         "Check 4": "Dead skill/command references",
         "Check 6": "Command frontmatter completeness",
         "Check 8": "hooks.json validity",
@@ -520,7 +588,7 @@ def build_report(
         "Check 9c": "Nav dead links",
         "Check 9d": "Mind map staleness",
     }
-    all_checks = ["Check 1", "Check 3", "Check 4", "Check 6", "Check 8", "Check 8b", "Check 9a", "Check 9b", "Check 9c", "Check 9d"]
+    all_checks = ["Check 1", "Check 3", "Check 3b", "Check 3c", "Check 4", "Check 6", "Check 8", "Check 8b", "Check 9a", "Check 9b", "Check 9c", "Check 9d"]
     for check in all_checks:
         label = check_names.get(check, check)
         if check in by_check:
@@ -599,6 +667,14 @@ def main() -> None:
         for iss in fixable:
             if "mkdocs.yml" in iss.fix_description:
                 if fix_mkdocs_version(plugin_version):
+                    fixed_descriptions.append(iss.fix_description)
+                    print(f"Fixed: {iss.fix_description}")
+            elif "marketplace.json" in iss.fix_description:
+                if fix_marketplace_version(plugin_version):
+                    fixed_descriptions.append(iss.fix_description)
+                    print(f"Fixed: {iss.fix_description}")
+            elif "project_config.md" in iss.fix_description:
+                if fix_project_config_version(plugin_version):
                     fixed_descriptions.append(iss.fix_description)
                     print(f"Fixed: {iss.fix_description}")
 

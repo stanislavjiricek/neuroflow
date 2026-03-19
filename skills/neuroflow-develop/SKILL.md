@@ -157,7 +157,11 @@ Run `sentinel-dev` after changing `hooks/hooks.json` — Check 8b will flag any 
 5. If it's a new item, **add it to the Roadmap** as completed or remove it from the planned list.
 6. Update the **self-assessment bar** in `docs/index.md` — change `sa-bar-version` to the new version, and re-run the probe honestly for this version of Claude (answers may change as the model evolves).
 7. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
-8. Bump the patch version in `.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` `plugins[].version` to match (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is).
+8. Bump the patch version in **all four places** (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is):
+   - `.claude-plugin/plugin.json` → `version` field
+   - `.claude-plugin/marketplace.json` → `plugins[].version` field
+   - `.neuroflow/project_config.md` → `Plugin version:` line (the plugin's own project memory)
+   - `mkdocs.yml` → `extra.version` field (also covered by step 4 above, but keep in sync)
 9. Run sentinel-dev to verify internal consistency before committing.
 10. Commit and push to GitHub:
 

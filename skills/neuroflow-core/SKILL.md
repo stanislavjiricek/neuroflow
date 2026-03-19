@@ -121,7 +121,7 @@ Every command must follow this order:
 5. Update `.neuroflow/{phase}/flow.md` **immediately** when each new file is created in the phase subfolder — treat it as a live index, not a one-time snapshot taken at the end
 6. Update `.neuroflow/flow.md` if new subfolders were created
 7. Update `.neuroflow/project_config.md` if the active phase changed
-8. Update `.claude/CLAUDE.md` if the active phase changed
+8. Update `.claude/CLAUDE.md` **and** `.github/copilot-instructions.md` if the active phase changed — keep both files identical so the project context is available regardless of which AI client the user opens it in
 9. **Phase transition check:** if the outputs produced during this session clearly belong to a different (later) phase than the active phase in `project_config.md`, prompt the user: *"The work produced looks like [phase] outputs. Should I update the active phase in project_config.md?"* Do not silently leave the phase wrong.
 
 **What counts as a significant decision:**
@@ -160,6 +160,7 @@ Run through these before closing any command:
 - [ ] Confirmed no utility scripts were placed in the project root
 - [ ] Confirmed no files or folders were placed directly in `.neuroflow/` unless they are listed in the "Root files" or "Root folders" tables in neuroflow-core
 - [ ] Verified `.claude/CLAUDE.md` exists in the **project root** (created if missing)
+- [ ] Verified `.github/copilot-instructions.md` exists in the **project root** and contains the same neuroflow block as `.claude/CLAUDE.md` (created/updated if missing or out of sync)
 - [ ] If invoked without a slash command: mention the slash command at the end
 
 ## Default agent behavior

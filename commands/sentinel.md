@@ -10,11 +10,13 @@ reads:
   - .neuroflow/preregistration/
   - .neuroflow/sessions/
   - .claude/CLAUDE.md
+  - .github/copilot-instructions.md
 writes:
   - .neuroflow/sentinel.md
   - .neuroflow/sentinel-dev.md
   - .neuroflow/project_config.md
   - .claude/CLAUDE.md
+  - .github/copilot-instructions.md
 ---
 
 # /sentinel
