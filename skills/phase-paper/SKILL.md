@@ -35,6 +35,12 @@ The loop runs section by section, strictly following the `neuroflow:worker-criti
 
 On the third rejection the loop halts. The orchestrator presents draft v3 and the unresolved critique to the user, appends the critique to `.neuroflow/paper/critic-log.md`, and asks whether to continue with the next section.
 
+**After each section verdict** (approved or halted), immediately — before moving to the next section:
+- Append a one-liner to `.neuroflow/sessions/YYYY-MM-DD.md` recording the section name, outcome, and iteration count
+- If any framing or scope decision was made, append it to `.neuroflow/reasoning/paper.json`
+
+Write session and reasoning entries immediately after each section verdict — if the session is interrupted, the record must already reflect completed work.
+
 ## Critic standards
 
 The `paper-critic` agent applies the FULL eight-area `neuroflow:review-neuro` methodology to every draft — including partial section drafts. The eight areas are:
