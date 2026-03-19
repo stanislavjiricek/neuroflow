@@ -81,4 +81,4 @@ Shows a visual phase map of the project — current phase, visited phases, recom
 
 5. Ask: "Do you want to switch to a different phase, or continue with the current one?"
 
-6. If the user picks a different phase, update `project_config.md` and `.claude/CLAUDE.md` with the new active phase, then suggest the corresponding command.
+6. If the user picks a different phase, update `project_config.md`, `.claude/CLAUDE.md`, and `.github/copilot-instructions.md` with the new active phase, then suggest the corresponding command.

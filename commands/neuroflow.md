@@ -14,6 +14,7 @@ writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
   - .neuroflow/integrations.json
   - .claude/CLAUDE.md
+  - .github/copilot-instructions.md
 ---
 
 # /neuroflow
@@ -402,11 +403,14 @@ Create this structure in the working directory:
 
 ---
 
-## Step 4 — Update .claude/CLAUDE.md
+## Step 4 — Update .claude/CLAUDE.md and .github/copilot-instructions.md
 
-Create or update `.claude/CLAUDE.md` in the **project root** (i.e. the user's current working directory, not `~/.claude/CLAUDE.md`). This local file travels with the repo and ensures every Claude session opened in this project folder automatically loads neuroflow context.
+Create or update **both** of the following files in the **project root** (i.e. the user's current working directory). These files travel with the repo so that every AI client session opened in this project folder automatically loads neuroflow context — regardless of which client the user opens it in.
 
-Append or update the following block:
+- `.claude/CLAUDE.md` — loaded automatically by Claude Code / Claude.ai when the folder is opened
+- `.github/copilot-instructions.md` — loaded automatically by GitHub Copilot (VS Code extension, Copilot CLI, and GitHub Copilot Chat) when working in the project
+
+**Both files must contain identical content.** Write or update the following block in each:
 
 ```markdown
 ## neuroflow
@@ -417,6 +421,8 @@ This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
 - Config: `.neuroflow/project_config.md`
 - Start any session by reading `project_config.md` and `flow.md` first.
 ```
+
+If `.github/copilot-instructions.md` already contains other project instructions, append the neuroflow block at the end (do not overwrite the whole file). If it already contains a neuroflow block, update the block in place. Identify the neuroflow block by the header line `## neuroflow` — the block runs from that header to the next `##`-level header (or end of file).
 
 If `~/.claude/CLAUDE.md` also exists, optionally add the block there too — but the **local** `.claude/CLAUDE.md` in the project root is required. Without it, Claude has no automatic project context when the folder is opened.
 
