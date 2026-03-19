@@ -75,7 +75,7 @@ flowchart LR
 | Command | What it does |
 |---|---|
 | [`/git`](git.md) | Context-aware git utility — smart push/pull, commit message generation, branch management, and PR creation with shorthand aliases |
-| [`/pipeline`](pipeline.md) | Define and run a multi-step research pipeline — interactive by default (pauses for approval between steps), or use `--nomistake` for brutal mode |
+| [`/pipeline`](pipeline.md) | Define and run a multi-step research pipeline — interactive by default (pauses for approval between steps), or use `--executor` for brutal mode |
 | [`/output`](output.md) | Export project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
 | [`/search`](search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase |
 | [`/interview`](interview.md) | Interview preparation from either side — generate tailored questions, run practice Q&A, evaluate readiness |

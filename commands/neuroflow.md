@@ -394,12 +394,12 @@ Then ask the personality mode question:
 Map the answer to a mode:
 | Answer | `default_mode` value |
 |---|---|
-| 1 | `snowflake` |
-| 2 | `nomistake` |
+| 1 | `teacher` |
+| 2 | `executor` |
 | 3 | `critic` |
 | Skip / Enter | — omit the key from `project_config.md` |
 
-Record the answer as `default_mode: snowflake` / `default_mode: nomistake` / `default_mode: critic` in `project_config.md`. If the user skips, do not write the key.
+Record the answer as `default_mode: teacher` / `default_mode: executor` / `default_mode: critic` in `project_config.md`. If the user skips, do not write the key.
 
 ---
 

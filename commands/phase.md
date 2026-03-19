@@ -22,7 +22,7 @@ Shows a visual phase map of the project — current phase, visited phases, recom
 1. Read `project_config.md` — extract:
    - `active_phase` (the current active phase)
    - `recommended_phases` (list suggested after the initial interview, if present)
-   - `default_mode` (personality mode: `snowflake`, `nomistake`, or `critic` — absent if not set)
+   - `default_mode` (personality mode: `teacher`, `executor`, or `critic` — absent if not set)
 
 2. Check which phase subfolders exist inside `.neuroflow/` — these are phases that have been worked on (a `.neuroflow/{phase}/` directory is present).
 
@@ -74,7 +74,7 @@ Shows a visual phase map of the project — current phase, visited phases, recom
    Below the phase map, print one line for the active personality mode:
 
    ```
-   Personality mode: 🧐 Teacher (snowflake)    [or ⚡ Executor (nomistake) / 🔍 Critic (critic)]
+   Personality mode: 🧐 Teacher (teacher)    [or ⚡ Executor (executor) / 🔍 Critic (critic)]
    ```
 
    If `default_mode` is absent from `project_config.md`, print: `Personality mode: not set (default: Executor — run /neuroflow to choose)`

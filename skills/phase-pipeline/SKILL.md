@@ -5,7 +5,7 @@ description: Phase guidance for the neuroflow /pipeline command. Loaded automati
 
 # phase-pipeline
 
-The `/pipeline` command orchestrates a sequence of neuroflow commands in order — either interactively (pause and confirm at each step) or in brutal mode (`--nomistake`, run straight through without stops).
+The `/pipeline` command orchestrates a sequence of neuroflow commands in order — either interactively (pause and confirm at each step) or in brutal mode (`--executor`, run straight through without stops).
 
 ## Approach
 
@@ -18,7 +18,7 @@ The `/pipeline` command orchestrates a sequence of neuroflow commands in order �
 
 ## Interactive vs brutal mode
 
-| Behaviour | Interactive | Brutal (`--nomistake`) |
+| Behaviour | Interactive | Brutal (`--executor`) |
 |---|---|---|
 | Pause between steps | ✅ Always | ❌ Never |
 | Ask where to stop | ✅ Yes (Step 3b) | ❌ No — all pending steps run |
@@ -70,7 +70,7 @@ The `pipeline-plan.md` file is the canonical record of what was planned and what
 ```markdown
 # Pipeline plan
 Generated: YYYY-MM-DD
-Mode: interactive | brutal (--nomistake)
+Mode: interactive | brutal (--executor)
 Stop after: /data-analyze | all the way through
 
 ## Steps
