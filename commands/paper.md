@@ -73,6 +73,10 @@ if REJECTED (3rd rejection) → halt loop for this section
                               ask user whether to continue with the next section or stop
 ```
 
+**After each section verdict — immediately, before moving to the next section:**
+- Append a one-liner to `.neuroflow/sessions/YYYY-MM-DD.md`: section name, verdict (`approved` / `halted at v3`), and iteration count
+- If any editorial or framing decision was made (target journal confirmed, scope narrowed, section order changed), append to `.neuroflow/reasoning/paper.json`
+
 ### Step 4 — Save approved sections only
 
 After each `[STATUS: APPROVED]` verdict, save the approved draft to `output_path` (default: `manuscript/`) — not inside `.neuroflow/`. Do not save a section until it is approved or the user explicitly accepts an unresolved draft.
@@ -86,5 +90,6 @@ Write loop state to `.neuroflow/paper/critic-log.md` after each iteration using 
 - Save approved section drafts to `output_path` (from `.neuroflow/paper/flow.md`, default: `manuscript/`) — not inside `.neuroflow/`
 - Update `.neuroflow/paper/flow.md`
 - Update `.neuroflow/paper/critic-log.md` with final loop outcome for each section
-- Append to `.neuroflow/sessions/YYYY-MM-DD.md` at each meaningful milestone (section approved, loop halted, draft saved)
+- Confirm that session entries were appended to `.neuroflow/sessions/YYYY-MM-DD.md` after each section verdict during the session — if any were missed, append them now
+- Confirm that any framing or scope decisions were written to `.neuroflow/reasoning/paper.json` as they occurred — if any were missed, append them now
 - Update `project_config.md` if phase changed

@@ -110,19 +110,21 @@ Every command must follow this order:
 4. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
 5. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
 
-**At end:**
-1. Write external outputs (code, results, figures, manuscripts) to `output_path` — not inside `.neuroflow/`
-2. Write at least one `.md` memory file to `.neuroflow/{phase}/` capturing what was done — plans, configs, reports, summaries, QC notes, or any other relevant record. Format is free; use whatever structure fits the content. Every `.md` file written to the subfolder must be listed in `.neuroflow/{phase}/flow.md`.
-3. Append to `.neuroflow/sessions/YYYY-MM-DD.md` — do this at **each meaningful milestone** during the session (new output file created, significant correction made, new tool or approach used), not only once at the start or end
-4. Write to `.neuroflow/reasoning/{phase}.json` at natural decision points **during** the session — not only at the end. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
+**During session — after each meaningful action:**
+1. Append to `.neuroflow/sessions/YYYY-MM-DD.md` at **each meaningful milestone as it happens** — a new output file created, a section approved, a significant correction made, a new tool or approach used. Do not accumulate these entries and write them only at the end of the session; if the session is interrupted the record must already reflect completed work.
+2. Write to `.neuroflow/reasoning/{phase}.json` at the moment a decision is made — not only at the end of the session. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
    - `"statement"` — what was decided (one clear sentence)
    - `"source"` — where the decision originated (e.g. `"command:paper | 2026-03-10"`)
    - `"reasoning"` — why this choice was made over alternatives
-5. Update `.neuroflow/{phase}/flow.md` **immediately** when each new file is created in the phase subfolder — treat it as a live index, not a one-time snapshot taken at the end
-6. Update `.neuroflow/flow.md` if new subfolders were created
-7. Update `.neuroflow/project_config.md` if the active phase changed
-8. Update `.claude/CLAUDE.md` **and** `.github/copilot-instructions.md` if the active phase changed — keep both files identical so the project context is available regardless of which AI client the user opens it in
-9. **Phase transition check:** if the outputs produced during this session clearly belong to a different (later) phase than the active phase in `project_config.md`, prompt the user: *"The work produced looks like [phase] outputs. Should I update the active phase in project_config.md?"* Do not silently leave the phase wrong.
+3. Update `.neuroflow/{phase}/flow.md` **immediately** when each new file is created in the phase subfolder — treat it as a live index, not a one-time snapshot taken at the end
+
+**At end:**
+1. Write external outputs (code, results, figures, manuscripts) to `output_path` — not inside `.neuroflow/`
+2. Write at least one `.md` memory file to `.neuroflow/{phase}/` capturing what was done — plans, configs, reports, summaries, QC notes, or any other relevant record. Format is free; use whatever structure fits the content. Every `.md` file written to the subfolder must be listed in `.neuroflow/{phase}/flow.md`.
+3. Update `.neuroflow/flow.md` if new subfolders were created
+4. Update `.neuroflow/project_config.md` if the active phase changed
+5. Update `.claude/CLAUDE.md` **and** `.github/copilot-instructions.md` if the active phase changed — keep both files identical so the project context is available regardless of which AI client the user opens it in
+6. **Phase transition check:** if the outputs produced during this session clearly belong to a different (later) phase than the active phase in `project_config.md`, prompt the user: *"The work produced looks like [phase] outputs. Should I update the active phase in project_config.md?"* Do not silently leave the phase wrong.
 
 **What counts as a significant decision:**
 - Analysis approach chosen (e.g. reference scheme, epoch length, statistical test)
@@ -152,8 +154,8 @@ Each phase skill declares its slash command in a `## Slash command` section. Use
 
 Run through these before closing any command:
 
-- [ ] Appended to `sessions/YYYY-MM-DD.md` at each meaningful milestone
-- [ ] Wrote decisions to `reasoning/{phase}.json` at natural decision points during the session
+- [ ] Appended to `sessions/YYYY-MM-DD.md` after **each** meaningful milestone as it occurred — not only once at the end
+- [ ] Wrote decisions to `reasoning/{phase}.json` at the moment each decision was made — not only once at the end
 - [ ] Updated `{phase}/flow.md` immediately as each new file was created
 - [ ] Updated root `flow.md` if new folders were created
 - [ ] Checked that active phase in `project_config.md` is still accurate — if not, asked user
