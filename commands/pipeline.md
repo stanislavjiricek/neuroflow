@@ -1,6 +1,6 @@
 ---
 name: pipeline
-description: Define and run a multi-step research pipeline across any sequence of neuroflow phases. Interactive by default — pauses between steps for approval. Pass --nomistake to run in brutal mode with no stops.
+description: Define and run a multi-step research pipeline across any sequence of neuroflow phases. Interactive by default — pauses between steps for approval. Pass --executor to run in brutal mode with no stops.
 phase: utility
 reads:
   - .neuroflow/project_config.md
@@ -22,7 +22,7 @@ Read the `neuroflow:phase-pipeline` skill first. Then follow the neuroflow-core 
 Defines a multi-step pipeline across any sequence of neuroflow commands — then runs them in order. Two modes:
 
 - **Interactive mode** (default) — pauses after each step, shows what was done, and asks for approval before moving to the next. The user can adjust, skip, or stop at any point.
-- **Brutal mode** (`--nomistake`) — runs the full pipeline from start to finish without pausing. Designed for experienced users who trust the plan and want maximum throughput.
+- **Brutal mode** (`--executor`) — runs the full pipeline from start to finish without pausing. Designed for experienced users who trust the plan and want maximum throughput.
 
 The pipeline can be built from:
 1. **What already exists** — reads `.neuroflow/` to infer which phases are done and what remains
@@ -33,9 +33,9 @@ The pipeline can be built from:
 
 ## Step 1 — Detect mode
 
-Check whether the user invoked with `--nomistake`:
+Check whether the user invoked with `--executor`:
 
-- If `--nomistake` is present → **brutal mode**. No pauses between steps. Confirm once at the start before executing.
+- If `--executor` is present → **brutal mode**. No pauses between steps. Confirm once at the start before executing.
 - Otherwise → **interactive mode**. Pause and confirm after each step.
 
 ---
@@ -131,7 +131,7 @@ How far would you like to run the pipeline?
 
 - If the user picks **a specific phase**: set that phase as the `stop_after` boundary. Execute only steps up to and including that phase. Phases after the boundary are shown as `[deferred]` in the plan and are not executed this run.
 - If the user picks **all the way through** (or there are only 1–2 steps in the plan): proceed with the full plan unchanged.
-- In **brutal mode** (`--nomistake`): skip this question and run all pending steps (the mode already implies full execution).
+- In **brutal mode** (`--executor`): skip this question and run all pending steps (the mode already implies full execution).
 
 ### Full-journey joke
 
@@ -155,7 +155,7 @@ Before running anything, write the confirmed plan to `.neuroflow/pipeline/pipeli
 ```markdown
 # Pipeline plan
 Generated: YYYY-MM-DD
-Mode: interactive | brutal (--nomistake)
+Mode: interactive | brutal (--executor)
 Stop after: /data-analyze | all the way through
 
 ## Steps
@@ -208,7 +208,7 @@ After each step completes:
 - Announce completion and confirm before moving to the next step:
   > ✅ `/[command]` complete. Moving to Step N+1: /[next-command]
 
-### Brutal mode (`--nomistake`)
+### Brutal mode (`--executor`)
 
 1. Print the full pipeline plan once, then confirm with the user:
    > "Running in brutal mode — no stops. I will execute all N steps in sequence. Last chance to cancel. Continue? (Y/n)"

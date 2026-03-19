@@ -69,8 +69,8 @@ The plugin supports three personality modes stored as `default_mode` in `project
 
 | Mode key | Name | Behaviour |
 |---|---|---|
-| `snowflake` | 🧐 Teacher | Explains each step, checks assumptions, waits for approval |
-| `nomistake` | ⚡ Executor | Acts immediately, self-critiques output |
+| `teacher` | 🧐 Teacher | Explains each step, checks assumptions, waits for approval |
+| `executor` | ⚡ Executor | Acts immediately, self-critiques output |
 | `critic` | 🔍 Critic | Interrogates assumptions, surfaces hard questions first |
 
 Set at `/neuroflow` setup. Shown at `/phase`. Overridden per-message via aliases.

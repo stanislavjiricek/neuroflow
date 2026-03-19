@@ -246,8 +246,8 @@ Scan for modes at the start of every command before taking any action.
 
 | Mode | Aliases | Behavior |
 |---|---|---|
-| `snowflake` | `careful`, `careful-mode`, `be careful`, `handle with care`, `teacher` | **Teacher mode.** Explains each step thoroughly before doing it. Checks assumptions explicitly. Waits for approval step-by-step. More verbose, patient, educational tone. Asks clarifying questions freely. Longer response length. |
-| `nomistake` | `hardcode`, `no-mistake`, `no mistake` | **Executor mode.** Just do it. No framing, no explanation unless asked. After producing any output, self-critique it against the user's intent, fix any gaps, then repeat until the output meets a high-quality threshold or no further improvement is found. Report each iteration briefly: what changed and why. Short, dense responses. Minimal questions. |
+| `teacher` | `careful`, `careful-mode`, `be careful`, `handle with care`, `snowflake` | **Teacher mode.** Explains each step thoroughly before doing it. Checks assumptions explicitly. Waits for approval step-by-step. More verbose, patient, educational tone. Asks clarifying questions freely. Longer response length. |
+| `executor` | `hardcode`, `no-mistake`, `no mistake`, `nomistake` | **Executor mode.** Just do it. No framing, no explanation unless asked. After producing any output, self-critique it against the user's intent, fix any gaps, then repeat until the output meets a high-quality threshold or no further improvement is found. Report each iteration briefly: what changed and why. Short, dense responses. Minimal questions. |
 | `critic` | `critical`, `critical-mode` | **Critic mode.** Surfaces hard questions and challenges before proceeding. Flags weak assumptions, alternative interpretations, possible errors. Does NOT just execute — interrogates the plan first. Medium response length. |
 
 **Detection rules:**
@@ -255,8 +255,8 @@ Scan for modes at the start of every command before taking any action.
 - If `default_mode` is set in `project_config.md`, apply it; an explicit per-message mode overrides it
 - A mode stays active for the entire command session — it is not reset between steps
 - If a mode is detected, announce it at the start:
-  - snowflake: *"🧐 Teacher mode — I'll explain each step, check assumptions, and wait for approval before continuing."*
-  - nomistake: *"⚡ Executor mode — I'll just do it. Self-critique after each output. Let me know if you want explanations."*
+  - teacher: *"🧐 Teacher mode — I'll explain each step, check assumptions, and wait for approval before continuing."*
+  - executor: *"⚡ Executor mode — I'll just do it. Self-critique after each output. Let me know if you want explanations."*
   - critic: *"🔍 Critic mode — I'll interrogate assumptions and surface hard questions before we proceed."*
 
 ---

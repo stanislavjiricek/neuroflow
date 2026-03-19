@@ -6,7 +6,7 @@ title: /pipeline
 
 **Define and run a multi-step research pipeline across any sequence of neuroflow phases.**
 
-`/pipeline` lets you plan and execute a sequence of neuroflow commands in order — either interactively (pauses for your approval between steps) or in brutal mode (`--nomistake`, runs straight through without stops).
+`/pipeline` lets you plan and execute a sequence of neuroflow commands in order — either interactively (pauses for your approval between steps) or in brutal mode (`--executor`, runs straight through without stops).
 
 ---
 
@@ -34,7 +34,7 @@ title: /pipeline
     Claude runs straight through all pending steps without stopping. Errors are logged and the pipeline continues. A full summary is shown at the end. The stop-point question is skipped — all pending steps run.
 
     ```
-    /neuroflow:pipeline --nomistake
+    /neuroflow:pipeline --executor
     ```
 
 ---
