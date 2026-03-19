@@ -46,7 +46,14 @@ Print the logo, version, tagline, and the selected one-liner together as one blo
 
 Check whether `.neuroflow/` exists in the current working directory.
 
-**If `.neuroflow/project_config.md` exists:**
+**If `.neuroflow/project_config.md` exists and `active_phase` is `setup`:**
+The setup was started but not completed. Print:
+```
+It looks like neuroflow setup was started but not finished. Let's complete it now.
+```
+Skip Step 0d (the folder already exists) and continue directly to Step 1 to run the interview.
+
+**If `.neuroflow/project_config.md` exists and `active_phase` is anything other than `setup`:**
 1. Read `project_config.md`
 2. Read `flow.md`
 3. Print a brief status: current phase(s), research question (if set), last session date (from `sessions/` folder)
@@ -105,7 +112,7 @@ When the user asks for a recommendation:
 8. If the user says skip: note it and continue without writing.
 
 **If `.neuroflow/` does not exist:**
-Continue to Step 1.
+Run Step 0d immediately, then continue to Step 1.
 
 ---
 
@@ -134,6 +141,72 @@ Integrations — Flowie: active | Hive: not connected | gws: ready
 ```
 
 Do not prompt the user to set anything up here. This is informational only.
+
+---
+
+## Step 0d — Scaffold .neuroflow/ immediately
+
+**Run this step as soon as Step 0 confirms `.neuroflow/` does not exist — before the interview, before any questions.**
+
+Create the following structure in the current working directory:
+
+```
+.neuroflow/
+├── project_config.md
+├── flow.md
+└── sessions/
+    └── .gitkeep
+└── reasoning/
+    ├── flow.md
+    └── general.json
+```
+
+**`project_config.md`** — write a minimal placeholder:
+
+```
+# Project config
+
+project_name: (setup in progress)
+active_phase: setup
+plugin_version: {version from plugin.json}
+auto_issue_reporting: no
+```
+
+**`flow.md`** — write the initial index:
+
+```
+| File / Folder | Description | Last changed |
+|---|---|---|
+| project_config.md | Project overview and current phase. | YYYY-MM-DD |
+| sessions/ | Daily session logs. | YYYY-MM-DD |
+| reasoning/ | Structured per-phase decision logs (JSON: statement, source, reasoning). | YYYY-MM-DD |
+```
+
+**`sessions/`** — create a `.gitkeep` file. Remind the user to add `sessions/` to `.gitignore`.
+
+**`reasoning/`** — create the folder with:
+- `general.json` — an empty JSON array (`[]`)
+- `flow.md` — minimal index with this content:
+
+```
+| File / Folder | Description | Last changed |
+|---|---|---|
+| general.json | Project-level decision log. | YYYY-MM-DD |
+```
+
+**`.claude/CLAUDE.md` and `.github/copilot-instructions.md`** — create or update both files in the project root with the neuroflow block (use `setup` as the active phase placeholder; this will be updated to the real phase in Step 4):
+
+```markdown
+## neuroflow
+
+This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
+
+- Active phase: setup
+- Config: `.neuroflow/project_config.md`
+- Start any session by reading `project_config.md` and `flow.md` first.
+```
+
+Do not wait for user input. Do not ask for confirmation. Create all files silently and continue immediately to Step 1.
 
 ---
 
@@ -347,7 +420,7 @@ Select only the phases that apply to this project and order them logically. For 
 - A project starting from hypothesis with a tool to build: `[ideation, experiment, tool-build, tool-validate, data, data-preprocess, data-analyze, paper]`
 - A grant-seeking early-stage project: `[ideation, preregistration, grant-proposal, experiment, data, data-analyze, paper]`
 
-Print the suggested sequence clearly before creating `.neuroflow/`:
+Print the suggested sequence clearly:
 
 ```
 Based on what you described, here is the expected phase sequence for this project:
@@ -367,37 +440,13 @@ Save the list as `recommended_phases` in `project_config.md` (a simple comma-sep
 
 ---
 
-## Step 3 — Create .neuroflow/
+## Step 3 — Update .neuroflow/ with full content
 
-Create this structure in the working directory:
+The `.neuroflow/` folder was already created in Step 0d. Now update it with the full content from the interview.
 
-```
-.neuroflow/
-├── project_config.md
-├── flow.md
-└── sessions/
-└── reasoning/
-    ├── flow.md
-    └── general.json
-```
+**`project_config.md`** — overwrite the placeholder with a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
 
-**`project_config.md`** — write a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b — see below), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
-
-**`flow.md`** — write the initial index with only the folders that actually exist:
-
-```
-| File / Folder | Description | Last changed |
-|---|---|---|
-| project_config.md | Project overview and current phase. | YYYY-MM-DD |
-| sessions/ | Daily session logs. | YYYY-MM-DD |
-| reasoning/ | Structured per-phase decision logs (JSON: statement, source, reasoning). | YYYY-MM-DD |
-```
-
-**`sessions/`** — create a `.gitkeep` file. Remind the user to add `sessions/` to `.gitignore`.
-
-**`reasoning/`** — create the folder with:
-- `general.json` — an empty JSON array (`[]`) for project-level decisions
-- `flow.md` — index of JSON files in this folder
+**`flow.md`** — update the index to reflect only the folders that actually exist (the structure is the same as what Step 0d wrote; update the `Last changed` dates).
 
 > **Do not create `decisions.md`** — this is a legacy artifact superseded by `reasoning/general.json`. Use `reasoning/general.json` for all project-level decision logging.
 
@@ -405,12 +454,14 @@ Create this structure in the working directory:
 
 ## Step 4 — Update .claude/CLAUDE.md and .github/copilot-instructions.md
 
-Create or update **both** of the following files in the **project root** (i.e. the user's current working directory). These files travel with the repo so that every AI client session opened in this project folder automatically loads neuroflow context — regardless of which client the user opens it in.
+Both files were already created with a placeholder phase (`setup`) in Step 0d. Now update them with the real active phase determined from the interview.
+
+Update **both** of the following files in the **project root** (i.e. the user's current working directory):
 
 - `.claude/CLAUDE.md` — loaded automatically by Claude Code / Claude.ai when the folder is opened
 - `.github/copilot-instructions.md` — loaded automatically by GitHub Copilot (VS Code extension, Copilot CLI, and GitHub Copilot Chat) when working in the project
 
-**Both files must contain identical content.** Write or update the following block in each:
+**Both files must contain identical content.** Update the neuroflow block in each to replace `Active phase: setup` with the real active phase:
 
 ```markdown
 ## neuroflow
