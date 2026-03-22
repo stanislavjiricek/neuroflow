@@ -6,6 +6,14 @@ title: Changelog
 
 ---
 
+## 0.2.7
+
+- **Grant-proposal overhaul** — interview-first workflow (10-question conversational interview, objectives saved to `.neuroflow/objectives.md`); inspiration map from previous grants (cross-reference table saved to `.neuroflow/grant-proposal/inspiration-map-[date].md`); optional panel research (WebFetch + WebSearch, panel profiles saved to `.neuroflow/grant-proposal/panels/`); objectives tracked as cornerstones throughout the session; `sequentialthinking` MCP invoked before Innovation and Approach sections
+- **Humanizer replaces stop-slop** — new `neuroflow:humanizer` skill: AI word blacklist, structural pattern removal, rhythm checks, register calibration, voice preservation; applied across `/grant-proposal`, `/paper`, `/poster`, `/write-report`; `stop-slop` skill removed
+- **Memory quality improvements** — sessions use `##` milestone headers (commands) + `- HH:MM [tool]` audit lines (hook); reasoning mandate raised to 3–5 decisions/session with mandatory trigger list; `objectives.md` added as a root file read at the start of every command; `@modelcontextprotocol/server-sequential-thinking` MCP server added; review output moved from `reviews/` to `.neuroflow/review/`
+
+---
+
 ## 0.2.6
 
 - **Scholar agent: download reporting fixes** — `.pdf`/`.txt` now correctly marked `⏭️ already downloaded`; `.md`-only stubs re-attempt download unless `reason: unavailable`; `✅ downloaded` gated on confirmed `.pdf`/`.txt` write; summary counter labelled `✅ [n] downloaded (PDF/text)` + new `⏭️ [n] unavailable (metadata cached)` bucket

@@ -29,9 +29,8 @@ Do not perform the review directly. Delegate entirely to `neuroflow:review-neuro
 
 ## Output
 
-- The referee report is saved to `reviews/review-[paper-title-slug]-[date].md` in the project directory
-- This folder is NOT inside `.neuroflow/` — it is a project-level output folder alongside `manuscript/`, `figures/`, etc.
-- A one-liner is appended to `.neuroflow/sessions/YYYY-MM-DD.md` — never paste the full review into the session log
+- The referee report is saved to `.neuroflow/review/review-[paper-title-slug]-[date].md` (inside `.neuroflow/`, as it is a personal work product, not a shareable deliverable)
+- A `##` milestone header is appended to `.neuroflow/sessions/YYYY-MM-DD.md` including the save path and the recommendation (ACCEPT/REJECT/MAJOR/MINOR) — never paste the full review into the session log
 
 ## Relevant skills
 

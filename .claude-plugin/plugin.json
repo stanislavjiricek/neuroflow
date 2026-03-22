@@ -1,6 +1,6 @@
 {
   "name": "neuroflow",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and other neuroscience modalities.",
   "author": {
     "name": "Stanislav Jiricek"
@@ -47,6 +47,10 @@
     "context7": {
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "sequentialthinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
     }
   }
 }

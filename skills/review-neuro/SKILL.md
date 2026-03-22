@@ -384,14 +384,14 @@ Literature source: [Zotero ({n} items) | Local library: .neuroflow/ideation/pape
 Present the full report to the user.
 
 **Immediately after presenting the report, save it automatically:**
-1. Write the full report to `reviews/review-[title-slug]-[date].md` in the project directory. Create the `reviews/` folder if it does not exist.
-2. Append a **single one-liner** to `.neuroflow/sessions/YYYY-MM-DD.md` — e.g.:
-   `- [review] Referee report for "[Paper title]" ([Journal]) saved to reviews/review-[title-slug]-[date].md`
+1. Write the full report to `.neuroflow/review/review-[title-slug]-[date].md`. Create `.neuroflow/review/` if it does not exist.
+2. Append a **`##` milestone header** to `.neuroflow/sessions/YYYY-MM-DD.md` — e.g.:
+   `## HH:MM — [review] Referee report for "[Paper title]" ([Journal]) saved to .neuroflow/review/review-[title-slug]-[date].md — STATUS: [recommendation]`
    Do **not** paste the review content into the session log.
 
 Then tell the user:
 
-> Review saved to `reviews/review-[title-slug]-[date].md`.
+> Review saved to `.neuroflow/review/review-[title-slug]-[date].md`.
 >
 > Would you like to:
 > - Expand any section in more detail

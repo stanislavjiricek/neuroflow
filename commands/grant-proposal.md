@@ -1,48 +1,101 @@
 ---
 name: grant-proposal
-description: Write a full grant application. Discovers ideation outputs automatically, accepts funding call documents or URLs, adapts to any funder (NIH, ERC, Wellcome, GAČR, etc.), and drafts section by section with word-count tracking.
+description: Write a full grant application. Starts with an interactive interview, discovers ideation outputs, accepts funding call documents or URLs, adapts to any funder (NIH, ERC, Wellcome, GAČR, etc.), and drafts section by section with word-count tracking.
 phase: grant-proposal
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - .neuroflow/ideation/           # all .md files discovered in Step 0
+  - .neuroflow/objectives.md         # read if exists — project objectives cornerstones
+  - .neuroflow/ideation/             # all .md files discovered in Step 0
   - .neuroflow/grant-proposal/flow.md
 writes:
   - .neuroflow/grant-proposal/
   - .neuroflow/grant-proposal/flow.md
+  - .neuroflow/objectives.md         # written/updated after interview confirms objectives
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
 # /grant-proposal
 
-Read the `neuroflow:phase-grant-proposal` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-grant-proposal` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `objectives.md` (if it exists) before starting.
 
-Apply `neuroflow:stop-slop` to every drafted section before saving — eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures from all prose.
+Apply `neuroflow:humanizer` to every drafted section before saving — strip AI signatures, fix rhythm, and calibrate register so the prose reads as genuinely human-authored.
 
----
-
-## Step 0 — Discover the research idea
-
-Before asking the user anything, do the following automatically:
-
-1. Check whether `.neuroflow/ideation/` exists and contains any `.md` files. List every file found.
-2. If files exist, read them and extract:
-   - The research question or hypothesis
-   - Target population / modality (EEG, fMRI, iEEG, eye-tracking, ECG, behaviour, etc.)
-   - Any preliminary data or pilot results mentioned
-   - Key references or literature already cited
-3. Summarise what you found in 3–5 bullet points and tell the user:
-   > "I found an existing ideation document. Here's what I'll build the proposal from: …"
-4. If no ideation files exist, ask the user:
-   - "What is the research question or hypothesis you want to build this grant around?"
-   - "Do you have any existing documents (protocol, ethics application, pilot report) you can share?"
-   - "Is there a URL to the funder's call for proposals I should read?"
-
-Never skip this step. Do not start drafting until the research idea is confirmed.
+Use `mcp__plugin_neuroflow_sequentialthinking__sequentialthinking` when structuring the logical argument for Innovation and Approach sections — invoke it before drafting those sections, not after.
 
 ---
 
-## Step 1 — Gather funder information
+## Step 0 — Interview the researcher
+
+**Before looking at any ideation files or funder documents, interview the user.** Ask questions one or two at a time — conversational, not a form dump. Build context progressively.
+
+Questions to work through (adapt based on what emerges):
+
+1. What is your core research question? (If `.neuroflow/ideation/` exists, read it first and offer a summary — ask "Is this still the right question?")
+2. What funder and scheme are you targeting? (Or: "Do you have the call URL or document?")
+3. What is your funding ceiling and duration?
+4. Do you have a deadline?
+5. What are your specific objectives or aims? (Ask for 3–4 concrete, verb-led statements)
+6. What preliminary data do you have?
+7. What makes your approach novel — what do you do that current methods don't?
+8. Who is your team and what is each person's role?
+9. Are there any constraints I should know about? (Ethics approval, required partnerships, budget items already committed)
+10. Do you have any previous grant applications I can use as structural inspiration?
+
+After the interview, save the answers to `.neuroflow/grant-proposal/interview-[funder]-[date].md`.
+
+**Write the objectives to `.neuroflow/objectives.md`** (create or overwrite) — one numbered sentence per objective. These are the cornerstones for the rest of the session.
+
+**Offer panel research (optional):** "Would you like me to research the review panel for [funder] and suggest where to submit? (Requires the panel listing URL)"
+
+If yes → run Step 0b. If no → proceed to Step 1.
+
+---
+
+## Step 0b — Panel research (optional)
+
+If the user agrees to panel research:
+
+1. Ask for the panel listing URL (funder website)
+2. Use WebFetch to retrieve the panel listing
+3. For each panel/reviewer found: use WebSearch to research their background (2–3 key papers, methodological themes, primary research area)
+4. Build a panel profile table:
+
+```
+| Panel name | Member | Research background | Relevance to your project |
+|---|---|---|---|
+| [Panel A] | [Name] | [methods, topics] | [high/medium/low — one sentence] |
+```
+
+5. Suggest the top 2–3 panels with a rationale sentence for each
+6. Save to `.neuroflow/grant-proposal/panels/panel-analysis-[funder]-[date].md`
+7. Note which panels are most relevant — use their terminology and methodological priorities when drafting the proposal
+
+---
+
+## Step 1 — Build inspiration map (if previous grants provided)
+
+If the user provided previous grant applications in the interview:
+
+1. Read each provided grant document
+2. Map its sections to the new grant's sections — build a cross-reference table:
+
+```
+| New grant section        | Previous grant A           | Previous grant B           |
+|--------------------------|----------------------------|----------------------------|
+| Specific Aims            | Section 1 (pp. 1–2)        | Introduction (pp. 1–3)     |
+| Background & Significance| Literature Review (pp. 3–6) | Background (pp. 2–5)       |
+| Innovation               | Novelty section (p. 7)     | Not present                |
+| Approach                 | Methods (pp. 8–14)         | Research Plan (pp. 6–12)   |
+| Budget                   | Budget justification (p. 15)| Budget narrative (pp. 13–14)|
+```
+
+3. Save to `.neuroflow/grant-proposal/inspiration-map-[date].md`
+4. When drafting each section, explicitly reference the corresponding inspiration section — pull framing, structure, and language from it (not content — just patterns and approach)
+
+---
+
+## Step 2 — Gather funder information
 
 Ask the user (or infer from pasted text / URL):
 
@@ -60,18 +113,41 @@ Ask the user (or infer from pasted text / URL):
 
 If the user provides a URL to the funding call, read it (via WebFetch or browser tool) and extract all of the above automatically.
 
-If the user provides a PDF or pasted text from the call, parse it and extract the same fields.
-
-Report what you found:
-> "Target funder: NIH R01. Direct costs up to $500K/year for 5 years. Required sections: Specific Aims (1 page), Research Strategy (12 pages: Significance, Innovation, Approach), Human Subjects, Bibliography. Review criteria: Significance, Investigators, Innovation, Approach, Environment. Deadline: Feb 5."
-
-Ask the user to confirm or correct before proceeding.
+Report what you found and ask the user to confirm before proceeding.
 
 ---
 
-## Step 2 — Build a proposal outline
+## Step 3 — Confirm the brief
 
-Based on the funder requirements and the research idea, produce a structured outline:
+Display a full confirmation block before drafting:
+
+```
+Grant brief — please confirm before I start drafting:
+
+• Research question: [from interview or ideation]
+• Funder / Scheme: [name]
+• Budget: [ceiling]
+• Duration: [years]
+• Deadline: [date]
+• Objectives:
+  1. [objective 1]
+  2. [objective 2]
+  3. [objective 3]
+• Sections to draft: [list with page/word limits]
+• Review criteria: [list]
+• Inspiration grants: [list, or "none"]
+• Panel target: [panel name, or "not researched"]
+
+Type "confirmed" to proceed, or correct any item.
+```
+
+Do not draft until confirmed.
+
+---
+
+## Step 4 — Build a proposal outline
+
+Based on the funder requirements and the research idea:
 
 ```
 Proposal outline — [Funder] [Scheme] — [Short title]
@@ -85,7 +161,7 @@ Proposal outline — [Funder] [Scheme] — [Short title]
    4c. Stimuli / Paradigm / Apparatus
    4d. Data acquisition and preprocessing
    4e. Analysis plan
-   4f. Expected outcomes
+   4f. Expected outcomes and timelines
    4g. Potential limitations and alternatives
 5. Budget and justification                 [X pages]
 6. Timeline                                 [X pages / Gantt chart]
@@ -93,104 +169,85 @@ Proposal outline — [Funder] [Scheme] — [Short title]
 8. References / Bibliography
 ```
 
-Adapt section names and page limits to the actual funder. Show page budgets and word counts next to each section. Ask the user to approve the outline before writing.
+Adapt to the actual funder. Ask the user to approve the outline.
 
 ---
 
-## Step 3 — Draft section by section
+## Step 5 — Draft section by section
 
-Work through sections in order. For each section:
+Work through sections in order. **Before each major section, re-read `objectives.md` and confirm all objectives are represented.** For each section:
 
 1. State the section name, page limit, and review criteria that apply to it
-2. Draft the section content
-3. Show word count at the bottom: `Word count: NNN / NNN limit`
-4. After each section, ask:
-   - `"revise"` — iterate on the current section
-   - `"next"` — proceed to the next section
-   - `"save"` — write to file and continue
-   - `"expand [topic]"` — add more depth to a specific part
+2. If an inspiration map exists: note which inspiration section corresponds to this one
+3. Draft the section content
+4. Show word count: `Word count: NNN / NNN limit`
+5. After drafting, ask:
+   - `"revise"` — iterate
+   - `"next"` — proceed
+   - `"save"` — write to file
+   - `"expand [topic]"` — add more depth
 
 ### Section-specific guidance
 
 **Specific Aims / Project Summary**
 - Hook: state the gap, significance, and impact in sentence 1
-- 3–5 aims, each with a clear verb (characterize, determine, test, develop, validate)
+- List all objectives with a clear verb (characterize, determine, test, develop, validate)
 - End with expected outcomes and long-term impact
-- This page is read first by all reviewers — make every sentence count
 
 **Background and Significance**
-- State of the art: what is known, what is not known
-- Frame the gap in terms the funder cares about (disease burden, scientific opportunity, methodological advance)
-- Cite recent and landmark literature
-- End with a crisp statement of why your study will change the field
+- State of the art: what is known, what is not
+- Frame the gap in terms the funder cares about
+- End with a crisp statement of why your study changes the field
 
 **Innovation**
 - Lead with the strongest novel element
-- Contrast explicitly with existing approaches: "Unlike X, our approach does Y because Z"
-- Novelty can be: question, population, method, analysis, technology, or application
-- Avoid overstating — reviewers will penalize unjustified novelty claims
+- Contrast with existing approaches: "Unlike X, our approach does Y because Z"
+- Use `sequentialthinking` to structure the logical chain before drafting
 
 **Approach**
-- Describe each aim's methods with enough detail for an expert reviewer to evaluate feasibility
-- For neuroscience grants: specify modality, preprocessing pipeline, statistical model, sample size justification (power analysis)
-- Address limitations proactively; propose alternatives for each potential failure mode
-- Include a Gantt chart or milestone table
+- Cover each objective explicitly — verify none are missing
+- For neuroscience grants: modality, preprocessing pipeline, statistical model, power analysis
+- Address limitations proactively; propose concrete alternatives
+- Use `sequentialthinking` to build the logical argument chain before drafting
 
 **Budget**
-- Ask the user for: number of personnel (FTE), equipment list, consumables, travel, indirect costs rate
-- Produce a year-by-year table with justification prose for each line
-- Flag any items likely to trigger reviewer scrutiny (e.g. large equipment, international travel)
+- Ask for: personnel (FTE), equipment, consumables, travel, indirect costs rate
+- Year-by-year table with justification prose for each line
 
 **Timeline**
-- Map all aims and key milestones to quarters or months
-- Show dependencies (Aim 2 starts after Aim 1 data collection is complete)
-- Include manuscript submission and dissemination milestones
+- Map all objectives to quarters or months
+- Show dependencies between objectives
 
 **Team and Environment**
-- List PI and co-investigators with 1–2 sentence role descriptions
-- Highlight relevant expertise and track record (papers, prior grants, preliminary data)
-- Describe institutional resources: scanners, clusters, core facilities, collaborator networks
+- PI and co-investigators with role descriptions
+- Institutional resources: scanners, clusters, core facilities
 
 ---
 
-## Step 4 — Quality checks before saving
+## Step 6 — Quality checks before saving
 
-Before saving, run through:
+Before saving, verify:
 
-- [ ] Every aim has a measurable outcome
+- [ ] Every objective has a measurable outcome — and all N objectives appear in both Aims AND Methodology
 - [ ] All methods are feasible within the budget and timeline
-- [ ] Limitations and alternatives are addressed for each aim
-- [ ] Word / page counts are within limits for all sections
-- [ ] Funder's review criteria are explicitly addressed
-- [ ] Preliminary data supports feasibility (if required by funder)
-- [ ] References are formatted in funder-required style
+- [ ] Power analysis present
+- [ ] Limitations and alternatives addressed for each objective
+- [ ] Word / page counts within limits for all sections
+- [ ] Funder review criteria explicitly addressed in text
+- [ ] Panel terminology reflected in framing (if panel research was done)
+- [ ] Preliminary data supports feasibility
+- [ ] References formatted in funder-required style
 - [ ] Budget arithmetic is correct
 
 Report the checklist to the user and fix any issues before saving.
 
 ---
 
-## Step 5 — Save and update memory
+## Step 7 — Save and update memory
 
-Save the completed grant document:
-- Filename: `grant-[funder]-[date].md` in `.neuroflow/grant-proposal/`
+Save the completed grant document to `.neuroflow/grant-proposal/grant-[funder]-[date].md`.
 
-Update `.neuroflow/grant-proposal/flow.md` with:
-```
-# Grant proposal flow
-
-- Funder: [name]
-- Scheme: [name]
-- Budget: [amount]
-- Deadline: [date]
-- Sections drafted: [list]
-- Draft file: grant-[funder]-[date].md
-- Last updated: [date]
-```
-
-Append to `.neuroflow/sessions/YYYY-MM-DD.md`.
-
-Update `project_config.md` with funder, scheme, and deadline if not already present — confirm with the user first.
+Update `.neuroflow/grant-proposal/flow.md`. Append `##` milestone to `.neuroflow/sessions/YYYY-MM-DD.md`. Update `project_config.md` with funder, scheme, and deadline if not already present — confirm with the user first.
 
 ---
 

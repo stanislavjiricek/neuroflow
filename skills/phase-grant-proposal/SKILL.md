@@ -13,27 +13,99 @@ The grant-proposal phase translates a defined research question into a competiti
 
 Before drafting anything, verify:
 
-- [ ] Ideation output discovered (`.neuroflow/ideation/`) **or** research question confirmed with user
+- [ ] Researcher interview complete — answers saved to `interview-[funder]-[date].md`
+- [ ] Objectives written to `.neuroflow/objectives.md` (one numbered sentence per objective)
+- [ ] Ideation output discovered OR research question confirmed with user
 - [ ] Funder and scheme identified
 - [ ] Page/word limits per section confirmed
 - [ ] Review criteria retrieved (from funder website or call document)
 - [ ] Deadline confirmed and logged
 
-Never skip the discovery step. A grant without a clear research question is not draftable.
+Never skip the interview. Never draft without confirmed objectives.
+
+---
+
+## Interview protocol
+
+Ask questions one or two at a time — conversational, not a form. Build context progressively.
+
+Required questions:
+1. Core research question (offer ideation summary if `.neuroflow/ideation/` exists)
+2. Funder and scheme (or URL to the call)
+3. Budget ceiling and duration
+4. Deadline
+5. **Specific objectives or aims** — ask for 3–4 verb-led statements; these are the cornerstones
+6. Preliminary data — what exists and how strong is the feasibility case?
+7. Novelty — what does this do that current methods don't?
+8. Team — PI and co-investigators with roles
+9. Constraints — ethics status, required partnerships, pre-committed budget items
+10. Previous grants for inspiration — if provided, build an inspiration map
+
+After the interview:
+- Save to `.neuroflow/grant-proposal/interview-[funder]-[date].md`
+- Write objectives to `.neuroflow/objectives.md` (create or update)
+
+---
+
+## Objectives tracking
+
+Objectives in `.neuroflow/objectives.md` are cornerstones for the entire grant. Rules:
+
+1. **Re-read `objectives.md` before drafting every section**
+2. For the Approach/Methodology section: verify all N objectives appear explicitly — flag any missing
+3. For the quality checklist: verify all N objectives appear in both Aims AND Methodology
+4. If the user adds or changes an objective mid-session: update `objectives.md` immediately and note the change in `reasoning/grant-proposal.json`
+
+---
+
+## Panel research protocol
+
+When the user agrees to panel research:
+
+1. Ask for the panel listing URL
+2. Fetch the page (WebFetch)
+3. For each panel member found: search their background (WebSearch — 2–3 key papers, primary topics, methodological focus)
+4. Build a panel profile table:
+   `| Panel name | Member | Research background | Relevance to project |`
+5. Suggest top 2–3 panels with rationale (one sentence each)
+6. Save to `.neuroflow/grant-proposal/panels/panel-analysis-[funder]-[date].md`
+7. Use the preferred panel's terminology and methodological frame throughout the proposal — reviewers respond to language that mirrors their own thinking
+
+---
+
+## Inspiration map protocol
+
+When the user provides previous grant documents:
+
+1. Read each document in full
+2. Build a cross-reference table:
+
+```
+| New grant section   | Grant A              | Grant B              |
+|---------------------|----------------------|----------------------|
+| Specific Aims       | Sec 1 (pp. 1–2)      | Introduction (pp. 1–3)|
+| Background          | Lit Review (pp. 3–6) | Background (pp. 2–5) |
+| Innovation          | Novelty (p. 7)       | Not present          |
+| Approach            | Methods (pp. 8–14)   | Research Plan (pp. 6–12)|
+| Budget              | Budget (pp. 15–16)   | Budget narrative (p.13)|
+```
+
+3. Save to `.neuroflow/grant-proposal/inspiration-map-[date].md`
+4. Before drafting each section: reference the corresponding inspiration entry — adopt the structural approach and framing style while producing original content
+5. When inspiration sections contain strong language or argument patterns: note them explicitly in the draft as structural guides
 
 ---
 
 ## Ideation discovery protocol
 
-1. List all `.md` files in `.neuroflow/ideation/`
-2. Read each file and extract:
-   - Research question / hypothesis
-   - Target modality (EEG, iEEG, fMRI, eye-tracking, ECG, behaviour)
-   - Study population / participant criteria
-   - Preliminary data or pilot results
-   - Key references already identified
-3. Present a 3–5 bullet summary to the user
-4. If no ideation files exist: ask the user for the research question, any existing documents, or a URL to the funder call
+If ideation files exist (`.neuroflow/ideation/*.md`):
+
+1. List all files
+2. Read each and extract: research question, modality, population, preliminary data, key references
+3. Present a 3–5 bullet summary during the interview
+4. Ask: "Is this still the right question to build the grant around?"
+
+If no ideation files exist: the interview questions cover everything needed.
 
 ---
 
@@ -155,12 +227,19 @@ Use this mapping to ensure reviewer criteria are explicitly addressed in the tex
 ### Reads from
 - `.neuroflow/ideation/` — research question, literature, study design drafts
 - `.neuroflow/project_config.md` — team, institution, phase, modality
+- `.neuroflow/objectives.md` — project objectives cornerstones (re-read before every section)
 - `.neuroflow/grant-proposal/flow.md` — prior grant context if resuming
+- Previous grant documents (provided by user) — for inspiration map
 
 ### Writes to
-- `.neuroflow/grant-proposal/grant-[funder]-[date].md` — full draft
+- `.neuroflow/objectives.md` — written/updated after interview confirms objectives
+- `.neuroflow/grant-proposal/interview-[funder]-[date].md` — interview transcript
+- `.neuroflow/grant-proposal/inspiration-map-[date].md` — cross-reference table (if previous grants provided)
+- `.neuroflow/grant-proposal/panels/panel-analysis-[funder]-[date].md` — panel profiles (if panel research done)
+- `.neuroflow/grant-proposal/draft-[funder]-[date]-[section].md` — per-section drafts
+- `.neuroflow/grant-proposal/grant-[funder]-[date].md` — full consolidated draft
 - `.neuroflow/grant-proposal/flow.md` — funder, scheme, deadline, section status
-- `.neuroflow/sessions/YYYY-MM-DD.md` — session log
+- `.neuroflow/sessions/YYYY-MM-DD.md` — session log (using `##` milestone headers)
 - `project_config.md` — funder and deadline (with user confirmation)
 
 ### Connects to
@@ -199,7 +278,8 @@ After each section, offer:
 - `neuroflow:phase-ideation` — if user needs to define the research question first
 - `neuroflow:phase-experiment` — paradigm design details for the Approach section
 - `neuroflow:phase-preregistration` — link registered analysis plan
-- `neuroflow:stop-slop` — apply to every drafted section to eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures before saving
+- `neuroflow:humanizer` — apply to every drafted section to strip AI signatures, fix rhythm, and calibrate register so the prose reads as genuinely human-authored
+- `sequentialthinking` MCP — invoke before drafting Innovation and Approach sections to build a rigorous logical argument chain
 
 ## Slash command
 

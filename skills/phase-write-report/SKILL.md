@@ -16,7 +16,7 @@ The write-report phase generates a structured report from `.neuroflow/` contents
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
-- `neuroflow:stop-slop` — apply to drafted report text to eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures
+- `neuroflow:humanizer` — apply to drafted report text to strip AI signatures, fix rhythm, and calibrate register
 
 ## Workflow hints
 
