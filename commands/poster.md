@@ -19,7 +19,7 @@ writes:
 
 Generate a publication-ready academic conference poster as a LaTeX `.tex` file from the project's `.neuroflow/` memory. The poster goes through an iterative critic loop (up to 3 revision cycles) before final output.
 
-Apply `neuroflow:stop-slop` to all text blocks (Introduction, Methods, Results, Discussion, Conclusions) before passing the poster to the critic — eliminate AI writing patterns, filler phrases, passive voice, and formulaic structures.
+Apply `neuroflow:humanizer` to all text blocks (Introduction, Methods, Results, Discussion, Conclusions) before passing the poster to the critic — strip AI signatures, fix rhythm, and calibrate register.
 
 ---
 

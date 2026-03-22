@@ -19,6 +19,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 |---|---|
 | `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
+| `objectives.md` | Project objectives/aims — one numbered sentence per objective. Cross-phase cornerstone: **read at the start of every command** (if it exists), keep objectives in context throughout the session, and explicitly check coverage before saving any major section. Written during `/grant-proposal` interview or `/ideation`. |
 | `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |
 | `sentinel.md` | Sentinel's last audit report. If all clear: last run date + "all clear". |
 | `team.md` | Project members, roles, contacts. |
@@ -94,8 +95,8 @@ Default output paths (used when the repo has no existing structure):
 | `data-preprocess` | `scripts/preprocessing/` |
 | `data-analyze` | `scripts/analysis/` (code) + `results/` (outputs) + `figures/` |
 | `paper` | `manuscript/` |
-| `review` | `reviews/` |
-| `grant-proposal` | `grant/` |
+| `review` | `.neuroflow/review/` |
+| `grant-proposal` | `.neuroflow/grant-proposal/` |
 
 ---
 
@@ -106,16 +107,31 @@ Every command must follow this order:
 **At start:**
 1. Read `.neuroflow/project_config.md`
 2. Read `.neuroflow/flow.md`
-3. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
-4. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
-5. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
+3. **If `.neuroflow/objectives.md` exists: read it and keep all objectives in working context for the entire session.** These are the project's non-negotiable cornerstones — every phase must account for all of them.
+4. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
+5. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
+6. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
 
 **During session — after each meaningful action:**
-1. Append to `.neuroflow/sessions/YYYY-MM-DD.md` at **each meaningful milestone as it happens** — a new output file created, a section approved, a significant correction made, a new tool or approach used. Do not accumulate these entries and write them only at the end of the session; if the session is interrupted the record must already reflect completed work.
-2. Write to `.neuroflow/reasoning/{phase}.json` at the moment a decision is made — not only at the end of the session. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
+1. Append to `.neuroflow/sessions/YYYY-MM-DD.md` using these two formats:
+   - **Milestone header** (written by the command at each meaningful step): `## HH:MM — [phase] description of what was accomplished` — e.g. `## 10:51 — [review] Referee report complete: REJECTED. Saved to .neuroflow/review/review-alpha-netneurosci-2026-03-22.md`
+   - **Tool-use entries** (written automatically by the hook): `- HH:MM [tool]` — leave these as-is; they are the audit trail
+   - Every command must write at least one `##` milestone line at start (`## HH:MM — [phase] session started`) and one at completion. Phase commands write a `##` milestone after each major deliverable (section drafted, paper saved, review complete, analysis run, etc.).
+   - Do not accumulate entries and write them only at the end. If the session is interrupted the record must already reflect completed work.
+2. Write to `.neuroflow/reasoning/{phase}.json` **at the moment each decision is made** — not only at the end. Save **at least 3–5 decisions per session**. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
    - `"statement"` — what was decided (one clear sentence)
    - `"source"` — where the decision originated (e.g. `"command:paper | 2026-03-10"`)
    - `"reasoning"` — why this choice was made over alternatives
+
+   **Mandatory triggers — never skip reasoning when:**
+   - The research question, hypothesis, or objectives change
+   - A method, tool, library, or approach is selected (name what was considered and rejected)
+   - A funder, journal, or submission target is chosen
+   - A section structure or outline is approved
+   - A quality check passes or fails
+   - The user explicitly flags something as a decision ("I chose X because…")
+   - A deviation from a pre-registered plan occurs
+   - A phase change or scope change is made
 3. Update `.neuroflow/{phase}/flow.md` **immediately** when each new file is created in the phase subfolder — treat it as a live index, not a one-time snapshot taken at the end
 
 **At end:**
@@ -138,6 +154,24 @@ Do not log routine actions (saving files, running scripts, fixing bugs) — only
 
 ---
 
+## Sequential thinking — when to use it
+
+The `sequentialthinking` MCP tool (tool name: `mcp__plugin_neuroflow_sequentialthinking__sequentialthinking`) provides structured multi-step reasoning: problem decomposition, hypothesis analysis, argument validation, and logical chains. It significantly improves precision on complex reasoning tasks.
+
+**Use it at these moments — do not skip:**
+
+| Phase | When to invoke |
+|---|---|
+| `ideation` | Formalising a hypothesis; choosing between competing interpretations of a finding |
+| `grant-proposal` | Structuring the logical argument for Innovation or Approach sections; checking that aims logically follow from the stated gap |
+| `review` | Evaluating whether an author's causal claim follows from their evidence; deciding major vs minor revision category |
+| `data-analyze` | Interpreting unexpected or null results; choosing between statistical models |
+| `paper` | Constructing the Discussion argument chain; deciding which alternative interpretation to address first |
+
+Call the tool before writing the relevant content — not after. The goal is to think before producing, not to validate after.
+
+---
+
 ## When a skill is invoked without a slash command
 
 If a phase skill is invoked by Claude directly — without the user running the corresponding slash command — run the full workflow as normal. Apply the full command lifecycle (read `project_config.md`, write to `.neuroflow/{phase}/`, update `flow.md`, log to `sessions/`, etc.).
@@ -154,8 +188,9 @@ Each phase skill declares its slash command in a `## Slash command` section. Use
 
 Run through these before closing any command:
 
-- [ ] Appended to `sessions/YYYY-MM-DD.md` after **each** meaningful milestone as it occurred — not only once at the end
-- [ ] Wrote decisions to `reasoning/{phase}.json` at the moment each decision was made — not only once at the end
+- [ ] Appended `##` milestone headers to `sessions/YYYY-MM-DD.md` after each meaningful milestone — not only once at the end
+- [ ] Wrote **at least 3–5 decisions** to `reasoning/{phase}.json` at the moment each decision was made — not only once at the end
+- [ ] If `objectives.md` exists: verified that all objectives are accounted for in the work produced this session (none forgotten)
 - [ ] Updated `{phase}/flow.md` immediately as each new file was created
 - [ ] Updated root `flow.md` if new folders were created
 - [ ] Checked that active phase in `project_config.md` is still accurate — if not, asked user
@@ -275,6 +310,7 @@ phase: <phase-name>        # matches command name, or "utility" for /sentinel an
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
+  - .neuroflow/objectives.md      # read if exists — project objectives/aims cornerstones
   - .neuroflow/fails/core.md      # read if exists — past behavior problems
   - .neuroflow/fails/science.md   # read if exists — past science quality problems
   - .neuroflow/fails/ux.md        # read if exists — past UX problems
