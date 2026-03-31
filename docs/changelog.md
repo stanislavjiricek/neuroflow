@@ -8,8 +8,8 @@ title: Changelog
 
 ## `setup` skill + e-INFRA CC integration
 
-- **New [`neuroflow:setup`](../../skills/setup/SKILL.md) skill** — agent-facing knowledge for all neuroflow integrations (PubMed, Miro, Google Workspace, custom LLM providers); mirrors the `/setup` wizard logic so agents can guide credential setup without running the command
-- **New e-INFRA CC integration** — [`einfra-cc` reference](../../skills/setup/references/einfra-cc.md) documents the Czech e-INFRA CZ free LLM API for Claude Code; covers direct mode, proxy mode (with [`proxy.mjs`](../../skills/setup/scripts/proxy.mjs) script), available models table, and full terminal workflow; available to Czech academic researchers via Metacentrum membership only
+- **New [`neuroflow:setup`](skills/setup/SKILL.md) skill** — agent-facing knowledge for all neuroflow integrations (PubMed, Miro, Google Workspace, custom LLM providers); mirrors the `/setup` wizard logic so agents can guide credential setup without running the command
+- **New e-INFRA CC integration** — [`einfra-cc` reference](skills/setup/references/einfra-cc.md) documents the Czech e-INFRA CZ free LLM API for Claude Code; covers direct mode, proxy mode (with `proxy.mjs` script), available models table, and full terminal workflow; available to Czech academic researchers via Metacentrum membership only
 - **`/setup` Step 5** — new optional custom LLM provider wizard; saves non-secret settings to `integrations.json` and optionally to the linked flowie profile for cross-machine sync; e-INFRA is documented as the Czech-specific example
 
 ---
