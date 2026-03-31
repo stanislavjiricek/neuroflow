@@ -1,9 +1,10 @@
 ---
 name: setup
-description: Interactive credential wizard for neuroflow MCP integrations. Checks PubMed, Miro, and Google Workspace CLI credentials, prompts for missing values, and saves them to .neuroflow/integrations.json.
+description: Interactive credential wizard for neuroflow MCP integrations. Checks PubMed, Miro, Google Workspace CLI credentials, and custom LLM provider settings, prompts for missing values, and saves them to .neuroflow/integrations.json.
 phase: utility
 reads:
   - .neuroflow/integrations.json
+  - .neuroflow/flowie/sync.json
 writes:
   - .neuroflow/integrations.json
 ---
@@ -33,6 +34,7 @@ Miro                     ✅ configured  (or ❌ not configured)
 Context7                 ✅ no credentials needed
 Google Workspace CLI     ✅ installed  (or ❌ not installed)
   └─ OAuth credentials   ✅ configured  (or ❌ not configured)
+Custom LLM               ✅ configured (provider: einfra)  (or ❌ not configured)
 ```
 
 ---
@@ -169,7 +171,70 @@ This opens the browser for OAuth consent automatically. On success, `gws auth st
 
 ---
 
-## Step 5 — Save and confirm
+## Step 5 — Custom LLM provider (optional)
+
+This step is **optional**. If the user presses Enter or types "skip" / "s", skip to Step 6.
+
+**Check existing configuration:**
+If `custom_llm` already exists in `integrations.json`, ask:
+> "Custom LLM is already configured (provider: {provider}, model: {model}). Update it? (y/N)"
+If no, skip to Step 6.
+
+**If not configured (or user wants to update), ask:**
+> "Do you want to configure a custom LLM provider for Claude Code? This lets you use alternative LLM APIs instead of Anthropic's API. (y/N)"
+
+If no / Enter, skip to Step 6.
+
+**Note:** e-INFRA CZ (`https://llm.ai.e-infra.cz`) is available to Czech academic researchers via Metacentrum/e-INFRA CZ membership (https://metavo.metacentrum.cz). For other providers, enter your own base URL.
+
+**If yes, collect the following:**
+
+1. "Enter the provider name (e.g. einfra, openai-compat, other):"
+2. "Enter the API base URL (e.g. https://llm.ai.e-infra.cz/v1 for e-INFRA):"
+3. "Enter your API key for this provider:"
+4. "Enter preferred model name (or press Enter to skip):"
+5. "If using proxy mode: enter proxy port (default 3456, or press Enter to skip):"
+
+If the user mentions **e-INFRA** or **Czech** at any point during this step, surface the `neuroflow:setup` skill and direct them to `skills/setup/references/einfra-cc.md` for detailed instructions including the proxy mode terminal workflow.
+
+**Save:**
+- Non-secrets (`provider`, `base_url`, `model`, `proxy_port`) and the `api_key` all go to `.neuroflow/integrations.json` under `custom_llm`:
+
+```json
+"custom_llm": {
+  "provider": "einfra",
+  "base_url": "https://llm.ai.e-infra.cz/v1",
+  "api_key": "<YOUR_API_KEY>",
+  "model": "qwen3.5-122b",
+  "proxy_port": 3456
+}
+```
+
+- `api_key` is always local-only (gitignored). Never sync it.
+- If flowie is linked (check `.neuroflow/flowie/sync.json` exists): write non-secrets (`provider`, `base_url`, `model`, `proxy_port` — **never `api_key`**) to `.neuroflow/flowie/integrations.json` using this schema:
+
+  ```json
+  {
+    "custom_llm": {
+      "provider": "einfra",
+      "base_url": "https://llm.ai.e-infra.cz/v1",
+      "model": "qwen3.5-122b",
+      "proxy_port": 3456
+    }
+  }
+  ```
+
+  Then commit and push:
+
+  ```bash
+  git -C .neuroflow/flowie add integrations.json && git -C .neuroflow/flowie commit -m "sync: custom_llm settings" && git -C .neuroflow/flowie push || true
+  ```
+
+  Tell the user: "Synced custom LLM settings (no API key) to your flowie profile."
+
+---
+
+## Step 6 — Save and confirm
 
 **If any credentials were entered:**
 
@@ -188,6 +253,13 @@ This opens the browser for OAuth consent automatically. On success, `gws auth st
     "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE": "/home/user/.config/gws/client_secret.json",
     "GOOGLE_WORKSPACE_CLI_CLIENT_ID": "<optional — alternative to file>",
     "GOOGLE_WORKSPACE_CLI_CLIENT_SECRET": "<optional — alternative to file>"
+  },
+  "custom_llm": {
+    "provider": "einfra",
+    "base_url": "https://llm.ai.e-infra.cz/v1",
+    "api_key": "<YOUR_API_KEY>",
+    "model": "qwen3.5-122b",
+    "proxy_port": 3456
   }
 }
 ```
@@ -217,7 +289,7 @@ Tell the user: "No credentials saved. You can run `/neuroflow:setup` at any time
 
 ---
 
-## Step 6 — Suggest next step
+## Step 7 — Suggest next step
 
 - If the user came from `/neuroflow`, tell them to continue with the suggested phase command.
 - Otherwise, suggest: "Run `/neuroflow:ideation` to start exploring literature, or any other command to continue your project."

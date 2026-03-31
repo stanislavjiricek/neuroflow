@@ -66,6 +66,8 @@ If the user skips: proceed using bioRxiv only, and note PubMed results will be u
 
 Use the `scholar` agent to search PubMed and bioRxiv for relevant papers. Use the user's topic as the starting query, then try synonyms and broader/narrower terms if first results are thin.
 
+The `scholar` agent runs searches **sequentially** (PubMed first, then bioRxiv, then fallbacks one at a time if needed) to avoid API overload. Downloads are processed in batches of 2.
+
 The `scholar` agent will automatically attempt to download all open-access papers to `.neuroflow/ideation/papers/` and report a download summary. No additional action is required to trigger downloads.
 
 Save the search result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/`.

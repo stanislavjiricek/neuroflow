@@ -17,7 +17,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 | File | Purpose |
 |---|---|
-| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. |
+| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. If the project is linked to a flowie project, also contains `flowie_project: {name}` — used by `/phase` to auto-sync phase changes to the project registry. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
 | `objectives.md` | Project objectives/aims — one numbered sentence per objective. Cross-phase cornerstone: **read at the start of every command** (if it exists), keep objectives in context throughout the session, and explicitly check coverage before saving any major section. Written during `/grant-proposal` interview or `/ideation`. |
 | `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |
@@ -25,6 +25,12 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `team.md` | Project members, roles, contacts. |
 | `timeline.md` | Milestones and deadlines. |
 | `integrations.json` | MCP integration credentials (PubMed email, Miro token). Written by `/setup`. **Never commit** — add to `.gitignore`. |
+
+#### Optional project_config.md fields
+
+| Field | Type | Description |
+|---|---|---|
+| `flowie_project` | Optional | Name of the flowie project this repo belongs to (must match an `id` in `flowie/projects/projects.json`) |
 
 ### Root folders
 
@@ -37,11 +43,14 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `finance/` | Grant documents, expense tracking. |
 | `fails/` | Dissatisfaction log — three fixed files: `core.md` (plugin behavior problems), `science.md` (scientific quality problems), `ux.md` (interaction quality problems). Created on first `/fails` run. |
 | `output/` | Output log — one `.md` per export run recording scope, format, destination, and excluded files. Created on first `/output` run. |
+| `flowie/` | Personal research OS — cloned from the user's private `flowie` GitHub repo. Contains identity profile, Kanban task board (`tasks/`), and project registry (`projects/`). Created by `/flowie` on first run. This folder IS a git repo (`.git/` inside). See `flowie_project` in `project_config.md`. |
 | `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
 
 **Rule: only command names may be used as phase subfolder names.** Skills must never create their own named subfolders inside `.neuroflow/`. All skill memory must be written to the active command's phase subfolder (`.neuroflow/{phase}/`). Creating a subfolder named after a skill (e.g. `.neuroflow/review-neuro/`) is a structural error.
 
 ### flow.md format
+
+`flow.md` is a pure index table — one row per file or folder, nothing else. Never write narrative content, mappings, notes, or cross-references directly into `flow.md`. Add a dedicated `.md` file to the phase subfolder and list it as a row instead.
 
 Every subfolder must contain a `flow.md` with this format:
 
@@ -102,6 +111,8 @@ Default output paths (used when the repo has no existing structure):
 
 ## Command lifecycle
 
+**Logging is always on.** Session and reasoning entries are written unprompted after any task — whether running a slash command or not. Do not wait for the user to ask. This is not optional behavior.
+
 Every command must follow this order:
 
 **At start:**
@@ -112,12 +123,13 @@ Every command must follow this order:
 5. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
 6. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
 
-**During session — after each meaningful action:**
-1. Append to `.neuroflow/sessions/YYYY-MM-DD.md` using these two formats:
-   - **Milestone header** (written by the command at each meaningful step): `## HH:MM — [phase] description of what was accomplished` — e.g. `## 10:51 — [review] Referee report complete: REJECTED. Saved to .neuroflow/review/review-alpha-netneurosci-2026-03-22.md`
-   - **Tool-use entries** (written automatically by the hook): `- HH:MM [tool]` — leave these as-is; they are the audit trail
-   - Every command must write at least one `##` milestone line at start (`## HH:MM — [phase] session started`) and one at completion. Phase commands write a `##` milestone after each major deliverable (section drafted, paper saved, review complete, analysis run, etc.).
-   - Do not accumulate entries and write them only at the end. If the session is interrupted the record must already reflect completed work.
+**During session — after most actions:**
+
+Write to session and reasoning logs broadly — not just at milestones, but after any file written, decision made, section drafted, or task completed. **Do not batch at the end. Do not wait for the user to ask.** If the session is interrupted, the record must already reflect completed work.
+
+1. Append to `.neuroflow/sessions/YYYY-MM-DD.md` using milestone headers:
+   - **Milestone header**: `## HH:MM — [phase] description of what was accomplished` — e.g. `## 10:51 — [review] Referee report complete: REJECTED. Saved to .neuroflow/review/review-alpha-netneurosci-2026-03-22.md`
+   - Every command must write at least one `##` milestone line at start (`## HH:MM — [phase] session started`) and one at completion. Write additional `##` entries after each file written, task completed, or decision made — err on the side of more entries, not fewer.
 2. Write to `.neuroflow/reasoning/{phase}.json` **at the moment each decision is made** — not only at the end. Save **at least 3–5 decisions per session**. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
    - `"statement"` — what was decided (one clear sentence)
    - `"source"` — where the decision originated (e.g. `"command:paper | 2026-03-10"`)
@@ -188,8 +200,9 @@ Each phase skill declares its slash command in a `## Slash command` section. Use
 
 Run through these before closing any command:
 
-- [ ] Appended `##` milestone headers to `sessions/YYYY-MM-DD.md` after each meaningful milestone — not only once at the end
-- [ ] Wrote **at least 3–5 decisions** to `reasoning/{phase}.json` at the moment each decision was made — not only once at the end
+- [ ] **MUST** — Appended at least one `##` milestone header to `sessions/YYYY-MM-DD.md` (session start + completion minimum). Do this even for short sessions. Never skip.
+- [ ] **MUST** — Wrote at least 1 entry to `reasoning/{phase}.json` (or `general.json` for cross-phase decisions). Never skip.
+- [ ] Appended `##` milestone headers broadly throughout the session — not only once at the end
 - [ ] If `objectives.md` exists: verified that all objectives are accounted for in the work produced this session (none forgotten)
 - [ ] Updated `{phase}/flow.md` immediately as each new file was created
 - [ ] Updated root `flow.md` if new folders were created

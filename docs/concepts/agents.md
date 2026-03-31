@@ -16,16 +16,17 @@ Unlike commands (which interact conversationally with you), agents operate semi-
 
 **Academic literature research specialist.**
 
-Searches PubMed and bioRxiv simultaneously for a given topic and returns a clean, structured list of results.
+Searches PubMed then bioRxiv sequentially (with CrossRef / Semantic Scholar fallbacks) for a given topic and returns a clean, structured list of results.
 
 **Invoked by:** `/neuroflow:ideation` (Explore literature mode)
 
 **What it does:**
 
-1. Runs the query on both PubMed and bioRxiv at the same time
+1. Runs the query sequentially: PubMed first, then bioRxiv, then fallbacks one at a time if needed
 2. If results are thin, generates 2–3 alternative queries (synonyms, narrower/broader terms)
 3. Deduplicates results across sources
-4. Returns results in a structured format with markers:
+4. Downloads open-access full text in batches of 2; skips paywalled papers (saves metadata stub)
+5. Returns results in a structured format with markers:
    - ⚠️ `PREPRINT` — bioRxiv papers that have not been peer-reviewed
    - 🔒 `PAYWALLED` — papers without open-access full text
 

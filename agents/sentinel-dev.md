@@ -132,6 +132,29 @@ Flag each file and line number where a match is found.
 
 **Note**: sentinel-dev does **not** auto-remove or redact sensitive content. Each finding must be reviewed by the plugin maintainer, who decides whether to redact, remove, or confirm the value is intentionally included.
 
+### 11 — mind.js sync
+
+Read `docs/javascripts/mind.js`. Extract all node entries from the `NODES` array.
+
+- For every folder in `skills/`: verify a node with `type: "skill"` and `label` matching the folder name exists in NODES. Flag missing skills.
+- For every file in `commands/` (strip `.md`): verify a node with `type: "command"` exists with a matching `label` (prefixed with `/` e.g. `/ideation`). Flag missing commands.
+- For every file in `agents/` (strip `.md`): verify a node with `type: "agent"` and `label` matching the filename exists. Flag missing agents.
+
+Flag any skill, command, or agent present in the repo but absent from `mind.js`.
+
+Auto-fix: offer to add a stub node to `NODES` — but the user must fill in `desc`, `tags`, and `url` before committing.
+
+### 12 — Flowie path hygiene
+
+Scan **all files** in the plugin repo for the following stale patterns:
+
+- `.neuroflow/.flowie/` — old path (with dot). The current canonical path is `.neuroflow/flowie/` (no dot). Flag every occurrence with file + line number.
+- `flowie_profile:` — old field name in `project_config.md` context. The current canonical field is `flowie_project:`. Flag every occurrence with file + line number, matched text.
+
+These can be left-over from the pre-Kanban version of the plugin. Report them as **blocking issues** — stale references will break flowie sync. Flag even occurrences in comments or string literals.
+
+Auto-fix: offer to replace `.neuroflow/.flowie/` → `.neuroflow/flowie/` and `flowie_profile:` → `flowie_project:` in each flagged file.
+
 ## Report
 
 Write to `.neuroflow/sentinel-dev.md` in the plugin repo root:

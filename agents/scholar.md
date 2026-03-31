@@ -9,18 +9,19 @@ Searches academic literature for a given topic using both PubMed and bioRxiv. Ne
 
 ## Search strategy
 
-1. Run the user's query on both PubMed and bioRxiv simultaneously
+1. Run searches **sequentially** — PubMed first, then bioRxiv. Do not run them simultaneously. Wait for each source to return before querying the next. This avoids flooding the API with concurrent tool calls, which can cause freezes on custom providers.
 2. **bioRxiv API limitation — handle explicitly**: The bioRxiv MCP server uses a date-range API that does not support keyword filtering. If bioRxiv returns zero results:
    - Emit this warning **immediately** (not in a footnote):
-     > ⚠️ **bioRxiv keyword search returned 0 results.** The bioRxiv API does not support keyword filtering — it is limited to date-range queries. Attempting to query CrossRef, Semantic Scholar (subject to rate-limit availability), and arXiv for preprint and cross-database coverage.
-   - Query the CrossRef API for preprints: `https://api.crossref.org/works?query=<url-encoded-query>&filter=type:posted-content&rows=20`
-   - Query the Semantic Scholar API: `https://api.semanticscholar.org/graph/v1/paper/search?query=<url-encoded-query>&fields=title,authors,year,abstract,externalIds&limit=20`
-   - Query the arXiv API as an additional keyword-search fallback: `https://export.arxiv.org/api/query?search_query=all:<url-encoded-query>&max_results=20`
+     > ⚠️ **bioRxiv keyword search returned 0 results.** The bioRxiv API does not support keyword filtering — it is limited to date-range queries. Attempting CrossRef, then Semantic Scholar, then arXiv as sequential fallbacks.
+   - Query fallback sources **one at a time in this order** — do not fire them simultaneously:
+     1. **CrossRef first**: query `https://api.crossref.org/works?query=<url-encoded-query>&filter=type:posted-content&rows=20`
+     2. **Semantic Scholar second** (only if CrossRef returns fewer than 10 results): query `https://api.semanticscholar.org/graph/v1/paper/search?query=<url-encoded-query>&fields=title,authors,year,abstract,externalIds&limit=20`
+     3. **arXiv third** (only if previous sources together return fewer than 10 results): query `https://export.arxiv.org/api/query?search_query=all:<url-encoded-query>&max_results=20`
    - Present results from these fallback sources under a **CrossRef / Semantic Scholar / arXiv** section, marked ⚠️ PREPRINT where applicable
 3. **Semantic Scholar rate-limit handling**: If the Semantic Scholar API returns a 429 (Too Many Requests) or any rate-limit error, wait 3 seconds and retry once. If still rate-limited, skip Semantic Scholar for this session and emit this warning **immediately**:
    > ⚠️ **Semantic Scholar rate-limited after retry.** Results from this source are unavailable for this session. Coverage may be reduced. CrossRef and arXiv have been queried as substitutes.
 4. **PubMed query-overlap detection and auto-diversification**: After PubMed results are collected, check coverage:
-   - If fewer than 15 unique papers are returned across all PubMed queries (a rough lower bound for a field with 20–50+ relevant works), OR if two or more queries share >80% of their results (by DOI or title, indicating query synonymy rather than genuine coverage), automatically generate 2–3 diversified alternative queries (different MeSH terms, synonyms, narrower/broader scope, related methodology terms) and run them.
+   - If fewer than 15 unique papers are returned across all PubMed queries (a rough lower bound for a field with 20–50+ relevant works), OR if two or more queries share >80% of their results (by DOI or title, indicating query synonymy rather than genuine coverage), automatically generate 2–3 diversified alternative queries (different MeSH terms, synonyms, narrower/broader scope, related methodology terms) and run them **one at a time** — do not fire multiple diversified queries simultaneously.
    - Emit this notice **before the results list** if diversification was triggered:
      > ⚠️ **PubMed coverage thin or queries overlapping** — auto-generated N diversified queries. [list the extra query strings used]
    - If diversified queries still return fewer than 10 unique papers, note this prominently in the coverage summary.
@@ -83,6 +84,8 @@ Before downloading anything, check which papers are already present:
 This allows an interrupted or failed run to be safely retried without duplicating work.
 
 ### Download procedure
+
+**Batching rule**: Process papers in batches of **2 simultaneously**. Complete each batch (both papers finish, succeed or fail) before starting the next batch. Do not attempt to download all papers at once — this floods the API and causes freezes on custom providers.
 
 **Timeout rule**: if a download tool call does not return within ~20 seconds or returns an error/empty response, mark that source as failed immediately and move to the next source in the chain. Do not wait or retry a timed-out call.
 

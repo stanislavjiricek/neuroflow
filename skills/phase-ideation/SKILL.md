@@ -12,6 +12,8 @@ The ideation phase is the entry point of a research project — sharpening a vag
 - Identify which entry point applies (brainstorm, literature explore, formalize, proposal, literature review) before doing anything else
 - Resist generating a full proposal before the research question is clear — sequence matters
 - Use the `scholar` agent for any literature search; do not search manually
+- The `scholar` agent runs searches **sequentially**: PubMed → bioRxiv → fallbacks (CrossRef → Semantic Scholar → arXiv) one at a time. Never fires sources simultaneously — this prevents API freezes on custom providers.
+- The `scholar` agent downloads papers in **batches of 2** — completes each batch before starting the next
 - The `scholar` agent always attempts to download papers automatically to `.neuroflow/ideation/papers/` — do not wait for the user to request downloads
 - After papers are downloaded, use the `literature-review` agent to run the full 12-protocol analysis
 - Keep outputs hypothesis-driven and concise; avoid scope creep at this stage

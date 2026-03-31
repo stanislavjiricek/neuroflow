@@ -31,6 +31,7 @@ PubMed        ❌ not configured
 bioRxiv       ✅ no credentials needed
 Miro          ❌ not configured
 Context7      ✅ no credentials needed
+Custom LLM    ❌ not configured
 ```
 
 ### Step 2 — PubMed setup
@@ -57,7 +58,23 @@ Paste your Miro access token (or press Enter to skip):
 > eyJhbGciOiJSUzI1NiJ9...
 ```
 
-### Step 4 — Save credentials
+### Step 4 — Google Workspace CLI setup
+
+See the [Integrations guide](../integrations.md) for full details on getting OAuth credentials.
+
+### Step 5 — Custom LLM provider (optional)
+
+Optionally configure an alternative LLM API endpoint for Claude Code. Skip this step if you use Anthropic directly.
+
+If configuring:
+- Enter provider name, base URL, API key, preferred model, and proxy port
+- Credentials are saved to `.neuroflow/integrations.json` under `custom_llm`
+- Non-secret settings (provider, URL, model) can also be synced to your flowie profile for cross-machine use
+
+!!! note "e-INFRA CZ"
+    Czech academic researchers can use the e-INFRA CZ free LLM API (`https://llm.ai.e-infra.cz`) via Metacentrum/e-INFRA CZ membership. See the [integrations guide](../integrations.md#e-infra-cz-czech-academic-researchers-only) for details.
+
+### Step 6 — Save credentials
 
 Credentials are saved to `.neuroflow/integrations.json`:
 
@@ -68,6 +85,12 @@ Credentials are saved to `.neuroflow/integrations.json`:
   },
   "miro": {
     "MIRO_ACCESS_TOKEN": "eyJhbGciOiJSUzI1NiJ9..."
+  },
+  "custom_llm": {
+    "provider": "einfra",
+    "base_url": "https://llm.ai.e-infra.cz/v1",
+    "api_key": "<stored locally, gitignored>",
+    "model": "qwen3.5-122b"
   }
 }
 ```

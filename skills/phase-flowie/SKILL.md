@@ -1,6 +1,6 @@
 ---
 name: phase-flowie
-description: Phase guidance for the neuroflow /flowie command. Covers how to read and use the flowie profile for personalization, write rules for .neuroflow/.flowie/, GitHub sync protocol, and profile-aware assistance across all phases.
+description: Phase guidance for the neuroflow /flowie command. Covers how to read and use the flowie profile for personalization, write rules for .neuroflow/flowie/, GitHub sync protocol, and profile-aware assistance across all phases.
 ---
 
 # phase-flowie
@@ -9,7 +9,7 @@ The `/flowie` command manages the user's personal identity layer — a private G
 
 ## What the flowie profile contains
 
-The flowie profile lives in `.neuroflow/.flowie/` and consists of three files:
+The flowie profile lives in `.neuroflow/flowie/` and consists of three files:
 
 | File | Contents |
 |---|---|
@@ -21,7 +21,7 @@ The profile is private by design. It lives in a private GitHub repository and is
 
 ## Reading the profile
 
-At the start of any command session, if `.neuroflow/.flowie/profile.md` exists and the current project is linked to flowie (indicated by a `flowie_profile` field in `project_config.md`), read the profile silently.
+At the start of any command session, if `.neuroflow/flowie/profile.md` exists and the current project is linked to flowie (indicated by a `flowie_project` field in `project_config.md`), read the profile silently.
 
 Do not announce that you are reading the profile. Do not quote it back verbatim. Use it to inform the quality and character of your assistance without drawing attention to the mechanism.
 
@@ -59,15 +59,15 @@ When assisting in any neuroflow phase, apply the profile as follows:
 - If a stated belief or stance is relevant to the current decision, surface it: *"Your profile notes that you prefer preregistration before data collection — does that apply here?"*
 - Never be sycophantic about it. Surface it once, do not repeat.
 
-## Write rules for .neuroflow/.flowie/
+## Write rules for .neuroflow/flowie/
 
-These rules apply whenever the `/flowie` command or any other command writes to `.neuroflow/.flowie/`:
+These rules apply whenever the `/flowie` command or any other command writes to `.neuroflow/flowie/`:
 
 1. **Never overwrite without showing a diff first.** Before writing to `profile.md` or `ideas.md`, show the proposed changes as a diff and wait for explicit confirmation.
 2. **Always read before writing.** Load the current file content before computing the new version.
 3. **Do not truncate.** When updating a section, preserve all other sections exactly as they are.
-4. **Log every write.** Every file write to `.neuroflow/.flowie/` must be followed by a session log entry.
-5. **Never write to .flowie/ from a non-flowie command.** Other phase commands may read the profile, but only `/flowie` may write to `.neuroflow/.flowie/`.
+4. **Log every write.** Every file write to `.neuroflow/flowie/` must be followed by a session log entry.
+5. **Never write to flowie/ from a non-flowie command.** Other phase commands may read the profile, but only `/flowie` may write to `.neuroflow/flowie/`.
 
 ## GitHub sync protocol
 
@@ -85,7 +85,7 @@ The flowie profile is mirrored to a private GitHub repository. The sync protocol
 - The profile is stored in a **private** GitHub repository. Never suggest making it public.
 - Profile data must never appear in outputs intended for external readers — papers, reports, grant proposals, talk slides.
 - When generating any external-facing document, treat profile data as context only — do not quote stances or beliefs in the output.
-- If a project is being exported (via `/export`), `.neuroflow/.flowie/` is excluded by default. Confirm explicitly before including it.
+- If a project is being exported (via `/export`), `.neuroflow/flowie/` is excluded by default. Confirm explicitly before including it.
 
 ## Slash command
 

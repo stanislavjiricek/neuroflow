@@ -6,6 +6,41 @@ title: Changelog
 
 ---
 
+## `setup` skill + e-INFRA CC integration
+
+- **New [`neuroflow:setup`](../../skills/setup/SKILL.md) skill** — agent-facing knowledge for all neuroflow integrations (PubMed, Miro, Google Workspace, custom LLM providers); mirrors the `/setup` wizard logic so agents can guide credential setup without running the command
+- **New e-INFRA CC integration** — [`einfra-cc` reference](../../skills/setup/references/einfra-cc.md) documents the Czech e-INFRA CZ free LLM API for Claude Code; covers direct mode, proxy mode (with [`proxy.mjs`](../../skills/setup/scripts/proxy.mjs) script), available models table, and full terminal workflow; available to Czech academic researchers via Metacentrum membership only
+- **`/setup` Step 5** — new optional custom LLM provider wizard; saves non-secret settings to `integrations.json` and optionally to the linked flowie profile for cross-machine sync; e-INFRA is documented as the Czech-specific example
+
+---
+
+## Scholar sequential search + batch downloads
+
+- **Sequential search pipeline** — the `scholar` agent now searches PubMed first, then bioRxiv, then fallbacks one at a time; was previously firing all sources simultaneously; reduces API contention and makes individual source failures easier to diagnose
+- **Batch-2 downloads** — paper downloads are now processed in batches of 2 rather than all at once; limits concurrent network requests and improves reliability on slow or rate-limited connections
+- **Ideation workflow note** — `/ideation` command and `neuroflow:phase-ideation` skill now document the sequential search approach in their workflow guidance
+
+---
+
+## Flowie Kanban + project registry
+
+- **Personal research OS** — `flowie` upgraded from identity layer to full cross-project personal OS: private GitHub repo now holds a Kanban task board (`tasks/`) and a project registry (`projects/`) alongside the existing `profile.md` and `ideas.md`
+- **Kanban board** — `/flowie --tasks` renders an ASCII Kanban view; `--tasks --add` runs a mini interview (title → project suggestion from registry → phase, due); `--tasks --move`, `--tasks --done`, `--tasks --archive` for column management; 7 configurable columns in `tasks/config.json`
+- **Project registry** — `/flowie --projects` lists all registered projects with ASCII phase timelines; `--projects --add` registers a new project with description and GitHub repo list; stored in `projects/projects.json` + per-project `projects/{name}.md`
+- **Phase auto-sync** — whenever `/phase` switches the active phase, if the project has a `flowie_project` binding it silently updates `projects.json` + `{name}.md` in the flowie repo and pushes
+- **Auto-sync hook** — any write to `.neuroflow/flowie/**` triggers `git add -A && commit && push` silently (PostToolUse hook)
+- **Path rename** — local path changed from `.neuroflow/.flowie/` to `.neuroflow/flowie/`; `flowie_profile:` field in `project_config.md` renamed to `flowie_project:`
+- **Sentinel checks** — `sentinel` gains Check 11 (flowie structure validation); `sentinel-dev` gains Check 12 (stale path / field name scan)
+
+---
+
+## 0.2.8
+
+- **Session logging overhaul** — removed the noisy `[tool]` PostToolUse hook; Claude now owns all session logging and writes entries broadly after most actions; `neuroflow-core` logging rules are marked MUST and non-negotiable; `flow.md` purity rule added (pure index table only, no narrative content)
+- **mind.js consistency check** — `sentinel-dev` Check 11 audits that every skill, command, and agent has a node in `mind.js`; missing `humanizer` node added; `neuroflow-develop` release workflow now marks the mind.js update step as blocking
+
+---
+
 ## 0.2.7
 
 - **Grant-proposal overhaul** — interview-first workflow (10-question conversational interview, objectives saved to `.neuroflow/objectives.md`); inspiration map from previous grants (cross-reference table saved to `.neuroflow/grant-proposal/inspiration-map-[date].md`); optional panel research (WebFetch + WebSearch, panel profiles saved to `.neuroflow/grant-proposal/panels/`); objectives tracked as cornerstones throughout the session; `sequentialthinking` MCP invoked before Innovation and Approach sections
