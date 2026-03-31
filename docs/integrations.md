@@ -144,7 +144,7 @@ node proxy.mjs kimi-k2.5   # Terminal 1 — start the proxy
 ANTHROPIC_BASE_URL=http://localhost:3456 ANTHROPIC_API_KEY=any claude
 ```
 
-For full documentation — including all available models, direct mode limitations, and the complete terminal workflow — see the `neuroflow:setup` skill → [`references/einfra-cc.md`](../skills/setup/references/einfra-cc.md).
+For full documentation — including all available models, direct mode limitations, and the complete terminal workflow — see the `neuroflow:setup` skill → [`references/einfra-cc.md`](skills/setup/references/einfra-cc.md).
 
 ### Other providers
 
