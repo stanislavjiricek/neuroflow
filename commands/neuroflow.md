@@ -6,8 +6,8 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/integrations.json
-  - .neuroflow/.flowie/profile.md        # optional — only if flowie profile exists or user provides one
-  - .neuroflow/.flowie/sync.json         # optional — only if flowie profile exists
+  - .neuroflow/flowie/profile.md        # optional — only if flowie profile exists or user provides one
+  - .neuroflow/flowie/sync.json         # optional — only if flowie profile exists
 writes:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
@@ -258,7 +258,7 @@ Before asking any interview questions, ask the user this as the **first question
 
 ### Flowie profile
 
-**Check locally first:** if `.neuroflow/.flowie/profile.md` already exists in the current working directory, read it directly. No network fetch is needed — go straight to the field mapping table below.
+**Check locally first:** if `.neuroflow/flowie/profile.md` already exists in the current working directory, read it directly. No network fetch is needed — go straight to the field mapping table below.
 
 **If no local profile:** ask: *"What is your GitHub username?"*
 
@@ -444,7 +444,7 @@ Save the list as `recommended_phases` in `project_config.md` (a simple comma-sep
 
 The `.neuroflow/` folder was already created in Step 0d. Now update it with the full content from the interview.
 
-**`project_config.md`** — overwrite the placeholder with a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b), and an `## Output paths` table mapping each relevant phase to its detected or default output path. This file is read by every command and agent — keep it concise.
+**`project_config.md`** — overwrite the placeholder with a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b), an `## Output paths` table mapping each relevant phase to its detected or default output path, and (if the user linked a flowie project during Step 1b) `flowie_project: {name}`. This file is read by every command and agent — keep it concise.
 
 **`flow.md`** — update the index to reflect only the folders that actually exist (the structure is the same as what Step 0d wrote; update the `Last changed` dates).
 

@@ -1,7 +1,7 @@
 # neuroflow — project config
 
 **Project:** neuroflow Claude Code plugin
-**Plugin version:** 0.2.6
+**Plugin version:** 0.2.8
 **Phase:** active development
 **Repo:** https://github.com/stanislavjiricek/neuroflow
 
@@ -21,6 +21,6 @@ End-to-end agentic research workflow plugin for neuroscience teams. Covers the f
 
 - Claude Code plugin system
 - MCP: bioRxiv, PubMed, Miro, Context7
-- Hooks: PostToolUse (ruff formatter, session logger)
+- Hooks: PostToolUse (ruff formatter)
 
 

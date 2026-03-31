@@ -9,16 +9,11 @@
             "type": "command",
             "command": "f=\"${CLAUDE_TOOL_RESULT_FILE_PATH:-}\"; case \"$f\" in *.py) [ -f \"$f\" ] && ruff format \"$f\" >/dev/null 2>&1;; esac; true",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|Bash",
-        "hooks": [
+          },
           {
             "type": "command",
-            "command": "d=\"$(pwd)/.neuroflow/sessions\"; t=\"${CLAUDE_TOOL_NAME:-tool}\"; [ -d \"$d\" ] && printf '%s\\n' \"- $(date '+%H:%M') [$t]\" >> \"$d/$(date '+%Y-%m-%d').md\"; true",
-            "timeout": 5
+            "command": "f=\"${CLAUDE_TOOL_RESULT_FILE_PATH:-}\"; case \"$f\" in */.neuroflow/flowie/*) d=\"${f%%/.neuroflow/*}/.neuroflow/flowie\"; [ -d \"$d/.git\" ] && { git -C \"$d\" add -A; git -C \"$d\" commit -m \"sync: auto\"; git -C \"$d\" push; } >/dev/null 2>&1;; esac; true",
+            "timeout": 30
           }
         ]
       }

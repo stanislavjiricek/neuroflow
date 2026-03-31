@@ -149,6 +149,7 @@ Run `sentinel-dev` after changing `hooks/hooks.json` — Check 8b will flag any 
 
 1. Make your changes
    - If you added, renamed, or removed a **command, skill, or agent**: update `docs/javascripts/mind.js` — add (or remove) the node in `NODES`, the link in `LINKS`, the phase angle in `PHASE_ANGLES` (if a new phase), and the entry in `NODE_PHASE_MAP`. Run a quick `Select-String -Pattern "sk-|cmd-|ag-" docs/javascripts/mind.js` sanity check after editing.
+   - **Blocking step — do not skip.** Omitting a `mind.js` entry for a new skill, command, or agent is a consistency error that sentinel-dev Check 11 will flag on the next run.
 2. **Update `README.md`** — two places:
    - Replace the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight.
    - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.

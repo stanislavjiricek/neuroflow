@@ -69,7 +69,7 @@ List all subfolders inside `.neuroflow/` (directories only, not files).
 
 Derive the set of valid phase subfolder names dynamically:
 - Read all files in the `commands/` directory of the neuroflow plugin. Extract the `name:` field from each command's frontmatter. These are the valid phase names.
-- Also allow the standard root subfolders that are not phase-specific: `sessions`, `reasoning`, `ethics`, `preregistration`, `finance`.
+- Also allow the standard root subfolders that are not phase-specific: `sessions`, `reasoning`, `ethics`, `preregistration`, `finance`, `flowie`.
 
 Derive the set of known skill names dynamically:
 - Read all subfolders inside the `skills/` directory of the neuroflow plugin. Each subfolder name is a skill name.
@@ -115,6 +115,21 @@ Scan all files inside `.neuroflow/` for patterns that suggest personal sensitive
 Do not print the sensitive value verbatim in the report. Mask it instead (e.g. `email: j***@exam***.com`, `password: ***`, `private key in line 4 of reasoning/general.json`).
 
 Flag each file and line number where a match is found. Mark name and institution findings as `[needs human review]` since automated detection of these categories is imprecise.
+
+### 11 — Flowie structure (if present)
+
+This check only runs if `.neuroflow/flowie/` exists.
+
+- **Git repo:** check that `.neuroflow/flowie/.git/` exists. If the folder exists but is not a git repo, flag it — it should be a clone of the user's private `flowie` GitHub repository.
+- **sync.json:** check that `.neuroflow/flowie/sync.json` exists and contains a `github_repo` field with a non-empty value. Flag if missing or empty.
+- **flowie_project binding:** check that `flowie_project` is set in `project_config.md`. If `.neuroflow/flowie/` is set up but `flowie_project` is absent, flag it — the project should be linked to a flowie project entry via `/flowie --link`.
+- **Project registry match:** if `flowie_project` is set AND `projects/projects.json` exists, check that the `flowie_project` value matches an `id` in the projects array. Flag if no matching project is found.
+- **flow.md listing:** check that `flowie/` is listed as a row in `.neuroflow/flow.md`. Flag if missing.
+- **No old field:** verify `project_config.md` does NOT contain `flowie_profile:` (old field name — should be `flowie_project:`). Flag if found.
+
+Flag any failed sub-check as a warning (not a blocking error — flowie may be intentionally partial). Group all flowie warnings under a single "⚠️ flowie" section in the report.
+
+Auto-fix: for the flow.md listing, offer to add the missing row. All other issues require user action (re-running `/flowie` or `/flowie --link`).
 
 ## Report
 

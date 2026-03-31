@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.7"
+  version: "0.2.9"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -198,6 +198,7 @@ nav:
           - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
           - "notebooklm": skills/notebooklm/SKILL.md
           - "pupil-labs-neon-realtime": skills/pupil-labs-neon-realtime/SKILL.md
+          - "setup": skills/setup/SKILL.md
           - "skill-creator": skills/skill-creator/SKILL.md
   - Agents:
       - Overview: concepts/agents.md

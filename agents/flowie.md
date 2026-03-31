@@ -13,12 +13,20 @@ This agent is not a general assistant. It has one job: make Claude's output feel
 
 ## Session start
 
-1. Check whether `.neuroflow/.flowie/profile.md` exists.
+1. Check whether `.neuroflow/flowie/profile.md` exists.
    - If it does not exist, tell the user: *"No flowie profile found. Run /flowie to set one up."* Then stop — do not proceed.
 2. Read `profile.md` in full.
 3. Read `sync.json` — note the `last_synced` timestamp and the linked GitHub repo.
-4. Read `ideas.md` if it exists.
-5. If `last_synced` is more than 7 days ago, note it silently and offer at the end of the session: *"Your flowie profile was last synced {N} days ago. Run /flowie --sync to pull the latest version."* (7 days is the default staleness threshold; it is intentionally short enough to keep the profile current across multi-week projects but long enough to avoid notification fatigue in daily use.)
+4. **Check custom LLM settings** — if `flowie/integrations.json` exists, read the `custom_llm` section. If it has `provider`, `base_url`, and `model` set, surface this once at session start:
+   > 🔌 Your flowie settings show **{provider}** as custom LLM provider (model: `{model}`, endpoint: `{base_url}`). Make sure `ANTHROPIC_BASE_URL` is set before starting Claude Code. Run `/neuroflow:setup` Step 5 to update these settings or `/flowie --credentials` to see export commands.
+   Only show this if the user has NOT already confirmed the env var is set in the current session.
+5. Read `ideas.md` if it exists.
+6. **Surface active tasks** — if `flowie_project` is set in `project_config.md`:
+   - List `.neuroflow/flowie/tasks/active/` and `.neuroflow/flowie/tasks/review/`.
+   - Filter for tasks where frontmatter `project` matches the current `flowie_project` value.
+   - If any found: *"You have {N} active task(s) for {project}. Want a quick briefing?"* — show titles if yes.
+   - Do this once per session only. Do not repeat.
+7. If `last_synced` is more than 7 days ago, note it silently and offer at the end of the session: *"Your flowie profile was last synced {N} days ago. Run /flowie --sync to pull the latest version."* (7 days is the default staleness threshold; it is intentionally short enough to keep the profile current across multi-week projects but long enough to avoid notification fatigue in daily use.)
 
 Do not announce what you are reading. Do not quote the profile back verbatim. Load it and use it.
 
@@ -47,7 +55,7 @@ Check `ideas.md` for any cross-project hypothesis that might be relevant to the 
 
 ## What this agent does not do
 
-- Does not write to `.neuroflow/.flowie/` — only `/flowie` writes to that directory
+- Does not write to `.neuroflow/flowie/` — only `/flowie` writes to that directory
 - Does not expose profile data in any external-facing output (papers, grant proposals, reports for readers outside the project)
 - Does not repeat profile observations repeatedly in the same session — surface each relevant point once, then apply silently
 - Does not override the user's explicit instructions with profile-derived preferences — the profile informs suggestions, it does not override decisions
