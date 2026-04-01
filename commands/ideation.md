@@ -64,11 +64,11 @@ Save the result as `research-question.md` in `.neuroflow/ideation/`.
 If the user chooses Y: run the PubMed section of the setup wizard — specifically Step 2 (prompt for email) and Step 4 (save to integrations.json) from `commands/setup.md` — then continue here.
 If the user skips: proceed using bioRxiv only, and note PubMed results will be unavailable.
 
-Use the `scholar` agent to search PubMed and bioRxiv for relevant papers. Use the user's topic as the starting query, then try synonyms and broader/narrower terms if first results are thin.
+Run searches directly: call `search_pubmed`, then `search_biorxiv`, then `search_crossref` sequentially — do NOT spawn the `scholar` subagent. Use the user's topic as the starting query, then try synonyms and broader/narrower terms if first results are thin.
 
-The `scholar` agent runs searches **sequentially** (PubMed first, then bioRxiv, then fallbacks one at a time if needed) to avoid API overload. Downloads are processed in batches of 2.
+After collecting results, download papers via Bash `curl` in batches of 3. Try open-access URLs first (Frontiers, PLoS, eNeuro, PMC), then Sci-Hub as fallback (fetch page → extract PDF URL → download).
 
-The `scholar` agent will automatically attempt to download all open-access papers to `.neuroflow/ideation/papers/` and report a download summary. No additional action is required to trigger downloads.
+After all downloads complete, run `/compact` to clear context before continuing.
 
 Save the search result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/`.
 
