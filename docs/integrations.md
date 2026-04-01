@@ -4,7 +4,7 @@ title: Integrations
 
 # Integrations
 
-neuroflow connects to four MCP (Model Context Protocol) servers that Claude Code launches automatically via `npx`. Two require credentials; two work out of the box.
+neuroflow connects to four MCP (Model Context Protocol) servers that Claude Code launches automatically via `npx`. One requires credentials; three work out of the box.
 
 ---
 
@@ -12,45 +12,19 @@ neuroflow connects to four MCP (Model Context Protocol) servers that Claude Code
 
 | Server | npm package | Requires credentials |
 |---|---|---|
-| **PubMed** | `pubmed-mcp-server` | ✅ `PUBMED_EMAIL` |
-| **bioRxiv** | `paper-search-mcp-nodejs` | ❌ None |
+| **PubMed / bioRxiv** | `paper-search-mcp-nodejs` | ❌ None |
 | **Miro** | `@k-jarzyna/mcp-miro` | ✅ `MIRO_ACCESS_TOKEN` |
 | **Context7** | `@upstash/context7-mcp` | ❌ None |
 
-All four are started automatically by Claude Code — you do not need to run them manually.
+All are started automatically by Claude Code — you do not need to run them manually.
 
 ---
 
-## PubMed
+## PubMed / bioRxiv
 
-The PubMed integration enables the [scholar agent](concepts/agents.md) to search NCBI PubMed for peer-reviewed literature.
+The `paper-search-mcp-nodejs` server handles both PubMed and bioRxiv searches — no credentials required.
 
-### Why an email is required
-
-NCBI requires an email address for automated API access so they can contact you if your queries cause problems. **Any valid email works** — it does not need to be registered with NCBI.
-
-### Setup
-
-Run the wizard:
-```
-/neuroflow:setup
-```
-
-Or set the environment variable directly:
-```bash
-export PUBMED_EMAIL="you@example.com"
-```
-
-Add to your shell profile for persistence:
-```bash
-echo 'export PUBMED_EMAIL="you@example.com"' >> ~/.zshrc
-```
-
-### What happens without it
-
-If `PUBMED_EMAIL` is not configured and you try to search literature, the plugin detects this and offers to run `/setup` before searching. You can also proceed with bioRxiv only (no email required).
-
----
+The [scholar agent](concepts/agents.md) uses it to search NCBI PubMed for peer-reviewed literature and bioRxiv for preprints.
 
 ## bioRxiv
 
@@ -158,9 +132,6 @@ When you run `/neuroflow:setup`, credentials are saved to `.neuroflow/integratio
 
 ```json
 {
-  "pubmed": {
-    "PUBMED_EMAIL": "you@example.com"
-  },
   "miro": {
     "MIRO_ACCESS_TOKEN": "eyJ..."
   },
@@ -184,7 +155,6 @@ neuroflow checks credentials at the point of use, not upfront:
 
 | Trigger | Reminder |
 |---|---|
-| `/ideation` → Explore literature | If `PUBMED_EMAIL` missing → offer to run `/setup` or use bioRxiv only |
 | Mention Miro in any command | If `MIRO_ACCESS_TOKEN` missing → offer to run `/setup` or skip |
 | Mention custom LLM / e-INFRA | If `custom_llm` missing → offer to run `/setup` Step 5 |
 

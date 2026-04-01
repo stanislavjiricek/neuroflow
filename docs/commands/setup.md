@@ -6,7 +6,7 @@ title: /setup
 
 **Interactive credential wizard for MCP integrations.**
 
-`/setup` guides you through connecting the neuroflow MCP integrations — PubMed for literature search and Miro for visual collaboration. It stores credentials securely in `.neuroflow/integrations.json`, which is git-ignored by default.
+`/setup` guides you through connecting the neuroflow MCP integrations — Miro for visual collaboration, Google Workspace, and optional custom LLM providers. It stores credentials securely in `.neuroflow/integrations.json`, which is git-ignored by default.
 
 ---
 
@@ -25,27 +25,15 @@ title: /setup
 Displays a status table so you know what's already configured:
 
 ```
-Integration   Status
-───────────   ──────
-PubMed        ❌ not configured
-bioRxiv       ✅ no credentials needed
-Miro          ❌ not configured
-Context7      ✅ no credentials needed
-Custom LLM    ❌ not configured
+Integration      Status
+─────────────    ──────
+PubMed/bioRxiv   ✅ no credentials needed
+Miro             ❌ not configured
+Context7         ✅ no credentials needed
+Custom LLM       ❌ not configured
 ```
 
-### Step 2 — PubMed setup
-
-PubMed requires an email address so NCBI can contact you if there are issues with automated queries. **Any valid email works** — it does not need to match an NCBI account.
-
-```
-Enter your email for PubMed (or press Enter to skip):
-> you@example.com
-```
-
-The email is validated for `@` format. Up to 3 attempts before skipping.
-
-### Step 3 — Miro setup
+### Step 2 — Miro setup
 
 Miro requires a personal access token. The wizard tells you exactly how to get one:
 
@@ -58,11 +46,11 @@ Paste your Miro access token (or press Enter to skip):
 > eyJhbGciOiJSUzI1NiJ9...
 ```
 
-### Step 4 — Google Workspace CLI setup
+### Step 3 — Google Workspace CLI setup
 
 See the [Integrations guide](../integrations.md) for full details on getting OAuth credentials.
 
-### Step 5 — Custom LLM provider (optional)
+### Step 4 — Custom LLM provider (optional)
 
 Optionally configure an alternative LLM API endpoint for Claude Code. Skip this step if you use Anthropic directly.
 
@@ -74,15 +62,12 @@ If configuring:
 !!! note "e-INFRA CZ"
     Czech academic researchers can use the e-INFRA CZ free LLM API (`https://llm.ai.e-infra.cz`) via Metacentrum/e-INFRA CZ membership. See the [integrations guide](../integrations.md#e-infra-cz-czech-academic-researchers-only) for details.
 
-### Step 6 — Save credentials
+### Step 5 — Save credentials
 
 Credentials are saved to `.neuroflow/integrations.json`:
 
 ```json
 {
-  "pubmed": {
-    "PUBMED_EMAIL": "you@example.com"
-  },
   "miro": {
     "MIRO_ACCESS_TOKEN": "eyJhbGciOiJSUzI1NiJ9..."
   },
@@ -105,14 +90,12 @@ Credentials are saved to `.neuroflow/integrations.json`:
 After running `/setup`, export the env vars in your shell before starting Claude Code:
 
 ```bash
-export PUBMED_EMAIL="you@example.com"
 export MIRO_ACCESS_TOKEN="eyJhbGciOiJSUzI1NiJ9..."
 ```
 
-Add these to your shell profile (`~/.zshrc` or `~/.bashrc`) so they load automatically:
+Add to your shell profile (`~/.zshrc` or `~/.bashrc`) so it loads automatically:
 
 ```bash
-echo 'export PUBMED_EMAIL="you@example.com"' >> ~/.zshrc
 echo 'export MIRO_ACCESS_TOKEN="eyJhbGciOiJSUzI1NiJ9..."' >> ~/.zshrc
 ```
 
@@ -123,7 +106,6 @@ echo 'export MIRO_ACCESS_TOKEN="eyJhbGciOiJSUzI1NiJ9..."' >> ~/.zshrc
 | Step | Automatic | Manual |
 |---|---|---|
 | MCP server processes started | ✅ Claude Code launches them via `npx` | — |
-| PubMed email entry | ✅ Prompted by `/setup` | — |
 | Miro token entry | ✅ Prompted by `/setup` | ⚠️ You must create the token in Miro first |
 | Miro OAuth browser login | ❌ Not implemented | Use a personal access token instead |
 | Env var export | ❌ Not automatic | Run `export …` or add to shell profile |
@@ -132,8 +114,7 @@ echo 'export MIRO_ACCESS_TOKEN="eyJhbGciOiJSUzI1NiJ9..."' >> ~/.zshrc
 
 ## Reminder behavior
 
-- If you skip setup and later run `/neuroflow:ideation` → **Explore literature**, the plugin detects that `PUBMED_EMAIL` is missing and offers to run `/setup` before searching.
-- If you mention Miro and `MIRO_ACCESS_TOKEN` is missing, the same reminder appears.
+- If you mention Miro and `MIRO_ACCESS_TOKEN` is missing, Claude offers to run `/setup`.
 - You can always re-run `/setup` to add or update credentials.
 
 ---

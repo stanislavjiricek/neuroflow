@@ -47,24 +47,6 @@ If not installed, install Node.js from [nodejs.org](https://nodejs.org).
 
 ## Literature search issues
 
-### PubMed search fails
-
-**Cause:** `PUBMED_EMAIL` is not configured.
-
-**Fix:**
-
-```
-/neuroflow:setup
-```
-
-Or manually:
-
-```bash
-export PUBMED_EMAIL="you@example.com"
-```
-
-Then restart Claude Code.
-
 ### Search returns no results
 
 **Cause:** Query too specific, or NCBI rate limiting.

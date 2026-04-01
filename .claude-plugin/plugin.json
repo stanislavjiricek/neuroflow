@@ -26,13 +26,6 @@
     "publication"
   ],
   "mcpServers": {
-    "pubmed": {
-      "command": "npx",
-      "args": ["-y", "pubmed-mcp-server"],
-      "env": {
-        "PUBMED_EMAIL": "neuroflow@placeholder.com"
-      }
-    },
     "biorxiv": {
       "command": "npx",
       "args": ["-y", "paper-search-mcp-nodejs"]

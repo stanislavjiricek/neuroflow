@@ -59,9 +59,8 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
     Search PubMed and bioRxiv simultaneously using the [scholar agent](../concepts/agents.md).
 
-    !!! note "PubMed credential required"
-        Before searching, Claude checks whether `PUBMED_EMAIL` is configured.
-        If not, it offers to run `/setup` or proceed with bioRxiv only.
+    !!! note "No credentials required"
+        PubMed and bioRxiv search works out of the box — no setup needed.
 
     **What Claude does:**
     - Runs your topic on both PubMed and bioRxiv
@@ -113,7 +112,7 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
 ## Integration reminders
 
-**PubMed / bioRxiv** — checked before any literature search. If `PUBMED_EMAIL` is missing, Claude offers to configure it before proceeding.
+**PubMed / bioRxiv** — no credentials required, works out of the box.
 
 **Miro** — if you mention Miro or ask to visualize a mind map, Claude checks `MIRO_ACCESS_TOKEN` and offers to configure it if missing.
 

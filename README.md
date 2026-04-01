@@ -390,12 +390,11 @@ Once installed, run `/neuroflow:neuroflow` in any project folder to get started.
 
 ## MCP server credentials
 
-neuroflow uses four MCP servers that are launched automatically via `npx`. Two require credentials:
+neuroflow uses four MCP servers that are launched automatically via `npx`. One requires credentials:
 
 | Server | Package | Credentials needed |
 |---|---|---|
-| PubMed | `pubmed-mcp-server` | `PUBMED_EMAIL` — any email (required by NCBI for API access) |
-| bioRxiv | `paper-search-mcp-nodejs` | none |
+| PubMed / bioRxiv | `paper-search-mcp-nodejs` | none |
 | Miro | `@k-jarzyna/mcp-miro` | `MIRO_ACCESS_TOKEN` — personal access token from Miro |
 | Context7 | `@upstash/context7-mcp` | none |
 
@@ -411,9 +410,8 @@ neuroflow also supports an optional **Google Workspace CLI** (`gws`) for Gmail, 
 
 Run `/neuroflow:setup` (or answer **Y** when prompted during `/neuroflow:neuroflow`) to enter a guided wizard:
 
-1. **PubMed** — enter your email address. Validated for `@` format. Skippable.
-2. **Miro** — paste a personal access token from your [Miro developer settings](https://miro.com/app/settings/user-profile/apps). Skippable.
-3. **Google Workspace CLI** — checks if `gws` is installed; offers to install via npm if not; guides through the manual OAuth credential path (no `gcloud` required). Skippable.
+1. **Miro** — paste a personal access token from your [Miro developer settings](https://miro.com/app/settings/user-profile/apps). Skippable.
+2. **Google Workspace CLI** — checks if `gws` is installed; offers to install via npm if not; guides through the manual OAuth credential path (no `gcloud` required). Skippable.
 
 Credentials are saved to **`.neuroflow/integrations.json`** in your project folder. This file is excluded from git (see `.gitignore`) so it is never committed.
 
@@ -422,7 +420,6 @@ Credentials are saved to **`.neuroflow/integrations.json`** in your project fold
 After running `/setup`, export the env vars in your shell before starting Claude Code:
 
 ```bash
-export PUBMED_EMAIL="you@example.com"
 export MIRO_ACCESS_TOKEN="eyJ..."
 export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$HOME/.config/gws/client_secret.json"
 ```
@@ -436,7 +433,6 @@ Alternatively, you can set the env vars directly without running the wizard — 
 | Step | Automatic | Manual |
 |---|---|---|
 | MCP server processes started | ✅ Launched automatically via `npx` | — |
-| PubMed email entry | ✅ Prompted by `/setup` wizard | — |
 | Miro token entry | ✅ Prompted by `/setup` wizard | ⚠️ You must create the token in the Miro browser UI first |
 | Miro OAuth browser login | ❌ Not implemented (by design — browser OAuth from a terminal subprocess is not feasible without a redirect server) | Use a personal access token instead |
 | Google Workspace CLI install | ✅ `/setup` wizard can run `npm install -g` if you confirm | Requires Node.js 18+ |
@@ -445,8 +441,7 @@ Alternatively, you can set the env vars directly without running the wizard — 
 
 ### Reminder behavior
 
-- If you skip setup and later run `/neuroflow:ideation` → **Explore literature**, the plugin will detect that `PUBMED_EMAIL` is missing and offer to run `/neuroflow:setup` before searching.
-- If you mention Miro during ideation and `MIRO_ACCESS_TOKEN` is missing, the same reminder appears.
+- If you mention Miro during ideation and `MIRO_ACCESS_TOKEN` is missing, a reminder to run `/neuroflow:setup` appears.
 - You can always re-run `/neuroflow:setup` to add or update credentials.
 
 ---

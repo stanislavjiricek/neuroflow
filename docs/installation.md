@@ -89,12 +89,11 @@ neuroflow uses four MCP (Model Context Protocol) servers that are launched autom
 
 | Server | npm package | Purpose |
 |---|---|---|
-| PubMed | `pubmed-mcp-server` | Literature search on NCBI PubMed |
-| bioRxiv | `paper-search-mcp-nodejs` | Preprint search on bioRxiv |
+| PubMed / bioRxiv | `paper-search-mcp-nodejs` | Literature and preprint search |
 | Miro | `@k-jarzyna/mcp-miro` | Visual collaboration boards |
 | Context7 | `@upstash/context7-mcp` | Library documentation lookup |
 
-Two of these require credentials — see the [Integrations](integrations.md) page for how to configure them.
+One of these requires credentials — see the [Integrations](integrations.md) page for how to configure them.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Configure neuroflow integrations — PubMed, Miro, Google Workspace, and custom LLM providers. Use when setting up credentials, checking integration status, or guiding a user through connecting external services. Also covers e-INFRA CZ connection for Czech academic researchers.
+description: Configure neuroflow integrations — Miro, Google Workspace, and custom LLM providers. Use when setting up credentials, checking integration status, or guiding a user through connecting external services. Also covers e-INFRA CZ connection for Czech academic researchers.
 reads:
   - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
@@ -20,8 +20,7 @@ Agent-facing knowledge for all neuroflow integrations. Use this skill when a use
 
 | Integration | Credential required | Key |
 |---|---|---|
-| PubMed | ✅ Yes | `PUBMED_EMAIL` |
-| bioRxiv | ❌ No | — |
+| PubMed / bioRxiv | ❌ No | — (handled by biorxiv MCP server) |
 | Miro | ✅ Yes | `MIRO_ACCESS_TOKEN` |
 | Context7 | ❌ No | — |
 | Google Workspace CLI (`gws`) | ✅ Yes | OAuth via `gws auth login` |
@@ -56,7 +55,7 @@ Default recommendation: **global**, so they don't repeat setup on every new proj
 1. Detect platform (`os.platform()` or check `$OSTYPE` / `$env:OS`).
 2. Read global config at `~/.neuroflow/integrations.json` (or `%USERPROFILE%\.neuroflow\integrations.json` on Windows) if it exists.
 3. Read per-project `.neuroflow/integrations.json` if it exists. Per-project keys override global keys.
-4. Check whether the corresponding environment variables are set in the current shell (`PUBMED_EMAIL`, `MIRO_ACCESS_TOKEN`, etc.).
+4. Check whether the corresponding environment variables are set in the current shell (`MIRO_ACCESS_TOKEN`, etc.).
 5. For `gws`: run `gws --version 2>/dev/null` or `which gws` (Unix) / `where gws` (Windows) to detect installation; run `gws auth status` to check OAuth.
 6. For custom LLM: check `integrations.json` for a `custom_llm` key; if present, show `provider` and `base_url`.
 
@@ -65,8 +64,7 @@ Display a status table:
 ```
 Integration              Status
 ──────────────────────   ──────
-PubMed                   ✅ configured  (or ❌ not configured)
-bioRxiv                  ✅ no credentials needed
+PubMed / bioRxiv         ✅ no credentials needed
 Miro                     ✅ configured  (or ❌ not configured)
 Context7                 ✅ no credentials needed
 Google Workspace CLI     ✅ installed  (or ❌ not installed)
@@ -82,9 +80,6 @@ Full schema including all integrations:
 
 ```json
 {
-  "pubmed": {
-    "PUBMED_EMAIL": "you@example.com"
-  },
   "miro": {
     "MIRO_ACCESS_TOKEN": "eyJ..."
   },
@@ -113,7 +108,6 @@ Full schema including all integrations:
 
 | Integration | Validation |
 |---|---|
-| PubMed | Must contain `@`; up to 3 attempts |
 | Miro | Non-empty, at least 20 characters; `eyJ` prefix is a good sign (JWT) |
 | Google Workspace | File must exist at platform path, or env vars must be set |
 | Custom LLM | API key: non-empty; base URL: must start with `http`; model: optional |

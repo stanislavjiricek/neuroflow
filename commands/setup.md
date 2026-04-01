@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Interactive credential wizard for neuroflow MCP integrations. Checks PubMed, Miro, Google Workspace CLI credentials, and custom LLM provider settings, prompts for missing values, and saves them to .neuroflow/integrations.json (per-project) or ~/.neuroflow/integrations.json (global, device-wide).
+description: Interactive credential wizard for neuroflow MCP integrations. Checks Miro, Google Workspace CLI credentials, and custom LLM provider settings, prompts for missing values, and saves them to .neuroflow/integrations.json (per-project) or ~/.neuroflow/integrations.json (global, device-wide).
 phase: utility
 reads:
   - ~/.neuroflow/integrations.json
@@ -49,7 +49,7 @@ If either file already exists, read both and merge (per-project overrides global
 
 Check whether both `~/.neuroflow/integrations.json` (global) and `.neuroflow/integrations.json` (per-project) exist. Read whichever are present. Per-project keys override global. Note which credentials are already set.
 
-Also check whether the environment variables `PUBMED_EMAIL`, `MIRO_ACCESS_TOKEN`, and `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` are set in the current shell. If they are already set via env vars, note that for the user.
+Also check whether the environment variables `MIRO_ACCESS_TOKEN` and `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` are set in the current shell. If they are already set via env vars, note that for the user.
 
 Run `gws --version 2>/dev/null` (Unix) or `where gws 2>nul` (Windows) to detect whether the Google Workspace CLI is installed.
 
@@ -58,8 +58,7 @@ Display a status table:
 ```
 Integration              Status
 ──────────────────────   ──────
-PubMed                   ✅ configured  (or ❌ not configured)
-bioRxiv                  ✅ no credentials needed
+PubMed / bioRxiv         ✅ no credentials needed
 Miro                     ✅ configured  (or ❌ not configured)
 Context7                 ✅ no credentials needed
 Google Workspace CLI     ✅ installed  (or ❌ not installed)
@@ -69,25 +68,7 @@ Custom LLM               ✅ configured (provider: einfra)  (or ❌ not configur
 
 ---
 
-## Step 2 — PubMed setup
-
-**If PubMed is already configured:** ask "PubMed email is already set to `<email>`. Update it? (y/N)". If no, skip to Step 3.
-
-**If PubMed is not configured:**
-
-Tell the user:
-> **PubMed** requires an email address so NCBI can contact you if there are issues with automated queries. Any valid email works — it does not need to match an NCBI account.
-
-Ask: "Enter your email for PubMed (or press Enter to skip):"
-
-- If the user enters a value:
-  - Validate: must contain `@`. If invalid, say so and ask again (up to 3 attempts).
-  - On valid input, store it.
-- If the user presses Enter / types "skip" / types "s": skip PubMed and note it was skipped.
-
----
-
-## Step 3 — Miro setup
+## Step 2 — Miro setup
 
 **If Miro is already configured:** ask "Miro token is already set. Update it? (y/N)". If no, skip to Step 4.
 
@@ -110,7 +91,7 @@ Ask: "Paste your Miro access token (or press Enter to skip):"
 
 ---
 
-## Step 4 — Google Workspace CLI setup
+## Step 3 — Google Workspace CLI setup
 
 This step covers the `gws` CLI — a single tool for Drive, Gmail, Calendar, Sheets, Docs, and more. It is optional but enables the Google Calendar and Gmail MCP integrations in neuroflow.
 
@@ -201,7 +182,7 @@ This opens the browser for OAuth consent automatically. On success, `gws auth st
 
 ---
 
-## Step 5 — Custom LLM provider (optional)
+## Step 4 — Custom LLM provider (optional)
 
 This step is **optional**. If the user presses Enter or types "skip" / "s", skip to Step 6.
 
@@ -264,7 +245,7 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 
 ---
 
-## Step 6 — Save and confirm
+## Step 5 — Save and confirm
 
 **If any credentials were entered:**
 
@@ -276,9 +257,6 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 
 ```json
 {
-  "pubmed": {
-    "PUBMED_EMAIL": "user@example.com"
-  },
   "miro": {
     "MIRO_ACCESS_TOKEN": "eyJ..."
   },
@@ -309,7 +287,6 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 >
 > **To activate the MCP servers**, export the env vars in your shell before starting Claude Code:
 > ```bash
-> export PUBMED_EMAIL="user@example.com"
 > export MIRO_ACCESS_TOKEN="eyJ..."
 > export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$HOME/.config/gws/client_secret.json"
 > # or, if using env vars instead of file:
@@ -326,7 +303,6 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 >
 > **To activate the MCP servers**, set the env vars in PowerShell before starting Claude Code:
 > ```powershell
-> $env:PUBMED_EMAIL = "user@example.com"
 > $env:MIRO_ACCESS_TOKEN = "eyJ..."
 > $env:GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE = "$env:USERPROFILE\.config\gws\client_secret.json"
 > ```
@@ -338,7 +314,7 @@ Tell the user: "No credentials saved. You can run `/neuroflow:setup` at any time
 
 ---
 
-## Step 7 — Suggest next step
+## Step 6 — Suggest next step
 
 - If the user came from `/neuroflow`, tell them to continue with the suggested phase command.
 - Otherwise, suggest: "Run `/neuroflow:ideation` to start exploring literature, or any other command to continue your project."

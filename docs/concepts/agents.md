@@ -62,8 +62,8 @@ literature. White noise as a specific stressor is understudied — a gap exists.
 - If a DOI cannot be verified, it is marked as unverified
 - PubMed and bioRxiv results are always presented separately
 
-!!! note "Requires PubMed email"
-    The PubMed MCP server requires `PUBMED_EMAIL` to be configured. Run `/neuroflow:setup` to set it up. Without it, only bioRxiv results are available.
+!!! note "No credentials required"
+    PubMed and bioRxiv search is handled by the `paper-search-mcp-nodejs` server — no credentials needed.
 
 ---
 
