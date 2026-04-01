@@ -8,6 +8,7 @@ reads:
   - .neuroflow/integrations.json
   - .neuroflow/flowie/profile.md        # optional — only if flowie profile exists or user provides one
   - .neuroflow/flowie/sync.json         # optional — only if flowie profile exists
+  - .neuroflow/flowie/integrations.json # optional — only if flowie is set up; read before Step 5
 writes:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
@@ -258,18 +259,20 @@ Before asking any interview questions, ask the user this as the **first question
 
 ### Flowie profile
 
-**Check locally first:** if `.neuroflow/flowie/profile.md` already exists in the current working directory, read it directly. No network fetch is needed — go straight to the field mapping table below.
+**Check locally first:** if `.neuroflow/flowie/profile.md` already exists in the current working directory, **pull the latest changes first** (`git -C .neuroflow/flowie pull --ff-only 2>/dev/null || true`) and then read both `profile.md` and `integrations.json` (if present) directly. Do this before asking any interview questions or touching integrations — go straight to the field mapping table below.
 
 **If no local profile:** ask: *"What is your GitHub username?"*
 
 Since flowie repositories are always private, use the following fetch order:
 
-1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch the file content. If this succeeds, proceed to the field mapping table.
-2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
-3. **Only if both of the above fail**, ask the user for a GitHub Personal Access Token (PAT) with `repo` scope. Use it in the Authorization header to call `GET https://api.github.com/repos/{username}/flowie/contents/profile.md`. Decode the base64 `content` field.
+1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch `profile.md`. Also fetch `integrations.json` with `gh api /repos/{username}/flowie/contents/integrations.json --jq '.content' | base64 -d 2>/dev/null` (ignore if missing). If `profile.md` succeeds, proceed to the field mapping table.
+2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` and `integrations.json` (if it exists) from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
+3. **Only if both of the above fail**, ask the user for a GitHub Personal Access Token (PAT) with `repo` scope. Use it in the Authorization header to call `GET https://api.github.com/repos/{username}/flowie/contents/profile.md`. Decode the base64 `content` field. Also attempt `GET .../integrations.json` in the same request batch (ignore 404).
 4. **If none of the above works**: fall back to the full interview (Step 2).
 
 Do not attempt additional `gh` commands (config file paths, env var checks, etc.) between steps 1 and 2. One `gh auth status` check is sufficient — if it fails, move directly to the git clone attempt.
+
+**After reading the flowie repo:** copy `integrations.json` (if fetched remotely) into `.neuroflow/flowie/integrations.json`. This makes flowie's integrations available locally so Step 5 does not need to repeat the setup.
 
 If the profile is found, extract the following fields and map them to interview answers:
 
@@ -484,7 +487,7 @@ If `~/.claude/CLAUDE.md` also exists, optionally add the block there too — but
 Ask the user whether they want to connect the MCP integrations now:
 
 > **Set up integrations?**
-> neuroflow can connect to PubMed (literature search) and Miro (visual collaboration). Would you like to set them up now? (Y/n)
+> neuroflow can connect to Miro (visual collaboration) and custom LLM providers. Would you like to set them up now? (Y/n)
 >
 > - **Y / yes** — run the setup wizard (takes ~1 minute)
 > - **n** — skip for now; you can run `/neuroflow:setup` at any time
@@ -493,7 +496,9 @@ Ask the user whether they want to connect the MCP integrations now:
 
 **If the user says no or skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 6.
 
-**If `.neuroflow/integrations.json` already exists with both credentials set:** skip this step entirely (do not prompt again).
+**If `.neuroflow/integrations.json` already exists with credentials set:** skip this step entirely (do not prompt again).
+
+**If `.neuroflow/flowie/integrations.json` exists:** skip this step entirely — integrations are managed through your flowie profile. Do not create a separate `.neuroflow/integrations.json`.
 
 **Google Workspace (gws) option:**
 Also offer gws CLI setup as part of the integration wizard:
@@ -504,7 +509,7 @@ Also offer gws CLI setup as part of the integration wizard:
 > - Claude extension: `npx skills add https://github.com/googleworkspace/cli`  
 > - Skip for now? You can set this up at any time with `/neuroflow:setup`
 
-If the user skips gws: write `gws_setup: skipped` to `.neuroflow/integrations.json` (create the file if it doesn’t exist yet).
+If the user skips gws **and flowie is not active**: write `gws_setup: skipped` to `.neuroflow/integrations.json` (create the file if it doesn’t exist yet). If flowie is active, skip this write — integrations are owned by the flowie profile.
 
 ---
 
