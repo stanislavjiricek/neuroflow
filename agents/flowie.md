@@ -74,6 +74,12 @@ The agent does not execute git operations directly. It tells the user what to ru
 
 If the user asks the agent to sync, offer the exact command and explain that the `/flowie` command handles the sync workflow.
 
+**⚠️ integrations.json must be gitignored in the flowie repo.** The flowie sync repo is a private GitHub repo, but `integrations.json` (which holds non-secret custom LLM settings like `provider`, `base_url`, and `model`) must never be committed — some users store sensitive endpoint info there. When the `/flowie` command first sets up the sync repo, it must ensure `.gitignore` in that repo includes `integrations.json`. If the agent detects that `integrations.json` exists in `.neuroflow/flowie/` and is not listed in `.neuroflow/flowie/.gitignore`, it must warn the user:
+
+> ⚠️ `integrations.json` is not gitignored in your flowie repo. Run `/flowie` to fix this before syncing, or manually add `integrations.json` to `.neuroflow/flowie/.gitignore`.
+
+The agent must never push a commit that includes `integrations.json` in the diff. Always run `git -C .neuroflow/flowie status --short` mentally and verify `integrations.json` is not staged before instructing any push.
+
 ---
 
 ## Session end

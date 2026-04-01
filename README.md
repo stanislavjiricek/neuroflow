@@ -17,11 +17,11 @@
 
 ---
 
-## What's new in 0.2.9
+## What's new in 0.2.10
 
-- **New [`neuroflow:setup`](skills/setup/SKILL.md) skill** — agent-facing knowledge for all neuroflow integrations (PubMed, Miro, Google Workspace, custom LLM providers); mirrors the `/setup` wizard logic so agents can guide credential setup without running the command
-- **New e-INFRA CC integration** — [`einfra-cc` reference](skills/setup/references/einfra-cc.md) documents the Czech e-INFRA CZ free LLM API for Claude Code; covers direct mode, proxy mode (with [`proxy.mjs`](skills/setup/scripts/proxy.mjs) script), available models, and full terminal workflow; available to Czech academic researchers via Metacentrum membership only
-- **`/setup` Step 5** — new optional custom LLM provider wizard; saves non-secret settings to `integrations.json` and optionally to the linked flowie profile for cross-machine sync; e-INFRA is documented as the Czech-specific example
+- **Global device config** ([`/setup`](commands/setup.md)) — credentials can now be saved to `~/.neuroflow/integrations.json` (global, shared by all projects on the machine) instead of per-project; per-project still takes precedence and overrides global; Step 0 of the wizard asks which scope to use
+- **Windows support in setup** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup/SKILL.md), and the [e-INFRA reference](skills/setup/references/einfra-cc.md) now include Windows-specific paths and PowerShell env var syntax throughout
+- **Proxy model-name fix** ([`proxy.mjs`](skills/setup/scripts/proxy.mjs)) — the proxy now restores the original `claude-*` model name in every response chunk, preventing Claude Code's *"unexpected model"* error when using custom LLM providers; [`flowie`](agents/flowie.md) now enforces that `integrations.json` is gitignored in the flowie sync repo
 
 ## What's new in 0.2.8
 
@@ -309,7 +309,7 @@ Hooks fire automatically on tool use events.
 | Hook | Trigger | What it does |
 |---|---|---|
 | ruff formatter | `PostToolUse` — Edit / Write | Auto-formats any `.py` file written during a session |
-| session logger | `PostToolUse` — Write / Edit / Bash | Appends a timestamped entry to today's `.neuroflow/sessions/YYYY-MM-DD.md` (only fires if `.neuroflow/` exists in the working directory) |
+| flowie git-sync | `PostToolUse` — Edit / Write | Auto-commits and pushes any write to `.neuroflow/flowie/` to the linked private GitHub repo |
 
 > **Pre-session orientation** is handled via `.claude/CLAUDE.md` injection — `/neuroflow` writes a neuroflow block there so Claude always knows the active phase and where to find project context.
 

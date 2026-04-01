@@ -32,11 +32,15 @@ const PORT         = parseInt(process.argv[3] || "3456", 10);
 function forward(req, res, bodyChunks) {
   const body = Buffer.concat(bodyChunks);
   let payload;
+  let originalModel = null;
 
-  // Patch the model name in request body if it's JSON
+  // Patch the model name in request body; save original so we can restore it in the response.
+  // Claude Code validates that the model in the response matches the claude-* name it sent —
+  // without this round-trip, it errors with an "unexpected model" message.
   try {
     const json = JSON.parse(body.toString());
     if (json.model) {
+      originalModel = json.model;
       console.log(`  [proxy] model override: ${json.model} → ${TARGET_MODEL}`);
       json.model = TARGET_MODEL;
     }
@@ -61,7 +65,19 @@ function forward(req, res, bodyChunks) {
 
   const proxyReq = https.request(options, (proxyRes) => {
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
-    proxyRes.pipe(res);
+
+    if (originalModel) {
+      // Restore the original claude-* model name in each response chunk so Claude Code
+      // does not reject the response. Works for both streaming (SSE) and non-streaming.
+      proxyRes.on("data", (chunk) => {
+        const patched = chunk.toString()
+          .replaceAll(`"model":"${TARGET_MODEL}"`, `"model":"${originalModel}"`);
+        res.write(Buffer.from(patched));
+      });
+      proxyRes.on("end", () => res.end());
+    } else {
+      proxyRes.pipe(res);
+    }
   });
 
   proxyReq.on("error", (err) => {
