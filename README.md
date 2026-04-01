@@ -17,6 +17,10 @@
 
 ---
 
+## What's new in 0.2.11
+
+- **Removed broken `pubmed-mcp-server`** — replaced by `paper-search-mcp-nodejs` (the biorxiv server), which already includes `search_pubmed` and requires no credentials; `PUBMED_EMAIL` is no longer needed
+
 ## What's new in 0.2.10
 
 - **Global device config** ([`/setup`](commands/setup.md)) — credentials can now be saved to `~/.neuroflow/integrations.json` (global, shared by all projects on the machine) instead of per-project; per-project still takes precedence and overrides global; Step 0 of the wizard asks which scope to use

@@ -6,6 +6,12 @@ title: Changelog
 
 ---
 
+## 0.2.11
+
+- **Removed broken `pubmed-mcp-server`** — `pubmed-mcp-server@1.0.0` on npm has an empty `dist/index.js` (TypeScript was never compiled before publishing); removed from `plugin.json`; PubMed search is now handled by `paper-search-mcp-nodejs` (the biorxiv server) which already includes `search_pubmed` and requires no credentials; `PUBMED_EMAIL` is no longer needed and has been removed from the setup wizard, skills, commands, and docs
+
+---
+
 ## 0.2.10
 
 - **Global device config** ([`/setup`](commands/setup.md)) — credentials can now be saved once to `~/.neuroflow/integrations.json` (global, all projects) or per-project; per-project takes precedence; Step 0 of the wizard asks which scope to use; per-project config still gitignored as before
