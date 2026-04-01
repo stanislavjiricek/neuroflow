@@ -42,6 +42,8 @@ claude
 
 ⚠️ **Limitation:** Claude Code sends `claude-*` model names in all requests. The e-INFRA API accepts these in direct mode, but you cannot select a specific e-INFRA model — the API uses its default routing. If you need a specific model (e.g. `kimi-k2.5` for agentic workflows), use Mode B.
 
+> **Note on model name in responses:** In direct mode the e-INFRA API may return a response with a non-Claude `model` field (e.g. `"model": "qwen3.5-122b"`). Claude Code validates this field and may error with *"unexpected model"*. If this happens, switch to Mode B (proxy) — the proxy automatically restores the original `claude-*` model name in every response so Claude Code is satisfied.
+
 ---
 
 ## Mode B — Proxy (model selection)
@@ -92,7 +94,7 @@ Claude Code is now routing all requests through the proxy → e-INFRA. The proxy
 
 ## For persistence (shell profile)
 
-**Direct mode** — add to `~/.zshrc` or `~/.bashrc`:
+**Direct mode** — add to `~/.zshrc` or `~/.bashrc` (macOS / Linux):
 
 ```bash
 export ANTHROPIC_BASE_URL=https://llm.ai.e-infra.cz/v1
@@ -102,6 +104,44 @@ export ANTHROPIC_API_KEY=<YOUR_API_KEY>
 Then restart your terminal and reopen Claude Code — no proxy needed.
 
 **Proxy mode** — start the proxy in a background terminal each session, or add it to a launch script. The `ANTHROPIC_BASE_URL=http://localhost:3456` pointing to the proxy must be set in the shell where you open Claude Code.
+
+---
+
+## Windows users
+
+Node.js runs `proxy.mjs` on Windows without changes. The only difference is how you set environment variables.
+
+**PowerShell (recommended):**
+
+```powershell
+# Direct mode — set for this terminal session, then launch Claude Code
+$env:ANTHROPIC_BASE_URL = "https://llm.ai.e-infra.cz/v1"
+$env:ANTHROPIC_API_KEY  = "<YOUR_API_KEY>"
+claude
+
+# Proxy mode — open two PowerShell windows
+# Window 1: start the proxy
+node proxy.mjs kimi-k2.5
+
+# Window 2: launch Claude Code
+$env:ANTHROPIC_BASE_URL = "http://localhost:3456"
+$env:ANTHROPIC_API_KEY  = "any"
+claude
+```
+
+**For persistence on Windows:** add to your PowerShell profile (`notepad $PROFILE`):
+```powershell
+$env:ANTHROPIC_BASE_URL = "https://llm.ai.e-infra.cz/v1"
+$env:ANTHROPIC_API_KEY  = "<YOUR_API_KEY>"
+```
+Or set them permanently via Settings → System → About → Advanced system settings → Environment Variables.
+
+**cmd.exe (legacy):**
+```cmd
+set ANTHROPIC_BASE_URL=https://llm.ai.e-infra.cz/v1
+set ANTHROPIC_API_KEY=<YOUR_API_KEY>
+claude
+```
 
 ---
 

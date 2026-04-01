@@ -1,11 +1,13 @@
 ---
 name: setup
-description: Interactive credential wizard for neuroflow MCP integrations. Checks PubMed, Miro, Google Workspace CLI credentials, and custom LLM provider settings, prompts for missing values, and saves them to .neuroflow/integrations.json.
+description: Interactive credential wizard for neuroflow MCP integrations. Checks PubMed, Miro, Google Workspace CLI credentials, and custom LLM provider settings, prompts for missing values, and saves them to .neuroflow/integrations.json (per-project) or ~/.neuroflow/integrations.json (global, device-wide).
 phase: utility
 reads:
+  - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
   - .neuroflow/flowie/sync.json
 writes:
+  - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
 ---
 
@@ -15,13 +17,41 @@ Guide the user through connecting the neuroflow MCP integrations. This command c
 
 ---
 
+## Step 0 — Detect platform and credential scope
+
+### Platform detection
+
+Detect the operating system at the start of the wizard. This affects paths and env var syntax shown to the user throughout all steps.
+
+- **Unix (macOS / Linux):** home dir = `~`, shell profile = `~/.zshrc` or `~/.bashrc`, use `export VAR=value`
+- **Windows:** home dir = `%USERPROFILE%` (e.g. `C:\Users\YourName`), use PowerShell `$env:VAR = "value"` or persistent via System settings
+
+Global config path:
+- Unix: `~/.neuroflow/integrations.json`
+- Windows: `%USERPROFILE%\.neuroflow\integrations.json`
+
+### Credential scope
+
+Ask once at the start:
+> "Save credentials for **this project only** (`.neuroflow/integrations.json`) or **globally on this machine** (`~/.neuroflow/integrations.json`, shared by all projects)?"
+>
+> **Recommended: global** — so you don't repeat setup on every new project.
+
+- Choices: **(1) Global (recommended)**  **(2) This project only**
+
+Store the choice as `save_global` (boolean) — use it in Step 6 when writing credentials.
+
+If either file already exists, read both and merge (per-project overrides global).
+
+---
+
 ## Step 1 — Read current state
 
-Check whether `.neuroflow/integrations.json` exists. If it does, read it. Note which credentials are already set.
+Check whether both `~/.neuroflow/integrations.json` (global) and `.neuroflow/integrations.json` (per-project) exist. Read whichever are present. Per-project keys override global. Note which credentials are already set.
 
 Also check whether the environment variables `PUBMED_EMAIL`, `MIRO_ACCESS_TOKEN`, and `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` are set in the current shell. If they are already set via env vars, note that for the user.
 
-Run `gws --version 2>/dev/null` (or `which gws`) to detect whether the Google Workspace CLI is installed.
+Run `gws --version 2>/dev/null` (Unix) or `where gws 2>nul` (Windows) to detect whether the Google Workspace CLI is installed.
 
 Display a status table:
 
@@ -86,7 +116,7 @@ This step covers the `gws` CLI — a single tool for Drive, Gmail, Calendar, She
 
 ### 4a — Check if gws is installed
 
-Run `gws --version 2>/dev/null` or `which gws`. If the command is found, skip to Step 4b.
+Run `gws --version 2>/dev/null` or `which gws` (Unix) / `where gws 2>nul` (Windows). If the command is found, skip to Step 4b.
 
 **If not installed:**
 
@@ -238,8 +268,11 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 
 **If any credentials were entered:**
 
-1. Create `.neuroflow/` if it does not exist.
-2. Write `.neuroflow/integrations.json` with this structure (include only keys that were set):
+1. **Determine save location** based on `save_global` from Step 0:
+   - **Global:** `~/.neuroflow/integrations.json` (Unix) or `%USERPROFILE%\.neuroflow\integrations.json` (Windows). Create `~/.neuroflow/` if it does not exist.
+   - **Per-project:** `.neuroflow/integrations.json`. Create `.neuroflow/` if it does not exist.
+
+2. Write the integrations file with this structure (include only keys that were set):
 
 ```json
 {
@@ -266,22 +299,38 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 
 3. If the file already existed, merge — only overwrite keys the user just set; leave others unchanged.
 
-4. Tell the user:
+4. Tell the user the save location and how to activate. Use the correct syntax for the detected platform:
 
-> ✅ Credentials saved to `.neuroflow/integrations.json`.
+**Unix (macOS / Linux):**
+
+> ✅ Credentials saved to `~/.neuroflow/integrations.json` (global) _or_ `.neuroflow/integrations.json` (per-project).
 >
-> **Important:** This file is excluded from git (`.gitignore`) so your credentials are not committed. It is local to this machine.
+> **Important:** This file is never committed — credentials stay local to this machine.
 >
 > **To activate the MCP servers**, export the env vars in your shell before starting Claude Code:
 > ```bash
 > export PUBMED_EMAIL="user@example.com"
 > export MIRO_ACCESS_TOKEN="eyJ..."
 > export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$HOME/.config/gws/client_secret.json"
-# or, if using env vars instead of file:
-export GOOGLE_WORKSPACE_CLI_CLIENT_ID="<client-id>"
-export GOOGLE_WORKSPACE_CLI_CLIENT_SECRET="<client-secret>"
+> # or, if using env vars instead of file:
+> export GOOGLE_WORKSPACE_CLI_CLIENT_ID="<client-id>"
+> export GOOGLE_WORKSPACE_CLI_CLIENT_SECRET="<client-secret>"
 > ```
 > Or add them to your shell profile (`~/.zshrc`, `~/.bashrc`) so they load automatically.
+
+**Windows (PowerShell):**
+
+> ✅ Credentials saved to `%USERPROFILE%\.neuroflow\integrations.json` (global) _or_ `.neuroflow\integrations.json` (per-project).
+>
+> **Important:** This file is never committed — credentials stay local to this machine.
+>
+> **To activate the MCP servers**, set the env vars in PowerShell before starting Claude Code:
+> ```powershell
+> $env:PUBMED_EMAIL = "user@example.com"
+> $env:MIRO_ACCESS_TOKEN = "eyJ..."
+> $env:GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE = "$env:USERPROFILE\.config\gws\client_secret.json"
+> ```
+> For persistence, add these to your PowerShell profile (`notepad $PROFILE`) or set them as User environment variables via Settings → System → Environment Variables.
 
 **If nothing was configured (all skipped):**
 
