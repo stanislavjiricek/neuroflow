@@ -9,7 +9,7 @@ Searches academic literature for a given topic using both PubMed and bioRxiv. Ne
 
 ## Search strategy
 
-1. Run searches **sequentially** — PubMed first, then bioRxiv. Do not run them simultaneously. Wait for each source to return before querying the next. This avoids flooding the API with concurrent tool calls, which can cause freezes on custom providers.
+1. Run PubMed and bioRxiv searches **in parallel** — fire both tool calls simultaneously. Wait for both to complete before proceeding. CrossRef, Semantic Scholar, and arXiv fallbacks are run sequentially after the parallel pair completes.
 2. **bioRxiv API limitation — handle explicitly**: The bioRxiv MCP server uses a date-range API that does not support keyword filtering. If bioRxiv returns zero results:
    - Emit this warning **immediately** (not in a footnote):
      > ⚠️ **bioRxiv keyword search returned 0 results.** The bioRxiv API does not support keyword filtering — it is limited to date-range queries. Attempting CrossRef, then Semantic Scholar, then arXiv as sequential fallbacks.
@@ -65,11 +65,15 @@ One sentence describing the key finding or contribution.
 
 End with a **2–3 sentence Summary** across both sources: what the literature shows, where the gaps are.
 
-## Automatic paper download
+## Paper handling
 
-After returning the results list, **always** attempt to download every paper to `.neuroflow/ideation/papers/`.
+After returning the results list, **always** save a `.md` metadata stub for every paper to `.neuroflow/ideation/papers/`. Do NOT download PDFs automatically — present the results first, then ask the user which papers to download.
 
-### Resume detection
+### Stub creation (always runs)
+
+For every paper in the results list, immediately save a `.md` metadata stub to `.neuroflow/ideation/papers/[stem]/[stem].md` using the partial metadata template below. Set `full_text_available: false` and `reason: not-yet-downloaded`. This gives the literature-review agent something to work with even when no PDFs are downloaded.
+
+### Resume detection (for user-requested downloads)
 
 Before downloading anything, check which papers are already present:
 
@@ -77,7 +81,11 @@ Before downloading anything, check which papers are already present:
 2. For each paper in the results list, compute its expected filename stem: `[FirstAuthorLastName]-[Year]-[SlugTitle]` — the slug is the paper title lower-cased, punctuation stripped, spaces replaced with hyphens, truncated at 60 characters; if the author's last name contains non-ASCII characters, transliterate them (e.g. "Müller" → "muller"); if the year is missing use "unknown"
 3. For each paper in the results list, check the expected stem folder:
    - If it contains `[stem].pdf` or `[stem].txt` → this is a real full-text download (`.pdf`/`.txt` always takes precedence regardless of whether a `.md` stub is also present); mark it `⏭️ already downloaded` and skip it — do not re-download
-   - If it contains only `[stem].md` (no `.pdf` or `.txt`) → this is a **metadata-only stub** from a previous failed or unavailable download, NOT a real download; check the stub's front-matter: if `full_text_available: false` and `reason: unavailable`, mark it `⏭️ unavailable (metadata cached)` and skip it; otherwise attempt the download again (the previous attempt may have failed transiently)
+   - If it contains only `[stem].md` (no `.pdf` or `.txt`) → check the stub's `reason` field:
+     - `reason: not-yet-downloaded` → stub was created from search results but no download was attempted; eligible for download
+     - `reason: unavailable` → all sources exhausted; mark `⏭️ unavailable (metadata cached)` and skip
+     - `reason: failed` → previous attempt errored; retry the download
+     - `reason: paywalled` → skip unless user explicitly requests it
    - Apply DOI disambiguation if needed: if titles are identical in the first 60 characters and a collision occurs, append the last 6 characters of the DOI (dashes stripped) to disambiguate the stem
 4. Only attempt to download papers that do not already have a `.pdf` or `.txt` in their stem folder (and whose `.md` stub, if present, does not have `reason: unavailable`)
 
@@ -141,7 +149,7 @@ reason: "[unavailable | failed | paywalled]"
 - To obtain the full text: [DOI resolver URL or direct link if known]
 ```
 
-This file is recognised by the resume detection system: the presence of a `.md` stub signals a **previous failure**, not a successful download. The resume-detection logic will re-attempt the download for stubs with `reason: failed` and will skip stubs with `reason: unavailable` (all sources exhausted). The `literature-review` agent can read these stubs for title, abstract, and metadata when full text is not present.
+This file is recognised by the resume detection system. The `reason` field drives resume behaviour: `not-yet-downloaded` = eligible for user-requested download; `failed` = will be retried; `unavailable` = all sources exhausted, skipped; `paywalled` = skipped unless user requests. The `literature-review` agent can read these stubs for title, abstract, and metadata when full text is not present.
 
 ### Download summary
 
@@ -166,13 +174,18 @@ If any papers are marked `⚠️ failed`, list them:
 
 Then add: *"To resume: re-run the `scholar` agent with the same query. Papers already downloaded as PDF/text will be skipped automatically. Metadata-only `.md` stubs with `reason: failed` will be retried; stubs with `reason: unavailable` will be skipped (all sources exhausted). To force a fresh download attempt for an unavailable paper, delete its `.md` stub first."*
 
-After the download summary, offer to run the `literature-review` agent on the papers in `.neuroflow/ideation/papers/`.
+After the download summary, offer to run the `literature-review` agent on the papers in `.neuroflow/ideation/papers/`. Note that the literature-review agent can work from `.md` stubs (abstracts) alone — full PDFs are not required for a first-pass analysis.
 
 ## Follow-up actions
 
-After returning results and the download summary, offer:
+After returning results and saving stubs, ask the user:
 
-- `"literature-review"` — run the `literature-review` agent on all downloaded papers (runs the full 12-lens analysis with the worker-critic loop)
+> **Which papers would you like to download for full-text analysis?**
+> Enter numbers (e.g. `1,3,5`), `all`, or `skip` to proceed with abstract-only analysis.
+
+Then offer:
+
+- `"literature-review"` — run the `literature-review` agent on papers in `.neuroflow/ideation/papers/` (works from PDFs or `.md` stubs)
 - `"save"` / `"md"` — save the result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/`
 - `"summarize"` — produce a deeper synthesis: main findings, methodological patterns, open questions, contradictions across papers
 
@@ -182,4 +195,5 @@ After returning results and the download summary, offer:
 - If a DOI cannot be verified, mark it as unverified
 - Always separate PubMed and bioRxiv results clearly
 - Mark preprints — they are not peer-reviewed
-- Always attempt downloads automatically — do not wait for the user to request them
+- Always save `.md` metadata stubs for all results automatically — do not wait for the user
+- Never download PDFs automatically — always ask the user which papers to download first

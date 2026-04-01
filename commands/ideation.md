@@ -48,29 +48,13 @@ Save the result as `research-question.md` in `.neuroflow/ideation/`.
 
 ### Explore literature
 
-**Before searching**, check integration credentials:
+Spawn the `scholar` subagent with the user's topic. The scholar agent will:
+- Search PubMed and bioRxiv (in parallel) plus CrossRef/Semantic Scholar fallbacks
+- Deduplicate results and emit a coverage summary
+- Save a `.md` metadata stub for every result to `.neuroflow/ideation/papers/`
+- Return the results list and ask the user which papers to download for full analysis
 
-1. Read `.neuroflow/integrations.json` if it exists.
-2. Check whether `PUBMED_EMAIL` is set (either in the file or as an env var).
-3. If `PUBMED_EMAIL` is **not** configured, show this reminder before proceeding:
-
-> ⚠️ **PubMed not configured.**
-> The PubMed MCP server requires a `PUBMED_EMAIL` to query the NCBI API. Without it, PubMed searches will fail.
->
-> Would you like to set it up now?
-> - **Y** — run `/neuroflow:setup` to configure credentials, then continue the literature search
-> - **n** — skip; I'll attempt bioRxiv only (no email required)
-
-If the user chooses Y: run the PubMed section of the setup wizard — specifically Step 2 (prompt for email) and Step 4 (save to integrations.json) from `commands/setup.md` — then continue here.
-If the user skips: proceed using bioRxiv only, and note PubMed results will be unavailable.
-
-Run searches directly: call `search_pubmed`, then `search_biorxiv`, then `search_crossref` sequentially — do NOT spawn the `scholar` subagent. Use the user's topic as the starting query, then try synonyms and broader/narrower terms if first results are thin.
-
-After collecting results, download papers via Bash `curl` in batches of 3. Try open-access URLs first (Frontiers, PLoS, eNeuro, PMC), then Sci-Hub as fallback (fetch page → extract PDF URL → download).
-
-After all downloads complete, run `/compact` to clear context before continuing.
-
-Save the search result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/`.
+Do NOT run inline searches or download anything here — delegate entirely to scholar.
 
 ### Literature review
 
@@ -113,7 +97,7 @@ Produce a structured project proposal document covering: research question, back
 
 Apply these checks at the points indicated above and whenever the user explicitly requests an integration:
 
-**PubMed / bioRxiv** — checked before any literature search (see "Explore literature" step above).
+**PubMed / bioRxiv** — available out of the box. No setup required.
 
 **Miro** — if the user mentions Miro, asks to visualise a mind map, or wants to export ideas to a board:
 1. Read `.neuroflow/integrations.json` and check whether `MIRO_ACCESS_TOKEN` is set.

@@ -11,10 +11,10 @@ The ideation phase is the entry point of a research project — sharpening a vag
 
 - Identify which entry point applies (brainstorm, literature explore, formalize, proposal, literature review) before doing anything else
 - Resist generating a full proposal before the research question is clear — sequence matters
-- Run all literature searches directly from the main agent using MCP search tools (`search_pubmed`, `search_biorxiv`, `search_crossref`) — do NOT spawn the `scholar` subagent
-- After collecting results, download papers using Bash `curl` commands, not the `download_paper` MCP tool — `curl` is reliable; `download_paper` freezes in subagents
-- After all downloads complete, call `/compact` to free context before proceeding to literature-review
-- After papers are downloaded, use the `literature-review` agent to run the full 12-protocol analysis
+- Spawn the `scholar` subagent for all literature searches — do NOT run inline MCP searches
+- The scholar agent saves `.md` metadata stubs for all results and asks the user which papers to download
+- After the user selects papers (or skips), use the `literature-review` agent to run the full 12-protocol analysis
+- The literature-review agent works from PDFs or `.md` stubs — full download is not required
 - Keep outputs hypothesis-driven and concise; avoid scope creep at this stage
 - If `project_config.md` already has a research question, confirm whether to refine or restart
 

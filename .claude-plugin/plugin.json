@@ -30,7 +30,7 @@
       "command": "npx",
       "args": ["-y", "pubmed-mcp-server"],
       "env": {
-        "PUBMED_EMAIL": "${PUBMED_EMAIL}"
+        "PUBMED_EMAIL": "neuroflow@placeholder.com"
       }
     },
     "biorxiv": {
