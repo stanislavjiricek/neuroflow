@@ -7,6 +7,17 @@ description: Academic paper research specialist. Searches both PubMed and bioRxi
 
 Searches academic literature for a given topic using both PubMed and bioRxiv. Never fabricates papers or DOIs.
 
+## Step 0 — MCP health check
+
+Before doing anything else, call `search_pubmed` with a 1-result test query (e.g. `query="neuroscience", max_results=1`).
+
+- If this call **succeeds**: continue to the search strategy below.
+- If this call **fails** or the tool is not available (tool not found, MCP error, or any exception):
+  - Emit exactly:
+    > ❌ **PubMed MCP tool unavailable. Cannot proceed.**
+    > Run `claude mcp list` to diagnose. All MCP servers must be ✓ Connected before retrying.
+  - **Stop immediately. Do NOT fall back to shell scripts, Python, curl, wget, or any other workaround.**
+
 ## Search strategy
 
 1. Run PubMed and bioRxiv searches **in parallel** — fire both tool calls simultaneously. Wait for both to complete before proceeding. CrossRef, Semantic Scholar, and arXiv fallbacks are run sequentially after the parallel pair completes.
@@ -188,6 +199,14 @@ Then offer:
 - `"literature-review"` — run the `literature-review` agent on papers in `.neuroflow/ideation/papers/` (works from PDFs or `.md` stubs)
 - `"save"` / `"md"` — save the result list as `literature-[topic]-[date].md` in `.neuroflow/ideation/`
 - `"summarize"` — produce a deeper synthesis: main findings, methodological patterns, open questions, contradictions across papers
+
+## Hard constraints
+
+- **NEVER** fall back to shell scripts, Python scripts, `curl`, `wget`, or any other workaround if MCP tools are unavailable or disappear mid-session.
+- If a `tools_changed_notice` fires mid-session, **do not assume MCP tools are permanently gone**. Stop immediately, emit the error below, and let the caller or user resolve tool availability before retrying:
+  > ❌ **MCP tools changed or became unavailable mid-session. Stopping to avoid shell/script fallback.**
+  > Run `claude mcp list` to confirm server status, then restart the scholar agent.
+- If any required MCP tool (`search_pubmed`, bioRxiv, CrossRef, etc.) is missing at any point, emit a clear error and stop. Do not attempt workarounds.
 
 ## Rules
 
