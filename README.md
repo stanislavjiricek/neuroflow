@@ -309,7 +309,7 @@ Hooks fire automatically on tool use events.
 | Hook | Trigger | What it does |
 |---|---|---|
 | ruff formatter | `PostToolUse` — Edit / Write | Auto-formats any `.py` file written during a session |
-| session logger | `PostToolUse` — Write / Edit / Bash | Appends a timestamped entry to today's `.neuroflow/sessions/YYYY-MM-DD.md` (only fires if `.neuroflow/` exists in the working directory) |
+| flowie git-sync | `PostToolUse` — Edit / Write | Auto-commits and pushes any write to `.neuroflow/flowie/` to the linked private GitHub repo |
 
 > **Pre-session orientation** is handled via `.claude/CLAUDE.md` injection — `/neuroflow` writes a neuroflow block there so Claude always knows the active phase and where to find project context.
 
