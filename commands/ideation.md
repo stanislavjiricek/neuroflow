@@ -1,6 +1,6 @@
 ---
 name: ideation
-description: The very beginning of a research project — brainstorm a research question, explore literature via the scholar agent, formalize an existing idea into a project definition, or produce a project proposal document.
+description: The very beginning of a research project — brainstorm a research question, explore literature inline (no sub-agents), formalize an existing idea into a project definition, or produce a project proposal document.
 phase: ideation
 reads:
   - .neuroflow/project_config.md
@@ -8,6 +8,7 @@ reads:
   - .neuroflow/ideation/flow.md
   - .neuroflow/integrations.json
   - skills/phase-ideation/SKILL.md
+  - skills/phase-ideation/references/search-protocol.md
 writes:
   - .neuroflow/ideation/
   - .neuroflow/ideation/papers/
@@ -27,7 +28,7 @@ Handles the very beginning of a research project. Four possible entry points —
 2. **Explore literature** — the user wants to search what is already known before committing to a question
 3. **Formalize** — the user has an idea and wants to sharpen it into a concrete, testable research question
 4. **Proposal** — the user wants to produce a written project proposal document
-5. **Literature review** — papers have been retrieved (automatically downloaded by `scholar`, or manually placed in `.neuroflow/ideation/papers/`) and the user wants to run the full 12-protocol analysis
+5. **Literature review** — papers have been retrieved (via the inline search protocol, or manually placed in `.neuroflow/ideation/papers/`) and the user wants to run the full 12-protocol analysis
 
 If `project_config.md` already has a research question, confirm whether they want to build on it or start fresh.
 
@@ -48,13 +49,18 @@ Save the result as `research-question.md` in `.neuroflow/ideation/`.
 
 ### Explore literature
 
-Spawn the `scholar` subagent with the user's topic. The scholar agent will:
-- Search PubMed and bioRxiv (in parallel) plus CrossRef/Semantic Scholar fallbacks
-- Deduplicate results and emit a coverage summary
-- Save a `.md` metadata stub for every result to `.neuroflow/ideation/papers/`
-- Return the results list and ask the user which papers to download for full analysis
+Perform the literature search **directly — do NOT spawn a sub-agent**. Read and follow `skills/phase-ideation/references/search-protocol.md` step by step:
 
-Do NOT run inline searches or download anything here — delegate entirely to scholar.
+1. Run the MCP health check (Step 0 of the protocol)
+2. Execute PubMed and bioRxiv searches in parallel, with CrossRef/Semantic Scholar/arXiv fallbacks as needed
+3. Deduplicate results and emit the coverage summary table
+4. Present the results list in the output format defined in the protocol
+5. Save a `.md` metadata stub for every result to `.neuroflow/ideation/papers/` automatically
+6. Ask the user which papers to download for full-text analysis (`1,3,5`, `all`, or `skip`)
+7. If the user selects papers, follow the download procedure in the protocol (batches of 2, with resume detection)
+8. After downloads complete (or are skipped), offer follow-up actions: literature-review, save, or summarize
+
+All search logic, output formats, stub templates, resume detection, and download procedures are defined in the search protocol reference — follow them exactly.
 
 ### Literature review
 

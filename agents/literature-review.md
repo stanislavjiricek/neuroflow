@@ -14,7 +14,7 @@ Applies twelve structured analytical protocols to a set of downloaded papers loc
 Before running any protocol:
 
 1. List all files in `.neuroflow/ideation/papers/` — these are the papers to analyse
-2. If the folder is empty or does not exist, tell the user: "No downloaded papers found in `.neuroflow/ideation/papers/`. Run the `scholar` agent first and wait for the automatic download step to complete."
+2. If the folder is empty or does not exist, tell the user: "No papers found in `.neuroflow/ideation/papers/`. Run `/ideation` → explore literature first, then select papers to download."
 3. Load each downloaded paper (full text where available; title + abstract + metadata where not)
 4. Confirm the paper list with the user before proceeding
 

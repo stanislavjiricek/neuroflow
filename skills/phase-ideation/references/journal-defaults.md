@@ -1,7 +1,7 @@
 # Journal defaults — neuroscience areas
 
 Default high-impact journal lists for eight neuroscience research areas.
-Used by the `scholar` agent to rank literature search results and suggest journal fit.
+Used by the literature search protocol (`skills/phase-ideation/references/search-protocol.md`) to rank results and suggest journal fit.
 
 ---
 
@@ -20,7 +20,7 @@ Used by the `scholar` agent to rank literature search results and suggest journa
 
 ---
 
-## How the scholar agent uses this table
+## How the search protocol uses this table
 
 1. After deduplicating search results, identify which area best matches the query topic.
 2. Present results from the top journals in this table first (equal relevance → higher-ranked journal wins).

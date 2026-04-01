@@ -57,7 +57,7 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
 === "2. Explore literature"
 
-    Search PubMed and bioRxiv simultaneously using the [scholar agent](../concepts/agents.md).
+    Search PubMed and bioRxiv simultaneously using the inline [search protocol](../concepts/agents.md) (no sub-agent spawned).
 
     !!! note "No credentials required"
         PubMed and bioRxiv search works out of the box — no setup needed.

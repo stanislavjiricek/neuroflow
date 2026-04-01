@@ -11,8 +11,8 @@ The ideation phase is the entry point of a research project — sharpening a vag
 
 - Identify which entry point applies (brainstorm, literature explore, formalize, proposal, literature review) before doing anything else
 - Resist generating a full proposal before the research question is clear — sequence matters
-- Spawn the `scholar` subagent for all literature searches — do NOT run inline MCP searches
-- The scholar agent saves `.md` metadata stubs for all results and asks the user which papers to download
+- Perform all literature searches **inline** by following `skills/phase-ideation/references/search-protocol.md` — do NOT spawn sub-agents
+- Save `.md` metadata stubs for all results and ask the user which papers to download
 - After the user selects papers (or skips), use the `literature-review` agent to run the full 12-protocol analysis
 - The literature-review agent works from PDFs or `.md` stubs — full download is not required
 - Keep outputs hypothesis-driven and concise; avoid scope creep at this stage
@@ -20,10 +20,11 @@ The ideation phase is the entry point of a research project — sharpening a vag
 
 ## Relevant agents
 
-- `scholar` — searches PubMed and bioRxiv; automatically downloads open-access papers to `.neuroflow/ideation/papers/`
 - `literature-review` — runs 12 sequential analytical protocols on downloaded papers through the worker-critic loop; produces a compiled literature review saved to `.neuroflow/ideation/literature-review-[date].md`
 - `critic` — evaluates each protocol output in the literature-review loop
 - `orchestrator` — manages the worker-critic loop when invoked
+
+> **Note:** Literature searches are performed inline by the main agent following the search protocol — the `scholar` agent is NOT spawned as a sub-agent. Use the standalone `scholar` agent only for ad-hoc searches outside the `/ideation` workflow.
 
 ## Relevant skills
 
@@ -37,7 +38,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 - Update `project_config.md` if the research question is defined or changed
 - Downloaded papers live in `.neuroflow/ideation/papers/` — this folder is the input for the `literature-review` agent
 - The compiled literature review (`literature-review-[date].md`) feeds directly into the `paper` phase; reference it there
-- When using the `scholar` agent for a literature search, it reads `skills/phase-ideation/references/journal-defaults.md` to match the query to one of eight neuroscience areas and surface high-impact journals. If the user has custom journal preferences, they can create `.neuroflow/journal-preferences.md` from the template at `skills/phase-ideation/references/user-journal-preferences.md`.
+- The search protocol reads `skills/phase-ideation/references/journal-defaults.md` to match the query to one of eight neuroscience areas and surface high-impact journals. If the user has custom journal preferences, they can create `.neuroflow/journal-preferences.md` from the template at `skills/phase-ideation/references/user-journal-preferences.md`.
 
 ## Slash command
 
