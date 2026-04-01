@@ -28,4 +28,4 @@ Add rows for the area(s) relevant to your work. You can list 1–5 journals per 
 
 - Leave rows blank to fall back to the default journal list for that area.
 - Add a row with "Other:" for areas not in the list.
-- The `scholar` agent reads this file automatically when it is present at `.neuroflow/journal-preferences.md`.
+- The literature search protocol reads this file automatically when it is present at `.neuroflow/journal-preferences.md`.
