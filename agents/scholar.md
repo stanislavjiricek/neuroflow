@@ -9,13 +9,13 @@ Searches academic literature for a given topic using both PubMed and bioRxiv. Ne
 
 ## Step 0 — MCP health check
 
-Before doing anything else, call `search_pubmed` with a 1-result test query (e.g. `query="neuroscience", max_results=1`).
+Before doing anything else, call the bioRxiv MCP search tool with a minimal date-range query (e.g. a single recent day, `max_results=1`) to verify the `biorxiv` MCP server is reachable and its tools are registered in context.
 
 - If this call **succeeds**: continue to the search strategy below.
 - If this call **fails** or the tool is not available (tool not found, MCP error, or any exception):
   - Emit exactly:
-    > ❌ **PubMed MCP tool unavailable. Cannot proceed.**
-    > Run `claude mcp list` to diagnose. All MCP servers must be ✓ Connected before retrying.
+    > ❌ **bioRxiv MCP server unavailable. Cannot proceed.**
+    > Run `claude mcp list` to confirm the `biorxiv` server is ✓ Connected, then restart the scholar agent.
   - **Stop immediately. Do NOT fall back to shell scripts, Python, curl, wget, or any other workaround.**
 
 ## Search strategy
@@ -206,7 +206,7 @@ Then offer:
 - If a `tools_changed_notice` fires mid-session, **do not assume MCP tools are permanently gone**. Stop immediately, emit the error below, and let the caller or user resolve tool availability before retrying:
   > ❌ **MCP tools changed or became unavailable mid-session. Stopping to avoid shell/script fallback.**
   > Run `claude mcp list` to confirm server status, then restart the scholar agent.
-- If any required MCP tool (`search_pubmed`, bioRxiv, CrossRef, etc.) is missing at any point, emit a clear error and stop. Do not attempt workarounds.
+- If any required MCP tool (bioRxiv search, CrossRef, etc.) is missing at any point, emit a clear error and stop. Do not attempt workarounds.
 
 ## Rules
 
