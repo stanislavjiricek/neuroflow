@@ -288,6 +288,20 @@ Follow neuroflow-core. Follow the active command. Do not extend, modify, or add 
 - If a new feature seems useful, mention it — do not implement it unless asked.
 - New skills, commands, agents, or hooks are only added when the user has requested them.
 - When in doubt, do less.
+## Autoresearch mode
+
+If any phase command is invoked with the keyword `autoresearch` anywhere in the prompt (e.g. `/ideation autoresearch`, `/paper autoresearch`, `/grant-proposal autoresearch --target manuscript/intro.md`), do not follow the normal phase flow. Instead:
+
+1. Read the `neuroflow:autoresearch` skill
+2. Follow its initialization protocol, using that command's phase as the target phase
+3. Pass any file paths mentioned in the invocation as the initial tracked-files list
+
+This rule applies to all phase commands without requiring individual modifications to each command.
+
+**Note on sub-subfolders:** The `autoresearch/` subfolder is valid within any phase folder (`.neuroflow/{phase}/autoresearch/`). This is an internal subfolder of the phase — not a top-level `.neuroflow/` folder. It does not change the active phase in `project_config.md`.
+
+---
+
 ## Personality modes
 
 Personality modes are keywords that, when present anywhere in the user's prompt (as a word, phrase, or clear synonym), change how Claude behaves for the **entire duration of that command invocation**. The user can also set a `default_mode` in `project_config.md` — apply it at the start of every session in that project unless overridden per-message.

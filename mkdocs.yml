@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.12"
+  version: "0.2.13"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -131,17 +131,20 @@ nav:
           - "📁 data": commands/data.md
           - "🔬 data-preprocess": commands/data-preprocess.md
           - "📊 data-analyze": commands/data-analyze.md
+          - "🧠 brain-build": commands/brain-build.md
+          - "🔄 brain-optimize": commands/brain-optimize.md
+          - "▶️ brain-run": commands/brain-run.md
           - "📝 paper": commands/paper.md
           - "🔍 review": commands/review.md
           - "📓 notes": commands/notes.md
           - "📋 write-report": commands/write-report.md
-      - Brain Simulation:
-          - "🧠 brain-build": commands/brain-build.md
-          - "🔄 brain-optimize": commands/brain-optimize.md
-          - "▶️ brain-run": commands/brain-run.md
+          - "🔁 pipeline": commands/pipeline.md
+          - "🎞️ slideshow": commands/slideshow.md
+          - "🖼️ poster": commands/poster.md
+          - "🧩 quiz": commands/quiz.md
       - Utilities:
           - "🔀 git": commands/git.md
-          - "🔁 pipeline": commands/pipeline.md
+          - "🔁 autoresearch": commands/autoresearch.md
           - "📤 output": commands/output.md
           - "🔍 search": commands/search.md
           - "👤 flowie": commands/flowie.md
@@ -149,13 +152,11 @@ nav:
           - "🎤 interview": commands/interview.md
           - "📍 phase": commands/phase.md
           - "🛡️ sentinel": commands/sentinel.md
-          - "🎞️ slideshow": commands/slideshow.md
-          - "🖼️ poster": commands/poster.md
-          - "🧩 quiz": commands/quiz.md
           - "💢 fails": commands/fails.md
           - "💭 idk": commands/idk.md
   - Concepts:
       - Project Memory: concepts/project-memory.md
+      - Flowie Profile: concepts/flowie.md
       - Agents: concepts/agents.md
       - Skills: concepts/skills.md
       - Hooks: concepts/hooks.md
@@ -165,6 +166,7 @@ nav:
           - "humanizer": skills/humanizer/SKILL.md
           - "review-neuro": skills/review-neuro/SKILL.md
           - "worker-critic": skills/worker-critic/SKILL.md
+          - "autoresearch": skills/autoresearch/SKILL.md
       - Phases:
           - "phase-git": skills/phase-git/SKILL.md
           - "phase-ideation": skills/phase-ideation/SKILL.md
@@ -202,11 +204,16 @@ nav:
           - "skill-creator": skills/skill-creator/SKILL.md
   - Agents:
       - Overview: concepts/agents.md
-      - "critic": agents/critic.md
-      - "orchestrator": agents/orchestrator.md
+      - "paper-writer": agents/paper-writer.md
+      - "paper-critic": agents/paper-critic.md
       - "poster-critic": agents/poster-critic.md
+      - "literature-review": agents/literature-review.md
+      - "scholar": agents/scholar.md
+      - "sentinel": agents/sentinel.md
+      - "sentinel-dev": agents/sentinel-dev.md
+      - "flowie": agents/flowie.md
+      - "autoresearch": agents/autoresearch.md
   - Integrations: integrations.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
-  - Maintenance: maintenance/automation.md
 

@@ -148,33 +148,45 @@ If the loop halts at max iterations:
 
 ## Integration
 
-Any phase command or agent can activate the worker-critic loop by invoking the `worker-critic` skill. The orchestrator selects the appropriate phase agent as the worker automatically, based on the active phase in `.neuroflow/project_config.md`.
+Any phase command or agent can activate the worker-critic loop by invoking the `worker-critic` skill. The active phase determines which worker is used.
 
-**Phase → worker agent mapping** (18 phases, 15 unique worker agents; preregistration shares the `ideation` worker, finance shares the `grant-proposal` worker, and slideshow shares the `write-report` worker):
+**Worker selection:**
 
-| Phase | Worker agent |
+| Phase | Worker |
 |---|---|
-| ideation | `ideation` |
-| preregistration | `ideation` |
-| grant-proposal | `grant-proposal` |
-| finance | `grant-proposal` |
-| experiment | `experiment` |
-| tool-build | `tool-build` |
-| tool-validate | `tool-validate` |
-| data | `data` |
-| data-preprocess | `data-preprocess` |
-| data-analyze | `data-analyze` |
-| paper | `paper-writer` |
-| review | `review` |
-| notes | `notes` |
-| write-report | `write-report` |
-| slideshow | `write-report` |
-| poster | `/poster` command (command acts as worker; `poster-critic` is the critic) |
-| brain-build | `brain-build` |
-| brain-optimize | `brain-optimize` |
-| brain-run | `brain-run` |
+| paper | `paper-writer` agent |
+| poster | `/poster` command acts as worker; `poster-critic` agent is the critic |
+| all other phases | general-purpose agent with the phase skill loaded as the prompt context |
 
-If the phase has no direct match, the orchestrator selects the closest available agent and notes the choice in `critic-log.md`.
+**How to pass context to a general-purpose worker:**
+
+For phases without a dedicated agent, construct the worker prompt as:
+
+```
+[Phase skill content: neuroflow:phase-{phase}]
+[Current .neuroflow/{phase}/ context]
+Task: {task description}
+Rubric: {rubric}
+Mode: Initial Draft | Revision
+```
+
+If the phase has no direct match, use the closest phase skill and note the choice in `critic-log.md`.
+
+---
+
+## Orchestrator role
+
+The orchestrator is the coordinating entity that runs the worker-critic loop. It is not a separate agent — it is the current Claude instance (or the invoking agent) that:
+
+1. Reads the task and determines the active phase
+2. Constructs the rubric from `project_config.md`, `flow.md`, and user-stated criteria
+3. Selects and instructs the worker
+4. Routes the draft to the critic
+5. Tracks iteration count (1–3) and applies the termination conditions
+6. Writes to `critic-log.md` after each round
+7. Presents the final output or halts with unresolved feedback
+
+The orchestrator does **not** produce content itself — it coordinates, routes, and records.
 
 ---
 
