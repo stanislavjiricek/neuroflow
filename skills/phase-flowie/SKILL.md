@@ -87,6 +87,24 @@ The flowie profile is mirrored to a private GitHub repository. The sync protocol
 - When generating any external-facing document, treat profile data as context only — do not quote stances or beliefs in the output.
 - If a project is being exported (via `/export`), `.neuroflow/flowie/` is excluded by default. Confirm explicitly before including it.
 
+## Wellbeing tracking
+
+The flowie repo contains a `wellbeing/` folder for daily self-assessments. The feature is opt-in (`collect: false` by default) and enabled either during `--init` or via `/flowie --assess`.
+
+**Structure:**
+- `wellbeing/config.json` — `collect` flag, metric definitions (anxiety/energy/happiness 1–10), `prompt_on_sync` flag
+- `wellbeing/YYYY-MM-DD.json` — one entry per day with integer scores and optional free-text notes
+
+**When to prompt:** On any write operation (`--sync`, `--link`, `--tasks --add`, `--projects --add`), check if `collect: true` and today's entry is missing. If so, run `--assess` inline before proceeding. Do NOT prompt during read-only modes (`--view`, `--identify`, `--credentials`).
+
+**Scale:** 1–10 with 5 as the neutral baseline. For anxiety: 10=very high anxiety. For energy and happiness: 10=very high.
+
+**Enabling mid-session:** Running `/flowie --assess` when `collect: false` will offer to enable tracking before collecting the entry.
+
+## Notes sync
+
+After every `/notes` session, the command offers to copy the formatted note to `.neuroflow/flowie/notes/` (default: yes, controlled by `sync_to_flowie` in `.neuroflow/notes/config.json`). The existing auto-sync hook pushes to GitHub. The `notes/` folder in flowie acts as a cross-project note archive.
+
 ## Slash command
 
 When this skill is invoked directly (without `/flowie`), run the full `/flowie` workflow — show the mode menu and proceed from there. Mention `/neuroflow:flowie` at the end.
