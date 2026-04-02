@@ -6,6 +6,13 @@ title: Changelog
 
 ---
 
+## 0.2.13
+
+- **`/autoresearch`** — infinite worker-evaluator loop for any research artifact; per-phase criteria auto-loaded; live dashboard at localhost:8765; triggers via `/autoresearch` or any phase command + `autoresearch` keyword
+- **Agent cleanup** — removed 16 unused phase agent files; 8 confirmed-spawned agents remain; orchestrator protocol merged into worker-critic skill
+
+---
+
 ## 0.2.12
 
 - **Notes → flowie sync** ([`/notes`](commands/notes.md)) — after every notes session, Claude offers to copy the formatted note to `.neuroflow/flowie/notes/` for GitHub sync (default: yes); a local `config.json` stores per-project defaults for type, speaker, and project relation

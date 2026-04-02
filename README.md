@@ -17,6 +17,11 @@
 
 ---
 
+## What's new in 0.2.13
+
+- **[`/autoresearch`](commands/autoresearch.md)** — infinite improvement loop for any research artifact: point it at any file(s), and a worker-evaluator cycle runs indefinitely (one focused change per iteration, keep or revert, loop never stops until interrupted); live progress dashboard at `localhost:8765`; per-phase criteria auto-loaded from existing project memory; triggers via `/autoresearch` or any phase command with the word `autoresearch` in the prompt
+- **Agent cleanup** — removed 16 unused phase agent files that were never spawned by commands; commands follow phase skills directly; the 8 agents that are actually spawned (paper-writer, paper-critic, poster-critic, literature-review, scholar, sentinel, sentinel-dev, flowie) remain unchanged
+
 ## What's new in 0.2.12
 
 - **Notes → flowie sync** ([`/notes`](commands/notes.md)) — after every notes session, Claude offers to copy the formatted note to `.neuroflow/flowie/notes/` for GitHub sync (default: yes); a local `config.json` stores per-project defaults for type, speaker, and project relation
