@@ -17,6 +17,11 @@
 
 ---
 
+## What's new in 0.2.12
+
+- **Notes → flowie sync** ([`/notes`](commands/notes.md)) — after every notes session, Claude offers to copy the formatted note to `.neuroflow/flowie/notes/` for GitHub sync (default: yes); a local `config.json` stores per-project defaults for type, speaker, and project relation
+- **Daily wellbeing tracking** ([`/flowie --assess`](commands/flowie.md)) — opt-in daily self-assessment for anxiety, energy, and happiness on a 1–10 scale (5=neutral); stored in `flowie/wellbeing/`; Claude prompts on any sync operation if today's entry is missing; enabled via `/flowie --init` or `/flowie --assess`
+
 ## What's new in 0.2.11
 
 - **Removed broken `pubmed-mcp-server`** — replaced by `paper-search-mcp-nodejs` (the biorxiv server), which already includes `search_pubmed` and requires no credentials; `PUBMED_EMAIL` is no longer needed

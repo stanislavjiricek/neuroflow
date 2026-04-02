@@ -24,6 +24,8 @@ The notes phase captures live notes during a meeting, talk, or session, then ref
 - Save the final formatted notes to `.neuroflow/notes/notes-[date].md`
 - Delete the draft file once the final formatted file has been written
 - Keep the raw capture separate from the reformatted version if both are useful
+- After saving, check `.neuroflow/notes/config.json` for `sync_to_flowie`; if `true` (default), offer to copy the note to `.neuroflow/flowie/notes/` for GitHub sync
+- `.neuroflow/notes/config.json` stores per-project defaults: `default_type`, `default_speaker`, `default_project`, and `sync_to_flowie`; create it with standard defaults on first run if absent
 
 ## Slash command
 

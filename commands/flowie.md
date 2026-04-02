@@ -10,6 +10,8 @@ reads:
   - .neuroflow/flowie/sync.json
   - .neuroflow/flowie/tasks/config.json
   - .neuroflow/flowie/projects/projects.json
+  - .neuroflow/flowie/wellbeing/config.json
+  - .neuroflow/flowie/wellbeing/*.json
 writes:
   - .neuroflow/flowie/profile.md
   - .neuroflow/flowie/ideas.md
@@ -17,6 +19,9 @@ writes:
   - .neuroflow/flowie/tasks/**
   - .neuroflow/flowie/projects/projects.json
   - .neuroflow/flowie/projects/*.md
+  - .neuroflow/flowie/notes/
+  - .neuroflow/flowie/wellbeing/config.json
+  - .neuroflow/flowie/wellbeing/*.json
   - .neuroflow/project_config.md
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
@@ -180,6 +185,11 @@ Create `.neuroflow/flowie/` and scaffold the full structure:
     meeting/ .flow
     done/    .flow
     archive/ .flow
+  notes/
+    .flow                        ← index of notes synced from /notes
+  wellbeing/
+    .flow
+    config.json                  ← collect flag and metric definitions
 ```
 
 **Root `.flow` file** (neuroflow index convention):
@@ -194,6 +204,8 @@ Create `.neuroflow/flowie/` and scaffold the full structure:
 | sync.json | GitHub repo URL and last_synced |
 | projects/ | project registry |
 | tasks/ | Kanban task board |
+| notes/ | notes synced from /notes sessions |
+| wellbeing/ | daily wellbeing assessments |
 ```
 
 **`sync.json`:**
@@ -286,6 +298,36 @@ Each column folder (`inbox/`, `ready/`, `active/`, `review/`, `meeting/`, `done/
 Tasks in this column.
 ```
 
+**`notes/.flow`:**
+```markdown
+# notes
+
+| file | description |
+|---|---|
+```
+
+**`wellbeing/.flow`:**
+```markdown
+# wellbeing
+
+| file | description |
+|---|---|
+| config.json | collection settings |
+```
+
+**`wellbeing/config.json`:**
+```json
+{
+  "collect": false,
+  "metrics": [
+    {"id": "anxiety",   "label": "Anxiety",   "scale": "1=none, 5=normal, 10=very high"},
+    {"id": "energy",    "label": "Energy",    "scale": "1=depleted, 5=normal, 10=very high"},
+    {"id": "happiness", "label": "Happiness", "scale": "1=very low, 5=normal, 10=very high"}
+  ],
+  "prompt_on_sync": true
+}
+```
+
 Update `.neuroflow/flow.md` to add a row for `flowie/`.
 
 **Init and push to GitHub:**
@@ -326,6 +368,7 @@ flowie — what would you like to do?
   --identify    Generate a "who you are" paragraph from existing data
   --tasks       Show Kanban board / manage tasks
   --projects    Show / manage project registry
+  --assess      Log today's wellbeing (anxiety, energy, happiness 1–10)
   --credentials Show custom LLM settings as ready-to-paste export commands
 ```
 
@@ -353,6 +396,12 @@ Ask each question one at a time. Do not rush.
 5. *"Are there any methodological stances you hold firmly? (e.g. preregistration is non-negotiable, Bayesian over frequentist, open data always)"*
 6. *"List 3 to 5 beliefs you hold about your field that guide your research decisions. These can be controversial."*
 7. *"Is there anything else you want Claude to know about how you think — your research values, pet peeves, or preferences?"*
+8. *"Would you like to track your daily wellbeing — anxiety, energy, and happiness on a 1–10 scale? Claude will prompt you to fill in a rating each day when you sync flowie. [y/N]"*
+
+   If yes: read `wellbeing/config.json`, set `collect` to `true`, write the file, then push:
+   ```bash
+   git -C .neuroflow/flowie add wellbeing/config.json && git -C .neuroflow/flowie commit -m "wellbeing: enable daily tracking" && git -C .neuroflow/flowie push || true
+   ```
 
 After collecting all answers, write a structured `profile.md`:
 
@@ -435,6 +484,10 @@ Update `last_synced` in `sync.json` to current ISO 8601 timestamp, then commit t
 git -C .neuroflow/flowie add sync.json && git -C .neuroflow/flowie commit -m "sync: update last_synced" && git -C .neuroflow/flowie push || true
 ```
 
+### Wellbeing check
+
+After the push step, read `wellbeing/config.json`. If `collect` is `true` and `prompt_on_sync` is `true`, check whether `wellbeing/{today}.json` exists. If it does not exist, run the `--assess` flow inline before reporting (see Mode: --assess). If it exists, skip silently.
+
 Report:
 ```
 Sync complete — {YYYY-MM-DD HH:MM}
@@ -498,6 +551,8 @@ Pull first:
 ```bash
 git -C .neuroflow/flowie pull --rebase origin main || true
 ```
+
+After pulling, run the wellbeing check (same as in `--sync`): if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before continuing.
 
 Read `projects/projects.json`. List the available projects:
 
@@ -646,6 +701,8 @@ Flat list of all tasks across all non-archive columns, sorted by column order th
 
 ### --tasks --add
 
+Before starting, run the wellbeing check: if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before proceeding.
+
 Mini interview to create a new task. Ask:
 
 1. *"Task title?"*
@@ -757,6 +814,8 @@ Only show phases that have been visited or are current/future relative to `curre
 
 ### --projects --add
 
+Before starting, run the wellbeing check: if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before proceeding.
+
 Register a new project. Ask:
 
 1. *"Project ID (short name, no spaces — e.g. AlphaModulation)?"*
@@ -817,6 +876,62 @@ Push:
 ```bash
 git -C .neuroflow/flowie add projects/projects.json projects/{id}.md && git -C .neuroflow/flowie commit -m "projects: add {id}" && git -C .neuroflow/flowie push || true
 ```
+
+---
+
+## Mode: --assess
+
+**Trigger:** user runs `/flowie --assess`, or invoked automatically when `collect: true` and today's entry is missing (during `--sync`, `--link`, `--tasks --add`, `--projects --add`).
+
+Pull first (skip if already pulled this session).
+
+Read `wellbeing/config.json`. If `collect` is `false`:
+
+```
+Wellbeing tracking is disabled. Enable it? [y/N]
+```
+
+If yes: set `collect: true`, write `wellbeing/config.json`, push. If no: stop.
+
+Check whether `wellbeing/{today}.json` exists. If it already exists:
+
+```
+Wellbeing already logged for today ({today}). Update it? [y/N]
+```
+
+If no: stop.
+
+Ask each metric one at a time:
+
+```
+Anxiety today? (1=none, 5=normal, 10=very high) [1–10]:
+Energy today? (1=depleted, 5=normal, 10=very high) [1–10]:
+Happiness today? (1=very low, 5=normal, 10=very high) [1–10]:
+Any notes? (optional — press enter to skip):
+```
+
+Validate that each score is an integer 1–10. Re-ask if invalid.
+
+Write `wellbeing/{today}.json`:
+
+```json
+{
+  "date": "{today}",
+  "anxiety": N,
+  "energy": N,
+  "happiness": N,
+  "notes": ""
+}
+```
+
+Update `wellbeing/.flow` — append a row: `| {today}.json | wellbeing entry |`.
+
+Push:
+```bash
+git -C .neuroflow/flowie add wellbeing/{today}.json wellbeing/.flow && git -C .neuroflow/flowie commit -m "wellbeing: {today}" && git -C .neuroflow/flowie push || true
+```
+
+Confirm: `Wellbeing logged for {today}.`
 
 ---
 
