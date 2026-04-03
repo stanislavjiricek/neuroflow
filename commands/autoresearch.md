@@ -1,6 +1,6 @@
 ---
 name: autoresearch
-description: Infinite improvement loop for any research artifact — point it at any file(s), and it runs a worker-evaluator loop indefinitely: one focused change per iteration, keep or revert based on relative comparison, dashboard at localhost:8765. Never stops until interrupted.
+description: "Infinite improvement loop for any research artifact — point it at any file(s), and it runs a worker-evaluator loop indefinitely: one focused change per iteration, keep or revert based on relative comparison, dashboard at localhost:8765. Never stops until interrupted."
 phase: utility
 reads:
   - .neuroflow/project_config.md

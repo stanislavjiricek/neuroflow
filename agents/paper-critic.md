@@ -1,6 +1,6 @@
 ---
 name: paper-critic
-description: Hyper-critical manuscript reviewer for the unified paper phase. Applies the full six-area neuroflow:review-neuro methodology to every section draft — as if reviewing for Nature Neuroscience or Neuron. Returns [STATUS: APPROVED] or [STATUS: REJECTED] with specific, actionable feedback. Never produces content.
+description: "Hyper-critical manuscript reviewer for the unified paper phase. Applies the full six-area neuroflow:review-neuro methodology to every section draft — as if reviewing for Nature Neuroscience or Neuron. Returns [STATUS: APPROVED] or [STATUS: REJECTED] with specific, actionable feedback. Never produces content."
 ---
 
 # paper-critic
