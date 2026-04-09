@@ -116,56 +116,56 @@ nav:
   - Installation: installation.md
   - Quickstart: quickstart.md
   - Mind Map: mind.md
-  - Personal Profile:
-      - "👤 Research Profile": commands/flowie.md
-      - "🧠 Personal Wiki": skills/wiki/SKILL.md
-      - "💡 Cross-project Ideas": commands/flowie.md
-      - "💚 Wellbeing": commands/flowie.md
-      - "📁 Project Registry": commands/flowie.md
-  - Project Memory:
-      - "🗂️ Project Memory": concepts/project-memory.md
-      - "🚀 neuroflow": commands/neuroflow.md
-      - "⚙️ setup": commands/setup.md
-      - "📍 phase": commands/phase.md
-  - Research Pipeline:
-      - "💡 Discovery": commands/ideation.md
-      - "🔍 Search": commands/search.md
-      - "📋 Formalization": commands/preregistration.md
-      - "💰 Funding": commands/grant-proposal.md
-      - "💸 Finance": commands/finance.md
-      - "🧪 Experiment": commands/experiment.md
-      - "🔧 Tool Build": commands/tool-build.md
-      - "✅ Tool Validate": commands/tool-validate.md
-      - "📁 Data": commands/data.md
-      - "🔬 Preprocessing": commands/data-preprocess.md
-      - "📊 Analysis": commands/data-analyze.md
-      - "🧠 Brain Build": commands/brain-build.md
-      - "🔄 Brain Optimize": commands/brain-optimize.md
-      - "▶️ Brain Run": commands/brain-run.md
-      - "📝 Writing": commands/paper.md
-      - "🔍 Review": commands/review.md
-      - "📓 Notes": commands/notes.md
-      - "📋 Write Report": commands/write-report.md
-      - "🖼️ Poster": commands/poster.md
-      - "🎞️ Slideshow": commands/slideshow.md
-      - "📤 Output": commands/output.md
-      - "🧩 Quiz": commands/quiz.md
-  - Team Integration:
-      - "🐝 Hive": commands/hive.md
-  - Utilities & Quality:
-      - "🛡️ Quality & Audit": commands/sentinel.md
-      - "💢 Fails Log": commands/fails.md
-      - "⚡ Automation": commands/autoresearch.md
-      - "🔁 Pipeline": commands/pipeline.md
-      - "🔀 Git": commands/git.md
-      - "🎤 Interview": commands/interview.md
-      - "💭 Idk": commands/idk.md
   - Concepts:
       - Project Memory: concepts/project-memory.md
       - Flowie Profile: concepts/flowie.md
       - Agents: concepts/agents.md
       - Skills: concepts/skills.md
       - Hooks: concepts/hooks.md
+      - Personal Profile:
+          - "👤 Research Profile": commands/flowie.md
+          - "🧠 Personal Wiki": skills/wiki/SKILL.md
+          - "💡 Cross-project Ideas": commands/flowie.md
+          - "💚 Wellbeing": commands/flowie.md
+          - "📁 Project Registry": commands/flowie.md
+      - Project Memory:
+          - "🗂️ Project Memory": concepts/project-memory.md
+          - "🚀 neuroflow": commands/neuroflow.md
+          - "⚙️ setup": commands/setup.md
+          - "📍 phase": commands/phase.md
+      - Research Pipeline:
+          - "💡 Discovery": commands/ideation.md
+          - "🔍 Search": commands/search.md
+          - "📋 Formalization": commands/preregistration.md
+          - "💰 Funding": commands/grant-proposal.md
+          - "💸 Finance": commands/finance.md
+          - "🧪 Experiment": commands/experiment.md
+          - "🔧 Tool Build": commands/tool-build.md
+          - "✅ Tool Validate": commands/tool-validate.md
+          - "📁 Data": commands/data.md
+          - "🔬 Preprocessing": commands/data-preprocess.md
+          - "📊 Analysis": commands/data-analyze.md
+          - "🧠 Brain Build": commands/brain-build.md
+          - "🔄 Brain Optimize": commands/brain-optimize.md
+          - "▶️ Brain Run": commands/brain-run.md
+          - "📝 Writing": commands/paper.md
+          - "🔍 Review": commands/review.md
+          - "📓 Notes": commands/notes.md
+          - "📋 Write Report": commands/write-report.md
+          - "🖼️ Poster": commands/poster.md
+          - "🎞️ Slideshow": commands/slideshow.md
+          - "📤 Output": commands/output.md
+          - "🧩 Quiz": commands/quiz.md
+      - Team Integration:
+          - "🐝 Hive": commands/hive.md
+      - Utilities & Quality:
+          - "🛡️ Quality & Audit": commands/sentinel.md
+          - "💢 Fails Log": commands/fails.md
+          - "⚡ Automation": commands/autoresearch.md
+          - "🔁 Pipeline": commands/pipeline.md
+          - "🔀 Git": commands/git.md
+          - "🎤 Interview": commands/interview.md
+          - "💭 Idk": commands/idk.md
   - Reference:
       - Commands: commands/index.md
       - Skills:
