@@ -1,6 +1,6 @@
 ---
 name: flowie
-description: Personal research OS — link a private GitHub repository to store your research profile, cross-project Kanban task board, and project registry with phase tracking. Supports profile creation, task management, project registry, GitHub sync, phase auto-tracking, and credential export.
+description: Personal research OS — link a private GitHub repository to store your research profile, cross-project Kanban task board, project registry, and personal wiki. Supports profile creation, task management, project registry, GitHub sync, phase auto-tracking, credential export, and LLM-maintained personal knowledge base.
 phase: utility
 reads:
   - .neuroflow/project_config.md
@@ -12,6 +12,11 @@ reads:
   - .neuroflow/flowie/projects/projects.json
   - .neuroflow/flowie/wellbeing/config.json
   - .neuroflow/flowie/wellbeing/*.json
+  - .neuroflow/flowie/wiki/schema.md
+  - .neuroflow/flowie/wiki/index.md
+  - .neuroflow/flowie/wiki/log.md
+  - .neuroflow/flowie/wiki/pages/**
+  - skills/wiki/SKILL.md
 writes:
   - .neuroflow/flowie/profile.md
   - .neuroflow/flowie/ideas.md
@@ -22,21 +27,23 @@ writes:
   - .neuroflow/flowie/notes/
   - .neuroflow/flowie/wellbeing/config.json
   - .neuroflow/flowie/wellbeing/*.json
+  - .neuroflow/flowie/wiki/
   - .neuroflow/project_config.md
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
 # /flowie
 
-Personal research OS for neuroflow. Links the current project to a private GitHub repository — the user's `flowie` repo — which stores three layers of research infrastructure:
+Personal research OS for neuroflow. Links the current project to a private GitHub repository — the user's `flowie` repo — which stores four layers of research infrastructure:
 
 1. **Identity layer** — `profile.md`, `ideas.md`: research stances, writing style, methodological preferences, cross-project hypotheses
 2. **Kanban task board** — `tasks/`: column-per-folder, task-per-.md-file, ASCII board view
 3. **Project registry** — `projects/`: `projects.json` machine index + one `{name}.md` per project with phase timeline
+4. **Personal wiki** — `wiki/`: LLM-maintained knowledge base with indexed pages, source summaries, concept synthesis, and method library
 
 The `flowie` directory at `.neuroflow/flowie/` **is the git repo itself** — cloned from GitHub. GitHub is canonical. Pull before every read, push after every write.
 
-Read the `neuroflow:phase-flowie` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-flowie` skill first. For any `--wiki-*` mode, also read the `neuroflow:wiki` skill. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
 Flowie is fully optional. Nothing breaks if it is not set up.
 
@@ -370,6 +377,14 @@ flowie — what would you like to do?
   --projects    Show / manage project registry
   --assess      Log today's wellbeing (anxiety, energy, happiness 1–10)
   --credentials Show custom LLM settings as ready-to-paste export commands
+
+  Personal wiki (powered by neuroflow:wiki skill):
+  --wiki        Show wiki overview — page count, recent activity, index summary
+  --wiki-ingest Ingest a new source into your wiki
+  --wiki-query  Ask a question answered from your wiki
+  --wiki-lint   Health-check the wiki — orphans, contradictions, stale pages
+  --wiki-add    Manually create or update a wiki page
+  --wiki-schema View or update the wiki's operating conventions
 ```
 
 Wait for the user to choose.
@@ -935,6 +950,85 @@ Confirm: `Wellbeing logged for {today}.`
 
 ---
 
+---
+
+## Wiki modes — `--wiki-*`
+
+All wiki modes load the `neuroflow:wiki` skill and follow its full operation workflows. The wiki lives at `.neuroflow/flowie/wiki/`. The skill file defines all page formats, index/log conventions, ingest/query/lint/add workflows, and the neuroflow-specific integrations (project tagging, ideas.md sync, profile evolution, fails integration).
+
+Pull before every wiki read operation:
+```bash
+git -C .neuroflow/flowie pull --rebase origin main || true
+```
+
+Push after every wiki write:
+```bash
+git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "wiki: {description}" && git -C .neuroflow/flowie push || true
+```
+
+### Mode: --wiki
+
+Show the wiki at a glance:
+
+1. Read `wiki/index.md` (if exists) — report page count by type
+2. Read last 5 lines of `wiki/log.md` — show recent activity
+3. Print:
+
+```
+wiki — personal knowledge base
+  Pages:  {N total} ({n} concepts, {n} sources, {n} synthesis, {n} entities, {n} methods)
+  Recent: {last 5 log entries}
+  Size:   {raw/ folder: N files}
+
+  --wiki-ingest   Add a new source
+  --wiki-query    Ask a question
+  --wiki-lint     Health check
+  --wiki-add      Create a page manually
+  --wiki-schema   View/edit wiki conventions
+```
+
+If `wiki/` does not exist: tell the user and offer to initialize via `--wiki-schema`.
+
+### Mode: --wiki-ingest [path|text]
+
+Load `neuroflow:wiki` skill. Follow the **Ingest workflow** defined there. Key steps:
+
+1. Read `schema.md` (create starter via interview if missing — this initializes the wiki)
+2. Read the source file or accept pasted text from the user
+3. Discuss: ask what to emphasize, any framing context
+4. **Read `projects/projects.json`** → suggest active project names → ask for `projects:` tags (mandatory — always ask)
+5. Write source page, update affected pages, create missing concept/entity/method pages, update `index.md`, append to `log.md`
+6. Push to GitHub
+7. After ingest: ask whether it cross-links to `ideas.md` or warrants a `profile.md` stance update
+
+If no path or text provided, ask: "What would you like to ingest? (paste text, or give me a file path)"
+
+### Mode: --wiki-query [question]
+
+Load `neuroflow:wiki` skill. Follow the **Query workflow** defined there. Key steps:
+
+1. Read `schema.md` + `index.md`
+2. Identify and read relevant pages
+3. Synthesize answer with citations
+4. Ask whether to file the answer as a synthesis page (with `projects:` tagging)
+5. Append to `log.md`, push if anything written
+
+If no question provided, ask: "What would you like to know from your wiki?"
+
+### Mode: --wiki-lint
+
+Load `neuroflow:wiki` skill. Follow the **Lint workflow** defined there. Check for: orphan pages, stale pages, missing concept pages, missing project tags, log/page mismatches, cross-reference gaps, methods without fails check. Report findings and offer iterative fixes.
+
+### Mode: --wiki-add [title]
+
+Load `neuroflow:wiki` skill. Follow the **Add workflow** defined there. Guides the user through creating or updating a specific page with type, tags, project links, and body content.
+
+### Mode: --wiki-schema
+
+Load `neuroflow:wiki` skill. Follow the **Schema workflow** defined there. If `wiki/` does not exist, run **Initialization** to scaffold the full structure and generate a starter `schema.md` through a brief interview.
+
+---
+
 ## Phase sync (called programmatically by /phase)
 
 This section is invoked automatically when the active phase in `project_config.md` changes. It is not a user-facing mode — `/phase` calls this logic after updating its own state.
@@ -988,3 +1082,9 @@ Examples:
 - `[15:40] /flowie — --tasks --move: moved fix-rt-glasses → active`
 - `[16:00] /flowie — --projects: showed phase timeline for 2 projects`
 - `[16:10] /flowie — --projects --add: registered project RT_DES`
+- `[16:30] /flowie — --wiki: showed wiki overview (24 pages, 8 sources)`
+- `[16:45] /flowie — --wiki-ingest: ingested "Gamma in WM" paper, updated 6 pages, tagged AlphaModulation`
+- `[17:00] /flowie — --wiki-query: answered "what do I know about ICA?", filed as synthesis page`
+- `[17:20] /flowie — --wiki-lint: found 3 orphan pages, 1 missing concept page, fixed 2`
+- `[17:30] /flowie — --wiki-add: created method page for "FOOOF spectral parameterization"`
+- `[17:45] /flowie — --wiki-schema: initialized wiki for EEG/cognition domain`

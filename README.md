@@ -17,6 +17,11 @@
 
 ---
 
+## What's new in 0.2.14
+
+- **Personal wiki** ([`/flowie --wiki-*`](commands/flowie.md)) — Karpathy-style LLM-maintained knowledge base inside your flowie repo; ingest sources, query your accumulated knowledge, lint for orphan/stale pages, and build a compounding synthesis; every page is tagged to flowie projects; integrates with `/notes`, `/ideation`, `/data-analyze`, and `/paper` via closing prompts
+- **New [`neuroflow:wiki`](skills/wiki/SKILL.md) skill** — full wiki behavior: page types and frontmatter schema, ingest/query/lint/add/schema workflows, project tagging (always prompted), ideas.md sync, profile.md evolution, fails integration for method pages, and sentinel health checks
+
 ## What's new in 0.2.13
 
 - **[`/autoresearch`](commands/autoresearch.md)** — infinite improvement loop for any research artifact: point it at any file(s), and a worker-evaluator cycle runs indefinitely (one focused change per iteration, keep or revert, loop never stops until interrupted); live progress dashboard at `localhost:8765`; per-phase criteria auto-loaded from existing project memory; triggers via `/autoresearch` or any phase command with the word `autoresearch` in the prompt
@@ -274,6 +279,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-search`](skills/phase-search/SKILL.md) | Phase guidance for /search — tag-based scoping, flow.md-first indexing strategy, compact summary format |
 | [`neuroflow:phase-pipeline`](skills/phase-pipeline/SKILL.md) | Phase guidance for /pipeline — interactive vs brutal mode behaviour, pipeline plan format, resume logic, error handling |
 | [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) | Phase guidance for /flowie — profile read and apply rules, write rules for `.neuroflow/flowie/`, GitHub sync protocol, cross-phase personalization |
+| [`neuroflow:wiki`](skills/wiki/SKILL.md) | Personal wiki — Karpathy-style LLM-maintained knowledge base in flowie; ingest/query/lint/add workflows, project tagging, ideas.md sync, and sentinel integration |
 | [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) | LaTeX poster generation — five templates (A0/A1/A2, portrait/landscape, US size), QR code integration, template selection guide, content extraction logic |
 | [`neuroflow:notebooklm`](skills/notebooklm/SKILL.md) | Complete API for Google NotebookLM — create notebooks, add sources, generate all artifact types (podcast, video, slide deck, infographic, report, quiz, flashcards, mind map), and download results in multiple formats |
 | [`neuroflow:phase-hive`](skills/phase-hive/SKILL.md) | Team-level knowledge layer — connects a researcher's project to a shared GitHub org repo where team directions, cross-project findings, and recommended methods are coordinated; all sharing is explicit |

@@ -103,6 +103,19 @@ If `sync_to_flowie` is `false`, skip without prompting.
 
 ---
 
+### 6 — Wiki ingest offer
+
+If `.neuroflow/flowie/wiki/` exists (the user has a personal wiki set up), offer after the flowie sync step:
+
+```
+Extract key insights into your personal wiki? Run:
+  /flowie --wiki-ingest .neuroflow/notes/{filename}
+```
+
+This is a nudge only — do not run the ingest automatically. The user chooses when to do it.
+
+---
+
 ## At end
 
 - Update `.neuroflow/notes/flow.md`

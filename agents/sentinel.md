@@ -131,6 +131,21 @@ Flag any failed sub-check as a warning (not a blocking error — flowie may be i
 
 Auto-fix: for the flow.md listing, offer to add the missing row. All other issues require user action (re-running `/flowie` or `/flowie --link`).
 
+### 12 — Wiki structure (if present)
+
+This check only runs if `.neuroflow/flowie/wiki/` exists.
+
+- **index.md:** check that `wiki/index.md` exists. If it exists, verify the "Last updated" date is within the past 90 days — flag if stale.
+- **log.md:** check that `wiki/log.md` exists and is non-empty.
+- **schema.md:** check that `wiki/schema.md` exists. If missing, flag — the wiki has no operating guide and `/flowie --wiki-schema` should be run to create one.
+- **raw/ and pages/:** check that both directories exist. Flag if missing.
+- **Orphan check (light):** count files in `wiki/pages/` that are not listed in `wiki/index.md`. If more than 5 are missing, flag as index drift — suggest running `/flowie --wiki-lint`.
+- **Log vs pages consistency:** read the last 10 entries in `wiki/log.md`. For any `ingest` entry, check whether a corresponding file exists in `wiki/pages/sources/`. Flag any mismatches.
+
+Group all wiki warnings under a single "⚠️ wiki" section in the report. These are warnings, not blocking errors.
+
+Auto-fix: none — all wiki issues require user action via `/flowie --wiki-lint` or `/flowie --wiki-schema`.
+
 ## Report
 
 Write to `.neuroflow/sentinel.md`:
