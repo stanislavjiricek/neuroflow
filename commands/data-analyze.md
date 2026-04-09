@@ -52,3 +52,10 @@ Save the analysis plan and results summary in `.neuroflow/data-analyze/`. Write 
 - Update `.neuroflow/data-analyze/flow.md`
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
 - Update `project_config.md` if phase changed
+
+If `.neuroflow/flowie/wiki/` exists, add a closing nudge:
+
+```
+Consider synthesizing key findings into your personal wiki:
+  /flowie --wiki-ingest .neuroflow/data-analyze/analysis-summary.md
+```

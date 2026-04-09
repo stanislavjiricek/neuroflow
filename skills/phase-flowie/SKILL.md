@@ -105,6 +105,35 @@ The flowie repo contains a `wellbeing/` folder for daily self-assessments. The f
 
 After every `/notes` session, the command offers to copy the formatted note to `.neuroflow/flowie/notes/` (default: yes, controlled by `sync_to_flowie` in `.neuroflow/notes/config.json`). The existing auto-sync hook pushes to GitHub. The `notes/` folder in flowie acts as a cross-project note archive.
 
+## Personal wiki
+
+The flowie repo also contains a `wiki/` folder — a Karpathy-style personal knowledge base maintained by the LLM. All wiki operations are handled by the `neuroflow:wiki` skill, which defines page formats, ingest/query/lint/add workflows, and neuroflow-specific integrations.
+
+**When to surface the wiki unprompted:**
+
+- After any `/ideation` or `/search` paper list: remind the user they can ingest papers with `/flowie --wiki-ingest`
+- After any `/notes` session: remind the user they can extract insights with `/flowie --wiki-ingest`
+- After major phase completions (`data-analyze`, `paper`): ask whether the user wants to synthesize key findings into the wiki
+- When writing a synthesis or analysis that spans multiple projects: ask whether to file it in the wiki
+
+**Wiki structure (at a glance):**
+
+```
+.neuroflow/flowie/wiki/
+├── index.md       ← catalog of all pages
+├── log.md         ← append-only operation log
+├── schema.md      ← LLM operating guide for this wiki
+├── raw/           ← immutable source documents
+└── pages/
+    ├── concepts/  ← topic pages
+    ├── entities/  ← people, tools, datasets
+    ├── sources/   ← one page per ingested source
+    ├── synthesis/ ← cross-source analysis
+    └── methods/   ← protocols, pipelines, analysis methods
+```
+
+For full wiki behavior, always load `neuroflow:wiki` when handling `--wiki-*` modes.
+
 ## Slash command
 
 When this skill is invoked directly (without `/flowie`), run the full `/flowie` workflow — show the mode menu and proceed from there. Mention `/neuroflow:flowie` at the end.
@@ -112,4 +141,5 @@ When this skill is invoked directly (without `/flowie`), run the full `/flowie` 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:wiki` — full wiki behavior for all `--wiki-*` modes
 - `neuroflow:phase-output` — flowie directory is excluded from exports by default
