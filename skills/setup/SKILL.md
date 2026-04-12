@@ -5,6 +5,7 @@ reads:
   - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
   - skills/setup/references/einfra-cc.md
+  - skills/setup/scripts/einfra/
 writes:
   - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
@@ -92,8 +93,9 @@ Full schema including all integrations:
     "provider": "einfra",
     "base_url": "https://llm.ai.e-infra.cz/v1",
     "api_key": "<YOUR_API_KEY>",
-    "model": "qwen3.5-122b",
-    "proxy_port": 3456
+    "model": "kimi-k2.5",
+    "proxy_mode": "custom",
+    "proxy_port": 4001
   }
 }
 ```
@@ -116,33 +118,86 @@ Full schema including all integrations:
 
 ## Custom LLM provider support
 
-The `/setup` Step 5 allows configuring any OpenAI-compatible API endpoint as a replacement for Anthropic's API in Claude Code. This is how it works:
+The `/setup` Step 5 allows configuring any OpenAI-compatible API endpoint as a replacement for Anthropic's API in Claude Code.
 
-1. Set `ANTHROPIC_BASE_URL` to the custom endpoint (e.g. `https://llm.ai.e-infra.cz/v1`).
-2. Set `ANTHROPIC_API_KEY` to the custom provider's API key.
-3. Launch Claude Code — it will use the custom endpoint for all requests.
+### Model selection during setup
 
-**Model selection limitation:** Claude Code always sends `claude-*` model names in requests. In direct mode, the custom API must accept these names (some do, routing to a default model). To select a specific model, use the proxy script (`skills/setup/scripts/proxy.mjs`), which intercepts requests and replaces the model name before forwarding.
+When setting up a custom LLM provider, always ask the user which model to use. Do not assume a default silently.
 
-**⚠️ Claude model name in responses:** Claude Code validates that the `model` field in the API response matches the `claude-*` name it originally sent. If the custom API returns a response with a non-Claude model name (e.g. `qwen3.5-122b`), Claude Code will error with an "unexpected model" message. The proxy script handles this automatically — it saves the original `claude-*` model name from the request, then replaces the custom model name back in every response chunk before it reaches Claude Code.
+**Step 1 — try to fetch available models from the API:**
 
-**Setting env vars on Windows (PowerShell):**
+```bash
+curl -s -H "Authorization: Bearer <API_KEY>" <BASE_URL>/models | jq '.[].id' 2>/dev/null
+```
 
+Or via Python:
+```python
+import httpx
+r = httpx.get("<BASE_URL>/models", headers={"Authorization": "Bearer <API_KEY>"})
+print([m["id"] for m in r.json().get("data", [])])
+```
+
+If this succeeds, present the model list to the user. If it fails (auth error, endpoint not supported), skip to Step 2.
+
+**Step 2 — ask the user to pick:**
+
+> I couldn't fetch the model list automatically. Please check the provider's documentation or dashboard for available model names, then tell me which one to use.
+>
+> For e-INFRA CZ, the current models are listed in `skills/setup/references/einfra-cc.md` — but the list changes, so verify at https://llm.ai.e-infra.cz if unsure.
+
+**Step 3 — recommend based on use case:**
+
+Once you have the model list (fetched or provided by user), recommend based on their project type:
+
+| Use case | Recommend |
+|---|---|
+| Claude Code agentic workflows, MCP tools, neuroflow | Model with best tool-calling support (e.g. `kimi-k2.5` on e-INFRA) |
+| General research, writing, analysis | Largest general-purpose model available |
+| Reasoning / complex multi-step tasks | Thinking/reasoning model if available |
+| Fast iteration, simple tasks | Smallest/fastest model |
+
+Always state your recommendation and why, then confirm:
+> I recommend `kimi-k2.5` for your setup — it has the best tool-calling performance on e-INFRA, which matters for Claude Code's agentic workflows. Use this? (Y / type a different model name)
+
+Save the confirmed model as `BIG_MODEL` in the start script and as `model` in `integrations.json`.
+
+---
+
+**Recommended approach: custom Python proxy (`proxy.py`)**
+
+The custom FastAPI proxy in `skills/setup/scripts/einfra/proxy.py` is the most reliable way to connect Claude Code to e-INFRA. It performs the full Anthropic↔OpenAI translation — streaming, multi-turn tool use, model name mapping — and has been specifically tested and fixed for the edge cases that arise with e-INFRA models.
+
+```bash
+# Terminal 1 — start proxy (Unix)
+OPENAI_API_KEY=<key> OPENAI_BASE_URL=https://llm.ai.e-infra.cz/v1 \
+BIG_MODEL=kimi-k2.5 SMALL_MODEL=kimi-k2.5 \
+uv run --python 3.12 --with fastapi --with httpx --with uvicorn \
+  uvicorn proxy:app --host 0.0.0.0 --port 4001
+
+# Terminal 2 — connect Claude Code
+ANTHROPIC_BASE_URL=http://localhost:4001 ANTHROPIC_AUTH_TOKEN=dummy claude
+```
+
+**Windows PowerShell:**
 ```powershell
-# Direct mode — set for current session
-$env:ANTHROPIC_BASE_URL = "https://llm.ai.e-infra.cz/v1"
-$env:ANTHROPIC_API_KEY  = "<YOUR_API_KEY>"
-claude
+# Terminal 1 — use the provided start_proxy.ps1
+.\start_proxy.ps1
 
-# Proxy mode
-$env:ANTHROPIC_BASE_URL = "http://localhost:3456"
-$env:ANTHROPIC_API_KEY  = "any"
+# Terminal 2
+$env:ANTHROPIC_BASE_URL = "http://localhost:4001"
+$env:ANTHROPIC_AUTH_TOKEN = "dummy"
 claude
 ```
 
-For persistence on Windows, add these to your PowerShell profile (`$PROFILE`) or set them as System/User environment variables via Settings → System → Environment Variables.
+Note: on Windows, use `ANTHROPIC_AUTH_TOKEN` — more reliably picked up by Claude Code CLI than `ANTHROPIC_API_KEY`.
 
-For the Czech-specific e-INFRA CZ example — including available models, direct mode, proxy mode, and full terminal workflow for both Unix and Windows — read `skills/setup/references/einfra-cc.md`.
+**⚠️ Why not LiteLLM?** LiteLLM was tested with e-INFRA and produced two blocking errors: (1) `Content block is not a text block` with kimi-k2.5 (thinking blocks passed through incorrectly), and (2) `No tool calls but found tool output` with deepseek-v3.2 (tool result pairing lost in multi-turn translation). Use `proxy.py` instead.
+
+**⚠️ Known proxy.py fix — `Content block not found`:** `tool_block_started` must be a `dict` mapping `openai_tool_idx → assigned_block_index`, not a `set`. Block indices assigned once at creation, never recalculated. See `skills/setup/references/einfra-cc.md` for details.
+
+**⚠️ Port conflicts on Windows (`[WinError 10048]`):** Use `netstat -ano | findstr :<port>` to find what holds the port. Kill with `cmd.exe /c "taskkill /F /PID <PID>"` (must use cmd.exe, not Git Bash). Use port 4001+, avoid 4000.
+
+For full setup, available models, Windows workflows, and troubleshooting — read `skills/setup/references/einfra-cc.md`.
 
 ---
 
