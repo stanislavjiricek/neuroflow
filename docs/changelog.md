@@ -6,6 +6,14 @@ title: Changelog
 
 ---
 
+## 0.2.15
+
+- **[`/meeting`](commands/meeting.md)** — first-class meeting command with recurring templates, Google Calendar invites, agenda preparation from project context, and action-item-to-task conversion at project/flowie/hive level
+- **3-tier task model** — tasks at personal (flowie), project (shared), and hive (team) levels; `--level` flag on `/flowie --tasks`; mandatory ASCII kanban rendering on all displays
+- **Collaboration model** — `.neuroflow/flowie/` gitignored from project repos; `.neuroflow/tasks/` git-tracked and shared; collaborator join flow added to `phase-hive`; `collaborators:` list in `project_config.md` for meeting invite resolution
+
+---
+
 ## 0.2.14
 
 - **Personal wiki** ([`/flowie --wiki-*`](commands/flowie.md)) — Karpathy-style LLM-maintained knowledge base inside your flowie repo; ingest sources, query accumulated knowledge, lint for orphans/contradictions/stale pages; every page is tagged to flowie projects; closing prompts in `/notes`, `/ideation`, `/data-analyze`, and `/paper`

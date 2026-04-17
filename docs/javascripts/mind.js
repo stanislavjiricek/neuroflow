@@ -106,8 +106,8 @@
     /* ── Team Integration ── */
     {
       id: "c-team",     label: "Team Integration",     category: "team",
-      desc: "Hive — shared GitHub org repo for team-level knowledge. Coordinates research directions and surfaces cross-project findings. All sharing is explicit, never automatic.",
-      commands: ["/hive"],
+      desc: "Hive — shared GitHub org repo for team-level knowledge. Coordinates research directions and surfaces cross-project findings. Meetings with calendar integration and 3-tier task model (flowie/project/hive). All sharing is explicit, never automatic.",
+      commands: ["/hive", "/meeting"],
       url: "commands/hive/"
     },
 

@@ -155,8 +155,27 @@ Create the following structure in the current working directory:
 .neuroflow/
 ├── project_config.md
 ├── flow.md
-└── sessions/
-    └── .gitkeep
+├── sessions/
+│   └── .gitkeep
+├── tasks/
+│   ├── inbox/
+│   ├── ready/
+│   ├── active/
+│   ├── review/
+│   ├── meeting/
+│   ├── done/
+│   └── archive/
+├── wiki/
+│   ├── index.md
+│   ├── log.md
+│   ├── schema.md
+│   ├── raw/
+│   └── pages/
+│       ├── concepts/
+│       ├── entities/
+│       ├── sources/
+│       ├── synthesis/
+│       └── methods/
 └── reasoning/
     ├── flow.md
     └── general.json
@@ -184,6 +203,10 @@ auto_issue_reporting: no
 ```
 
 **`sessions/`** — create a `.gitkeep` file. Remind the user to add `sessions/` to `.gitignore`.
+
+**`tasks/`** — create each column folder (`inbox/`, `ready/`, `active/`, `review/`, `meeting/`, `done/`, `archive/`) with a `.gitkeep` file. This is the shared project-level Kanban board — git-tracked and visible to all collaborators. Update `.neuroflow/flow.md` to include a `tasks/` row.
+
+**`wiki/`** — create the scaffold for the project-level shared wiki (`index.md`, `log.md`, `schema.md` as empty placeholders, `raw/`, `pages/concepts/`, `pages/entities/`, `pages/sources/`, `pages/synthesis/`, `pages/methods/`). The wiki is initialized properly on first `/wiki` run. Update `.neuroflow/flow.md` to include a `wiki/` row.
 
 **`reasoning/`** — create the folder with:
 - `general.json` — an empty JSON array (`[]`)
@@ -447,7 +470,20 @@ Save the list as `recommended_phases` in `project_config.md` (a simple comma-sep
 
 The `.neuroflow/` folder was already created in Step 0d. Now update it with the full content from the interview.
 
-**`project_config.md`** — overwrite the placeholder with a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b), an `## Output paths` table mapping each relevant phase to its detected or default output path, and (if the user linked a flowie project during Step 1b) `flowie_project: {name}`. This file is read by every command and agent — keep it concise.
+**`project_config.md`** — overwrite the placeholder with a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b), an `## Output paths` table mapping each relevant phase to its detected or default output path, (if the user linked a flowie project during Step 1b) `flowie_project: {name}`, and a `collaborators:` list. Ask: *"Who else is working on this project? (name, email — one per line, or press Enter to skip)"* — add each person as `- name: {name}\n  email: {email}\n  handle: {github-handle or omit}`. This list is used by `/meeting` to pull attendee emails for calendar invites. This file is read by every command and agent — keep it concise.
+
+**`.neuroflow/flowie/` gitignore:** After writing all files, check whether `.neuroflow/flowie/` is already excluded in the project's `.gitignore`. If not, print:
+
+```
+⚠️  Multi-collaborator tip: .neuroflow/flowie/ is your personal research profile —
+    it should NOT be committed to a shared repo.
+
+    Add this to your project's .gitignore:
+      .neuroflow/flowie/
+
+    Each collaborator will have their own private flowie profile.
+    Shared project tasks live in .neuroflow/tasks/ (already git-tracked).
+```
 
 **`flow.md`** — update the index to reflect only the folders that actually exist (the structure is the same as what Step 0d wrote; update the `Last changed` dates).
 

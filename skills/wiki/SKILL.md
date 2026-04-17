@@ -1,24 +1,40 @@
 ---
 name: wiki
-description: Personal knowledge base skill — Karpathy-style LLM-maintained wiki inside flowie. Handles ingest, query, lint, schema, and project-tagging workflows for .neuroflow/flowie/wiki/.
+description: Knowledge base skill — Karpathy-style LLM-maintained wiki at three levels (personal/flowie, project, team/hive). Handles ingest, query, lint, schema, and project-tagging workflows. Invoked by /flowie --wiki-* (personal), /wiki (project), /hive --wiki-* (team).
 ---
 
 # wiki
 
-A personal, compounding knowledge base that lives in your flowie GitHub repo. Invoked by `/flowie --wiki-*` modes.
-
-The core insight: instead of re-deriving knowledge from raw sources on every query, the LLM incrementally builds and maintains a persistent, interlinked markdown wiki. Knowledge accumulates across sessions. Cross-references are already there. Contradictions are already flagged. The synthesis reflects everything you've read.
+A compounding knowledge base maintained by the LLM. Knowledge accumulates across sessions — cross-references are already there, contradictions already flagged, synthesis reflects everything ingested.
 
 You never write the wiki yourself — the LLM writes and maintains all of it. You curate sources and ask questions.
+
+**Three levels, one skill:**
+
+| Level | Root path | Git repo | Who sees it |
+|-------|-----------|----------|-------------|
+| `flowie` | `.neuroflow/flowie/wiki/` | flowie private repo | owner only |
+| `project` | `.neuroflow/wiki/` | project repo (shared) | all collaborators |
+| `hive` | `{hive-repo}/wiki/` | hive org repo | whole team |
+
+The wiki at each level serves a different purpose:
+- **flowie** — personal knowledge, reading notes, method library, ideas across all projects
+- **project** — shared project brain: experimental rationale, analysis decisions, literature relevant to the project, methods the team uses on this project
+- **hive** — team knowledge: lab-wide methods, shared literature, cross-project synthesis, team epistemics
+
+Git operations by level:
+- `flowie`: `git -C .neuroflow/flowie ...`
+- `project`: standard `git` in project root
+- `hive`: `gh` CLI or GitHub API targeting hive org repo
 
 ---
 
 ## Structure
 
-The wiki lives at `.neuroflow/flowie/wiki/` and is part of the flowie git repo. It syncs to GitHub like all other flowie data.
+The wiki structure is identical at all three levels. The root path is resolved from the active level.
 
 ```
-.neuroflow/flowie/wiki/
+{wiki-root}/
 ├── index.md          ← catalog: every page, one-line summary, date, type (LLM maintains)
 ├── log.md            ← append-only chronological log (## [date] op | title)
 ├── schema.md         ← wiki conventions and LLM operating guide (auto-loaded on every operation)
@@ -29,7 +45,7 @@ The wiki lives at `.neuroflow/flowie/wiki/` and is part of the flowie git repo. 
     ├── entities/     ← people, tools, datasets, organisms, locations
     ├── sources/      ← one summary page per ingested source
     ├── synthesis/    ← cross-source analysis, comparisons, evolving theses
-    └── methods/      ← neuroflow-specific: protocols, pipelines, analysis methods
+    └── methods/      ← protocols, pipelines, analysis methods
 ```
 
 ### Why `pages/methods/`?
@@ -57,7 +73,12 @@ status: current            # current | stale | draft
 ---
 ```
 
-**`projects:`** is the key neuroflow addition. Every ingest, query, and add operation MUST ask which flowie projects this relates to. Read `projects/projects.json` and suggest active/recent projects by name. The user can always answer "none" — but you must always ask.
+**`projects:`** is the key neuroflow addition. Every ingest, query, and add operation MUST ask which projects this relates to. Project source by level:
+- `flowie` → read `.neuroflow/flowie/projects/projects.json`
+- `project` → context is the current project itself (from `project_config.md`); ask if it relates to other flowie projects
+- `hive` → read `{hive-repo}/projects/projects.json`
+
+The user can always answer "none" — but you must always ask.
 
 ---
 
@@ -255,12 +276,13 @@ If `wiki/` does not exist:
 Every ingest/add/query-that-writes MUST read `projects/projects.json` and ask about project links. Even if the connection is unclear. The user can always say "none." Never skip this.
 
 ### ideas.md sync
-During ingest or query, if a synthesis page spans multiple projects or generates a cross-project hypothesis, ask:
-> "This looks like a cross-project insight. Add it to flowie/ideas.md?"
-If yes, append to `ideas.md` and push.
+During ingest or query, if a synthesis page spans multiple projects or generates a cross-project hypothesis, ask based on level:
+- `flowie`: "Add to flowie/ideas.md?" → append to `.neuroflow/flowie/ideas.md`
+- `project`: "Add to team ideas?" → if hive connected, append to `{hive-repo}/ideas.md`; otherwise append to `.neuroflow/flowie/ideas.md` if flowie active
+- `hive`: "Add to hive ideas.md?" → append to `{hive-repo}/ideas.md`
 
 ### profile.md evolution
-After a lint or synthesis that strongly supports or contradicts a methodological stance from `profile.md`, ask:
+Only applies at `flowie` level. After a lint or synthesis that strongly supports or contradicts a methodological stance from `profile.md`, ask:
 > "This seems relevant to your profile stance on X. Update profile.md?"
 If yes, follow flowie's write rules: show diff, confirm, write, push.
 
@@ -280,23 +302,31 @@ After `/notes` saves a session, it adds a closing reminder offering wiki ingest.
 
 ## Git sync
 
-All wiki writes use flowie's standard git pattern:
+Git operations depend on level:
+
+**flowie level:**
 ```bash
 git -C .neuroflow/flowie pull --rebase origin main || true
-# ... write files ...
 git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "wiki: {description}" && git -C .neuroflow/flowie push || true
 ```
 
-Pull before every read operation. Push after every write. Fail silently on network errors.
+**project level:**
+```bash
+git pull --rebase origin main || true
+git add .neuroflow/wiki/ && git commit -m "wiki: {description}" && git push || true
+```
+
+**hive level:** use `gh` CLI or GitHub API to push to hive org repo. Pull via `gh api` or `git clone --depth 1` before reads.
+
+Pull before every read. Push after every write. Fail silently on network errors.
 
 ---
 
 ## Privacy rules
 
-Wiki content inherits flowie's privacy rules:
-- The wiki is stored in a **private** GitHub repository
-- Never include wiki content in external outputs (papers, reports, grant proposals, posters)
-- If the project is exported via `/output`, `.neuroflow/flowie/` (including wiki) is excluded by default
+- **flowie wiki**: private GitHub repo — never included in external outputs or exports
+- **project wiki**: git-tracked in project repo — shared with all collaborators; treat as project-confidential (not public)
+- **hive wiki**: stored in private org GitHub repo — team-wide access only
 
 ---
 
@@ -304,9 +334,9 @@ Wiki content inherits flowie's privacy rules:
 
 Append to `.neuroflow/sessions/YYYY-MM-DD.md` after every wiki operation:
 ```
-[HH:MM] /flowie --wiki-{mode}: {brief summary}
+[HH:MM] /wiki --{mode} [level:{level}]: {brief summary}
 ```
 Examples:
-- `[14:30] /flowie --wiki-ingest: ingested "Gamma in WM" paper, updated 8 pages, tagged AlphaModulation`
-- `[15:00] /flowie --wiki-query: answered "what do I know about ICA?", filed as synthesis page`
-- `[15:45] /flowie --wiki-lint: found 3 orphan pages, 1 missing concept page, fixed 2`
+- `[14:30] /wiki --ingest [level:project]: ingested "Gamma in WM" paper, updated 8 pages`
+- `[15:00] /flowie --wiki-query [level:flowie]: answered "what do I know about ICA?", filed as synthesis page`
+- `[15:45] /hive --wiki-lint [level:hive]: found 3 orphan pages, 1 missing concept page, fixed 2`

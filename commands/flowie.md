@@ -5,6 +5,7 @@ phase: utility
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
+  - .neuroflow/tasks/**
   - .neuroflow/flowie/profile.md
   - .neuroflow/flowie/ideas.md
   - .neuroflow/flowie/sync.json
@@ -22,6 +23,7 @@ writes:
   - .neuroflow/flowie/ideas.md
   - .neuroflow/flowie/sync.json
   - .neuroflow/flowie/tasks/**
+  - .neuroflow/tasks/**
   - .neuroflow/flowie/projects/projects.json
   - .neuroflow/flowie/projects/*.md
   - .neuroflow/flowie/notes/
@@ -229,7 +231,9 @@ Create `.neuroflow/flowie/` and scaffold the full structure:
 
 ## Identity
 name:
+email:
 research_domain:
+hives: []          # list of hive repos this person is a member of: [{org}/{repo}, ...]
 
 ## Methodological preferences
 <!-- Tools, approaches, paradigms you prefer -->
@@ -411,7 +415,11 @@ Ask each question one at a time. Do not rush.
 5. *"Are there any methodological stances you hold firmly? (e.g. preregistration is non-negotiable, Bayesian over frequentist, open data always)"*
 6. *"List 3 to 5 beliefs you hold about your field that guide your research decisions. These can be controversial."*
 7. *"Is there anything else you want Claude to know about how you think — your research values, pet peeves, or preferences?"*
-8. *"Would you like to track your daily wellbeing — anxiety, energy, and happiness on a 1–10 scale? Claude will prompt you to fill in a rating each day when you sync flowie. [y/N]"*
+8. *"Which team Hives are you a member of? (list as {org}/{repo}, comma-separated — or press Enter to skip)"*
+
+   Store the list as `hives: [{org}/{repo}, ...]` in `profile.md`. This lets `/hive --init` offer to pre-fill the hive repo when a project is connected to one of the listed hives.
+
+9. *"Would you like to track your daily wellbeing — anxiety, energy, and happiness on a 1–10 scale? Claude will prompt you to fill in a rating each day when you sync flowie. [y/N]"*
 
    If yes: read `wellbeing/config.json`, set `collect` to `true`, write the file, then push:
    ```bash
@@ -425,7 +433,9 @@ After collecting all answers, write a structured `profile.md`:
 
 ## Identity
 name: {name}
+email: {email or omit if not given}
 research_domain: {domain}
+hives: [{org}/{repo}, ...}]   # omit if none given
 
 ## Methodological preferences
 {methods, formatted as bullet list}
@@ -681,6 +691,8 @@ git -C .neuroflow/flowie add profile.md && git -C .neuroflow/flowie commit -m "p
 
 **Trigger:** user runs `/flowie --tasks` (with or without sub-flags).
 
+**Rendering rule (mandatory):** ALWAYS render task displays as ASCII box kanban boards. NEVER use plain lists, bullet points, or prose for any task display operation — this applies to the default board view, filtered views, `--list`, and single-task lookups. The only exception is `--list`, which has its own defined flat-list format below.
+
 Pull first:
 ```bash
 git -C .neuroflow/flowie pull --rebase origin main || true
@@ -688,17 +700,35 @@ git -C .neuroflow/flowie pull --rebase origin main || true
 
 Read `tasks/config.json` for column definitions. Read all `.md` files from all column folders (excluding `.flow`).
 
+Determine the active task level: if `--level project` or `--level hive` is passed, operate at that level (see 3-tier model below). Default is `flowie` (`.neuroflow/flowie/tasks/`).
+
+### 3-tier task levels
+
+Tasks exist at three levels with identical kanban structure:
+
+| Level | Location | Git-tracked in | Visible to |
+|-------|----------|----------------|------------|
+| `flowie` (default) | `.neuroflow/flowie/tasks/` | flowie private repo | owner only |
+| `project` | `.neuroflow/tasks/` | project repo | all collaborators |
+| `hive` | `{hive-repo}/tasks/` | hive org repo | whole team |
+
+Use `--level project` for tasks that belong to the shared project (sprint work, analysis steps, paper milestones). Use `--level hive` for team-wide tasks (shared methods, joint deadlines). Use `--level flowie` (default) for personal todos.
+
+All git operations for `--level project` target the project repo directly (no `-C` flag needed). For `--level hive`, use GitHub API or `gh` CLI targeting the hive repo.
+
 ### --tasks (no sub-flag) — ASCII Kanban board
 
-Show the non-archive columns as a horizontal board. Show at most 5 tasks per column, truncated to 20 chars. Always show the done count at the bottom. Apply `--project` filter if provided.
+Show the non-archive columns as a horizontal board. Show at most 5 tasks per column, truncated to 20 chars. Always show the done count and the active level at the bottom. Apply `--project` filter if provided.
 
 ```
 ┌─ 📥 Inbox ──────────┐  ┌─ ⚡ Active ──────────┐  ┌─ 👁 Review ──────────┐
-│ spin-tests-5ht2a    │  │ fix-rt-glasses       │  │ grant-draft          │
+│ spin-tests-5ht2a    │  │ fix-rt-glasses @stan │  │ grant-draft @jana    │
 │ ethics-form         │  │ eeg-param-sweep      │  │                      │
 └─────────────────────┘  └──────────────────────┘  └──────────────────────┘
-[done: 3 tasks]
+[done: 3 tasks · level: flowie]
 ```
+
+Show `responsible:` as `@{handle}` (truncated to fit 20-char column limit, appended after title). Omit if not set.
 
 Omit empty columns unless they are `inbox` or `active`. Show `meeting` and `ready` only if they contain tasks.
 
@@ -707,11 +737,11 @@ Omit empty columns unless they are `inbox` or `active`. Show `meeting` and `read
 Flat list of all tasks across all non-archive columns, sorted by column order then by `due` date (soonest first, undated tasks last).
 
 ```
-[inbox]   spin-tests-5ht2a     AlphaModulation  due: 2026-04-15
-[inbox]   ethics-form          RT_DES           due: —
-[active]  fix-rt-glasses       RT_DES           due: 2026-04-10
-[active]  eeg-param-sweep      AlphaModulation  due: —
-[review]  grant-draft          AlphaModulation  due: 2026-04-20
+[inbox]   spin-tests-5ht2a     AlphaModulation  @—          due: 2026-04-15
+[inbox]   ethics-form          RT_DES           @—          due: —
+[active]  fix-rt-glasses       RT_DES           @stan       due: 2026-04-10
+[active]  eeg-param-sweep      AlphaModulation  @stan       due: —
+[review]  grant-draft          AlphaModulation  @jana       due: 2026-04-20
 ```
 
 ### --tasks --add
@@ -721,20 +751,29 @@ Before starting, run the wellbeing check: if `wellbeing/config.json` has `collec
 Mini interview to create a new task. Ask:
 
 1. *"Task title?"*
-2. *"Which project? (list projects from projects.json)"*
-3. *"Phase? (optional — press enter to skip)"*
-4. *"Due date? (YYYY-MM-DD, optional)"*
-5. *"Tags? (comma-separated, optional)"*
-6. *"Blocked by? (comma-separated slugs, optional)"*
+2. *"Level? [flowie / project / hive] (default: flowie)"*
+3. *"Which project? (list projects from projects.json)"*
+4. *"Responsible? (@handle or name, optional — who owns this task)"*
+5. *"Phase? (optional — press enter to skip)"*
+6. *"Due date? (YYYY-MM-DD, optional)"*
+7. *"Tags? (comma-separated, optional)"*
+8. *"Blocked by? (comma-separated slugs, optional)"*
 
 Generate slug from title: lowercase, spaces to hyphens, strip special chars, max 40 chars.
 
-Write task file to `tasks/inbox/{slug}.md`:
+Determine task root based on level:
+- `flowie` → `tasks/inbox/` (in `.neuroflow/flowie/tasks/inbox/`)
+- `project` → `.neuroflow/tasks/inbox/`
+- `hive` → `tasks/inbox/` in hive repo (via GitHub API or `gh`)
+
+Write task file to `{task-root}/{slug}.md`:
 
 ```markdown
 ---
 title: {title}
+level: {flowie|project|hive}
 project: {project}
+responsible: {@ github handle or name, optional}
 phase: {phase or omit}
 created: {YYYY-MM-DD}
 due: {due or omit}
@@ -751,13 +790,20 @@ blocked_by: [{blocked_by or empty}]
 
 Confirm:
 ```
-Task created: tasks/inbox/{slug}.md
+Task created: [{level}] tasks/inbox/{slug}.md
 ```
 
-Push:
+Push (flowie level):
 ```bash
 git -C .neuroflow/flowie add tasks/inbox/{slug}.md && git -C .neuroflow/flowie commit -m "task: add {slug}" && git -C .neuroflow/flowie push || true
 ```
+
+Push (project level — standard git in project repo):
+```bash
+git add .neuroflow/tasks/inbox/{slug}.md && git commit -m "task: add {slug}" && git push || true
+```
+
+Push (hive level): use `gh` CLI or GitHub API to push to hive repo.
 
 ### --tasks --move \<slug\> \<column\>
 

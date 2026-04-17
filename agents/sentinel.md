@@ -69,7 +69,7 @@ List all subfolders inside `.neuroflow/` (directories only, not files).
 
 Derive the set of valid phase subfolder names dynamically:
 - Read all files in the `commands/` directory of the neuroflow plugin. Extract the `name:` field from each command's frontmatter. These are the valid phase names.
-- Also allow the standard root subfolders that are not phase-specific: `sessions`, `reasoning`, `ethics`, `preregistration`, `finance`, `flowie`.
+- Also allow the standard root subfolders that are not phase-specific: `sessions`, `reasoning`, `ethics`, `preregistration`, `finance`, `flowie`, `tasks`, `wiki`, `meetings`, `hive`.
 
 Derive the set of known skill names dynamically:
 - Read all subfolders inside the `skills/` directory of the neuroflow plugin. Each subfolder name is a skill name.
@@ -133,18 +133,41 @@ Auto-fix: for the flow.md listing, offer to add the missing row. All other issue
 
 ### 12 — Wiki structure (if present)
 
-This check only runs if `.neuroflow/flowie/wiki/` exists.
+Run for each wiki level that exists:
 
-- **index.md:** check that `wiki/index.md` exists. If it exists, verify the "Last updated" date is within the past 90 days — flag if stale.
-- **log.md:** check that `wiki/log.md` exists and is non-empty.
-- **schema.md:** check that `wiki/schema.md` exists. If missing, flag — the wiki has no operating guide and `/flowie --wiki-schema` should be run to create one.
-- **raw/ and pages/:** check that both directories exist. Flag if missing.
-- **Orphan check (light):** count files in `wiki/pages/` that are not listed in `wiki/index.md`. If more than 5 are missing, flag as index drift — suggest running `/flowie --wiki-lint`.
-- **Log vs pages consistency:** read the last 10 entries in `wiki/log.md`. For any `ingest` entry, check whether a corresponding file exists in `wiki/pages/sources/`. Flag any mismatches.
+**12a — Flowie wiki** (`if .neuroflow/flowie/wiki/` exists):
+- **index.md:** exists and "Last updated" within 90 days
+- **log.md:** exists and non-empty
+- **schema.md:** exists — if missing, flag and suggest `/flowie --wiki-schema`
+- **raw/ and pages/:** both directories exist
+- **Orphan check (light):** files in `wiki/pages/` not listed in `wiki/index.md` > 5 → flag, suggest `/flowie --wiki-lint`
+- **Log vs pages:** last 10 `ingest` entries in `log.md` — check matching file in `pages/sources/`
 
-Group all wiki warnings under a single "⚠️ wiki" section in the report. These are warnings, not blocking errors.
+Group under "⚠️ wiki (flowie)".
 
-Auto-fix: none — all wiki issues require user action via `/flowie --wiki-lint` or `/flowie --wiki-schema`.
+**12b — Project wiki** (`if .neuroflow/wiki/` exists):
+- Same checks as 12a, but paths are relative to `.neuroflow/wiki/`
+- If `.neuroflow/wiki/` exists but is empty (only `.gitkeep` stubs from init): note as uninitialized — suggest running `/wiki --schema` to initialize
+- Check that `wiki/` is listed in `.neuroflow/flow.md`
+
+Group under "⚠️ wiki (project)".
+
+Auto-fix: add missing `wiki/` row to `flow.md`. All other issues require user action.
+
+### 13 — Hive structure (if present)
+
+This check only runs if `.neuroflow/hive/` exists.
+
+- **hive.md:** check that `.neuroflow/hive/hive.md` exists and is non-empty. Flag if missing.
+- **members.md:** check that `.neuroflow/hive/members.md` exists. Flag if missing — suggest running `/hive --members` to add team roster.
+- **sync.json:** check that `.neuroflow/hive/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
+- **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If `.neuroflow/hive/` exists but `hive_repo` is absent from config, flag as inconsistency.
+- **flow.md listing:** check that `hive/` is listed in `.neuroflow/flow.md`. Flag if missing.
+- **No old `directions.md`:** if `.neuroflow/hive/directions.md` exists as a local cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
+
+Group all hive warnings under "⚠️ hive". These are warnings, not blocking errors.
+
+Auto-fix: add missing `hive/` row to `flow.md`. Offer to delete obsolete `directions.md`. All other issues require user action.
 
 ## Report
 

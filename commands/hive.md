@@ -33,10 +33,19 @@ Parse the command for a mode flag. If no flag is given, default to `--view` if `
 | Flag | Action |
 |---|---|
 | `--init` | Connect to a Hive repo for the first time |
-| `--sync` | Pull the latest state from the Hive repo |
+| `--sync` | Pull the latest state + show change digest |
 | `--view` | Display current Hive state without syncing |
-| `--share` | Explicitly share a finding, method, or paper to Hive |
+| `--members` | View and edit the team roster |
+| `--projects` | View and manage the lab project registry |
+| `--ideas` | View and append to lab-wide cross-project ideas |
+| `--tasks` | Show and manage the team Kanban board |
 | `--recommend` | Get team-aware recommendations for the current phase |
+| `--wiki` | Show team wiki overview |
+| `--wiki-ingest` | Add a source to the team wiki (replaces --share) |
+| `--wiki-query` | Query the team wiki |
+| `--wiki-lint` | Health check the team wiki |
+| `--wiki-add` | Add a page to the team wiki manually |
+| `--wiki-schema` | View/edit team wiki conventions |
 
 ---
 
