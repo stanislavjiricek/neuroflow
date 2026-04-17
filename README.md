@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.2.15
+
+- **[`/meeting`](commands/meeting.md)** — first-class meeting command: schedule meetings from recurring templates, prepare agendas with active task context, send Google Calendar invites, and auto-create tasks from action items at project/flowie/hive level
+- **3-tier task model** ([`/flowie --tasks --level`](commands/flowie.md)) — tasks now exist at three levels: personal flowie (private), project (git-tracked, shared with collaborators), and hive (team-wide); kanban rendering mandatory on all displays
+- **`.neuroflow/flowie/` gitignored** — flowie is personal and excluded from shared project repos; each collaborator keeps their own private flowie; collaborator join flow documented in [`phase-hive`](skills/phase-hive/SKILL.md)
+
 ## What's new in 0.2.14
 
 - **Personal wiki** ([`/flowie --wiki-*`](commands/flowie.md)) — Karpathy-style LLM-maintained knowledge base inside your flowie repo; ingest sources, query your accumulated knowledge, lint for orphan/stale pages, and build a compounding synthesis; every page is tagged to flowie projects; integrates with `/notes`, `/ideation`, `/data-analyze`, and `/paper` via closing prompts
@@ -239,6 +245,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/search`](commands/search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase; uses `flow.md` as a fast index |
 | [`/flowie`](commands/flowie.md) | Personal research OS — link a private GitHub repository as identity profile + Kanban task board + project registry with phase tracking; Claude reads the profile to personalize assistance and surfaces active tasks at session start |
 | [`/hive`](commands/hive.md) | Team knowledge layer — connect your project to a shared GitHub org repo to sync team research directions, share findings explicitly, and get team-aware recommendations |
+| [`/meeting`](commands/meeting.md) | First-class meetings — schedule from recurring templates, prepare agendas with active task context, send Google Calendar invites, and auto-create tasks from action items at project/flowie/hive level |
 
 ---
 

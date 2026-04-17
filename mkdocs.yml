@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.14"
+  version: "0.2.15"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -158,6 +158,7 @@ nav:
           - "🧩 Quiz": commands/quiz.md
       - Team Integration:
           - "🐝 Hive": commands/hive.md
+          - "📅 Meeting": commands/meeting.md
       - Utilities & Quality:
           - "🛡️ Quality & Audit": commands/sentinel.md
           - "💢 Fails Log": commands/fails.md
@@ -202,6 +203,7 @@ nav:
               - "phase-pipeline": skills/phase-pipeline/SKILL.md
               - "phase-flowie": skills/phase-flowie/SKILL.md
               - "phase-hive": skills/phase-hive/SKILL.md
+              - "phase-meeting": skills/phase-meeting/SKILL.md
               - "phase-search": skills/phase-search/SKILL.md
               - "wiki": skills/wiki/SKILL.md
           - Utils:

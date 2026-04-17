@@ -75,8 +75,8 @@ secrets.json
 # neuroflow integration credentials (local only — do not commit)
 .neuroflow/integrations.json
 
-# flowie sync repo integration settings (may contain endpoint info — keep local)
-.neuroflow/flowie/integrations.json
+# flowie personal research OS — private per-user, never shared in project repos
+.neuroflow/flowie/
 
 # MkDocs build output
 site/

@@ -13,9 +13,22 @@ The flowie profile lives in `.neuroflow/flowie/` and consists of three files:
 
 | File | Contents |
 |---|---|
-| `profile.md` | Research identity: name, domain, methodological preferences, writing style, stances, key beliefs |
+| `profile.md` | Research identity: name, email, domain, methodological preferences, writing style, stances, key beliefs |
 | `ideas.md` | Ongoing ideas and hypotheses that span multiple projects |
 | `sync.json` | GitHub repo URL, last sync timestamp, list of linked projects |
+
+`profile.md` includes `email:` and `hives:` fields under `## Identity`:
+
+```markdown
+## Identity
+name: {name}
+email: {email}
+research_domain: {domain}
+hives: [acme-neuroscience/hive-lab, another-org/hive-research]
+```
+
+- `email:` — used by `/meeting` as the organizer address for calendar invites
+- `hives:` — list of Hive repos this person is a member of (`{org}/{repo}` format). Used by `/hive --init` to suggest pre-filling the hive repo URL when connecting a new project. Lets Claude know which teams the researcher belongs to across all their projects.
 
 The profile is private by design. It lives in a private GitHub repository and is never included in project exports or any output intended for external readers.
 
@@ -58,6 +71,20 @@ When assisting in any neuroflow phase, apply the profile as follows:
 - Match the user's register and level of technical density in your responses
 - If a stated belief or stance is relevant to the current decision, surface it: *"Your profile notes that you prefer preregistration before data collection — does that apply here?"*
 - Never be sycophantic about it. Surface it once, do not repeat.
+
+## 3-tier task model
+
+Tasks in neuroflow exist at three levels with identical kanban structure:
+
+| Level | Location | Who sees it | When to use |
+|-------|----------|-------------|-------------|
+| `flowie` | `.neuroflow/flowie/tasks/` | Owner only | Personal todos, private research tasks |
+| `project` | `.neuroflow/tasks/` | All project collaborators | Sprint work, analysis steps, paper milestones |
+| `hive` | `{hive-repo}/tasks/` | Whole team | Shared deliverables, joint deadlines |
+
+When a user runs `/flowie --tasks`, default to `flowie` level. If they pass `--level project` or `--level hive`, read/write from the corresponding location. Show `[level: flowie|project|hive]` at the bottom of every board display.
+
+`.neuroflow/flowie/` is gitignored from project repos — each collaborator has their own private flowie. `.neuroflow/tasks/` is git-tracked and shared across the team.
 
 ## Write rules for .neuroflow/flowie/
 
