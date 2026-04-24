@@ -30,7 +30,7 @@ Last run: 2026-04-03
 
 ### ISSUE 4 — Check 12: Stale `.neuroflow/.flowie/` paths in docs files (BLOCKING)
 
-The following `docs/` files contain the old `.neuroflow/.flowie/` path (should be `.neuroflow/flowie/`) and the old `flowie_profile` field name (should be `flowie_project:`). These are the built website source files, not the plugin source — users reading the live docs will see the stale canonical path.
+The following `docs/` files contain the old `.neuroflow/.flowie/` path (should be `.neuroflow/flowie/`) and stale field names (`flowie_profile` / `flowie_project` — both replaced by the `flowie_profiles:` list). These are the built website source files, not the plugin source — users reading the live docs will see the stale canonical path.
 
 - `docs/agents/flowie.md` line 16: `.neuroflow/.flowie/profile.md`
 - `docs/agents/flowie.md` line 50: `.neuroflow/.flowie/`
@@ -41,7 +41,7 @@ The following `docs/` files contain the old `.neuroflow/.flowie/` path (should b
 
 Note: The plugin source files (`skills/phase-flowie/SKILL.md`, `agents/flowie.md`) are already clean. Only the `docs/` mirror copies carry stale paths. The `docs/changelog.md` reference is an intentional historical note documenting the rename — do not change it.
 
-**Fix:** Update `docs/agents/flowie.md` and `docs/skills/phase-flowie/SKILL.md` — replace `.neuroflow/.flowie/` with `.neuroflow/flowie/` and `flowie_profile` with `flowie_project:`.
+**Fix:** Update `docs/agents/flowie.md` and `docs/skills/phase-flowie/SKILL.md` — replace `.neuroflow/.flowie/` with `.neuroflow/flowie/`, `flowie_profile` with `flowie_profiles:` list, and `flowie_project:` scalar with `flowie_profiles:` list.
 
 ---
 

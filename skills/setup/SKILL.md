@@ -35,14 +35,24 @@ neuroflow supports two credential scopes:
 
 | Scope | Location | When to use |
 |---|---|---|
-| **Global (device-wide)** | `~/.neuroflow/integrations.json` | Set once — applies to all projects on this machine |
-| **Per-project** | `.neuroflow/integrations.json` | Overrides global for this project only |
+| **Global (device-wide)** | `~/.neuroflow/integrations.json` | Credentials — set once, applies to all projects on this machine |
+| **Global user identity** | `~/.neuroflow/user.yaml` | GitHub username + known hives — pre-fills `/neuroflow` setup across projects |
+| **Per-project** | `.neuroflow/integrations.json` | Overrides global credentials for this project only |
 
 **Resolution order:** per-project credentials take precedence over global. If a key is not found per-project, fall back to global.
 
 **Platform paths for global config:**
-- **macOS / Linux:** `~/.neuroflow/integrations.json`
-- **Windows:** `%USERPROFILE%\.neuroflow\integrations.json` (e.g. `C:\Users\YourName\.neuroflow\integrations.json`)
+- **macOS / Linux:** `~/.neuroflow/integrations.json` and `~/.neuroflow/user.yaml`
+- **Windows:** `%USERPROFILE%\.neuroflow\integrations.json` and `%USERPROFILE%\.neuroflow\user.yaml`
+
+**`user.yaml` schema:**
+```yaml
+flowie_handle: {github-username}
+flowie_repo: {github-username}/flowie
+hives:
+  - org/repo   # one entry per team hive the user is a member of
+```
+Written by `/setup` Step 6. Read by `/neuroflow` Step 1b to pre-fill the GitHub username without asking again.
 
 When guiding a user, ask:
 > "Save credentials for this project only, or globally on this machine (all projects)?"

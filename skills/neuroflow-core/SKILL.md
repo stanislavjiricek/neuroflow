@@ -17,7 +17,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 | File | Purpose |
 |---|---|
-| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. If the project is linked to a flowie project, also contains `flowie_project: {name}` — used by `/phase` to auto-sync phase changes to the project registry. |
+| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. If one or more collaborators have linked their flowie profiles, contains a `flowie_profiles:` list — used by `/phase` to auto-sync phase changes to the project registry. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
 | `objectives.md` | Project objectives/aims — one numbered sentence per objective. Cross-phase cornerstone: **read at the start of every command** (if it exists), keep objectives in context throughout the session, and explicitly check coverage before saving any major section. Written during `/grant-proposal` interview or `/ideation`. |
 | `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |
@@ -30,7 +30,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 | Field | Type | Description |
 |---|---|---|
-| `flowie_project` | Optional | Name of the flowie project this repo belongs to (must match an `id` in `flowie/projects/projects.json`) |
+| `flowie_profiles` | Optional list | Flowie profiles linked to this project. Each entry has `handle` (GitHub username) and `repo` (`{handle}/flowie`). First entry = project owner; additional entries = collaborators who have run `/flowie --link` on this repo. Used by `/phase` to sync phase changes to each linked flowie registry. Example: `- handle: alice\n  repo: alice/flowie` |
 
 ### Root folders
 
@@ -43,7 +43,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `finance/` | Grant documents, expense tracking. |
 | `fails/` | Dissatisfaction log — three fixed files: `core.md` (plugin behavior problems), `science.md` (scientific quality problems), `ux.md` (interaction quality problems). Created on first `/fails` run. |
 | `output/` | Output log — one `.md` per export run recording scope, format, destination, and excluded files. Created on first `/output` run. |
-| `flowie/` | Personal research OS — cloned from the user's private `flowie` GitHub repo. Contains identity profile, Kanban task board (`tasks/`), and project registry (`projects/`). Created by `/flowie` on first run. This folder IS a git repo (`.git/` inside). See `flowie_project` in `project_config.md`. |
+| `flowie/` | Personal research OS — cloned from the user's private `flowie` GitHub repo. Contains identity profile, Kanban task board (`tasks/`), and project registry (`projects/`). Created by `/flowie` on first run. This folder IS a git repo (`.git/` inside). See `flowie_profiles` in `project_config.md`. |
 | `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
 
 **Rule: only command names may be used as phase subfolder names.** Skills must never create their own named subfolders inside `.neuroflow/`. All skill memory must be written to the active command's phase subfolder (`.neuroflow/{phase}/`). Creating a subfolder named after a skill (e.g. `.neuroflow/review-neuro/`) is a structural error.

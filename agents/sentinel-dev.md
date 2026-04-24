@@ -149,11 +149,13 @@ Auto-fix: offer to add a stub node to `NODES` — but the user must fill in `des
 Scan **all files** in the plugin repo for the following stale patterns:
 
 - `.neuroflow/.flowie/` — old path (with dot). The current canonical path is `.neuroflow/flowie/` (no dot). Flag every occurrence with file + line number.
-- `flowie_profile:` — old field name in `project_config.md` context. The current canonical field is `flowie_project:`. Flag every occurrence with file + line number, matched text.
+- `flowie_profile:` — old field name (pre-Kanban). Current canonical: `flowie_profiles:` list. Flag every occurrence with file + line number.
+- `flowie_project:` — legacy scalar field (replaced by `flowie_profiles:` list). Flag if found outside of migration/changelog/sentinel contexts.
+- `hive_member:` — legacy scalar field (removed). Flag every occurrence.
 
-These can be left-over from the pre-Kanban version of the plugin. Report them as **blocking issues** — stale references will break flowie sync. Flag even occurrences in comments or string literals.
+These are left-over from earlier plugin versions. Report them as **blocking issues** — stale references will break flowie sync. Flag even occurrences in comments or string literals.
 
-Auto-fix: offer to replace `.neuroflow/.flowie/` → `.neuroflow/flowie/` and `flowie_profile:` → `flowie_project:` in each flagged file.
+Auto-fix: offer to replace `.neuroflow/.flowie/` → `.neuroflow/flowie/`, `flowie_profile:` → (remove, add `flowie_profiles:` list), and `flowie_project:` scalar → `flowie_profiles:` list entry in each flagged file.
 
 ## Report
 

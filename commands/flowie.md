@@ -592,7 +592,7 @@ Which project does this neuroflow repo belong to? [1/2/3]
 ```
 
 If the user selects an existing project:
-- Write `flowie_project: {name}` to `.neuroflow/project_config.md` (replacing any existing `flowie_project:` or old `flowie_profile:` field)
+- Read `.neuroflow/project_config.md`. If a `flowie_profiles:` list already exists, append a new entry `- handle: {username}\n  repo: {username}/flowie` if this handle is not already present. If no `flowie_profiles:` list exists, add one (replacing any legacy `flowie_project:` or `flowie_profile:` scalar field). The entry for the user who ran `--link` becomes the first entry if the list was empty.
 - Open `projects/{name}.md`, add the current repo path under a `## Linked repos` section if not already present
 
 If the user selects "create new", run `--projects --add` inline to register the project first, then link.
@@ -1079,12 +1079,12 @@ Load `neuroflow:wiki` skill. Follow the **Schema workflow** defined there. If `w
 
 This section is invoked automatically when the active phase in `project_config.md` changes. It is not a user-facing mode — `/phase` calls this logic after updating its own state.
 
-1. Read `flowie_project` from `.neuroflow/project_config.md`. If the field is not present or empty, skip silently.
+1. Read `flowie_profiles` from `.neuroflow/project_config.md`. Use the first entry (`flowie_profiles[0]`). If the list is absent or empty, skip silently.
 2. Pull:
    ```bash
    git -C .neuroflow/flowie pull --rebase origin main || true
    ```
-3. Read `projects/projects.json`. Find the project entry where `id` matches `flowie_project`.
+3. Read `projects/projects.json`. Find the project entry where `id` matches the linked project name (from `projects/{name}.md` or the link step).
    - Update `current_phase` to the new phase.
    - If the new phase is not already in `visited_phases`, append `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`.
 4. Write the updated `projects/projects.json`.

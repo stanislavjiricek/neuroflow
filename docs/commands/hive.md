@@ -29,7 +29,7 @@ If no flag is given, defaults to `--view` when already connected, or `--init` wh
 2. Asks for your GitHub handle
 3. Fetches `hive.md` (team identity) and `directions.md` (active directions) from the org repo
 4. Creates `.neuroflow/hive/` with local copies and `sync.json`
-5. Updates `project_config.md` with `hive_repo` and `hive_member`
+5. Updates `project_config.md` with `hive_repo`
 
 ### `--sync`
 1. Fetches the latest `hive.md`, `directions.md`, and `sync.json` from the org repo

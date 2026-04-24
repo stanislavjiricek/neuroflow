@@ -34,7 +34,7 @@ The profile is private by design. It lives in a private GitHub repository and is
 
 ## Reading the profile
 
-At the start of any command session, if `.neuroflow/flowie/profile.md` exists and the current project is linked to flowie (indicated by a `flowie_project` field in `project_config.md`), read the profile silently.
+At the start of any command session, if `.neuroflow/flowie/profile.md` exists and the current project is linked to flowie (indicated by a non-empty `flowie_profiles` list in `project_config.md`), read the profile silently.
 
 Do not announce that you are reading the profile. Do not quote it back verbatim. Use it to inform the quality and character of your assistance without drawing attention to the mechanism.
 

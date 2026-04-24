@@ -4,10 +4,12 @@ description: Interactive credential wizard for neuroflow MCP integrations. Check
 phase: utility
 reads:
   - ~/.neuroflow/integrations.json
+  - ~/.neuroflow/user.yaml
   - .neuroflow/integrations.json
   - .neuroflow/flowie/sync.json
 writes:
   - ~/.neuroflow/integrations.json
+  - ~/.neuroflow/user.yaml
   - .neuroflow/integrations.json
 ---
 
@@ -314,7 +316,25 @@ Tell the user: "No credentials saved. You can run `/neuroflow:setup` at any time
 
 ---
 
-## Step 6 — Suggest next step
+## Step 6 — Save user identity to global config
+
+Ask: *"Would you like to save your GitHub username to your global neuroflow config so future projects can pre-fill it automatically? (Y/n)"*
+
+If yes (or Enter), ask: *"What is your GitHub username?"* — then write or update `~/.neuroflow/user.yaml` (Unix) / `%USERPROFILE%\.neuroflow\user.yaml` (Windows):
+
+```yaml
+flowie_handle: {username}
+flowie_repo: {username}/flowie
+hives: []
+```
+
+If the file already exists, merge: only overwrite `flowie_handle` and `flowie_repo`; leave `hives` unchanged. Confirm: *"Saved `{username}` to your global neuroflow user config."*
+
+If the user says no, skip silently.
+
+---
+
+## Step 7 — Suggest next step
 
 - If the user came from `/neuroflow`, tell them to continue with the suggested phase command.
 - Otherwise, suggest: "Run `/neuroflow:ideation` to start exploring literature, or any other command to continue your project."

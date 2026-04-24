@@ -53,7 +53,7 @@ Then run `/flowie --init` to build your profile through a short interview.
 |---|---|
 | `--init` | Build your profile from scratch via an interview — name, domain, methods, writing style, stances, 3–5 key beliefs |
 | `--sync` | Pull the latest profile from GitHub, then push any local changes; shows diffs before applying |
-| `--link` | Link the current project to a flowie project entry; writes `flowie_project: {name}` to `project_config.md` |
+| `--link` | Link the current project to a flowie project entry; adds an entry to the `flowie_profiles:` list in `project_config.md` |
 | `--view` | Display your current profile summary |
 | `--identify` | Claude generates a "who you are" paragraph from your profile; you confirm or correct it |
 | `--tasks` | ASCII Kanban board view (all projects, or filtered with `--project {name}`) |
@@ -95,7 +95,7 @@ AlphaModulation
   [ideation ✓]→[experiment ✓]→[data ✓]→[analyze ◉]→[paper ·]
 ```
 
-Phase changes are auto-synced: whenever `/phase` switches the active phase, if the project has a `flowie_project` binding, it updates the registry and pushes silently.
+Phase changes are auto-synced: whenever `/phase` switches the active phase, if the project has a `flowie_profiles` binding, it updates the registry and pushes silently.
 
 ---
 

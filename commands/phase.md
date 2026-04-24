@@ -83,14 +83,14 @@ Shows a visual phase map of the project — current phase, visited phases, recom
 
 6. If the user picks a different phase, update `project_config.md`, `.claude/CLAUDE.md`, and `.github/copilot-instructions.md` with the new active phase, then suggest the corresponding command.
 
-7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_project` is set in `project_config.md`. If it is, and `.neuroflow/flowie/` exists as a git repo:
+7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`):
 
    - Pull: `git -C .neuroflow/flowie pull --rebase origin main || true`
-   - Read `projects/projects.json` — find the project entry where `"id"` matches the `flowie_project` value
+   - Read `projects/projects.json` — find the project entry where `"id"` matches the linked project name
    - Update `current_phase` to the new phase
    - Append to `visited_phases` if this phase is not already listed: `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`
    - Write updated `projects/projects.json`
    - Read `projects/{name}.md` — append a new row to the Phase timeline table: `| {new_phase} | {YYYY-MM-DD} |`
-   - Commit and push: `git -C .neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C .neuroflow/flowie commit -m "phase: {flowie_project} → {new_phase}" && git -C .neuroflow/flowie push || true`
+   - Commit and push: `git -C .neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C .neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C .neuroflow/flowie push || true`
 
-   If `.neuroflow/flowie/` does not exist, `flowie_project` is not set, or any git operation fails, skip silently — never surface flowie errors to the user during a phase switch.
+   If `.neuroflow/flowie/` does not exist, `flowie_profiles` is absent or empty, or any git operation fails, skip silently — never surface flowie errors to the user during a phase switch.

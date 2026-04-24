@@ -6,6 +6,14 @@ title: Changelog
 
 ---
 
+## 0.2.16
+
+- **`flowie_profiles` list** — replaces `flowie_project` + `hive_member` scalars in `project_config.md` with a single `flowie_profiles:` list (`handle` + `repo` per entry); first entry = project owner; additional entries added by collaborators via `/flowie --link`; backward-compatible
+- **Global user identity config** — `/setup` Step 6 writes `~/.neuroflow/user.yaml` with `flowie_handle`, `flowie_repo`, and `hives`; `/neuroflow` Step 1b reads it to pre-fill the GitHub username on new projects
+- **Sentinel migration guard** — flags legacy `flowie_project:` and `hive_member:` scalar fields; suggests `/neuroflow` to migrate
+
+---
+
 ## 0.2.15
 
 - **[`/meeting`](commands/meeting.md)** — first-class meeting command with recurring templates, Google Calendar invites, agenda preparation from project context, and action-item-to-task conversion at project/flowie/hive level

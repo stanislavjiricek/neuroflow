@@ -122,10 +122,10 @@ This check only runs if `.neuroflow/flowie/` exists.
 
 - **Git repo:** check that `.neuroflow/flowie/.git/` exists. If the folder exists but is not a git repo, flag it — it should be a clone of the user's private `flowie` GitHub repository.
 - **sync.json:** check that `.neuroflow/flowie/sync.json` exists and contains a `github_repo` field with a non-empty value. Flag if missing or empty.
-- **flowie_project binding:** check that `flowie_project` is set in `project_config.md`. If `.neuroflow/flowie/` is set up but `flowie_project` is absent, flag it — the project should be linked to a flowie project entry via `/flowie --link`.
-- **Project registry match:** if `flowie_project` is set AND `projects/projects.json` exists, check that the `flowie_project` value matches an `id` in the projects array. Flag if no matching project is found.
+- **flowie_profiles binding:** check that `flowie_profiles` is set and non-empty in `project_config.md`. If `.neuroflow/flowie/` is set up but `flowie_profiles` is absent, flag it — the project should be linked via `/flowie --link`.
+- **Project registry match:** if `flowie_profiles` is set AND `projects/projects.json` exists, check that the first entry's handle matches an entry in the projects array. Flag if no matching project is found.
 - **flow.md listing:** check that `flowie/` is listed as a row in `.neuroflow/flow.md`. Flag if missing.
-- **No old field:** verify `project_config.md` does NOT contain `flowie_profile:` (old field name — should be `flowie_project:`). Flag if found.
+- **Migration check:** verify `project_config.md` does NOT contain legacy scalar fields `flowie_project:` or `hive_member:` (replaced by `flowie_profiles:` list). Flag if found and suggest running `/neuroflow` to migrate.
 
 Flag any failed sub-check as a warning (not a blocking error — flowie may be intentionally partial). Group all flowie warnings under a single "⚠️ flowie" section in the report.
 
