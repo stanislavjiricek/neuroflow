@@ -17,7 +17,7 @@
 
 ---
 
-## What's new in 0.2.17
+## What's new in 0.2.18
 
 - **Global `~/.neuroflow/` structure** — flowie and hive caches move from per-project `.neuroflow/flowie/` to a single global `~/.neuroflow/flowie/` (one clone per user); hive caches at `~/.neuroflow/hive/{org-repo}/`; `integrations.json` lives in flowie globally; `team.md` and `linked_flows.md` removed from project structure; collaborators now in `project_config.md`
 - **Global auto-sync on session start** — [`neuroflow-core`](skills/neuroflow-core/SKILL.md) pulls `~/.neuroflow/flowie/` and all hive caches at the start of every command session; always start with fresh knowledge

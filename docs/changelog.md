@@ -6,6 +6,10 @@ title: Changelog
 
 ---
 
+## 0.2.18
+
+- **`/wiki` docs page** — `docs/commands/wiki.md` now tracked and reachable via mkdocs nav under Team Integration
+
 ## 0.2.17
 
 - **Global `~/.neuroflow/` structure** — flowie and hive caches move to global `~/.neuroflow/flowie/` and `~/.neuroflow/hive/{org-repo}/`; `integrations.json` global; `team.md` and `linked_flows.md` removed; collaborators in `project_config.md`
