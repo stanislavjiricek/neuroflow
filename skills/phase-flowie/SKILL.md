@@ -1,6 +1,6 @@
 ---
 name: phase-flowie
-description: Phase guidance for the neuroflow /flowie command. Covers how to read and use the flowie profile for personalization, write rules for .neuroflow/flowie/, GitHub sync protocol, and profile-aware assistance across all phases.
+description: Phase guidance for the neuroflow /flowie command. Covers how to read and use the flowie profile for personalization, write rules for ~/.neuroflow/flowie/, GitHub sync protocol, and profile-aware assistance across all phases.
 ---
 
 # phase-flowie
@@ -9,7 +9,7 @@ The `/flowie` command manages the user's personal identity layer — a private G
 
 ## What the flowie profile contains
 
-The flowie profile lives in `.neuroflow/flowie/` and consists of three files:
+The flowie profile lives in `~/.neuroflow/flowie/` and consists of three files:
 
 | File | Contents |
 |---|---|
@@ -34,7 +34,7 @@ The profile is private by design. It lives in a private GitHub repository and is
 
 ## Reading the profile
 
-At the start of any command session, if `.neuroflow/flowie/profile.md` exists and the current project is linked to flowie (indicated by a non-empty `flowie_profiles` list in `project_config.md`), read the profile silently.
+At the start of any command session, if `~/.neuroflow/flowie/profile.md` exists and the current project is linked to flowie (indicated by a non-empty `flowie_profiles` list in `project_config.md`), read the profile silently.
 
 Do not announce that you are reading the profile. Do not quote it back verbatim. Use it to inform the quality and character of your assistance without drawing attention to the mechanism.
 
@@ -78,23 +78,23 @@ Tasks in neuroflow exist at three levels with identical kanban structure:
 
 | Level | Location | Who sees it | When to use |
 |-------|----------|-------------|-------------|
-| `flowie` | `.neuroflow/flowie/tasks/` | Owner only | Personal todos, private research tasks |
+| `flowie` | `~/.neuroflow/flowie/tasks/` | Owner only | Personal todos, private research tasks |
 | `project` | `.neuroflow/tasks/` | All project collaborators | Sprint work, analysis steps, paper milestones |
 | `hive` | `{hive-repo}/tasks/` | Whole team | Shared deliverables, joint deadlines |
 
 When a user runs `/flowie --tasks`, default to `flowie` level. If they pass `--level project` or `--level hive`, read/write from the corresponding location. Show `[level: flowie|project|hive]` at the bottom of every board display.
 
-`.neuroflow/flowie/` is gitignored from project repos — each collaborator has their own private flowie. `.neuroflow/tasks/` is git-tracked and shared across the team.
+`~/.neuroflow/flowie/` is gitignored from project repos — each collaborator has their own private flowie. `.neuroflow/tasks/` is git-tracked and shared across the team.
 
-## Write rules for .neuroflow/flowie/
+## Write rules for ~/.neuroflow/flowie/
 
-These rules apply whenever the `/flowie` command or any other command writes to `.neuroflow/flowie/`:
+These rules apply whenever the `/flowie` command or any other command writes to `~/.neuroflow/flowie/`:
 
 1. **Never overwrite without showing a diff first.** Before writing to `profile.md` or `ideas.md`, show the proposed changes as a diff and wait for explicit confirmation.
 2. **Always read before writing.** Load the current file content before computing the new version.
 3. **Do not truncate.** When updating a section, preserve all other sections exactly as they are.
-4. **Log every write.** Every file write to `.neuroflow/flowie/` must be followed by a session log entry.
-5. **Never write to flowie/ from a non-flowie command.** Other phase commands may read the profile, but only `/flowie` may write to `.neuroflow/flowie/`.
+4. **Log every write.** Every file write to `~/.neuroflow/flowie/` must be followed by a session log entry.
+5. **Never write to flowie/ from a non-flowie command.** Other phase commands may read the profile, but only `/flowie` may write to `~/.neuroflow/flowie/`.
 
 ## GitHub sync protocol
 
@@ -112,7 +112,7 @@ The flowie profile is mirrored to a private GitHub repository. The sync protocol
 - The profile is stored in a **private** GitHub repository. Never suggest making it public.
 - Profile data must never appear in outputs intended for external readers — papers, reports, grant proposals, talk slides.
 - When generating any external-facing document, treat profile data as context only — do not quote stances or beliefs in the output.
-- If a project is being exported (via `/export`), `.neuroflow/flowie/` is excluded by default. Confirm explicitly before including it.
+- If a project is being exported (via `/export`), `~/.neuroflow/flowie/` is excluded by default. Confirm explicitly before including it.
 
 ## Wellbeing tracking
 
@@ -130,23 +130,18 @@ The flowie repo contains a `wellbeing/` folder for daily self-assessments. The f
 
 ## Notes sync
 
-After every `/notes` session, the command offers to copy the formatted note to `.neuroflow/flowie/notes/` (default: yes, controlled by `sync_to_flowie` in `.neuroflow/notes/config.json`). The existing auto-sync hook pushes to GitHub. The `notes/` folder in flowie acts as a cross-project note archive.
+After every `/notes` session, the command offers to copy the formatted note to `~/.neuroflow/flowie/notes/` (default: yes, controlled by `sync_to_flowie` in `.neuroflow/notes/config.json`). The existing auto-sync hook pushes to GitHub. The `notes/` folder in flowie acts as a cross-project note archive.
 
 ## Personal wiki
 
 The flowie repo also contains a `wiki/` folder — a Karpathy-style personal knowledge base maintained by the LLM. All wiki operations are handled by the `neuroflow:wiki` skill, which defines page formats, ingest/query/lint/add workflows, and neuroflow-specific integrations.
 
-**When to surface the wiki unprompted:**
-
-- After any `/ideation` or `/search` paper list: remind the user they can ingest papers with `/flowie --wiki-ingest`
-- After any `/notes` session: remind the user they can extract insights with `/flowie --wiki-ingest`
-- After major phase completions (`data-analyze`, `paper`): ask whether the user wants to synthesize key findings into the wiki
-- When writing a synthesis or analysis that spans multiple projects: ask whether to file it in the wiki
+**When to surface the wiki:** wiki ingest offers and ambient wiki lookups are handled automatically by `neuroflow-core`'s `## Wiki ambient behavior` rules — crystallization detection fires at the end of every command, and pre-query lookup runs silently on domain questions. Do not duplicate those prompts here. The flowie-level wiki is a target for any crystallization that matches the **flowie** routing preconditions (personal insight, cross-project method, insight spanning multiple projects).
 
 **Wiki structure (at a glance):**
 
 ```
-.neuroflow/flowie/wiki/
+~/.neuroflow/flowie/wiki/
 ├── index.md       ← catalog of all pages
 ├── log.md         ← append-only operation log
 ├── schema.md      ← LLM operating guide for this wiki

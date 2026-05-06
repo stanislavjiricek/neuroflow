@@ -103,6 +103,32 @@
       url: "commands/poster/"
     },
 
+    /* ── Skill / Agent nodes ── */
+    {
+      id: "sk-flowie",  label: "phase-flowie skill",   category: "personal-profile",
+      desc: "Phase guidance skill for /flowie — profile read and apply rules across all phases, write rules for .neuroflow/flowie/, GitHub sync protocol, and privacy-conscious personalization.",
+      commands: ["neuroflow:phase-flowie"],
+      url: "skills/phase-flowie/SKILL/"
+    },
+    {
+      id: "sk-hive",    label: "phase-hive skill",     category: "team",
+      desc: "Phase guidance skill for /hive — team knowledge layer, collaborator join flow, cross-project finding sharing, and hive-level wiki and task coordination.",
+      commands: ["neuroflow:phase-hive"],
+      url: "skills/phase-hive/SKILL/"
+    },
+    {
+      id: "sk-slideshow", label: "phase-slideshow skill", category: "pipeline",
+      desc: "Phase guidance skill for /slideshow — audience calibration, slide count heuristics, Markdown/reveal.js and structured outline output formats.",
+      commands: ["neuroflow:phase-slideshow"],
+      url: "skills/phase-slideshow/SKILL/"
+    },
+    {
+      id: "ag-scholar", label: "scholar agent",        category: "pipeline",
+      desc: "Scholar agent — searches PubMed → bioRxiv → fallbacks sequentially, returns a clean paper list with preprint and paywall markers, downloads in batches of 2; supports follow-up synthesis and saving.",
+      commands: ["/ideation", "/search"],
+      url: "agents/scholar/"
+    },
+
     /* ── Team Integration ── */
     {
       id: "c-team",     label: "Team Integration",     category: "team",
@@ -178,7 +204,13 @@
     { source: "c-team",     target: "c-discovery",     type: "coordination" },
 
     /* Utilities → Memory */
-    { source: "c-utilities", target: "c-memory",       type: "storage" }
+    { source: "c-utilities", target: "c-memory",       type: "storage" },
+
+    /* Skill / Agent nodes → their parent concepts */
+    { source: "sk-flowie",   target: "c-profile",      type: "knowledge" },
+    { source: "sk-hive",     target: "c-team",         type: "knowledge" },
+    { source: "sk-slideshow",target: "c-communication",type: "knowledge" },
+    { source: "ag-scholar",  target: "c-discovery",    type: "knowledge" }
   ];
 
   /* ── Visual config ───────────────────────────────────────────────────────── */

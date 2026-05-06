@@ -216,7 +216,7 @@ For full setup, available models, Windows workflows, and troubleshooting — rea
 - **Secrets stay local.** API keys and OAuth tokens are stored only in `integrations.json` (global or per-project), which is gitignored. Never write credentials to any other file.
 - **Global config** (`~/.neuroflow/integrations.json`) is in the home directory — not inside any repo — so it can never be accidentally committed.
 - **Per-project config** (`.neuroflow/integrations.json`) is gitignored via the project's `.gitignore`. Double-check this is in place before any `git push`.
-- **Non-secret settings** (provider name, base URL, preferred model, proxy port) are safe to sync. If the user has a flowie profile linked (check `.neuroflow/flowie/sync.json`), non-secret `custom_llm` settings can be written to `.neuroflow/flowie/integrations.json` and pushed to the user's private GitHub repo for cross-machine sync. The `api_key` field is always excluded from this sync.
+- **Non-secret settings** (provider name, base URL, preferred model, proxy port) are safe to sync. If the user has a flowie profile linked (check `~/.neuroflow/flowie/sync.json`), non-secret `custom_llm` settings can be written to `~/.neuroflow/flowie/integrations.json` and pushed to the user's private GitHub repo for cross-machine sync. The `api_key` field is always excluded from this sync.
 
 ---
 

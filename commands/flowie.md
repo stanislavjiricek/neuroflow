@@ -6,30 +6,30 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/tasks/**
-  - .neuroflow/flowie/profile.md
-  - .neuroflow/flowie/ideas.md
-  - .neuroflow/flowie/sync.json
-  - .neuroflow/flowie/tasks/config.json
-  - .neuroflow/flowie/projects/projects.json
-  - .neuroflow/flowie/wellbeing/config.json
-  - .neuroflow/flowie/wellbeing/*.json
-  - .neuroflow/flowie/wiki/schema.md
-  - .neuroflow/flowie/wiki/index.md
-  - .neuroflow/flowie/wiki/log.md
-  - .neuroflow/flowie/wiki/pages/**
+  - ~/.neuroflow/flowie/profile.md
+  - ~/.neuroflow/flowie/ideas.md
+  - ~/.neuroflow/flowie/sync.json
+  - ~/.neuroflow/flowie/tasks/config.json
+  - ~/.neuroflow/flowie/projects/projects.json
+  - ~/.neuroflow/flowie/wellbeing/config.json
+  - ~/.neuroflow/flowie/wellbeing/*.json
+  - ~/.neuroflow/flowie/wiki/schema.md
+  - ~/.neuroflow/flowie/wiki/index.md
+  - ~/.neuroflow/flowie/wiki/log.md
+  - ~/.neuroflow/flowie/wiki/pages/**
   - skills/wiki/SKILL.md
 writes:
-  - .neuroflow/flowie/profile.md
-  - .neuroflow/flowie/ideas.md
-  - .neuroflow/flowie/sync.json
-  - .neuroflow/flowie/tasks/**
+  - ~/.neuroflow/flowie/profile.md
+  - ~/.neuroflow/flowie/ideas.md
+  - ~/.neuroflow/flowie/sync.json
+  - ~/.neuroflow/flowie/tasks/**
   - .neuroflow/tasks/**
-  - .neuroflow/flowie/projects/projects.json
-  - .neuroflow/flowie/projects/*.md
-  - .neuroflow/flowie/notes/
-  - .neuroflow/flowie/wellbeing/config.json
-  - .neuroflow/flowie/wellbeing/*.json
-  - .neuroflow/flowie/wiki/
+  - ~/.neuroflow/flowie/projects/projects.json
+  - ~/.neuroflow/flowie/projects/*.md
+  - ~/.neuroflow/flowie/notes/
+  - ~/.neuroflow/flowie/wellbeing/config.json
+  - ~/.neuroflow/flowie/wellbeing/*.json
+  - ~/.neuroflow/flowie/wiki/
   - .neuroflow/project_config.md
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
@@ -43,7 +43,7 @@ Personal research OS for neuroflow. Links the current project to a private GitHu
 3. **Project registry** — `projects/`: `projects.json` machine index + one `{name}.md` per project with phase timeline
 4. **Personal wiki** — `wiki/`: LLM-maintained knowledge base with indexed pages, source summaries, concept synthesis, and method library
 
-The `flowie` directory at `.neuroflow/flowie/` **is the git repo itself** — cloned from GitHub. GitHub is canonical. Pull before every read, push after every write.
+The `flowie` directory at `~/.neuroflow/flowie/` **is the git repo itself** — cloned from GitHub. GitHub is canonical. Pull before every read, push after every write.
 
 Read the `neuroflow:phase-flowie` skill first. For any `--wiki-*` mode, also read the `neuroflow:wiki` skill. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
@@ -57,10 +57,10 @@ All git operations use the `-C` flag to target the flowie repo directory. All pu
 
 ```bash
 # Pull before any read:
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 
 # After any write:
-git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "..." && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "..." && git -C ~/.neuroflow/flowie push || true
 ```
 
 Never use a staging/remote-sync subdirectory. The flowie directory is the repo.
@@ -77,10 +77,10 @@ If `.neuroflow/` does not exist, stop and tell the user to run `/neuroflow` firs
 
 Read `.neuroflow/project_config.md` and `.neuroflow/flow.md`.
 
-Check whether `.neuroflow/flowie/` exists:
+Check whether `~/.neuroflow/flowie/` exists:
 
 - **If it does not exist** — this is first run. Go to Step 2.
-- **If it exists** — pull latest from GitHub (`git -C .neuroflow/flowie pull --rebase origin main || true`), then read `sync.json` to confirm the linked GitHub repo and last sync time. Go to Step 3 (mode menu).
+- **If it exists** — pull latest from GitHub (`git -C ~/.neuroflow/flowie pull --rebase origin main || true`), then read `sync.json` to confirm the linked GitHub repo and last sync time. Go to Step 3 (mode menu).
 
 ---
 
@@ -102,7 +102,7 @@ Claude reads this to personalize assistance and track where each project stands.
 Set up or connect a flowie profile now? [Y/n]
 ```
 
-If the user declines, stop. Do not create `.neuroflow/flowie/` or write anything.
+If the user declines, stop. Do not create `~/.neuroflow/flowie/` or write anything.
 
 If the user agrees, continue to Step 2a.
 
@@ -166,17 +166,17 @@ Confirm creation succeeded, then continue to Step 2c (init path).
 **If connecting to an existing repo** (Step 2b found one):
 
 ```bash
-git clone --depth 1 https://github.com/{username}/flowie .neuroflow/flowie
+git clone --depth 1 https://github.com/{username}/flowie ~/.neuroflow/flowie
 ```
 
 After cloning, scaffold any missing files/folders from the spec below without overwriting existing content.
 
 **If creating a new repo** (Step 2b created one):
 
-Create `.neuroflow/flowie/` and scaffold the full structure:
+Create `~/.neuroflow/flowie/` and scaffold the full structure:
 
 ```
-.neuroflow/flowie/
+~/.neuroflow/flowie/
   .flow                          ← root index (neuroflow convention)
   profile.md                     ← research identity template
   ideas.md                       ← cross-project hypotheses template
@@ -339,12 +339,10 @@ Tasks in this column.
 }
 ```
 
-Update `.neuroflow/flow.md` to add a row for `flowie/`.
-
 **Init and push to GitHub:**
 
 ```bash
-cd .neuroflow/flowie
+cd ~/.neuroflow/flowie
 git init
 git remote add origin https://github.com/{username}/flowie
 git add -A
@@ -354,7 +352,7 @@ git push -u origin main || true
 
 Tell the user:
 ```
-flowie directory created at .neuroflow/flowie/
+flowie directory created at ~/.neuroflow/flowie/
 GitHub repo linked: https://github.com/{username}/flowie
 
 Run /flowie --init to build your research profile,
@@ -423,7 +421,7 @@ Ask each question one at a time. Do not rush.
 
    If yes: read `wellbeing/config.json`, set `collect` to `true`, write the file, then push:
    ```bash
-   git -C .neuroflow/flowie add wellbeing/config.json && git -C .neuroflow/flowie commit -m "wellbeing: enable daily tracking" && git -C .neuroflow/flowie push || true
+   git -C ~/.neuroflow/flowie add wellbeing/config.json && git -C ~/.neuroflow/flowie commit -m "wellbeing: enable daily tracking" && git -C ~/.neuroflow/flowie push || true
    ```
 
 After collecting all answers, write a structured `profile.md`:
@@ -462,7 +460,7 @@ If the user wants to edit, accept their corrections. Only write the file once th
 
 After writing, push to GitHub:
 ```bash
-git -C .neuroflow/flowie add profile.md && git -C .neuroflow/flowie commit -m "profile: initial build" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add profile.md && git -C ~/.neuroflow/flowie commit -m "profile: initial build" && git -C ~/.neuroflow/flowie push || true
 ```
 
 Offer to sync to GitHub immediately if push fails:
@@ -481,10 +479,10 @@ Read `sync.json` for the repo URL. If it is missing, tell the user to run `/flow
 ### Pull step
 
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 ```
 
-If the pull succeeds, report what changed (use `git -C .neuroflow/flowie diff --stat HEAD@{1} HEAD` to summarise).
+If the pull succeeds, report what changed (use `git -C ~/.neuroflow/flowie diff --stat HEAD@{1} HEAD` to summarise).
 
 - If nothing changed, report "No changes to pull."
 - If there are changes, show a brief diff summary.
@@ -494,19 +492,19 @@ If the pull succeeds, report what changed (use `git -C .neuroflow/flowie diff --
 Check for local uncommitted changes:
 
 ```bash
-git -C .neuroflow/flowie status --short
+git -C ~/.neuroflow/flowie status --short
 ```
 
 If there are staged or unstaged changes:
 
 ```bash
-git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "sync: {YYYY-MM-DD HH:MM}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "sync: {YYYY-MM-DD HH:MM}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 Update `last_synced` in `sync.json` to current ISO 8601 timestamp, then commit the update:
 
 ```bash
-git -C .neuroflow/flowie add sync.json && git -C .neuroflow/flowie commit -m "sync: update last_synced" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add sync.json && git -C ~/.neuroflow/flowie commit -m "sync: update last_synced" && git -C ~/.neuroflow/flowie push || true
 ```
 
 ### Wellbeing check
@@ -531,9 +529,9 @@ If push fails (e.g. auth error, network), report the error clearly and do not up
 
 Display the custom LLM settings from `flowie/integrations.json` as ready-to-run export commands, so the user can paste them into their terminal before starting Claude Code.
 
-**Do not read from `.neuroflow/integrations.json`** (local file, contains the API key). Read only from `.neuroflow/flowie/integrations.json` (synced, non-secrets only).
+**Do not read from `.neuroflow/integrations.json`** (local file, contains the API key). Read only from `~/.neuroflow/flowie/integrations.json` (synced, non-secrets only).
 
-**If `.neuroflow/flowie/integrations.json` does not exist or has no `custom_llm` section:**
+**If `~/.neuroflow/flowie/integrations.json` does not exist or has no `custom_llm` section:**
 
 > No custom LLM configured in your flowie profile. Run `/neuroflow:setup` and choose Step 5 to configure one.
 
@@ -574,7 +572,7 @@ Do not write anything during `--credentials`. This is a read-only display mode.
 
 Pull first:
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 ```
 
 After pulling, run the wellbeing check (same as in `--sync`): if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before continuing.
@@ -605,7 +603,7 @@ Claude will read your profile and project registry when assisting in any neurofl
 
 Push changes:
 ```bash
-git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "link: {project} ← {repo-basename}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "link: {project} ← {repo-basename}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 Write to `sessions/YYYY-MM-DD.md`.
@@ -618,10 +616,10 @@ Write to `sessions/YYYY-MM-DD.md`.
 
 Pull first:
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 ```
 
-Read `.neuroflow/flowie/profile.md`. Display it formatted:
+Read `~/.neuroflow/flowie/profile.md`. Display it formatted:
 
 ```
 ─────────────────────────────────────
@@ -654,10 +652,10 @@ Do not write anything during `--view`.
 
 Pull first:
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 ```
 
-Read all files in `.neuroflow/flowie/`. Also read `.neuroflow/project_config.md` and any reasoning logs in `.neuroflow/reasoning/` to gather additional signal about how the user thinks.
+Read all files in `~/.neuroflow/flowie/`. Also read `.neuroflow/project_config.md` and any reasoning logs in `.neuroflow/reasoning/` to gather additional signal about how the user thinks.
 
 Generate a short "who you are" paragraph — 4 to 6 sentences — describing the user's intellectual identity from the evidence available. (This length is intentional: short enough for the user to read and confirm in one pass, long enough to capture the two or three most distinctive traits without flattening nuance into a single generic line.)
 
@@ -682,7 +680,7 @@ Update your profile with this description? [Y/n]
 
 If yes, append a `## Claude's read` section to `profile.md` with the confirmed paragraph, then push:
 ```bash
-git -C .neuroflow/flowie add profile.md && git -C .neuroflow/flowie commit -m "profile: add Claude's read" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add profile.md && git -C ~/.neuroflow/flowie commit -m "profile: add Claude's read" && git -C ~/.neuroflow/flowie push || true
 ```
 
 ---
@@ -695,12 +693,12 @@ git -C .neuroflow/flowie add profile.md && git -C .neuroflow/flowie commit -m "p
 
 Pull first:
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 ```
 
 Read `tasks/config.json` for column definitions. Read all `.md` files from all column folders (excluding `.flow`).
 
-Determine the active task level: if `--level project` or `--level hive` is passed, operate at that level (see 3-tier model below). Default is `flowie` (`.neuroflow/flowie/tasks/`).
+Determine the active task level: if `--level project` or `--level hive` is passed, operate at that level (see 3-tier model below). Default is `flowie` (`~/.neuroflow/flowie/tasks/`).
 
 ### 3-tier task levels
 
@@ -708,7 +706,7 @@ Tasks exist at three levels with identical kanban structure:
 
 | Level | Location | Git-tracked in | Visible to |
 |-------|----------|----------------|------------|
-| `flowie` (default) | `.neuroflow/flowie/tasks/` | flowie private repo | owner only |
+| `flowie` (default) | `~/.neuroflow/flowie/tasks/` | flowie private repo | owner only |
 | `project` | `.neuroflow/tasks/` | project repo | all collaborators |
 | `hive` | `{hive-repo}/tasks/` | hive org repo | whole team |
 
@@ -762,7 +760,7 @@ Mini interview to create a new task. Ask:
 Generate slug from title: lowercase, spaces to hyphens, strip special chars, max 40 chars.
 
 Determine task root based on level:
-- `flowie` → `tasks/inbox/` (in `.neuroflow/flowie/tasks/inbox/`)
+- `flowie` → `tasks/inbox/` (in `~/.neuroflow/flowie/tasks/inbox/`)
 - `project` → `.neuroflow/tasks/inbox/`
 - `hive` → `tasks/inbox/` in hive repo (via GitHub API or `gh`)
 
@@ -795,7 +793,7 @@ Task created: [{level}] tasks/inbox/{slug}.md
 
 Push (flowie level):
 ```bash
-git -C .neuroflow/flowie add tasks/inbox/{slug}.md && git -C .neuroflow/flowie commit -m "task: add {slug}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add tasks/inbox/{slug}.md && git -C ~/.neuroflow/flowie commit -m "task: add {slug}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 Push (project level — standard git in project repo):
@@ -811,10 +809,10 @@ Move a task file from its current column folder to the target column folder.
 
 1. Find `{slug}.md` across all column folders
 2. If not found, report "Task not found: {slug}"
-3. If found, move: `git -C .neuroflow/flowie mv tasks/{current}/{slug}.md tasks/{column}/{slug}.md`
+3. If found, move: `git -C ~/.neuroflow/flowie mv tasks/{current}/{slug}.md tasks/{column}/{slug}.md`
 4. Commit and push:
    ```bash
-   git -C .neuroflow/flowie commit -m "task: move {slug} → {column}" && git -C .neuroflow/flowie push || true
+   git -C ~/.neuroflow/flowie commit -m "task: move {slug} → {column}" && git -C ~/.neuroflow/flowie push || true
    ```
 5. Confirm: `Moved {slug} → {column}`
 
@@ -835,7 +833,7 @@ Archive sweep complete.
 
 Push all moves in a single commit:
 ```bash
-git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "tasks: archive sweep {YYYY-MM-DD}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "tasks: archive sweep {YYYY-MM-DD}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 ### --tasks --project \<name\>
@@ -850,7 +848,7 @@ Filter the board (or list, if combined with `--list`) to show only tasks where `
 
 Pull first:
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 ```
 
 Read `projects/projects.json`.
@@ -935,7 +933,7 @@ Project registered: {id}
 
 Push:
 ```bash
-git -C .neuroflow/flowie add projects/projects.json projects/{id}.md && git -C .neuroflow/flowie commit -m "projects: add {id}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add projects/projects.json projects/{id}.md && git -C ~/.neuroflow/flowie commit -m "projects: add {id}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 ---
@@ -989,7 +987,7 @@ Update `wellbeing/.flow` — append a row: `| {today}.json | wellbeing entry |`.
 
 Push:
 ```bash
-git -C .neuroflow/flowie add wellbeing/{today}.json wellbeing/.flow && git -C .neuroflow/flowie commit -m "wellbeing: {today}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add wellbeing/{today}.json wellbeing/.flow && git -C ~/.neuroflow/flowie commit -m "wellbeing: {today}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 Confirm: `Wellbeing logged for {today}.`
@@ -1000,16 +998,16 @@ Confirm: `Wellbeing logged for {today}.`
 
 ## Wiki modes — `--wiki-*`
 
-All wiki modes load the `neuroflow:wiki` skill and follow its full operation workflows. The wiki lives at `.neuroflow/flowie/wiki/`. The skill file defines all page formats, index/log conventions, ingest/query/lint/add workflows, and the neuroflow-specific integrations (project tagging, ideas.md sync, profile evolution, fails integration).
+All wiki modes load the `neuroflow:wiki` skill and follow its full operation workflows. The wiki lives at `~/.neuroflow/flowie/wiki/`. The skill file defines all page formats, index/log conventions, ingest/query/lint/add workflows, and the neuroflow-specific integrations (project tagging, ideas.md sync, profile evolution, fails integration).
 
 Pull before every wiki read operation:
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
 ```
 
 Push after every wiki write:
 ```bash
-git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "wiki: {description}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "wiki: {description}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 ### Mode: --wiki
@@ -1082,7 +1080,7 @@ This section is invoked automatically when the active phase in `project_config.m
 1. Read `flowie_profiles` from `.neuroflow/project_config.md`. Use the first entry (`flowie_profiles[0]`). If the list is absent or empty, skip silently.
 2. Pull:
    ```bash
-   git -C .neuroflow/flowie pull --rebase origin main || true
+   git -C ~/.neuroflow/flowie pull --rebase origin main || true
    ```
 3. Read `projects/projects.json`. Find the project entry where `id` matches the linked project name (from `projects/{name}.md` or the link step).
    - Update `current_phase` to the new phase.
@@ -1094,7 +1092,7 @@ This section is invoked automatically when the active phase in `project_config.m
    ```
 6. Commit and push:
    ```bash
-   git -C .neuroflow/flowie add projects/projects.json projects/{name}.md && git -C .neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C .neuroflow/flowie push || true
+   git -C ~/.neuroflow/flowie add projects/projects.json projects/{name}.md && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie push || true
    ```
 
 If any step fails (file not found, JSON parse error), fail silently and log the error only to the session file. Do not surface the error to the user during a `/phase` run — flowie sync is a background concern.

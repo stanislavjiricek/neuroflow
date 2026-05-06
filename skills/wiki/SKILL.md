@@ -13,7 +13,7 @@ You never write the wiki yourself — the LLM writes and maintains all of it. Yo
 
 | Level | Root path | Git repo | Who sees it |
 |-------|-----------|----------|-------------|
-| `flowie` | `.neuroflow/flowie/wiki/` | flowie private repo | owner only |
+| `flowie` | `~/.neuroflow/flowie/wiki/` | flowie private repo | owner only |
 | `project` | `.neuroflow/wiki/` | project repo (shared) | all collaborators |
 | `hive` | `{hive-repo}/wiki/` | hive org repo | whole team |
 
@@ -23,7 +23,7 @@ The wiki at each level serves a different purpose:
 - **hive** — team knowledge: lab-wide methods, shared literature, cross-project synthesis, team epistemics
 
 Git operations by level:
-- `flowie`: `git -C .neuroflow/flowie ...`
+- `flowie`: `git -C ~/.neuroflow/flowie ...`
 - `project`: standard `git` in project root
 - `hive`: `gh` CLI or GitHub API targeting hive org repo
 
@@ -74,7 +74,7 @@ status: current            # current | stale | draft
 ```
 
 **`projects:`** is the key neuroflow addition. Every ingest, query, and add operation MUST ask which projects this relates to. Project source by level:
-- `flowie` → read `.neuroflow/flowie/projects/projects.json`
+- `flowie` → read `~/.neuroflow/flowie/projects/projects.json`
 - `project` → context is the current project itself (from `project_config.md`); ask if it relates to other flowie projects
 - `hive` → read `{hive-repo}/projects/projects.json`
 
@@ -265,21 +265,39 @@ If `wiki/` does not exist:
    | raw/ | immutable source documents |
    | pages/ | LLM-maintained wiki pages |
    ```
-5. Update `.neuroflow/flowie/.flow` to add a wiki row
-6. Git push: `git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "wiki: initialize" && git -C .neuroflow/flowie push || true`
+5. Update `~/.neuroflow/flowie/.flow` to add a wiki row
+6. Git push: `git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "wiki: initialize" && git -C ~/.neuroflow/flowie push || true`
 
 ---
 
 ## Neuroflow-specific integrations
+
+### Level routing
+
+When called from `neuroflow-core`'s crystallization hook, or when the user asks which wiki to use, apply this routing table. Suggest all applicable levels, but only those whose wikis are initialized.
+
+| What crystallized | Route to |
+|---|---|
+| Decision specific to THIS project's RQ, data, or collaborators | **project** |
+| Method or concept applicable broadly across your research | **flowie** |
+| Insight that spans multiple of your projects | **flowie** |
+| Analysis rationale collaborators need to trace | **project** |
+| Hypothesis: personal insight + project-specific evidence | **flowie + project** |
+| Lab-wide protocol or cross-team insight | **hive** |
+| Cross-project synthesis relevant to the whole team | **hive + flowie** |
+
+Preconditions: only suggest a level if its `index.md` exists at the root path, `~/.neuroflow/flowie/` exists and is a git repo, and `~/.neuroflow/hive/{org-repo}/` exists. Fail silently on unmet preconditions — no phantom prompts.
+
+---
 
 ### Project tagging (mandatory)
 Every ingest/add/query-that-writes MUST read `projects/projects.json` and ask about project links. Even if the connection is unclear. The user can always say "none." Never skip this.
 
 ### ideas.md sync
 During ingest or query, if a synthesis page spans multiple projects or generates a cross-project hypothesis, ask based on level:
-- `flowie`: "Add to flowie/ideas.md?" → append to `.neuroflow/flowie/ideas.md`
-- `project`: "Add to team ideas?" → if hive connected, append to `{hive-repo}/ideas.md`; otherwise append to `.neuroflow/flowie/ideas.md` if flowie active
-- `hive`: "Add to hive ideas.md?" → append to `{hive-repo}/ideas.md`
+- `flowie`: "Add to flowie/ideas.md?" → append to `~/.neuroflow/flowie/ideas.md`
+- `project`: "Add to team ideas?" → if hive connected, append to `~/.neuroflow/hive/{org-repo}/ideas.md`; otherwise append to `~/.neuroflow/flowie/ideas.md` if flowie active
+- `hive`: "Add to hive ideas.md?" → append to `~/.neuroflow/hive/{org-repo}/ideas.md`
 
 ### profile.md evolution
 Only applies at `flowie` level. After a lint or synthesis that strongly supports or contradicts a methodological stance from `profile.md`, ask:
@@ -292,12 +310,6 @@ When writing or updating `pages/methods/` pages, check `fails/science.md` (from 
 > ⚠️ **See fails log:** This method has a recorded failure entry. Review `.neuroflow/fails/science.md` before relying on it.
 ```
 
-### Paper routing prompt
-After `/ideation` or `/search` outputs papers, those commands add a closing reminder to offer wiki ingest. The wiki skill handles it when the user runs `--wiki-ingest` with a paper path or DOI.
-
-### Notes routing prompt
-After `/notes` saves a session, it adds a closing reminder offering wiki ingest. The wiki skill handles it when the user runs `--wiki-ingest` with the notes file path.
-
 ---
 
 ## Git sync
@@ -306,8 +318,8 @@ Git operations depend on level:
 
 **flowie level:**
 ```bash
-git -C .neuroflow/flowie pull --rebase origin main || true
-git -C .neuroflow/flowie add -A && git -C .neuroflow/flowie commit -m "wiki: {description}" && git -C .neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie pull --rebase origin main || true
+git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "wiki: {description}" && git -C ~/.neuroflow/flowie push || true
 ```
 
 **project level:**

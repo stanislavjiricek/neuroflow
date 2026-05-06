@@ -12,7 +12,7 @@ writes:
   - .neuroflow/notes/
   - .neuroflow/notes/flow.md
   - .neuroflow/notes/config.json
-  - .neuroflow/flowie/notes/
+  - ~/.neuroflow/flowie/notes/
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
@@ -73,7 +73,7 @@ If `.neuroflow/notes/config.json` does not exist, create it now with standard de
 
 ### 5 — Flowie sync
 
-If `.neuroflow/flowie/` does not exist, skip this step silently.
+If `~/.neuroflow/flowie/` does not exist, skip this step silently.
 
 Read `.neuroflow/notes/config.json`. If `sync_to_flowie` is `true` (default), offer:
 
@@ -84,15 +84,15 @@ Sync this note to your flowie repo? [Y/n]
 If the user confirms (or presses enter):
 
 1. Determine destination filename: `{YYYY-MM-DD}-{context}.md` (using today's date and the session context).
-2. If `.neuroflow/flowie/notes/` does not exist, create it with a `.flow` index file:
+2. If `~/.neuroflow/flowie/notes/` does not exist, create it with a `.flow` index file:
    ```markdown
    # notes
 
    | file | description |
    |---|---|
    ```
-3. Write the final formatted note to `.neuroflow/flowie/notes/{filename}`.
-4. Append a row to `.neuroflow/flowie/notes/.flow`:
+3. Write the final formatted note to `~/.neuroflow/flowie/notes/{filename}`.
+4. Append a row to `~/.neuroflow/flowie/notes/.flow`:
    ```
    | {filename} | {context} — {date} |
    ```
@@ -100,19 +100,6 @@ If the user confirms (or presses enter):
 The existing auto-sync hook will push the note to GitHub automatically.
 
 If `sync_to_flowie` is `false`, skip without prompting.
-
----
-
-### 6 — Wiki ingest offer
-
-If `.neuroflow/flowie/wiki/` exists (the user has a personal wiki set up), offer after the flowie sync step:
-
-```
-Extract key insights into your personal wiki? Run:
-  /flowie --wiki-ingest .neuroflow/notes/{filename}
-```
-
-This is a nudge only — do not run the ingest automatically. The user chooses when to do it.
 
 ---
 

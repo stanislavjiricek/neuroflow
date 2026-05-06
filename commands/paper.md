@@ -94,9 +94,3 @@ Write loop state to `.neuroflow/paper/critic-log.md` after each iteration using 
 - Confirm that any framing or scope decisions were written to `.neuroflow/reasoning/paper.json` as they occurred — if any were missed, append them now
 - Update `project_config.md` if phase changed
 
-If `.neuroflow/flowie/wiki/` exists, add a closing nudge:
-
-```
-Consider archiving key findings and methods in your personal wiki:
-  /flowie --wiki-ingest .neuroflow/paper/
-```

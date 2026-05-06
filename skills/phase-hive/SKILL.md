@@ -4,14 +4,14 @@ description: Team-level knowledge layer for neuroflow. Connects a researcher's p
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - .neuroflow/hive/hive.md
-  - .neuroflow/hive/members.md
-  - .neuroflow/hive/sync.json
+  - ~/.neuroflow/hive/{org-repo}/hive.md
+  - ~/.neuroflow/hive/{org-repo}/members.md
+  - ~/.neuroflow/hive/{org-repo}/sync.json
 writes:
-  - .neuroflow/hive/
-  - .neuroflow/hive/hive.md
-  - .neuroflow/hive/members.md
-  - .neuroflow/hive/sync.json
+  - ~/.neuroflow/hive/{org-repo}/
+  - ~/.neuroflow/hive/{org-repo}/hive.md
+  - ~/.neuroflow/hive/{org-repo}/members.md
+  - ~/.neuroflow/hive/{org-repo}/sync.json
 ---
 
 # phase-hive — Team research layer
@@ -91,14 +91,19 @@ Open hypotheses, cross-project questions, and speculative directions the lab is 
 
 ---
 
-## Local hive state (per-project)
+## Local hive cache (global, per-user)
+
+Hive data is cached at the user level — not inside any project repo.
 
 ```
-.neuroflow/hive/
+~/.neuroflow/hive/{org-repo}/
 ├── hive.md          ← local copy of team identity + directions
 ├── members.md       ← local copy of team roster
+├── ideas.md         ← local copy of team ideas
 └── sync.json        ← hive_repo URL, last_pull, last_push, member_handle
 ```
+
+One cache folder per hive the user belongs to. Created by `/hive --init`. Never committed to any project repo.
 
 ---
 
@@ -107,7 +112,7 @@ Open hypotheses, cross-project questions, and speculative directions the lab is 
 ### `--init`
 Connect the current neuroflow project to a Hive repo for the first time.
 
-1. **Check flowie profile first:** if `.neuroflow/flowie/profile.md` exists and contains a `hives:` list, show it as a picker before asking freeform:
+1. **Check flowie profile first:** if `~/.neuroflow/flowie/profile.md` exists and contains a `hives:` list, show it as a picker before asking freeform:
    ```
    Your flowie profile lists these hives:
      [1] acme-neuroscience/hive-lab
@@ -122,7 +127,7 @@ Connect the current neuroflow project to a Hive repo for the first time.
 
 **If joining an existing hive repo:**
 - Clone or fetch to read `hive.md`, `members.md`, and `sync.json`
-- Create `.neuroflow/hive/` with local copies + initial sync.json
+- Create `~/.neuroflow/hive/{org-repo}/` with local copies + initial sync.json
 - Update `.neuroflow/flow.md` + `project_config.md`
 - Show team identity from `hive.md` and members from `members.md`
 
@@ -138,7 +143,7 @@ Pull latest state and show a digest of what changed since last pull.
 
 1. Record current state: `git -C (local hive cache) log --oneline` or note last_pull timestamp
 2. Fetch `hive.md`, `members.md`, `ideas.md`, and `sync.json` from hive repo
-3. Update local `.neuroflow/hive/` copies
+3. Update local `~/.neuroflow/hive/{org-repo}/` copies
 4. Update `sync.json` with `last_pull: [timestamp]`
 5. **Digest:** compare old and new versions and print a structured change summary:
    ```
@@ -156,7 +161,7 @@ Pull latest state and show a digest of what changed since last pull.
 ### `--view`
 Display current local Hive state without syncing.
 
-1. Read `.neuroflow/hive/hive.md` and `members.md`
+1. Read `~/.neuroflow/hive/{org-repo}/hive.md` and `members.md`
 2. Read `sync.json` for last sync timestamp
 3. Print team identity, directions, member count, last sync
 4. Print: `"Run /hive --sync to fetch the latest updates."`
@@ -209,11 +214,10 @@ Operate on the hive-level team wiki at `{hive-repo}/wiki/`. Load `neuroflow:wiki
 
 When a new team member joins a project that already has neuroflow set up, they follow this sequence:
 
-1. **Clone the project repo** — `.neuroflow/` is present (tasks/, hive/, notes/, project_config.md are all git-tracked)
+1. **Clone the project repo** — `.neuroflow/` is present (tasks/, notes/, project_config.md are all git-tracked)
 2. **Run `/neuroflow`** — detects existing `.neuroflow/project_config.md`, shows current state, prompts for their own name and flowie setup
-3. **Check `.neuroflow/flowie/`** — if it exists from a previous collaborator's work, `git check-ignore -v .neuroflow/flowie/` should show it's gitignored; if not, add `.neuroflow/flowie/` to `.gitignore` before running `/flowie`
-4. **Run `/flowie`** — set up or link their own private flowie profile (each collaborator has a separate private `flowie` repo)
-5. **Run `/hive --sync`** — pull team directions, member list, and shared content from the hive repo
+3. **Run `/flowie`** — set up or link their own private flowie profile; clones to `~/.neuroflow/flowie/` (each collaborator has a separate private `flowie` repo, never inside the project)
+4. **Run `/hive --sync`** — pull team directions, member list, and shared content; cached to `~/.neuroflow/hive/{org-repo}/`
 
 **What is shared vs. private:**
 
@@ -222,9 +226,9 @@ When a new team member joins a project that already has neuroflow set up, they f
 | `.neuroflow/project_config.md` | Yes — shared context for all |
 | `.neuroflow/tasks/` | Yes — shared project Kanban |
 | `.neuroflow/notes/` | Yes — shared meeting notes |
-| `.neuroflow/hive/` | Yes — local cache of team data |
 | `.neuroflow/sessions/` | No — gitignored (personal logs) |
-| `.neuroflow/flowie/` | No — gitignored (personal profile) |
+| `~/.neuroflow/flowie/` | No — global per-user, never in project |
+| `~/.neuroflow/hive/{org-repo}/` | No — global per-user cache, never in project |
 
 ---
 

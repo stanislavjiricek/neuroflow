@@ -118,24 +118,24 @@ Flag each file and line number where a match is found. Mark name and institution
 
 ### 11 — Flowie structure (if present)
 
-This check only runs if `.neuroflow/flowie/` exists.
+This check only runs if `~/.neuroflow/flowie/` exists (global path — not inside any project repo).
 
-- **Git repo:** check that `.neuroflow/flowie/.git/` exists. If the folder exists but is not a git repo, flag it — it should be a clone of the user's private `flowie` GitHub repository.
-- **sync.json:** check that `.neuroflow/flowie/sync.json` exists and contains a `github_repo` field with a non-empty value. Flag if missing or empty.
-- **flowie_profiles binding:** check that `flowie_profiles` is set and non-empty in `project_config.md`. If `.neuroflow/flowie/` is set up but `flowie_profiles` is absent, flag it — the project should be linked via `/flowie --link`.
-- **Project registry match:** if `flowie_profiles` is set AND `projects/projects.json` exists, check that the first entry's handle matches an entry in the projects array. Flag if no matching project is found.
-- **flow.md listing:** check that `flowie/` is listed as a row in `.neuroflow/flow.md`. Flag if missing.
+- **Git repo:** check that `~/.neuroflow/flowie/.git/` exists. If the folder exists but is not a git repo, flag it — it should be a clone of the user's private `flowie` GitHub repository.
+- **sync.json:** check that `~/.neuroflow/flowie/sync.json` exists and contains a `github_repo` field with a non-empty value. Flag if missing or empty.
+- **flowie_profiles binding:** check that `flowie_profiles` is set and non-empty in `project_config.md`. If `~/.neuroflow/flowie/` is set up but `flowie_profiles` is absent, flag it — the project should be linked via `/flowie --link`.
+- **Project registry match:** if `flowie_profiles` is set AND `~/.neuroflow/flowie/projects/projects.json` exists, check that the first entry's handle matches an entry in the projects array. Flag if no matching project is found.
 - **Migration check:** verify `project_config.md` does NOT contain legacy scalar fields `flowie_project:` or `hive_member:` (replaced by `flowie_profiles:` list). Flag if found and suggest running `/neuroflow` to migrate.
+- **Legacy path check:** if `.neuroflow/flowie/` exists INSIDE the project repo, flag as error — flowie must never be inside a project repo; it lives at `~/.neuroflow/flowie/`. Offer to move it.
 
 Flag any failed sub-check as a warning (not a blocking error — flowie may be intentionally partial). Group all flowie warnings under a single "⚠️ flowie" section in the report.
 
-Auto-fix: for the flow.md listing, offer to add the missing row. All other issues require user action (re-running `/flowie` or `/flowie --link`).
+Auto-fix: for the legacy path check, offer guidance on moving. All other issues require user action (re-running `/flowie` or `/flowie --link`).
 
 ### 12 — Wiki structure (if present)
 
 Run for each wiki level that exists:
 
-**12a — Flowie wiki** (`if .neuroflow/flowie/wiki/` exists):
+**12a — Flowie wiki** (`if ~/.neuroflow/flowie/wiki/` exists):
 - **index.md:** exists and "Last updated" within 90 days
 - **log.md:** exists and non-empty
 - **schema.md:** exists — if missing, flag and suggest `/flowie --wiki-schema`
@@ -156,18 +156,19 @@ Auto-fix: add missing `wiki/` row to `flow.md`. All other issues require user ac
 
 ### 13 — Hive structure (if present)
 
-This check only runs if `.neuroflow/hive/` exists.
+This check only runs if `~/.neuroflow/hive/` exists (global path). Hive caches live at `~/.neuroflow/hive/{org-repo}/` — one folder per hive the user belongs to. Check all sub-folders.
 
-- **hive.md:** check that `.neuroflow/hive/hive.md` exists and is non-empty. Flag if missing.
-- **members.md:** check that `.neuroflow/hive/members.md` exists. Flag if missing — suggest running `/hive --members` to add team roster.
-- **sync.json:** check that `.neuroflow/hive/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
-- **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If `.neuroflow/hive/` exists but `hive_repo` is absent from config, flag as inconsistency.
-- **flow.md listing:** check that `hive/` is listed in `.neuroflow/flow.md`. Flag if missing.
-- **No old `directions.md`:** if `.neuroflow/hive/directions.md` exists as a local cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
+For each `~/.neuroflow/hive/{org-repo}/` found:
+- **hive.md:** check that `~/.neuroflow/hive/{org-repo}/hive.md` exists and is non-empty. Flag if missing.
+- **members.md:** check that `~/.neuroflow/hive/{org-repo}/members.md` exists. Flag if missing — suggest running `/hive --members` to add team roster.
+- **sync.json:** check that `~/.neuroflow/hive/{org-repo}/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
+- **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If a hive cache exists but `hive_repo` is absent from config, flag as inconsistency.
+- **No old `directions.md`:** if `directions.md` exists in the cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
+- **Legacy path check:** if `.neuroflow/hive/` exists INSIDE the project repo, flag as error — hive cache must never be inside a project repo; it lives at `~/.neuroflow/hive/{org-repo}/`. Offer to remove it.
 
 Group all hive warnings under "⚠️ hive". These are warnings, not blocking errors.
 
-Auto-fix: add missing `hive/` row to `flow.md`. Offer to delete obsolete `directions.md`. All other issues require user action.
+Auto-fix: offer to delete obsolete `directions.md` and guidance on removing any legacy project-level `.neuroflow/hive/`. All other issues require user action.
 
 ## Report
 

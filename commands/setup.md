@@ -6,7 +6,7 @@ reads:
   - ~/.neuroflow/integrations.json
   - ~/.neuroflow/user.yaml
   - .neuroflow/integrations.json
-  - .neuroflow/flowie/sync.json
+  - ~/.neuroflow/flowie/sync.json
 writes:
   - ~/.neuroflow/integrations.json
   - ~/.neuroflow/user.yaml
@@ -224,7 +224,7 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 ```
 
 - `api_key` is always local-only (gitignored). Never sync it.
-- If flowie is linked (check `.neuroflow/flowie/sync.json` exists): write non-secrets (`provider`, `base_url`, `model`, `proxy_port` — **never `api_key`**) to `.neuroflow/flowie/integrations.json` using this schema:
+- If flowie is linked (check `~/.neuroflow/flowie/sync.json` exists): write non-secrets (`provider`, `base_url`, `model`, `proxy_port` — **never `api_key`**) to `~/.neuroflow/flowie/integrations.json` using this schema:
 
   ```json
   {
@@ -240,7 +240,7 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
   Then commit and push:
 
   ```bash
-  git -C .neuroflow/flowie add integrations.json && git -C .neuroflow/flowie commit -m "sync: custom_llm settings" && git -C .neuroflow/flowie push || true
+  git -C ~/.neuroflow/flowie add integrations.json && git -C ~/.neuroflow/flowie commit -m "sync: custom_llm settings" && git -C ~/.neuroflow/flowie push || true
   ```
 
   Tell the user: "Synced custom LLM settings (no API key) to your flowie profile."

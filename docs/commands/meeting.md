@@ -27,7 +27,7 @@ Use `--level` to specify where the meeting lives:
 | Level | Storage | Who sees it |
 |-------|---------|-------------|
 | `project` (default) | `.neuroflow/meetings/` | All project collaborators |
-| `flowie` | `.neuroflow/flowie/meetings/` | You only |
+| `flowie` | `~/.neuroflow/flowie/meetings/` | You only |
 | `hive` | `{hive-repo}/meetings/` | Whole team |
 
 ---

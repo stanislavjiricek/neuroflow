@@ -22,7 +22,7 @@ The `flowie` GitHub repo has three layers:
 | **Kanban** | `tasks/config.json`, `tasks/{column}/` | Task board — one `.md` file per task, one folder per column |
 | **Registry** | `projects/projects.json`, `projects/{name}.md` | Project list with GitHub repos, current phase, phase history |
 
-All data lives in `.neuroflow/flowie/` locally (this folder IS a git clone). GitHub is the canonical source of truth — pull before read, push after every write.
+All data lives in `~/.neuroflow/flowie/` locally (this folder IS a git clone). GitHub is the canonical source of truth — pull before read, push after every write.
 
 ---
 
@@ -41,7 +41,7 @@ Run `/flowie` in any neuroflow project. On first run, you will be guided through
 
 1. GitHub authentication (CLI or PAT)
 2. Checking for an existing `flowie` repository on your account — or creating one
-3. Cloning it to `.neuroflow/flowie/` and scaffolding the full structure
+3. Cloning it to `~/.neuroflow/flowie/` and scaffolding the full structure
 
 Then run `/flowie --init` to build your profile through a short interview.
 
@@ -116,7 +116,7 @@ The profile informs suggestions — it does not override your explicit instructi
 
 - The `flowie` GitHub repository is always private
 - Profile data never appears in outputs intended for external readers (papers, grant proposals, reports)
-- `.neuroflow/flowie/` is excluded from `/export` by default
+- `~/.neuroflow/flowie/` is excluded from `/export` by default
 - The PAT (if used) is held in memory only — never written to disk
 
 ---
@@ -139,8 +139,8 @@ All other write operations (task add/move/done, project add, phase sync) push si
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/flowie/profile.md`, `.neuroflow/flowie/ideas.md`, `.neuroflow/flowie/sync.json`, `.neuroflow/flowie/tasks/config.json`, `.neuroflow/flowie/tasks/{column}/*.md`, `.neuroflow/flowie/projects/projects.json`, `.neuroflow/flowie/projects/{name}.md` |
-| Writes | `.neuroflow/flowie/profile.md`, `.neuroflow/flowie/ideas.md`, `.neuroflow/flowie/sync.json`, `.neuroflow/flowie/tasks/{column}/{slug}.md`, `.neuroflow/flowie/projects/projects.json`, `.neuroflow/flowie/projects/{name}.md`, `.neuroflow/project_config.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `~/.neuroflow/flowie/profile.md`, `~/.neuroflow/flowie/ideas.md`, `~/.neuroflow/flowie/sync.json`, `~/.neuroflow/flowie/tasks/config.json`, `~/.neuroflow/flowie/tasks/{column}/*.md`, `~/.neuroflow/flowie/projects/projects.json`, `~/.neuroflow/flowie/projects/{name}.md` |
+| Writes | `~/.neuroflow/flowie/profile.md`, `~/.neuroflow/flowie/ideas.md`, `~/.neuroflow/flowie/sync.json`, `~/.neuroflow/flowie/tasks/{column}/{slug}.md`, `~/.neuroflow/flowie/projects/projects.json`, `~/.neuroflow/flowie/projects/{name}.md`, `.neuroflow/project_config.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
 
 ---
 

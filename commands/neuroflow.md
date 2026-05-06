@@ -5,15 +5,14 @@ phase: utility
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - .neuroflow/integrations.json
-  - .neuroflow/flowie/profile.md        # optional — only if flowie profile exists or user provides one
-  - .neuroflow/flowie/sync.json         # optional — only if flowie profile exists
-  - .neuroflow/flowie/integrations.json # optional — only if flowie is set up; read before Step 5
+  - ~/.neuroflow/flowie/profile.md        # optional — only if flowie is set up globally
+  - ~/.neuroflow/flowie/sync.json         # optional — only if flowie is set up globally
+  - ~/.neuroflow/flowie/integrations.json # optional — only if flowie is set up globally
+  - ~/.neuroflow/user.yaml                # global neuroflow prefs (flowie_handle etc.)
 writes:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
-  - .neuroflow/integrations.json
   - .claude/CLAUDE.md
   - .github/copilot-instructions.md
 ---
@@ -122,12 +121,12 @@ Run Step 0d immediately, then continue to Step 1.
 Run this check whenever Step 0 finds an existing project. Check three integrations silently and report their status as a single compact line:
 
 **Flowie check:**
-Look for a `flowie/` entry in `.neuroflow/flow.md`.
+Check whether `~/.neuroflow/flowie/profile.md` exists.
 - Found: print `Flowie: active`
 - Not found: print `Flowie: not set up (run /flowie to start)`
 
 **Hive check:**
-Look for a `hive/` entry in `.neuroflow/flow.md`, or a `hive_repo:` field in `project_config.md`.
+Check whether `~/.neuroflow/hive/` contains at least one cached repo, or `hive_repo:` is set in `project_config.md`.
 - Found: print `Hive: connected to [team name if available]`
 - Not found: print `Hive: not connected`
 
@@ -282,7 +281,7 @@ Before asking any interview questions, ask the user this as the **first question
 
 ### Flowie profile
 
-**Check locally first:** if `.neuroflow/flowie/profile.md` already exists in the current working directory, **pull the latest changes first** (`git -C .neuroflow/flowie pull --ff-only 2>/dev/null || true`) and then read both `profile.md` and `integrations.json` (if present) directly. Do this before asking any interview questions or touching integrations — go straight to the field mapping table below.
+**Check locally first:** if `~/.neuroflow/flowie/profile.md` already exists, **pull the latest changes first** (`git -C ~/.neuroflow/flowie pull --ff-only 2>/dev/null || true`) and then read both `profile.md` and `integrations.json` (if present) directly. Do this before asking any interview questions or touching integrations — go straight to the field mapping table below.
 
 **If no local profile:** check `~/.neuroflow/user.yaml` (Unix) or `%USERPROFILE%\.neuroflow\user.yaml` (Windows) for a `flowie_handle` field. If found, use that handle as the default and ask: *"I found your GitHub username `{handle}` in your global neuroflow config. Use this for flowie? (Y/n)"* — skip to the fetch logic below if confirmed. Otherwise ask: *"What is your GitHub username?"*
 
@@ -295,7 +294,7 @@ Since flowie repositories are always private, use the following fetch order:
 
 Do not attempt additional `gh` commands (config file paths, env var checks, etc.) between steps 1 and 2. One `gh auth status` check is sufficient — if it fails, move directly to the git clone attempt.
 
-**After reading the flowie repo:** copy `integrations.json` (if fetched remotely) into `.neuroflow/flowie/integrations.json`. This makes flowie's integrations available locally so Step 5 does not need to repeat the setup.
+**After reading the flowie repo:** if flowie was fetched remotely (not already cloned locally), clone it into `~/.neuroflow/flowie/` so it's available globally. Copy `integrations.json` into `~/.neuroflow/flowie/integrations.json`. This makes flowie's integrations available across all projects so Step 5 does not need to repeat the setup.
 
 If the profile is found, extract the following fields and map them to interview answers:
 
@@ -322,7 +321,7 @@ Then continue to Step 2.
 
 Ask: *"What is your team's Hive repo? (e.g. my-lab/hive-research)"*
 
-**Check locally first:** if `.neuroflow/hive/` already exists, read the index files from there directly.
+**Check locally first:** if `~/.neuroflow/hive/` contains a cache for this org/repo, read the index files from there directly.
 
 **If no local hive data:** fetch the Hive index using the same authentication approach as for flowie above (`gh` CLI preferred, PAT as fallback). Try the following locations in order:
 
@@ -472,18 +471,7 @@ The `.neuroflow/` folder was already created in Step 0d. Now update it with the 
 
 **`project_config.md`** — overwrite the placeholder with a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b), an `## Output paths` table mapping each relevant phase to its detected or default output path, (if the user linked a flowie profile during Step 1b) a `flowie_profiles:` list with one entry `- handle: {username}\n  repo: {username}/flowie`, and a `collaborators:` list. Ask: *"Who else is working on this project? (name, email — one per line, or press Enter to skip)"* — add each person as `- name: {name}\n  email: {email}\n  handle: {github-handle or omit}`. This list is used by `/meeting` to pull attendee emails for calendar invites. This file is read by every command and agent — keep it concise.
 
-**`.neuroflow/flowie/` gitignore:** After writing all files, check whether `.neuroflow/flowie/` is already excluded in the project's `.gitignore`. If not, print:
-
-```
-⚠️  Multi-collaborator tip: .neuroflow/flowie/ is your personal research profile —
-    it should NOT be committed to a shared repo.
-
-    Add this to your project's .gitignore:
-      .neuroflow/flowie/
-
-    Each collaborator will have their own private flowie profile.
-    Shared project tasks live in .neuroflow/tasks/ (already git-tracked).
-```
+**Collaborator note:** Remind the user that flowie lives at `~/.neuroflow/flowie/` (global, per-user) — it is never inside the project repo, so no `.gitignore` entry is needed. Each collaborator sets up their own flowie independently.
 
 **`flow.md`** — update the index to reflect only the folders that actually exist (the structure is the same as what Step 0d wrote; update the `Last changed` dates).
 
@@ -532,9 +520,9 @@ Ask the user whether they want to connect the MCP integrations now:
 
 **If the user says no or skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 6.
 
-**If `.neuroflow/integrations.json` already exists with credentials set:** skip this step entirely (do not prompt again).
+**If `~/.neuroflow/flowie/integrations.json` already exists with credentials set:** skip this step entirely (integrations managed globally).
 
-**If `.neuroflow/flowie/integrations.json` exists:** skip this step entirely — integrations are managed through your flowie profile. Do not create a separate `.neuroflow/integrations.json`.
+**If `~/.neuroflow/flowie/integrations.json` exists:** skip this step entirely — integrations are managed globally through your flowie profile.
 
 **Google Workspace (gws) option:**
 Also offer gws CLI setup as part of the integration wizard:
@@ -545,7 +533,7 @@ Also offer gws CLI setup as part of the integration wizard:
 > - Claude extension: `npx skills add https://github.com/googleworkspace/cli`  
 > - Skip for now? You can set this up at any time with `/neuroflow:setup`
 
-If the user skips gws **and flowie is not active**: write `gws_setup: skipped` to `.neuroflow/integrations.json` (create the file if it doesn’t exist yet). If flowie is active, skip this write — integrations are owned by the flowie profile.
+If the user skips gws **and flowie is not active**: write `gws_setup: skipped` to `~/.neuroflow/user.yaml`. If flowie is active, skip this write — integrations are owned by the flowie profile at `~/.neuroflow/flowie/integrations.json`.
 
 ---
 

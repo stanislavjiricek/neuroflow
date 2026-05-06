@@ -144,18 +144,20 @@ Flag any skill, command, or agent present in the repo but absent from `mind.js`.
 
 Auto-fix: offer to add a stub node to `NODES` — but the user must fill in `desc`, `tags`, and `url` before committing.
 
-### 12 — Flowie path hygiene
+### 12 — Flowie/hive path hygiene
 
 Scan **all files** in the plugin repo for the following stale patterns:
 
-- `.neuroflow/.flowie/` — old path (with dot). The current canonical path is `.neuroflow/flowie/` (no dot). Flag every occurrence with file + line number.
+- `.neuroflow/.flowie/` — old path (with dot prefix). Canonical: `~/.neuroflow/flowie/`. Flag every occurrence with file + line number.
+- `.neuroflow/flowie/` — project-level path (now deprecated). Canonical global path: `~/.neuroflow/flowie/`. Flag every occurrence **outside** `docs/changelog.md` and sentinel-context files (those are historical references). Flag file + line number.
+- `.neuroflow/hive/` — project-level path (now deprecated). Canonical global path: `~/.neuroflow/hive/{org-repo}/`. Flag every occurrence **outside** `docs/changelog.md` and sentinel-context files.
 - `flowie_profile:` — old field name (pre-Kanban). Current canonical: `flowie_profiles:` list. Flag every occurrence with file + line number.
 - `flowie_project:` — legacy scalar field (replaced by `flowie_profiles:` list). Flag if found outside of migration/changelog/sentinel contexts.
 - `hive_member:` — legacy scalar field (removed). Flag every occurrence.
 
-These are left-over from earlier plugin versions. Report them as **blocking issues** — stale references will break flowie sync. Flag even occurrences in comments or string literals.
+These are left-over from earlier plugin versions. Report them as **blocking issues** — stale references will confuse agents about where to find flowie/hive data. Flag even occurrences in comments or string literals (except documented historical entries).
 
-Auto-fix: offer to replace `.neuroflow/.flowie/` → `.neuroflow/flowie/`, `flowie_profile:` → (remove, add `flowie_profiles:` list), and `flowie_project:` scalar → `flowie_profiles:` list entry in each flagged file.
+Auto-fix: offer to replace `.neuroflow/.flowie/` → `~/.neuroflow/flowie/`, `.neuroflow/flowie/` → `~/.neuroflow/flowie/`, `.neuroflow/hive/` → `~/.neuroflow/hive/{org-repo}/`, `flowie_profile:` → (remove, add `flowie_profiles:` list), and `flowie_project:` scalar → `flowie_profiles:` list entry in each flagged file.
 
 ## Report
 

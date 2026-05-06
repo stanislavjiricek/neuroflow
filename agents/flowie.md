@@ -13,7 +13,7 @@ This agent is not a general assistant. It has one job: make Claude's output feel
 
 ## Session start
 
-1. Check whether `.neuroflow/flowie/profile.md` exists.
+1. Check whether `~/.neuroflow/flowie/profile.md` exists.
    - If it does not exist, tell the user: *"No flowie profile found. Run /flowie to set one up."* Then stop — do not proceed.
 2. Read `profile.md` in full.
 3. Read `sync.json` — note the `last_synced` timestamp and the linked GitHub repo.
@@ -22,7 +22,7 @@ This agent is not a general assistant. It has one job: make Claude's output feel
    Only show this if the user has NOT already confirmed the env var is set in the current session.
 5. Read `ideas.md` if it exists.
 6. **Surface active tasks** — if `flowie_profiles` is set and non-empty in `project_config.md`:
-   - List `.neuroflow/flowie/tasks/active/` and `.neuroflow/flowie/tasks/review/`.
+   - List `~/.neuroflow/flowie/tasks/active/` and `~/.neuroflow/flowie/tasks/review/`.
    - Filter for tasks where frontmatter `project` matches the linked project name (from `projects/projects.json` or the `--link` step).
    - If any found: *"You have {N} active task(s) for {project}. Want a quick briefing?"* — show titles if yes.
    - Do this once per session only. Do not repeat.
@@ -55,7 +55,7 @@ Check `ideas.md` for any cross-project hypothesis that might be relevant to the 
 
 ## What this agent does not do
 
-- Does not write to `.neuroflow/flowie/` — only `/flowie` writes to that directory
+- Does not write to `~/.neuroflow/flowie/` — only `/flowie` writes to that directory
 - Does not expose profile data in any external-facing output (papers, grant proposals, reports for readers outside the project)
 - Does not repeat profile observations repeatedly in the same session — surface each relevant point once, then apply silently
 - Does not override the user's explicit instructions with profile-derived preferences — the profile informs suggestions, it does not override decisions
@@ -74,9 +74,9 @@ The agent does not execute git operations directly. It tells the user what to ru
 
 If the user asks the agent to sync, offer the exact command and explain that the `/flowie` command handles the sync workflow.
 
-**⚠️ integrations.json must be gitignored in the flowie repo.** The flowie sync repo is a private GitHub repo, but `integrations.json` (which holds non-secret custom LLM settings like `provider`, `base_url`, and `model`) must never be committed — some users store sensitive endpoint info there. When the `/flowie` command first sets up the sync repo, it must ensure `.gitignore` in that repo includes `integrations.json`. If the agent detects that `integrations.json` exists in `.neuroflow/flowie/` and is not listed in `.neuroflow/flowie/.gitignore`, it must warn the user:
+**⚠️ integrations.json must be gitignored in the flowie repo.** The flowie sync repo is a private GitHub repo, but `integrations.json` (which holds non-secret custom LLM settings like `provider`, `base_url`, and `model`) must never be committed — some users store sensitive endpoint info there. When the `/flowie` command first sets up the sync repo, it must ensure `.gitignore` in that repo includes `integrations.json`. If the agent detects that `integrations.json` exists in `~/.neuroflow/flowie/` and is not listed in `~/.neuroflow/flowie/.gitignore`, it must warn the user:
 
-> ⚠️ `integrations.json` is not gitignored in your flowie repo. Run `/flowie` to fix this before syncing, or manually add `integrations.json` to `.neuroflow/flowie/.gitignore`.
+> ⚠️ `integrations.json` is not gitignored in your flowie repo. Run `/flowie` to fix this before syncing, or manually add `integrations.json` to `~/.neuroflow/flowie/.gitignore`.
 
 The agent must never push a commit that includes `integrations.json` in the diff. Always run `git -C .neuroflow/flowie status --short` mentally and verify `integrations.json` is not staged before instructing any push.
 

@@ -6,6 +6,17 @@ title: Changelog
 
 ---
 
+## 0.2.17
+
+- **Global `~/.neuroflow/` structure** — flowie and hive caches move to global `~/.neuroflow/flowie/` and `~/.neuroflow/hive/{org-repo}/`; `integrations.json` global; `team.md` and `linked_flows.md` removed; collaborators in `project_config.md`
+- **Global auto-sync on session start** — neuroflow-core pulls flowie + all hive caches at session start
+- **Cross-wiki ambient search** — ambient pre-query searches all wikis (flowie, all hive caches, project); answers cite source level
+- **Wiki crystallization hook** — neuroflow-core detects insights at command end, offers smart-routed wiki ingest; per-command wiki nudges removed
+- **Docs mirrors created** — `/wiki`, `neuroflow:wiki`, `neuroflow:setup`, `neuroflow:phase-meeting`, `autoresearch` agent docs pages added
+- **Dead agent rows removed** — 16 stale phase agent rows removed from README; `mind.js` updated with `sk-flowie`, `sk-hive`, `sk-slideshow`, `ag-scholar`
+
+---
+
 ## 0.2.16
 
 - **`flowie_profiles` list** — replaces `flowie_project` + `hive_member` scalars in `project_config.md` with a single `flowie_profiles:` list (`handle` + `repo` per entry); first entry = project owner; additional entries added by collaborators via `/flowie --link`; backward-compatible

@@ -7,6 +7,39 @@ description: Core rules and lifecycle for all neuroflow commands and agents. Rea
 
 Defines the shared structure and lifecycle that every neuroflow command and agent must follow.
 
+## Global ~/.neuroflow/ structure
+
+`~/.neuroflow/` (Unix/Mac) or `%USERPROFILE%\.neuroflow\` (Windows) is the **user-level** neuroflow home. It lives on the machine, not inside any project repo. It is never committed anywhere.
+
+```
+~/.neuroflow/
+├── user.yaml                        ← flowie_handle, global prefs
+├── flowie/                          ← ONE global clone of github.com/{handle}/flowie
+│   ├── profile.md
+│   ├── ideas.md
+│   ├── sync.json
+│   ├── integrations.json            ← custom LLM, MCP tokens (never committed)
+│   ├── projects/
+│   ├── tasks/
+│   ├── notes/
+│   ├── wellbeing/
+│   └── wiki/
+└── hive/
+    └── {org-repo}/                  ← one cache per hive membership
+        ├── hive.md
+        ├── members.md
+        ├── ideas.md
+        └── sync.json
+```
+
+**Key rules:**
+- `~/.neuroflow/flowie/` is a git repo (`.git/` inside) — cloned once, shared across all projects
+- `~/.neuroflow/hive/{org-repo}/` is a shallow clone or fetch cache — one per hive the user belongs to
+- `integrations.json` lives in `~/.neuroflow/flowie/` only — never in project `.neuroflow/`
+- Neither `flowie/` nor `hive/` ever appears inside a project's `.neuroflow/`
+
+---
+
 ## .neuroflow/ folder
 
 `.neuroflow/` is project memory. It lives at the root of the user's project repo.
@@ -17,20 +50,19 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 | File | Purpose |
 |---|---|
-| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. If one or more collaborators have linked their flowie profiles, contains a `flowie_profiles:` list — used by `/phase` to auto-sync phase changes to the project registry. |
+| `project_config.md` | Short dense overview: current phase(s), research question, modality, tools, output paths, collaborators. Must include `plugin_version` — always mirrors the neuroflow plugin version from `plugin.json`. Read this first. Update when phase changes. Contains `collaborators:` list (name, email, handle per entry) and `flowie_profiles:` list — used by `/phase` to auto-sync phase changes to the project registry. Contains `hive_repo:` if project is connected to a team hive. |
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
 | `objectives.md` | Project objectives/aims — one numbered sentence per objective. Cross-phase cornerstone: **read at the start of every command** (if it exists), keep objectives in context throughout the session, and explicitly check coverage before saving any major section. Written during `/grant-proposal` interview or `/ideation`. |
-| `linked_flows.md` | Paths to other `.neuroflow/` folders (sibling projects, shared datasets, parent projects). |
 | `sentinel.md` | Sentinel's last audit report. If all clear: last run date + "all clear". |
-| `team.md` | Project members, roles, contacts. |
 | `timeline.md` | Milestones and deadlines. |
-| `integrations.json` | MCP integration credentials (PubMed email, Miro token). Written by `/setup`. **Never commit** — add to `.gitignore`. |
 
 #### Optional project_config.md fields
 
 | Field | Type | Description |
 |---|---|---|
+| `collaborators` | Optional list | Project team members. Each entry: `name`, `email`, `handle` (GitHub). Used by `/meeting` for calendar invites. Replaces legacy `team.md`. |
 | `flowie_profiles` | Optional list | Flowie profiles linked to this project. Each entry has `handle` (GitHub username) and `repo` (`{handle}/flowie`). First entry = project owner; additional entries = collaborators who have run `/flowie --link` on this repo. Used by `/phase` to sync phase changes to each linked flowie registry. Example: `- handle: alice\n  repo: alice/flowie` |
+| `hive_repo` | Optional string | GitHub org/repo of the team hive this project belongs to. Example: `acme-neuroscience/hive-lab` |
 
 ### Root folders
 
@@ -43,7 +75,6 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `finance/` | Grant documents, expense tracking. |
 | `fails/` | Dissatisfaction log — three fixed files: `core.md` (plugin behavior problems), `science.md` (scientific quality problems), `ux.md` (interaction quality problems). Created on first `/fails` run. |
 | `output/` | Output log — one `.md` per export run recording scope, format, destination, and excluded files. Created on first `/output` run. |
-| `flowie/` | Personal research OS — cloned from the user's private `flowie` GitHub repo. Contains identity profile, Kanban task board (`tasks/`), and project registry (`projects/`). Created by `/flowie` on first run. This folder IS a git repo (`.git/` inside). See `flowie_profiles` in `project_config.md`. |
 | `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
 
 **Rule: only command names may be used as phase subfolder names.** Skills must never create their own named subfolders inside `.neuroflow/`. All skill memory must be written to the active command's phase subfolder (`.neuroflow/{phase}/`). Creating a subfolder named after a skill (e.g. `.neuroflow/review-neuro/`) is a structural error.
@@ -116,12 +147,17 @@ Default output paths (used when the repo has no existing structure):
 Every command must follow this order:
 
 **At start:**
-1. Read `.neuroflow/project_config.md`
-2. Read `.neuroflow/flow.md`
-3. **If `.neuroflow/objectives.md` exists: read it and keep all objectives in working context for the entire session.** These are the project's non-negotiable cornerstones — every phase must account for all of them.
-4. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
-5. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
-6. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
+1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hive/*/` caches if they exist — fail silently on network errors. This ensures every session starts with fresh knowledge from GitHub.
+   ```bash
+   git -C ~/.neuroflow/flowie pull --rebase origin main >/dev/null 2>&1 || true
+   for d in ~/.neuroflow/hive/*/; do [ -d "$d/.git" ] && git -C "$d" pull --rebase origin main >/dev/null 2>&1 || true; done
+   ```
+2. Read `.neuroflow/project_config.md`
+3. Read `.neuroflow/flow.md`
+4. **If `.neuroflow/objectives.md` exists: read it and keep all objectives in working context for the entire session.** These are the project's non-negotiable cornerstones — every phase must account for all of them.
+5. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
+6. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
+7. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
 
 **During session — after most actions:**
 
@@ -163,6 +199,78 @@ Write to session and reasoning logs broadly — not just at milestones, but afte
 - Any choice the user explicitly flags as a decision
 
 Do not log routine actions (saving files, running scripts, fixing bugs) — only choices that affect the scientific or technical direction of the project.
+
+---
+
+## Wiki ambient behavior
+
+These rules apply at all times across every command — no slash command needed. They make the wiki a reflexive part of every session, not a thing you have to remember to use.
+
+### Ambient pre-query
+
+Before answering any domain-specific question, silently check whether a wiki exists at any active level and pull relevant context into the answer.
+
+**Trigger:** the question involves research domain knowledge — a method, concept, hypothesis, finding, tool, dataset, paradigm, or decision that might exist in the wiki. Skip for generic questions: Python syntax, git commands, environment setup, debugging code unrelated to the research domain.
+
+**Steps (silent — do not announce to the user):**
+1. Check which wikis are initialized across ALL levels:
+   - Project: `.neuroflow/wiki/index.md` exists?
+   - Flowie: `~/.neuroflow/flowie/wiki/index.md` exists?
+   - Hive(s): for each `~/.neuroflow/hive/{org-repo}/wiki/index.md` — check all cached hive repos
+2. For each initialized wiki: read its `index.md`, identify pages relevant to the question by title, tags, and type
+3. Load those pages as context before composing the answer
+4. Cite wiki pages with source label: `(→ project wiki: [Title])`, `(→ flowie wiki: [Title])`, `(→ hive/lab-name wiki: [Title])`
+
+Do not announce the lookup. Do not ask permission. Just use it.
+
+---
+
+### Crystallization detection
+
+At the end of every command session, scan what emerged for crystallization signals. A **crystallization** is any decision, hypothesis, key insight, method selection, unexpected finding, or cross-project connection worth preserving and finding again later.
+
+**Detection signals — fire on ANY of these:**
+- A reasoning entry was written to `reasoning/{phase}.json`
+- A hypothesis was stated, refined, or rejected
+- A method was chosen or ruled out with rationale
+- An unexpected finding or anomaly was noted
+- The user said something like "interesting", "that's important", "good to know", "remember this", "we should keep this"
+- A synthesis spanned multiple projects or time horizons
+- A significant phase decision was logged
+
+If a crystallization is detected, offer ingest **once** at the end of the command — not mid-session. Use this format:
+
+> **Something crystallized — add to wiki?**
+> *"{brief one-line description of what crystallized}"*
+>
+> Suggested: **[level(s)]** — [one-line reason why]
+> `Y` for all suggested · `p` project only · `f` flowie only · `h` hive only · `n` skip
+
+Then invoke `neuroflow:wiki` at the confirmed level(s) with the crystallized content.
+
+If nothing crystallized, do not mention the wiki at all.
+
+---
+
+### Level routing logic
+
+When suggesting which wiki level(s) to route to, apply this table:
+
+| What crystallized | Route to |
+|---|---|
+| Decision specific to THIS project's RQ, data, or collaborators | **project** |
+| Method or concept applicable broadly across your research | **flowie** |
+| Insight that spans multiple of your projects | **flowie** |
+| Analysis rationale collaborators need to trace | **project** |
+| Hypothesis: personal insight + project-specific evidence | **flowie + project** |
+| Lab-wide protocol or cross-team insight | **hive** |
+| Cross-project synthesis relevant to the whole team | **hive + flowie** |
+
+**Preconditions — only suggest a level if:**
+- Its wiki is initialized: `index.md` exists at the level's root path
+- Flowie: `~/.neuroflow/flowie/` exists and is a git repo
+- Hive: `~/.neuroflow/hive/{org-repo}/` exists (at least one cached hive)
+- Never suggest a level that fails its precondition — no phantom prompts
 
 ---
 

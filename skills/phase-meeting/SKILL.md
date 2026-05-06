@@ -6,12 +6,12 @@ reads:
   - .neuroflow/tasks/**
   - .neuroflow/meetings/config.json
   - .neuroflow/meetings/*.md
-  - .neuroflow/hive/hive.md
-  - .neuroflow/flowie/profile.md
-  - .neuroflow/flowie/meetings/config.json
+  - ~/.neuroflow/hive/{org-repo}/hive.md
+  - ~/.neuroflow/flowie/profile.md
+  - ~/.neuroflow/flowie/meetings/config.json
 writes:
   - .neuroflow/meetings/
-  - .neuroflow/flowie/meetings/
+  - ~/.neuroflow/flowie/meetings/
   - .neuroflow/tasks/**
 ---
 
@@ -26,7 +26,7 @@ The `/meeting` command manages structured meetings — distinct from `/notes` wh
 | Level | Storage | Git-tracked in | Who sees it |
 |-------|---------|----------------|-------------|
 | `project` (default) | `.neuroflow/meetings/YYYY-MM-DD-{slug}.md` | Project repo | All collaborators |
-| `flowie` | `.neuroflow/flowie/meetings/YYYY-MM-DD-{slug}.md` | Flowie repo | Owner only |
+| `flowie` | `~/.neuroflow/flowie/meetings/YYYY-MM-DD-{slug}.md` | Flowie repo | Owner only |
 | `hive` | `{hive-repo}/meetings/YYYY-MM-DD-{slug}.md` | Hive org repo | Whole team |
 
 ---
@@ -64,7 +64,7 @@ template: {slug of recurring template, or omit}
 
 Templates live in:
 - `.neuroflow/meetings/config.json` — project-level (shared with collaborators)
-- `.neuroflow/flowie/meetings/config.json` — personal (flowie level)
+- `~/.neuroflow/flowie/meetings/config.json` — personal (flowie level)
 - `{hive-repo}/meetings/config.json` — team-level (hive, synced with `--sync`)
 
 ```json
@@ -296,7 +296,7 @@ Set up recurring meeting templates for the current level.
 
 When resolving attendees for any mode:
 
-1. `"all-hive-members"` → read `.neuroflow/hive/hive.md` `## Members` table → return all rows as `{name, email}`
+1. `"all-hive-members"` → read `~/.neuroflow/hive/{org-repo}/hive.md` `## Members` table → return all rows as `{name, email}`
 2. `"all-project-collaborators"` → read `.neuroflow/project_config.md` `collaborators:` list → return all entries
 3. Plain email string → use as-is, name = email prefix
 4. Name string (no `@`) → search hive members and collaborators by name → use matched email; if ambiguous, ask
