@@ -29,6 +29,20 @@ Git operations by level:
 
 ---
 
+## Link format rule
+
+**All cross-references between wiki pages MUST use wikilink double-bracket notation:**
+
+```
+[[Page Title]]
+```
+
+This applies everywhere — in body text, in list items, in callouts, and in any inline reference within a wiki page. Never use plain Markdown links (`[title](path)`) for internal cross-references between wiki pages. The `related:` frontmatter field uses file paths (e.g., `pages/concepts/theta.md`), but every in-body reference must be `[[Page Title]]`.
+
+This rule is **non-negotiable** and applies to every wiki operation — ingest, add, query-that-writes, and lint fixes.
+
+---
+
 ## Structure
 
 The wiki structure is identical at all three levels. The root path is resolved from the active level.
@@ -161,7 +175,7 @@ Starter schema template:
 ## Page conventions
 - Titles: sentence case, specific (not "EEG" but "EEG in working memory tasks")
 - Summaries in index.md: max 12 words
-- Cross-references: wikilink style [[Page Title]] in body text, plus `related:` frontmatter
+- Cross-references: **always wikilink style `[[Page Title]]` in body text** — never plain Markdown links for internal references; plus `related:` frontmatter using file paths
 
 ## Ingest conventions
 - {user preferences for emphasis, what to summarize, what to skip}
@@ -186,7 +200,7 @@ Evolve `schema.md` collaboratively over time. When the user says "always do X" o
 3. Brief discussion: ask the user what to emphasize, any context they want captured
 4. **Read `projects/projects.json`** → list active/recent project names → ask: "Which projects does this relate to?" (MANDATORY — always ask, even if connection seems tenuous)
 5. Write `pages/sources/{slug}.md` with source summary and full frontmatter
-6. Read `index.md` → identify up to 15 existing pages that this source is relevant to → update each (add cross-reference, note new evidence, flag contradictions)
+6. Read `index.md` → identify up to 15 existing pages that this source is relevant to → update each (add cross-reference using `[[Page Title]]` notation, note new evidence, flag contradictions)
 7. For any concept/entity/method mentioned but lacking its own page: create it
 8. Update `index.md` with all new and changed pages
 9. Append to `log.md`: `## [date] ingest | {title}`
@@ -200,7 +214,7 @@ Evolve `schema.md` collaboratively over time. When the user says "always do X" o
 2. Identify relevant pages by type, tags, projects, and relevance to the question
 3. Read those pages in full
 4. Synthesize answer with citations (link to wiki pages, not raw sources)
-5. Ask: "Would you like to file this answer as a wiki page?" — if yes, write to `pages/synthesis/{slug}.md` with full frontmatter, ask for project tags
+5. Ask: "Would you like to file this answer as a wiki page?" — if yes, write to `pages/synthesis/{slug}.md` with full frontmatter; use `[[Page Title]]` for all internal cross-references in the body; ask for project tags
 6. Append to `log.md`: `## [date] query | {question summary}`
 7. Git push if anything was written
 
@@ -228,7 +242,7 @@ For manually creating or updating a wiki page:
 2. Ask for page type (concept / entity / source / synthesis / method)
 3. Read `projects/projects.json` → ask for `projects:` tags (MANDATORY)
 4. Ask for tags, related pages, sources
-5. Ask for body content (collaboratively drafted)
+5. Ask for body content (collaboratively drafted); use `[[Page Title]]` wikilink notation for all internal cross-references in the body
 6. Write page to correct subfolder with full frontmatter
 7. Update `index.md`
 8. Append to `log.md`: `## [date] add | {title}`
