@@ -126,7 +126,7 @@ Check whether `~/.neuroflow/flowie/profile.md` exists.
 - Not found: print `Flowie: not set up (run /flowie to start)`
 
 **Hive check:**
-Check whether `~/.neuroflow/hive/` contains at least one cached repo, or `hive_repo:` is set in `project_config.md`.
+Check whether `~/.neuroflow/hives/` contains at least one cached repo, or `hive_repo:` is set in `project_config.md`.
 - Found: print `Hive: connected to [team name if available]`
 - Not found: print `Hive: not connected`
 
@@ -321,7 +321,7 @@ Then continue to Step 2.
 
 Ask: *"What is your team's Hive repo? (e.g. my-lab/hive-research)"*
 
-**Check locally first:** if `~/.neuroflow/hive/` contains a cache for this org/repo, read the index files from there directly.
+**Check locally first:** if `~/.neuroflow/hives/` contains a cache for this org/repo, read the index files from there directly.
 
 **If no local hive data:** fetch the Hive index using the same authentication approach as for flowie above (`gh` CLI preferred, PAT as fallback). Try the following locations in order:
 

@@ -6,7 +6,7 @@ reads:
   - .neuroflow/tasks/**
   - .neuroflow/meetings/config.json
   - .neuroflow/meetings/*.md
-  - ~/.neuroflow/hive/{org-repo}/hive.md
+  - ~/.neuroflow/hives/{org-repo}/hive.md
   - ~/.neuroflow/flowie/profile.md
   - ~/.neuroflow/flowie/meetings/config.json
 writes:
@@ -296,7 +296,7 @@ Set up recurring meeting templates for the current level.
 
 When resolving attendees for any mode:
 
-1. `"all-hive-members"` → read `~/.neuroflow/hive/{org-repo}/hive.md` `## Members` table → return all rows as `{name, email}`
+1. `"all-hive-members"` → read `~/.neuroflow/hives/{org-repo}/hive.md` `## Members` table → return all rows as `{name, email}`
 2. `"all-project-collaborators"` → read `.neuroflow/project_config.md` `collaborators:` list → return all entries
 3. Plain email string → use as-is, name = email prefix
 4. Name string (no `@`) → search hive members and collaborators by name → use matched email; if ambiguous, ask

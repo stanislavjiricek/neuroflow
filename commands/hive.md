@@ -5,12 +5,12 @@ phase: hive
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - ~/.neuroflow/hive/{org-repo}/hive.md
-  - ~/.neuroflow/hive/{org-repo}/members.md
-  - ~/.neuroflow/hive/{org-repo}/sync.json
+  - ~/.neuroflow/hives/{org-repo}/hive.md
+  - ~/.neuroflow/hives/{org-repo}/members.md
+  - ~/.neuroflow/hives/{org-repo}/sync.json
 writes:
-  - ~/.neuroflow/hive/{org-repo}/
-  - ~/.neuroflow/hive/{org-repo}/sync.json
+  - ~/.neuroflow/hives/{org-repo}/
+  - ~/.neuroflow/hives/{org-repo}/sync.json
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
@@ -28,7 +28,7 @@ If `.neuroflow/` does not exist, stop and tell the user to run `/neuroflow` firs
 
 ## Step 1 — Parse the mode flag
 
-Parse the command for a mode flag. If no flag is given, default to `--view` if `~/.neuroflow/hive/` contains at least one cached hive, or `--init` if not.
+Parse the command for a mode flag. If no flag is given, default to `--view` if `~/.neuroflow/hives/` contains at least one cached hive, or `--init` if not.
 
 | Flag | Action |
 |---|---|

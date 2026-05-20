@@ -300,7 +300,7 @@ When called from `neuroflow-core`'s crystallization hook, or when the user asks 
 | Lab-wide protocol or cross-team insight | **hive** |
 | Cross-project synthesis relevant to the whole team | **hive + flowie** |
 
-Preconditions: only suggest a level if its `index.md` exists at the root path, `~/.neuroflow/flowie/` exists and is a git repo, and `~/.neuroflow/hive/{org-repo}/` exists. Fail silently on unmet preconditions — no phantom prompts.
+Preconditions: only suggest a level if its `index.md` exists at the root path, `~/.neuroflow/flowie/` exists and is a git repo, and `~/.neuroflow/hives/{org-repo}/` exists. Fail silently on unmet preconditions — no phantom prompts.
 
 ---
 
@@ -310,8 +310,8 @@ Every ingest/add/query-that-writes MUST read `projects/projects.json` and ask ab
 ### ideas.md sync
 During ingest or query, if a synthesis page spans multiple projects or generates a cross-project hypothesis, ask based on level:
 - `flowie`: "Add to flowie/ideas.md?" → append to `~/.neuroflow/flowie/ideas.md`
-- `project`: "Add to team ideas?" → if hive connected, append to `~/.neuroflow/hive/{org-repo}/ideas.md`; otherwise append to `~/.neuroflow/flowie/ideas.md` if flowie active
-- `hive`: "Add to hive ideas.md?" → append to `~/.neuroflow/hive/{org-repo}/ideas.md`
+- `project`: "Add to team ideas?" → if hive connected, append to `~/.neuroflow/hives/{org-repo}/ideas.md`; otherwise append to `~/.neuroflow/flowie/ideas.md` if flowie active
+- `hive`: "Add to hive ideas.md?" → append to `~/.neuroflow/hives/{org-repo}/ideas.md`
 
 ### profile.md evolution
 Only applies at `flowie` level. After a lint or synthesis that strongly supports or contradicts a methodological stance from `profile.md`, ask:
