@@ -8,7 +8,7 @@ reads:
   - .neuroflow/tasks/**
   - .neuroflow/meetings/config.json
   - .neuroflow/meetings/*.md
-  - ~/.neuroflow/hive/{org-repo}/hive.md
+  - ~/.neuroflow/hives/{org-repo}/hive.md
   - ~/.neuroflow/flowie/profile.md
   - ~/.neuroflow/flowie/meetings/config.json
   - ~/.neuroflow/flowie/meetings/*.md

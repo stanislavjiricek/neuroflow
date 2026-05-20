@@ -34,7 +34,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 
 **Key rules:**
 - `~/.neuroflow/flowie/` is a git repo (`.git/` inside) — cloned once, shared across all projects
-- `~/.neuroflow/hive/{org-repo}/` is a shallow clone or fetch cache — one per hive the user belongs to
+- `~/.neuroflow/hives/{org-repo}/` is a shallow clone or fetch cache — one per hive the user belongs to
 - `integrations.json` lives in `~/.neuroflow/flowie/` only — never in project `.neuroflow/`
 - Neither `flowie/` nor `hive/` ever appears inside a project's `.neuroflow/`
 
@@ -147,10 +147,10 @@ Default output paths (used when the repo has no existing structure):
 Every command must follow this order:
 
 **At start:**
-1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hive/*/` caches if they exist — fail silently on network errors. This ensures every session starts with fresh knowledge from GitHub.
+1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hives/*/` caches if they exist — fail silently on network errors. This ensures every session starts with fresh knowledge from GitHub.
    ```bash
    git -C ~/.neuroflow/flowie pull --rebase origin main >/dev/null 2>&1 || true
-   for d in ~/.neuroflow/hive/*/; do [ -d "$d/.git" ] && git -C "$d" pull --rebase origin main >/dev/null 2>&1 || true; done
+   for d in ~/.neuroflow/hives/*/; do [ -d "$d/.git" ] && git -C "$d" pull --rebase origin main >/dev/null 2>&1 || true; done
    ```
 2. Read `.neuroflow/project_config.md`
 3. Read `.neuroflow/flow.md`
@@ -216,7 +216,7 @@ Before answering any domain-specific question, silently check whether a wiki exi
 1. Check which wikis are initialized across ALL levels:
    - Project: `.neuroflow/wiki/index.md` exists?
    - Flowie: `~/.neuroflow/flowie/wiki/index.md` exists?
-   - Hive(s): for each `~/.neuroflow/hive/{org-repo}/wiki/index.md` — check all cached hive repos
+   - Hive(s): for each `~/.neuroflow/hives/{org-repo}/wiki/index.md` — check all cached hive repos
 2. For each initialized wiki: read its `index.md`, identify pages relevant to the question by title, tags, and type
 3. Load those pages as context before composing the answer
 4. Cite wiki pages with source label: `(→ project wiki: [Title])`, `(→ flowie wiki: [Title])`, `(→ hive/lab-name wiki: [Title])`
@@ -269,7 +269,7 @@ When suggesting which wiki level(s) to route to, apply this table:
 **Preconditions — only suggest a level if:**
 - Its wiki is initialized: `index.md` exists at the level's root path
 - Flowie: `~/.neuroflow/flowie/` exists and is a git repo
-- Hive: `~/.neuroflow/hive/{org-repo}/` exists (at least one cached hive)
+- Hive: `~/.neuroflow/hives/{org-repo}/` exists (at least one cached hive)
 - Never suggest a level that fails its precondition — no phantom prompts
 
 ---

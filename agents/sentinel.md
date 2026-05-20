@@ -156,15 +156,15 @@ Auto-fix: add missing `wiki/` row to `flow.md`. All other issues require user ac
 
 ### 13 — Hive structure (if present)
 
-This check only runs if `~/.neuroflow/hive/` exists (global path). Hive caches live at `~/.neuroflow/hive/{org-repo}/` — one folder per hive the user belongs to. Check all sub-folders.
+This check only runs if `~/.neuroflow/hives/` exists (global path). Hive caches live at `~/.neuroflow/hives/{org-repo}/` — one folder per hive the user belongs to. Check all sub-folders.
 
-For each `~/.neuroflow/hive/{org-repo}/` found:
-- **hive.md:** check that `~/.neuroflow/hive/{org-repo}/hive.md` exists and is non-empty. Flag if missing.
-- **members.md:** check that `~/.neuroflow/hive/{org-repo}/members.md` exists. Flag if missing — suggest running `/hive --members` to add team roster.
-- **sync.json:** check that `~/.neuroflow/hive/{org-repo}/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
+For each `~/.neuroflow/hives/{org-repo}/` found:
+- **hive.md:** check that `~/.neuroflow/hives/{org-repo}/hive.md` exists and is non-empty. Flag if missing.
+- **members.md:** check that `~/.neuroflow/hives/{org-repo}/members.md` exists. Flag if missing — suggest running `/hive --members` to add team roster.
+- **sync.json:** check that `~/.neuroflow/hives/{org-repo}/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
 - **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If a hive cache exists but `hive_repo` is absent from config, flag as inconsistency.
 - **No old `directions.md`:** if `directions.md` exists in the cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
-- **Legacy path check:** if `.neuroflow/hive/` exists INSIDE the project repo, flag as error — hive cache must never be inside a project repo; it lives at `~/.neuroflow/hive/{org-repo}/`. Offer to remove it.
+- **Legacy path check:** if `.neuroflow/hive/` exists INSIDE the project repo, flag as error — hive cache must never be inside a project repo; it lives at `~/.neuroflow/hives/{org-repo}/`. Offer to remove it.
 
 Group all hive warnings under "⚠️ hive". These are warnings, not blocking errors.
 

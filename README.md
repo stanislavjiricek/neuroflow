@@ -19,9 +19,9 @@
 
 ## What's new in 0.2.18
 
-- **Global `~/.neuroflow/` structure** — flowie and hive caches move from per-project `.neuroflow/flowie/` to a single global `~/.neuroflow/flowie/` (one clone per user); hive caches at `~/.neuroflow/hive/{org-repo}/`; `integrations.json` lives in flowie globally; `team.md` and `linked_flows.md` removed from project structure; collaborators now in `project_config.md`
+- **Global `~/.neuroflow/` structure** — flowie and hive caches move from per-project `.neuroflow/flowie/` to a single global `~/.neuroflow/flowie/` (one clone per user); hive caches at `~/.neuroflow/hives/{org-repo}/`; `integrations.json` lives in flowie globally; `team.md` and `linked_flows.md` removed from project structure; collaborators now in `project_config.md`
 - **Global auto-sync on session start** — [`neuroflow-core`](skills/neuroflow-core/SKILL.md) pulls `~/.neuroflow/flowie/` and all hive caches at the start of every command session; always start with fresh knowledge
-- **Cross-wiki ambient search** — ambient pre-query now searches all initialized wikis in parallel (`~/.neuroflow/flowie/wiki/`, `~/.neuroflow/hive/*/wiki/`, `.neuroflow/wiki/`); answers cite source wiki by level
+- **Cross-wiki ambient search** — ambient pre-query now searches all initialized wikis in parallel (`~/.neuroflow/flowie/wiki/`, `~/.neuroflow/hives/*/wiki/`, `.neuroflow/wiki/`); answers cite source wiki by level
 - **Wiki crystallization hook** — [`neuroflow-core`](skills/neuroflow-core/SKILL.md) detects decisions/hypotheses/insights at end of every command and offers wiki ingest with smart level routing; per-command wiki nudges removed from `/data-analyze`, `/paper`, `/notes`
 - **Docs + consistency fixes** — missing docs mirrors created, dead agent rows removed, `mind.js` updated, version badge fixed
 

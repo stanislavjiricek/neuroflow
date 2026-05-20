@@ -2,7 +2,7 @@
 
 Connect your neuroflow project to a shared team Hive repo for research coordination, knowledge sharing, and team-aware recommendations.
 
-The `/hive` command links a researcher's project to a GitHub organisation private repo that the whole lab shares. Hive caches are stored globally at `~/.neuroflow/hive/{org-repo}/` — never inside a project repo.
+The `/hive` command links a researcher's project to a GitHub organisation private repo that the whole lab shares. Hive caches are stored globally at `~/.neuroflow/hives/{org-repo}/` — never inside a project repo.
 
 ---
 
@@ -34,12 +34,12 @@ If no flag is given, defaults to `--view` when already connected, or `--init` wh
 1. Checks your `~/.neuroflow/flowie/profile.md` for known hives (shows picker if found)
 2. Asks for the GitHub org and Hive repo name (`{org}/{hive-repo}`)
 3. Asks for your GitHub handle
-4. Creates `~/.neuroflow/hive/{org-repo}/` with local copies and `sync.json`
+4. Creates `~/.neuroflow/hives/{org-repo}/` with local copies and `sync.json`
 5. Updates `project_config.md` with `hive_repo:`
 
 ### `--sync`
 1. Fetches the latest `hive.md`, `members.md`, `ideas.md`, and `sync.json` from the org repo
-2. Updates local `~/.neuroflow/hive/{org-repo}/` copies
+2. Updates local `~/.neuroflow/hives/{org-repo}/` copies
 3. Reports what changed — new directions, updated members, new ideas
 4. Highlights directions that overlap with your current project's modality or research question
 
@@ -80,7 +80,7 @@ The shared GitHub org repo follows this layout:
 Hive data is cached globally — not inside any project repo:
 
 ```
-~/.neuroflow/hive/{org-repo}/
+~/.neuroflow/hives/{org-repo}/
 ├── hive.md          ← local copy of team identity + directions
 ├── members.md       ← local copy of team roster
 ├── ideas.md         ← local copy of team ideas
