@@ -217,7 +217,7 @@ auto_issue_reporting: no
 | general.json | Project-level decision log. | YYYY-MM-DD |
 ```
 
-**`.claude/CLAUDE.md` and `.github/copilot-instructions.md`** — create or update both files in the project root with the neuroflow block (use `setup` as the active phase placeholder; this will be updated to the real phase in Step 4):
+**`.claude/CLAUDE.md`**, **`.github/copilot-instructions.md`**, and **`AGENTS.md`** — create or update all three files in the project root with the neuroflow block (use `setup` as the active phase placeholder; this will be updated to the real phase in Step 4):
 
 ```markdown
 ## neuroflow
@@ -479,16 +479,17 @@ The `.neuroflow/` folder was already created in Step 0d. Now update it with the 
 
 ---
 
-## Step 4 — Update .claude/CLAUDE.md and .github/copilot-instructions.md
+## Step 4 — Update .claude/CLAUDE.md, .github/copilot-instructions.md, and AGENTS.md
 
-Both files were already created with a placeholder phase (`setup`) in Step 0d. Now update them with the real active phase determined from the interview.
+All three files were already created with a placeholder phase (`setup`) in Step 0d. Now update them with the real active phase determined from the interview.
 
-Update **both** of the following files in the **project root** (i.e. the user's current working directory):
+Update **all three** of the following files in the **project root** (i.e. the user's current working directory):
 
 - `.claude/CLAUDE.md` — loaded automatically by Claude Code / Claude.ai when the folder is opened
 - `.github/copilot-instructions.md` — loaded automatically by GitHub Copilot (VS Code extension, Copilot CLI, and GitHub Copilot Chat) when working in the project
+- `AGENTS.md` — loaded automatically by the π (PI) coding agent harness when working in the project
 
-**Both files must contain identical content.** Update the neuroflow block in each to replace `Active phase: setup` with the real active phase:
+**All three files must contain identical content.** Update the neuroflow block in each to replace `Active phase: setup` with the real active phase:
 
 ```markdown
 ## neuroflow
@@ -501,6 +502,8 @@ This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
 ```
 
 If `.github/copilot-instructions.md` already contains other project instructions, append the neuroflow block at the end (do not overwrite the whole file). If it already contains a neuroflow block, update the block in place. Identify the neuroflow block by the header line `## neuroflow` — the block runs from that header to the next `##`-level header (or end of file).
+
+Apply the same append/update-in-place logic to `AGENTS.md` if it already contains other content.
 
 If `~/.claude/CLAUDE.md` also exists, optionally add the block there too — but the **local** `.claude/CLAUDE.md` in the project root is required. Without it, Claude has no automatic project context when the folder is opened.
 

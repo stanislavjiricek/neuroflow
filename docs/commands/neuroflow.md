@@ -72,9 +72,9 @@ Claude asks a few focused questions — one or two at a time:
     └── general.json     ← project-level decisions (JSON)
 ```
 
-**4. Update `.claude/CLAUDE.md`**
+**4. Update `.claude/CLAUDE.md`, `.github/copilot-instructions.md`, and `AGENTS.md`**
 
-Appends a neuroflow block so Claude always loads project context automatically:
+Appends a neuroflow block to all three files so Claude, GitHub Copilot, and the π (PI) agent harness always load project context automatically:
 
 ```markdown
 ## neuroflow

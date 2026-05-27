@@ -319,6 +319,7 @@ Run through these before closing any command:
 - [ ] Confirmed no files or folders were placed directly in `.neuroflow/` unless they are listed in the "Root files" or "Root folders" tables in neuroflow-core
 - [ ] Verified `.claude/CLAUDE.md` exists in the **project root** (created if missing)
 - [ ] Verified `.github/copilot-instructions.md` exists in the **project root** and contains the same neuroflow block as `.claude/CLAUDE.md` (created/updated if missing or out of sync)
+- [ ] Verified `AGENTS.md` exists in the **project root** and contains the same neuroflow block as `.claude/CLAUDE.md` (created/updated if missing or out of sync)
 - [ ] If invoked without a slash command: mention the slash command at the end
 
 ## Default agent behavior
