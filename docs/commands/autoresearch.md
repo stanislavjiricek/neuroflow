@@ -101,6 +101,6 @@ The dashboard shows:
 
 ## Related
 
-- [`neuroflow:autoresearch` skill](../skills/autoresearch/SKILL/) — full protocol, criteria, and dashboard template
+- [`neuroflow:autoresearch` skill](../skills/autoresearch/SKILL.md) — full protocol, criteria, and dashboard template
 - [`/paper`](paper.md) — uses the worker-critic loop (bounded, 3 iterations) for section drafting
 - [`/pipeline`](pipeline.md) — multi-step orchestration across phases

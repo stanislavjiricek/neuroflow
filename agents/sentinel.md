@@ -7,7 +7,7 @@ description: Project coherence guard. Audits .neuroflow/ for internal consistenc
 
 Audits the `.neuroflow/` folder for consistency and drift. Called by the `/sentinel` command. Writes its report to `.neuroflow/sentinel.md`.
 
-**Default scope: `.neuroflow/` only.** Do not read, list, or inspect files outside `.neuroflow/` unless the user explicitly requests a full workspace scan (see [Optional: Full workspace scan](#optional--full-workspace-scan) below).
+**Default scope: `.neuroflow/` only.** Do not read, list, or inspect files outside `.neuroflow/` unless the user explicitly requests a full workspace scan (see [Optional: Full workspace scan](#optional-full-workspace-scan) below).
 
 ## Checks
 
