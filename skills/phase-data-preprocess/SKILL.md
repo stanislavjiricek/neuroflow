@@ -17,6 +17,7 @@ The data-preprocess phase filters, cleans, epochs, and quality-checks raw data t
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:bids` — invoke when loading BIDS-organized data; covers `BIDSLayout` querying, `mne_bids.read_raw_bids()`, sidecar metadata fields, and writing preprocessed derivatives back to BIDS
 
 ## Workflow hints
 

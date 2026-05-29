@@ -6,6 +6,11 @@ title: Changelog
 
 ---
 
+## 0.2.19
+
+- **New `neuroflow:bids` skill** — comprehensive BIDS reference covering all modalities (MRI/EEG/MEG/iEEG/PET/DWI/NIRS/motion), entity ordering, JSON sidecar fields, derivatives structure, bids-validator, pybids, MNE-BIDS, fMRIPrep, dcm2niix/HeuDiConv conversion examples
+- **BIDS integrated into data phases** — `phase-data`, `phase-data-preprocess`, `phase-data-analyze` now reference `neuroflow:bids`; `mind.js` updated with `sk-bids` node
+
 ## 0.2.18
 
 - **`/wiki` docs page** — `docs/commands/wiki.md` now tracked and reachable via mkdocs nav under Team Integration

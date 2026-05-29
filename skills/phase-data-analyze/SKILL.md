@@ -17,6 +17,7 @@ The data-analyze phase applies statistical and computational methods to preproce
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:bids` — invoke when querying dataset structure with pybids, loading subject/session/task metadata from participants.tsv and events.tsv, or writing analysis outputs to BIDS derivatives
 
 ## Workflow hints
 

@@ -15,7 +15,7 @@ writes:
 
 # /data
 
-Read the `neuroflow:phase-data` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data/flow.md` before starting.
+Read the `neuroflow:phase-data` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/data/flow.md` before starting. Invoke `neuroflow:bids` whenever BIDS structure, validation, or conversion is involved.
 
 ## What this command does
 

@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.2.19
+
+- **New [`neuroflow:bids`](skills/bids/SKILL.md) skill** — comprehensive Brain Imaging Data Structure reference: full folder hierarchy for all modalities (MRI/EEG/MEG/iEEG/PET/DWI/NIRS/motion), entity ordering rules, JSON sidecar fields, derivatives structure, and tool guides for bids-validator, pybids, MNE-BIDS, fMRIPrep, and dcm2niix/HeuDiConv conversion pipelines
+- **BIDS integrated into data phases** — [`phase-data`](skills/phase-data/SKILL.md), [`phase-data-preprocess`](skills/phase-data-preprocess/SKILL.md), and [`phase-data-analyze`](skills/phase-data-analyze/SKILL.md) now reference the BIDS skill; invoked automatically when structure, validation, or loading is relevant
+- **`mind.js` updated** — `sk-bids` node added to the pipeline cluster, linked to `c-data`
+
 ## What's new in 0.2.18
 
 - **Global `~/.neuroflow/` structure** — flowie and hive caches move from per-project `.neuroflow/flowie/` to a single global `~/.neuroflow/flowie/` (one clone per user); hive caches at `~/.neuroflow/hives/{org-repo}/`; `integrations.json` lives in flowie globally; `team.md` and `linked_flows.md` removed from project structure; collaborators now in `project_config.md`
@@ -286,6 +292,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-experiment`](skills/phase-experiment/SKILL.md) | Phase guidance for /experiment |
 | [`neuroflow:phase-tool-build`](skills/phase-tool-build/SKILL.md) | Phase guidance for /tool-build |
 | [`neuroflow:phase-tool-validate`](skills/phase-tool-validate/SKILL.md) | Phase guidance for /tool-validate |
+| [`neuroflow:bids`](skills/bids/SKILL.md) | Brain Imaging Data Structure — folder hierarchy, entity ordering, required files per modality, JSON sidecar fields, derivatives, bids-validator, pybids, MNE-BIDS, fMRIPrep, and conversion examples |
 | [`neuroflow:phase-data`](skills/phase-data/SKILL.md) | Phase guidance for /data |
 | [`neuroflow:phase-data-preprocess`](skills/phase-data-preprocess/SKILL.md) | Phase guidance for /data-preprocess |
 | [`neuroflow:phase-data-analyze`](skills/phase-data-analyze/SKILL.md) | Phase guidance for /data-analyze |

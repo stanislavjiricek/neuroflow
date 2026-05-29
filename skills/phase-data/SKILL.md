@@ -17,6 +17,7 @@ The data phase locates raw data, validates BIDS structure, and runs conversion s
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
+- `neuroflow:bids` — invoke whenever BIDS structure, validation, conversion, or sidecar metadata is relevant; provides full entity ordering, required files per modality, tool usage (bids-validator, pybids, MNE-BIDS), and conversion examples
 
 ## Workflow hints
 

@@ -123,6 +123,12 @@
       url: "skills/phase-slideshow/SKILL/"
     },
     {
+      id: "sk-bids",    label: "BIDS skill",             category: "pipeline",
+      desc: "Comprehensive Brain Imaging Data Structure skill — folder hierarchy, entity ordering, required files per modality (MRI/EEG/MEG/iEEG/PET/DWI), JSON sidecar fields, derivatives structure, bids-validator, pybids, MNE-BIDS, fMRIPrep, and conversion examples.",
+      commands: ["neuroflow:bids"],
+      url: "skills/bids/SKILL/"
+    },
+    {
       id: "ag-scholar", label: "scholar agent",        category: "pipeline",
       desc: "Scholar agent — searches PubMed → bioRxiv → fallbacks sequentially, returns a clean paper list with preprint and paywall markers, downloads in batches of 2; supports follow-up synthesis and saving.",
       commands: ["/ideation", "/search"],
@@ -210,7 +216,8 @@
     { source: "sk-flowie",   target: "c-profile",      type: "knowledge" },
     { source: "sk-hive",     target: "c-team",         type: "knowledge" },
     { source: "sk-slideshow",target: "c-communication",type: "knowledge" },
-    { source: "ag-scholar",  target: "c-discovery",    type: "knowledge" }
+    { source: "ag-scholar",  target: "c-discovery",    type: "knowledge" },
+    { source: "sk-bids",     target: "c-data",         type: "knowledge" }
   ];
 
   /* ── Visual config ───────────────────────────────────────────────────────── */
