@@ -172,9 +172,8 @@ nav:
       - Commands: commands/index.md
       - Skills:
           - Overview: concepts/skills.md
-          - Domain:
-              - "bids": skills/bids/SKILL.md
           - Expert:
+              - "bids": skills/bids/SKILL.md
               - "humanizer": skills/humanizer/SKILL.md
               - "review-neuro": skills/review-neuro/SKILL.md
               - "worker-critic": skills/worker-critic/SKILL.md
