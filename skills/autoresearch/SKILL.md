@@ -1,13 +1,13 @@
 ---
 name: autoresearch
-description: Infinite improvement loop for any research artifact in any phase — worker makes one focused change per iteration, evaluator compares to previous best, keeps or reverts. Loop never stops until the human interrupts it. Inspired by Andrej Karpathy's autoresearch (MIT).
+description: Infinite improvement loop for any research artifact in any phase — a single managing agent makes one focused change per iteration, judges it against the previous best, keeps or reverts. Its memory is a per-loop wiki it reads before every move and writes after every move. The loop never stops until the human interrupts it. Inspired by Andrej Karpathy's autoresearch (MIT).
 ---
 
 <!-- Inspired by Andrej Karpathy's autoresearch (MIT) — https://github.com/karpathy/autoresearch -->
 
 # autoresearch
 
-An infinite, multi-session improvement loop for any research artifact. A worker agent makes one focused change per iteration; an evaluator compares the result to the previous best and returns BETTER / WORSE / NO CHANGE. The best version is kept; worse versions are reverted. The loop never stops on its own.
+An infinite, multi-session improvement loop for any research artifact. **One managing agent** runs the whole loop — it makes a focused change, judges it against the current best, keeps the winner and reverts the rest. Its long-term memory is a **per-loop wiki** that it consults before every move and updates after every move. The loop never stops on its own.
 
 ---
 
@@ -16,57 +16,140 @@ An infinite, multi-session improvement loop for any research artifact. A worker 
 **The loop runs until the human interrupts it. Period.**
 
 - Never decide the artifact is "good enough" and exit
-- Never stop because the score plateaued
-- Never stop because iterations look repetitive
-- Plateau detection is a notification, not a termination condition
-- The only valid exit is the user pressing Ctrl-C or typing a stop command
+- Never stop because the score plateaued or iterations look repetitive
+- Plateau is a signal to change direction (new angle, branch, or literature search) — not to stop
+- Open questions to the human are **non-blocking** — park them, keep going on a best guess
+- The only valid exit is the human pressing Ctrl-C or typing a stop command
 
 ---
 
-## File structure (created in user's project)
+## Architecture — one agent, one brain
+
+Two principles define this loop. Hold both.
+
+**1. One managing agent — no subagent fan-out.** A single agent runs the entire loop and holds the thread of all iterations. It plays worker (makes the change) and evaluator (judges it) itself. The only optional exception is the evaluation step, which can use one fresh subagent when `evaluation: fresh-eval` is set (see [Evaluation](#evaluation)). Everything else is one agent, because context continuity across iterations is what lets it reason about the whole search instead of one move at a time.
+
+**2. The wiki is the brain.** A single agent running an infinite loop will exhaust its context window. The per-loop **wiki** is the externalized memory that survives that — context is working memory, the wiki is long-term memory. This is not optional decoration. **The agent reads the wiki before deciding every move and writes to it after every move.** Without the wiki the agent is amnesiac: it re-treads dead ends, forgets why something failed, and goes in circles forever instead of getting smarter. The wiki is what makes an infinite single-agent loop *compound* rather than *wander*.
+
+> Treat the wiki the way you treat your own memory: you would never re-run an experiment you already know failed. Neither should the loop. Query the wiki first, always.
+
+---
+
+## Folder structure
+
+The loop folder is named `{name}_autoresearch/` and lives **next to the artifact being improved** — not inside `.neuroflow/` by default. Only a small pointer registry lives in project memory.
 
 ```
-.neuroflow/{phase}/autoresearch/
+{location}/{name}_autoresearch/        ← e.g. scripts/analysis/connectivity_autoresearch/
+├── wiki/                  ← THE BRAIN — read before every move, written after every move
+│   ├── index.md           ← catalog of all pages
+│   ├── log.md             ← append-only: ## [iter NNN] {op} | {title}
+│   ├── schema.md          ← this loop's domain, criteria, conventions
+│   └── pages/
+│       ├── attempts/      ← one page per meaningful direction: what, why, verdict, delta, reasoning (wins AND dead-ends)
+│       ├── concepts/      ← domain knowledge about the artifact and each criterion
+│       ├── sources/       ← distilled findings from literature search
+│       └── synthesis/     ← patterns: "what consistently works / fails here", the current thesis
+├── program.md             ← task + criteria + config block (read every iteration)
+├── __thetask__.md         ← pointer manifest — which external files are tracked
+├── results.md             ← iteration table (numbers) → dashboard source
+├── report.md              ← human-readable report — open questions on top, refreshed each round
+├── report.pdf             ← optional read-only snapshot (pandoc)
+├── answers.md             ← human answer inbox (detached mode)
+├── server.py              ← optional dashboard (only written if output_dashboard: on)
 ├── flow.md
-├── program.md         # task + criteria (phase defaults + context-inferred + user-added)
-├── __thetask__.md     # pointer manifest — lists which external files are tracked
-├── results.md         # iteration log (verdict, delta, running, decision, next focus)
-├── server.py          # local dashboard — serves http://localhost:8765
 └── history/
-    ├── v000/          # baseline snapshot of tracked files
-    ├── v001/          # snapshot saved on each KEPT iteration
+    ├── v000/              ← baseline snapshot of tracked files
+    ├── v001/              ← snapshot saved on each KEPT iteration
     └── ...
+
+.neuroflow/{phase}/autoresearch-loops.md   ← POINTER REGISTRY ONLY (in project memory)
 ```
 
-**`__thetask__.md` is a pointer, not the artifact itself.** It lists paths to the external files being improved (e.g. `manuscript/introduction.md`, `.neuroflow/ideation/hypothesis.md`, `scripts/analysis/pipeline.py`). Workers modify those files directly. The evaluator compares current file state to the last `history/vBEST/` snapshot.
+**Naming:** `{name}` defaults to a slug derived from the primary tracked file (`connectivity.py` → `connectivity`), always overridable at setup. Multiple loops can coexist — e.g. `intro_autoresearch/` and `methods_autoresearch/` both under `manuscript/`.
 
----
+**Location:** defaults to the directory of the primary tracked file. Always overridable (the user can put it in `.neuroflow/`, a sibling folder, anywhere). Everything — wiki, history, reports — travels with the artifact.
 
-## `__thetask__.md` format
+**Pointer registry** (`.neuroflow/{phase}/autoresearch-loops.md`) keeps project memory aware of every loop without holding the loop itself:
 
 ```markdown
-# Task Manifest
+# Autoresearch loops — {phase}
 
-## Tracked files
-- `../../../manuscript/introduction.md`
-- `../../../manuscript/methods.md`
-
-## Task description
-Continuously improve the introduction and methods until they pass peer review.
-
-## Current best snapshot
-history/v004/
-
-## Iterations run
-12 (last: YYYY-MM-DD)
+| Name | Location | Iterations | Best | Status |
+|------|----------|-----------|------|--------|
+| connectivity | scripts/analysis/connectivity_autoresearch/ | 47 | v031 | running |
+| intro | manuscript/intro_autoresearch/ | 12 | v009 | paused |
 ```
 
 ---
 
-## `program.md` template
+## The wiki — the agent's brain
+
+The loop wiki follows the `neuroflow:wiki` page format (frontmatter, `index.md`, `log.md`, wikilinks) but is **scoped to this one loop** and lives inside the loop folder. It is the fourth wiki level — local and disposable, with durable findings promoted up to the project wiki at loop end.
+
+### Page format
+
+Every page in `pages/` uses this frontmatter:
+
+```yaml
+---
+title: Citation density in Discussion plateaus after 3 additions
+type: attempt            # attempt | concept | source | synthesis
+iter: 042                # iteration this page was created / last touched
+criterion: claim-support # which program.md criterion it relates to (if any)
+verdict: WORSE           # attempt pages only: BETTER | WORSE | NO CHANGE
+delta: -1                # attempt pages only
+status: current          # current | superseded
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+related: []              # file paths; in-body refs use [[Page Title]]
+---
+```
+
+**Wikilinks are mandatory** for all in-body cross-references: `[[Page Title]]`, never plain Markdown links. This is what makes the brain navigable.
+
+### Page types
+
+| Type | Folder | What it holds |
+|------|--------|---------------|
+| `attempt` | `pages/attempts/` | One page per meaningful direction tried. Records what changed, **why** it was tried, verdict, delta, and the reasoning for the outcome. **Failures are the most valuable pages** — they prune the search space. |
+| `concept` | `pages/concepts/` | Knowledge about the artifact and each criterion — what "good" looks like here, constraints, domain facts learned along the way. |
+| `source` | `pages/sources/` | One page per paper found via literature search — distilled claims and how they apply to this artifact. Keeps the bulk out of context. |
+| `synthesis` | `pages/synthesis/` | Patterns across attempts: "every citation-density change plateaus", "the weakest criterion is consistently X", the loop's evolving thesis on how to improve this artifact. |
+
+### How the agent works the wiki (every iteration)
+
+**RECALL (before deciding a move) — mandatory:**
+1. Read `wiki/index.md` — the full map
+2. Read the `synthesis/` pages — the current thesis on what works and fails here
+3. Read `attempts/` pages relevant to the criterion being targeted — "have I tried anything near this? did it fail? why?"
+4. Read relevant `concepts/` and `sources/` pages if the move touches them
+
+**RECORD (after the move is judged) — mandatory:**
+1. Write a new `attempts/` page: what changed, why, verdict, delta, and the reasoning (especially for failures)
+2. If a pattern emerged (e.g. third plateau on the same axis), create or update a `synthesis/` page
+3. If a human answer resolved an assumption, capture the decision in a `concepts/` or `synthesis/` page
+4. Update `index.md` (add/update the row) and append to `log.md` (`## [iter NNN] {op} | {title}`)
+
+**This read-then-write discipline is the loop's intelligence.** Skipping RECALL makes the agent re-propose failed moves. Skipping RECORD makes the next iteration blind. Neither is ever skipped.
+
+### Promotion to the project wiki
+
+Per `promote_to_project_wiki` in the config:
+- `ask` (default) — at loop end / interruption, surface durable findings and ask which to promote
+- `on` — promote durable findings automatically
+- `off` — keep everything local
+
+A "durable finding" is a `synthesis/` page or a confirmed `concept` that generalizes beyond this artifact (e.g. "averaging EEG reference before ICA consistently improves component separability"). Promote via `neuroflow:wiki` ingest into `.neuroflow/wiki/`. Micro-experiment `attempts/` pages stay local — they would only clutter the project wiki.
+
+---
+
+## program.md — task, criteria, and config
+
+Read at the top of **every** iteration. Holds the task, the criteria (three layers — see [Criteria](#criteria-initialization)), and the machine-followable config block.
 
 ```markdown
-# Autoresearch Program — {phase}
+# Autoresearch Program — {name} ({phase})
 Started: YYYY-MM-DD
 
 ## Task
@@ -76,238 +159,165 @@ Started: YYYY-MM-DD
 {listed from __thetask__.md for reference}
 
 ## Default criteria (phase: {phase})
-{phase-specific criteria — see per-phase table below}
+{phase-specific criteria — see references/phase-criteria.md}
 
 ## User criteria
-<!-- Add your own criteria here, e.g.:
-     - Must cite at least 3 papers from 2022–2025
-     - Keep under 500 words
-     - Target: Nature Neuroscience  -->
+<!-- user additions, e.g. "Target Nature Neuroscience", "keep under 500 words" -->
 
 ## Improvement direction
-{what "better" looks like — guiding instruction for the worker each iteration}
+{what "better" looks like — the guiding instruction each iteration}
 
 ## Out of scope
 {what must NOT change between iterations}
+
+## Loop configuration
+loop_name: connectivity
+artifact_location: scripts/analysis/connectivity_autoresearch/
+promote_to_project_wiki: ask          # on | off | ask
+branching: agent-decided              # off | agent-decided
+max_alive_branches: 3                 # cost cap when branching
+literature_search: when-stuck         # off | when-stuck | agent-decided
+literature_sources: pubmed, biorxiv   # MCP sources to query
+literature_budget: 1 per 5 iterations # rate cap
+evaluation: self                      # self | fresh-eval
+output_dashboard: off                 # on | off
+output_report_md: on                  # on | off
+output_report_pdf: off                # on | off
+report_cadence: every-round           # every-round | every-N
+answer_channel: both                  # session | inbox | both
+notify_on_plateau: true
 ```
+
+**The agent reads this config every iteration and honors it exactly** — check `literature_budget` before searching, respect `branching` and `max_alive_branches`, use the configured `evaluation` mode, refresh outputs per `report_cadence`.
 
 ---
 
-## Criteria initialization — three layers
+## __thetask__.md — tracked-file manifest
 
-On first run, build `program.md` criteria in three layers:
+```markdown
+# Task Manifest
 
-**Layer 1 — Phase defaults** (always included; see per-phase table in this skill)
+## Tracked files
+- `../connectivity.py`
+- `../helpers/graph_metrics.py`
 
-**Layer 2 — Context-inferred** (read existing `.neuroflow/` files and infer relevant additions):
+## Task description
+Improve the connectivity analysis until it is reproducible and statistically sound.
 
-| If this exists | Add criterion |
-|---|---|
-| `.neuroflow/ideation/research-question.md` | "Alignment with stated research question" |
-| `.neuroflow/preregistration/` | "Adherence to preregistered hypotheses / analysis plan" |
-| `project_config.md` has `target_journal:` | "Meets [journal] editorial standards" |
-| `.neuroflow/grant-proposal/` has a named funder | "Meets [funder] reviewer criteria (Significance / Innovation / Approach)" |
-| `.neuroflow/data-analyze/analysis-plan.md` | "Covers all hypotheses from the analysis plan" |
-| `.neuroflow/objectives.md` | "Addresses all project objectives" |
+## Current best snapshot
+history/v031/
 
-**Layer 3 — User input**
-
-After printing layers 1+2, ask:
+## Iterations run
+47 (last: YYYY-MM-DD)
 ```
-These criteria will guide autoresearch. Add your own? (press Enter to skip)
-```
-Append any user additions to `program.md` under `## User criteria`.
+
+Paths are relative to the loop folder. The agent modifies the real files; the evaluator compares current state to `history/vBEST/`.
 
 ---
 
-## Per-phase default criteria (Layer 1)
-
-### paper
-Drawn from `agents/paper-critic.md` — six evaluation areas:
-1. **Language, style, terminology** — spelling, grammar, undefined abbreviations, causality language errors (e.g. "X activates Y" from correlational data)
-2. **Internal consistency** — all figures referenced exist and are numbered correctly; numerical values match across sections; subject counts consistent
-3. **Claim support** — every claim has evidence; no causality creep; no functional-connectivity overclaims; no over-generalization beyond the sample
-4. **Statistics** — power justification, correct test choice, effect sizes reported, multiple-comparison correction stated and justified
-5. **Methods reproducibility** — COBIDAS compliance for fMRI; ARRIVE 2.0 for animals; electrode montage and reference stated for EEG; data and code availability statement
-6. **Contribution and novelty** — novelty grounded relative to specific prior papers; alternative interpretations addressed; journal fit justified
-
-### grant-proposal
-Drawn from `skills/phase-grant-proposal/SKILL.md`:
-1. **Scope** — all aims achievable within the stated timeline; no aim requires success of another unless stated
-2. **Power analysis** — formal power analysis per aim with effect size cited from published literature
-3. **Hypothesis in Approach** — every aim has a testable prediction, not just a description of methods
-4. **Funder alignment** — Significance framed for funder priority (NIH: disease burden / mechanism; ERC: frontier science; Wellcome: scientific opportunity)
-5. **Preliminary data** — at least one result figure per aim with statistics visible
-6. **Budget justification** — every budget line has a rationale; FTE fractions stated; equipment identified by model
-
-### ideation
-1. **Novelty** — question not already answered in the cited literature; state the closest prior paper
-2. **Testability** — can be empirically tested with standard neuroscience methods in a reasonable timeframe
-3. **Specificity** — stated as one sentence with named independent variable, dependent variable, and population
-4. **Feasibility** — achievable by a neuroscience lab given realistic equipment, sample, and timeline constraints
-5. **Mechanistic grounding** — proposes a biological or computational mechanism, not just a correlational observation
-
-### data-analyze
-1. **Plan precedes code** — analysis-plan.md written and accepted before any analysis script
-2. **Assumption audit** — normality, sphericity, and independence checked explicitly before test selection
-3. **Multiple comparison correction** — method named (FWE, FDR, Bonferroni) and justified for the design
-4. **Reproducibility** — script is self-contained and re-runnable from raw inputs alone
-5. **Coverage** — all hypotheses listed in project_config.md are addressed
-6. **Numeric** — statistical power (target ≥ 0.8), effect size (Cohen's d or η²), N per condition reported
-
-### experiment
-1. **Ecological validity** — experimental conditions reflect the real-world scenario being studied
-2. **Control conditions** — every independent variable has a matched control condition
-3. **Counterbalancing** — order effects addressed; counterbalancing scheme stated
-4. **Confound identification** — known confounds listed; design choices explain how each is controlled
-5. **Numeric** — formal power analysis with target power ≥ 0.8; trial count per condition stated
-
-### preregistration
-1. **Specificity** — hypothesis statement has no wiggle room; can be unambiguously confirmed or disconfirmed
-2. **Prior grounding** — at least one prior result cited per directional prediction
-3. **Falsifiability** — defined rejection criterion (threshold, direction) for each hypothesis
-4. **Analysis plan completeness** — exact statistical tests, thresholds, exclusion rules, and dependent variable operationalization stated
-5. **Deviation protocol** — explicitly states what will be done if a planned analysis cannot run as specified
-
-### brain-build
-1. **Biological plausibility** — all parameters fall within physiologically reported ranges (cite sources)
-2. **Formal completeness** — every equation and free parameter defined; no undefined symbols
-3. **Testability** — model makes at least two specific, falsifiable empirical predictions
-4. **Parameter justifiability** — each free parameter sourced from data, prior fit, or justified literature estimate
-5. **Data relationship** — relationship between model output and empirical recordings explicitly stated
-
-### brain-optimize
-1. **Convergence evidence** — optimization converged (loss curve shown or stability criterion met)
-2. **Objective alignment** — cost function reflects the scientific question being asked
-3. **Sensitivity justification** — parameters the optimizer was most sensitive to are identified and discussed
-4. **Generalisability** — fit not only to training data; held-out or cross-validated performance reported
-5. **Numeric** — final loss / R² / correlation with empirical data reported per iteration
-
-### brain-run
-1. **Output clarity** — outputs are labelled, units stated, axes named
-2. **Parameter documentation** — full parameter set used for the run is saved alongside outputs
-3. **Reproducibility** — run is reproducible from the saved parameter set alone
-4. **Interpretation soundness** — results interpreted within the bounds of model assumptions
-5. **Limitation acknowledgment** — at least one key model limitation noted in context of the outputs
-
-### data-preprocess
-1. **Pipeline completeness** — all steps from raw to analysis-ready documented in order
-2. **Artifact handling** — ocular, muscle, and line-noise artifacts addressed; strategy stated
-3. **BIDS compliance** — output folder structure matches BIDS specification
-4. **Reproducibility** — pipeline re-runnable from the script alone with no manual steps
-5. **Numeric** — channel rejection rate (flag if > 20%), epoch rejection rate, and SNR estimate reported
-
-### poster / slideshow / write-report
-1. **Visual / structural hierarchy** — most important claim is the most prominent element
-2. **Core claim clarity** — the main message is readable or identifiable within 5 seconds
-3. **Evidence density** — every claim has at least one supporting data point or citation visible
-4. **Audience targeting** — vocabulary and technical depth match the stated audience
-5. **Narrative flow** — logical order; each panel or section leads naturally to the next
-
-### all other phases
-Clarity, Completeness, Scientific rigour, Feasibility, Audience alignment
-
----
-
-## Loop protocol
-
-### INIT (first run only)
+## INIT — setup interview (first run only)
 
 1. Read `project_config.md` → determine active phase
-2. Create `.neuroflow/{phase}/autoresearch/`
-3. Ask: *"Which files should autoresearch improve?"* (or infer from `--target` flag in the invocation)
-4. Build criteria: Layer 1 + Layer 2 (from context) + Layer 3 (user input) → write to `program.md`
-5. Copy current state of tracked files into `history/v000/` (baseline snapshot)
-6. Write baseline row to `results.md`
-7. Write `server.py` into `.neuroflow/{phase}/autoresearch/server.py` using the template in the **Dashboard server template** section of this skill
-8. Tell the user: *"Dashboard: run `python .neuroflow/{phase}/autoresearch/server.py` → http://localhost:8765"*
-9. Write `flow.md` for the autoresearch folder
-10. Start loop
+2. **Which files should this loop improve?** (or infer from `--target`)
+3. **Name and location:** derive a default name from the primary tracked file and a default location = that file's directory. Show both: *"Loop folder: `scripts/analysis/connectivity_autoresearch/`. OK, or change name/location?"*
+4. **Build criteria** — Layer 1 (phase defaults from `references/phase-criteria.md`) + Layer 2 (context-inferred) + Layer 3 (user input) → `program.md`
+5. **Loop configuration interview** — ask and record into the config block:
+   - *Branching:* "When you see two equally promising directions, may I try both and keep the winner? (agent-decided / single-track)" → if agent-decided, "max directions to keep open at once?"
+   - *Literature search:* "May I search papers when I run out of ideas or want grounding? (when-stuck / anytime / off)" → sources? → budget (e.g. 1 per 5 iterations)?
+   - *Evaluation:* "Should I judge my own changes (faster, full context) or have a fresh independent check each time (slower, unbiased)? (self / fresh-eval)"
+   - *Outputs:* "Live dashboard server? Human report.md (default on)? Also a PDF snapshot?" → cadence?
+   - *Answers:* "Answer my questions in this session, via an answers.md inbox, or both?"
+   - *Wiki promotion:* "At loop end, promote durable findings to the project wiki? (ask / auto / off)"
+6. Create the loop folder at the chosen location; initialize `wiki/` (index.md, log.md, schema.md, pages/ subfolders) — write a starter `schema.md` describing the artifact, the criteria, and the wikilink convention
+7. Snapshot tracked files → `history/v000/`; write baseline row to `results.md`
+8. Write `program.md`, `__thetask__.md`, `flow.md`
+9. Add a row to `.neuroflow/{phase}/autoresearch-loops.md` (create the registry if absent)
+10. If `output_dashboard: on`, write `server.py` from `scripts/server.py` in this skill and tell the user the URL
+11. Write the first `report.md`
+12. Start the loop
 
-### LOOP — NEVER STOP
+---
+
+## Loop protocol — NEVER STOP
 
 ```
 REPEAT FOREVER until the human interrupts:
 
-  a. Read program.md + __thetask__.md → resolve tracked file paths
-  b. Read tracked files (current state)
-  c. Read results.md tail (last 5 rows) — what was tried recently
-  d. Read history/vBEST/ snapshot (the current best version)
+  RECALL
+    a. Read program.md (task, criteria, config) + __thetask__.md (resolve tracked paths)
+    b. Read tracked files (current state) + history/vBEST/ (current best)
+    c. Read the wiki: index.md → synthesis/ → attempts/ for the target criterion → relevant concepts/sources
+    d. Check answers.md and the session for new human answers (match Q-ids; see Q&A channel)
 
-  e. WORKER — spawn general-purpose agent:
-       Prompt contains:
-         - Phase skill content (neuroflow:phase-{phase})
-         - program.md (task, criteria, improvement direction, out of scope)
-         - Current content of tracked files
-         - results.md tail for context
-         - Instruction: "Make ONE focused improvement targeting the weakest criterion.
-                         Do NOT rewrite everything. Make one surgical change.
-                         Return only the modified file(s) with the change applied."
+  DECIDE
+    e. Pick the single weakest criterion and ONE focused move to improve it,
+       informed by the wiki — do NOT re-propose a move the wiki shows already failed.
+    f. If out of fresh ideas OR the wiki shows the obvious moves are exhausted:
+         - If literature_search allows and budget permits → search papers (MCP tools),
+           distill into wiki/sources/, synthesize a new direction, record it.
+    g. If branching is enabled and two directions look equally promising:
+         - Try one this iteration; note the fork so the other is tried next from the SAME vBEST.
+           Keep at most max_alive_branches forks open; prune losers once a winner emerges.
 
-  f. EVALUATOR — spawn general-purpose agent:
-       Prompt contains:
-         - Criteria from program.md
-         - Current tracked files (post-worker)
-         - history/vBEST/ snapshot (previous best)
-         - Instruction: "Compare these two versions of the tracked files.
-                         Is the new version BETTER, WORSE, or NO CHANGE relative to the previous best?
-                         Return exactly:
-                           VERDICT: BETTER | WORSE | NO CHANGE
-                           Delta: integer −5 (much worse) to +5 (much better)
-                           Criteria notes: per-criterion one-line assessment
-                           Numeric values: extract any numeric criteria values if applicable
-                             (power, R², rejection rate, loss, word count, citation count, etc.)
-                           Next focus: one sentence — the single weakest area to target next"
+  ACT
+    h. Make ONE surgical change to the tracked files. Not a rewrite — one move.
 
-  g. If BETTER:
-       - Save current state of tracked files → history/vNNN/ (N = zero-padded iteration number)
-       - Update __thetask__.md: increment "Iterations run", update "Current best snapshot"
-       - Append KEPT row to results.md
-       - Update flow.md
+  JUDGE  (self, or one fresh subagent if evaluation: fresh-eval)
+    i. Compare current tracked files to history/vBEST/ against the criteria.
+       Return: VERDICT (BETTER | WORSE | NO CHANGE), Delta (−5..+5),
+               per-criterion notes, numeric values if applicable,
+               and the single weakest area to target next.
+       If self-evaluating: judge it COLD — be skeptical of your own change.
 
-  h. If WORSE or NO CHANGE:
-       - Restore tracked files from history/vBEST/ (overwrite tracked files with snapshot content)
-       - Append REVERTED row to results.md
+  KEEP / REVERT
+    j. If BETTER: snapshot tracked files → history/vNNN/; update __thetask__.md
+                  (iterations, best snapshot); append KEPT row to results.md.
+       If WORSE / NO CHANGE: restore tracked files from history/vBEST/; append REVERTED row.
 
-  i. Plateau detection — if 5 consecutive REVERTs:
-       - Append "--- PLATEAU DETECTED (5 consecutive REVERTs) ---" to results.md
-       - Print: "5 consecutive reversions with no improvement.
-                 Consider adding new directions to program.md under '## User criteria'
-                 or '## Improvement direction'. Continuing loop."
-       - DO NOT STOP — continue the loop
+  RECORD  (the brain — mandatory)
+    k. Write an attempts/ page (what, why, verdict, delta, reasoning — especially for failures).
+       Update synthesis/ if a pattern emerged. Update index.md + log.md.
+    l. Refresh report.md (open questions on top); refresh results.md; update the pointer registry.
+       Regenerate report.pdf / dashboard data per cadence.
 
-  j. Go to step a. NEVER stop on your own.
+  STEER
+    m. Plateau (5 consecutive REVERTs): if notify_on_plateau, note it in report.md and the session,
+       then CHANGE APPROACH — new angle from the wiki, a branch, or a literature search. DO NOT STOP.
+
+  n. Go to RECALL. Never stop on your own.
 ```
 
 ---
 
-## Evaluator output format
+## Evaluation
 
-```
-VERDICT: BETTER
+| Mode | Behaviour | Trade-off |
+|------|-----------|-----------|
+| `self` (default) | The managing agent judges its own change cold against `vBEST` + criteria | Keeps full context, faster; instruct it to be skeptical of its own work; the wiki catches "you rejected this before" |
+| `fresh-eval` | One fresh general-purpose subagent judges the change with no loop context | Independent, unbiased; the only place a subagent is spawned; slower |
 
-Delta: +3
-
-Criteria notes:
-- Language/style: no change — prose quality unchanged
-- Claim support: improved — mechanism sentence added, previously missing
-- Statistics: improved — power value now cited (0.74)
-- Methods reproducibility: no change
-- Contribution/novelty: no change
-
-Numeric values:
-- power: 0.74
-- word_count: 487
-
-Next focus: The intro-to-methods transition is abrupt — add a single bridging sentence.
-```
+The bias risk of `self` is real — an agent grading its own work tends to like it. Mitigations: judge against the explicit `vBEST` snapshot and named criteria, and let the wiki hold it honest. Choose `fresh-eval` when evaluation rigor matters more than speed.
 
 ---
 
-## `results.md` format
+## Outputs
+
+Each surface has one job. All optional except `report.md`.
+
+| File | Audience | Job |
+|------|----------|-----|
+| `results.md` | dashboard | numeric iteration table (verdict, delta, running) |
+| `report.md` | human | narrative + **open questions** — the steering surface |
+| `report.pdf` | human | optional read-only snapshot (`pandoc report.md -o report.pdf`) |
+| `server.py` | human | optional live dashboard at `localhost:8765` — renders **both** the report (open questions pinned at top + narrative) **and** the numeric trend charts on one page; template in `scripts/server.py` |
+| `wiki/` | agent | the brain |
+
+The dashboard is the one-stop web view: it reads `report.md` and `results.md` on every request, so a glance shows the quality curve *and* the open questions awaiting an answer. Use `?watch=1` for auto-refresh.
+
+### results.md format
 
 ```markdown
-# Autoresearch Results — {phase}
+# Autoresearch Results — {name}
 Started: YYYY-MM-DD HH:MM
 
 | # | Verdict | Δ | Running | Decision | Next focus |
@@ -315,24 +325,86 @@ Started: YYYY-MM-DD HH:MM
 | 000 | — | 0 | 0 | KEPT (baseline) | — |
 | 001 | BETTER | +3 | 3 | KEPT | Intro–methods transition |
 | 002 | WORSE | -1 | 3 | REVERTED | Overcomplicated methods |
-| 003 | BETTER | +2 | 5 | KEPT | Citation density in Discussion |
 ```
 
-For phases with numeric criteria, append columns after `Next focus` (e.g. `power`, `R2`, `word_count`).
+Running: KEPT adds delta; REVERTED leaves it unchanged. Append numeric columns (power, R², word_count…) after `Next focus` for phases with numeric criteria.
 
-**Running column rules:**
-- KEPT: running = previous running + delta
-- REVERTED: running = unchanged (file was restored; quality is the same as before)
+### report.md format — human steering surface
+
+Open questions lead the file. Answered questions are **deleted** from the report (their resolution goes to the wiki, not an archive section here).
+
+```markdown
+# Autoresearch Report — {name}
+Iteration 47 · Best: v031 · Running quality: +18 · Updated HH:MM
+
+## Open questions for you
+- **Q7** — about to delete the third control analysis (~200 lines, hard to reconstruct). Confirm? (iter 46)
+- **Q3** — Target Nature Neuro or eLife? Affects how aggressively I trim. (iter 40)
+
+## This round
+Tried tightening the methods reproducibility statement. Verdict BETTER (+2), kept as v031.
+
+## Current direction
+Citation density in the Discussion is the weakest criterion — working that next.
+```
 
 ---
 
-## Session logging
+## Q&A channel
 
-Append to `.neuroflow/sessions/YYYY-MM-DD.md` at:
-- Loop start: `## HH:MM — [autoresearch/{phase}] loop started — tracking {N} file(s)`
-- Every 10 iterations: `## HH:MM — [autoresearch/{phase}] iteration {N} — running quality: {R} — best: {snapshot}`
-- Plateau detection: `## HH:MM — [autoresearch/{phase}] PLATEAU — 5 consecutive REVERTs`
-- Loop interrupted: `## HH:MM — [autoresearch/{phase}] loop interrupted at iteration {N} — best: history/{snapshot}/`
+The loop asks the human questions without ever stopping.
+
+- **All open questions sit in the top section of `report.md`.** Short, live list.
+- **Persistent, stable ids.** A question keeps its id forever (Q3 stays Q3, never renumbered) so "answer 3) ..." always maps to the right one.
+- **Non-blocking.** The agent asks, makes its best-guess move, keeps going. It revisits when the answer arrives — and because every state is a `history/` snapshot, it can re-branch from an earlier `vBEST` if the human steers it elsewhere.
+- **Answering:** depending on `answer_channel` —
+  - `session`: human types `A3: eLife` or `answer 3) eLife` → agent reads it at the next RECALL
+  - `inbox`: human writes the same into `answers.md` → agent reads it each RECALL
+  - `both`: either works
+- **On resolution:** the agent acts on the answer, **deletes** the question from `report.md`, and records the decision + what it did in the wiki (a `concepts/` or `synthesis/` page). Knowledge survives; the report stays clean.
+
+A costly/irreversible move (large deletion, expensive recompute) should be raised as a question *before* doing it, placed at the top of the open-questions list. The loop still doesn't block — it proceeds on its best guess and the snapshot makes it reversible — but the human sees it first.
+
+---
+
+## Session logging & registry
+
+Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
+- Loop start: `## HH:MM — [autoresearch/{name}] started — tracking {N} file(s) at {location}`
+- Every 10 iterations: `## HH:MM — [autoresearch/{name}] iter {N} — running {R} — best {snapshot}`
+- Plateau: `## HH:MM — [autoresearch/{name}] PLATEAU — changing approach`
+- Interrupt: `## HH:MM — [autoresearch/{name}] interrupted at iter {N} — best {snapshot}`
+
+Keep the pointer registry (`.neuroflow/{phase}/autoresearch-loops.md`) current: iterations, best, status (running / paused / interrupted).
+
+---
+
+## Criteria initialization
+
+Build `program.md` criteria in three layers on first run:
+
+- **Layer 1 — Phase defaults.** Always included. Full per-phase criteria tables are in **`references/phase-criteria.md`** — read it during INIT and copy the active phase's criteria into `program.md`.
+- **Layer 2 — Context-inferred.** Read existing `.neuroflow/` files and add relevant criteria:
+
+  | If this exists | Add criterion |
+  |---|---|
+  | `.neuroflow/ideation/research-question.md` | Alignment with the stated research question |
+  | `.neuroflow/preregistration/` | Adherence to preregistered hypotheses / analysis plan |
+  | `project_config.md` has `target_journal:` | Meets [journal] editorial standards |
+  | `.neuroflow/grant-proposal/` names a funder | Meets [funder] reviewer criteria |
+  | `.neuroflow/data-analyze/analysis-plan.md` | Covers all hypotheses in the analysis plan |
+  | `.neuroflow/objectives.md` | Addresses all project objectives |
+
+- **Layer 3 — User input.** After printing layers 1+2, ask: *"Add your own criteria? (Enter to skip)"* → append under `## User criteria`.
+
+---
+
+## Resume
+
+If `.neuroflow/{phase}/autoresearch-loops.md` lists one or more loops:
+- One loop → confirm: *"Resume autoresearch '{name}' at {location}? {N} iterations logged, best {snapshot}."*
+- Multiple → list them and ask which to resume
+- On resume: read that loop's `program.md`, `__thetask__.md`, `results.md`, and **the wiki** (index + synthesis), then go straight to the loop (skip INIT)
 
 ---
 
@@ -342,264 +414,7 @@ Append to `.neuroflow/sessions/YYYY-MM-DD.md` at:
 
 ---
 
-## Dashboard server template
+## Bundled resources
 
-Write the following Python script verbatim to `.neuroflow/{phase}/autoresearch/server.py` during INIT. It uses Python stdlib only plus Chart.js from CDN — no pip installs required.
-
-```python
-#!/usr/bin/env python3
-"""
-Autoresearch dashboard — serves http://localhost:8765
-Reads results.md on every request; auto-refreshes with ?watch=1
-Usage: python server.py [--port 8765]
-"""
-import argparse
-import csv
-import io
-import json
-import os
-import re
-from http.server import BaseHTTPRequestHandler, HTTPServer
-
-RESULTS_FILE = os.path.join(os.path.dirname(__file__), "results.md")
-THETASK_FILE = os.path.join(os.path.dirname(__file__), "__thetask__.md")
-
-
-def parse_results():
-    """Parse results.md table into list of dicts."""
-    rows = []
-    if not os.path.exists(RESULTS_FILE):
-        return rows
-    with open(RESULTS_FILE, encoding="utf-8") as f:
-        content = f.read()
-    in_table = False
-    headers = []
-    for line in content.splitlines():
-        line = line.strip()
-        if line.startswith("| #") or line.startswith("|#"):
-            headers = [h.strip() for h in line.strip("|").split("|")]
-            in_table = True
-            continue
-        if in_table and line.startswith("|---"):
-            continue
-        if in_table and line.startswith("|"):
-            cells = [c.strip() for c in line.strip("|").split("|")]
-            if len(cells) >= len(headers):
-                rows.append(dict(zip(headers, cells)))
-        elif in_table and not line.startswith("|"):
-            if line.startswith("---"):
-                continue  # section divider in results
-    return rows
-
-
-def parse_thetask():
-    """Return task description and tracked files from __thetask__.md."""
-    if not os.path.exists(THETASK_FILE):
-        return "", [], "history/v000", 0
-    with open(THETASK_FILE, encoding="utf-8") as f:
-        content = f.read()
-    desc = re.search(r"## Task description\n(.+?)(?:\n##|\Z)", content, re.S)
-    desc = desc.group(1).strip() if desc else ""
-    files_section = re.search(r"## Tracked files\n(.+?)(?:\n##|\Z)", content, re.S)
-    files = []
-    if files_section:
-        for line in files_section.group(1).splitlines():
-            line = line.strip().strip("-").strip().strip("`")
-            if line:
-                files.append(line)
-    best = re.search(r"## Current best snapshot\n(.+)", content)
-    best = best.group(1).strip() if best else "history/v000"
-    iters = re.search(r"## Iterations run\n(\d+)", content)
-    iters = int(iters.group(1)) if iters else 0
-    return desc, files, best, iters
-
-
-def build_html(rows, desc, files, best, iters, watch):
-    labels = [r.get("#", "") for r in rows]
-    running = []
-    for r in rows:
-        try:
-            running.append(float(r.get("Running", 0)))
-        except ValueError:
-            running.append(0)
-
-    # collect numeric columns (anything after "Next focus")
-    all_keys = []
-    if rows:
-        all_keys = list(rows[0].keys())
-    std_keys = {"#", "Verdict", "Δ", "Running", "Decision", "Next focus"}
-    num_keys = [k for k in all_keys if k not in std_keys and k]
-
-    num_datasets = []
-    for key in num_keys:
-        vals = []
-        for r in rows:
-            try:
-                vals.append(float(r.get(key, "").replace("—", "").replace("nan", "") or "nan"))
-            except ValueError:
-                vals.append(None)
-        num_datasets.append({"label": key, "data": vals})
-
-    kept_points = [
-        {"x": r.get("#", ""), "y": float(r.get("Running", 0))}
-        for r in rows if "KEPT" in r.get("Decision", "")
-        if r.get("#") and r.get("Running")
-    ]
-    reverted_points = [
-        {"x": r.get("#", ""), "y": float(r.get("Running", 0))}
-        for r in rows if "REVERTED" in r.get("Decision", "")
-        if r.get("#") and r.get("Running")
-    ]
-
-    last_focus = rows[-1].get("Next focus", "—") if rows else "—"
-    plateau = any("PLATEAU" in r.get("Decision", "") for r in rows)
-
-    refresh = '<meta http-equiv="refresh" content="30">' if watch else ""
-
-    num_charts_html = ""
-    for ds in num_datasets:
-        clean_vals = [v if v is not None else "null" for v in ds["data"]]
-        num_charts_html += f"""
-        <div class="chart-wrap">
-          <canvas id="chart_{ds['label']}"></canvas>
-        </div>
-        <script>
-        new Chart(document.getElementById('chart_{ds["label"]}'), {{
-          type: 'line',
-          data: {{
-            labels: {json.dumps(labels)},
-            datasets: [{{
-              label: '{ds["label"]}',
-              data: {json.dumps(clean_vals)},
-              borderColor: '#a78bfa',
-              backgroundColor: 'rgba(167,139,250,0.15)',
-              tension: 0.3,
-              spanGaps: true,
-            }}]
-          }},
-          options: {{ responsive: true, plugins: {{ legend: {{ display: true }} }} }}
-        }});
-        </script>
-        """
-
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-{refresh}
-<title>Autoresearch Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  body {{ font-family: system-ui, sans-serif; background: #0f0f13; color: #e2e8f0; margin: 0; padding: 24px; }}
-  h1 {{ font-size: 1.4rem; margin-bottom: 4px; color: #c4b5fd; }}
-  .meta {{ font-size: 0.82rem; color: #94a3b8; margin-bottom: 20px; }}
-  .cards {{ display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }}
-  .card {{ background: #1e1e2e; border-radius: 10px; padding: 16px 20px; min-width: 160px; }}
-  .card-label {{ font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; }}
-  .card-value {{ font-size: 1.6rem; font-weight: 700; color: #c4b5fd; }}
-  .plateau {{ color: #f59e0b; font-weight: bold; }}
-  .chart-wrap {{ background: #1e1e2e; border-radius: 10px; padding: 16px; margin-bottom: 20px; }}
-  .focus-box {{ background: #1e1e2e; border-left: 3px solid #c4b5fd; padding: 12px 16px;
-                border-radius: 0 8px 8px 0; margin-bottom: 20px; font-size: 0.9rem; }}
-  .files {{ font-size: 0.8rem; color: #64748b; margin-top: 4px; }}
-</style>
-</head>
-<body>
-<h1>Autoresearch Dashboard</h1>
-<div class="meta">{desc}</div>
-<div class="files">Tracked: {" &nbsp;·&nbsp; ".join(files)}</div>
-<div class="meta">Best snapshot: {best} &nbsp;·&nbsp; Iterations: {iters}</div>
-
-<div class="cards">
-  <div class="card"><div class="card-label">Iterations</div><div class="card-value">{iters}</div></div>
-  <div class="card"><div class="card-label">Running quality</div>
-    <div class="card-value">{running[-1] if running else 0:+.0f}</div></div>
-  <div class="card"><div class="card-label">Last verdict</div>
-    <div class="card-value" style="font-size:1.1rem">{rows[-1].get("Verdict","—") if rows else "—"}</div></div>
-  {"<div class='card'><div class='card-label plateau'>⚠ Plateau</div><div class='card-value plateau'>5 REVERTs</div></div>" if plateau else ""}
-</div>
-
-<div class="focus-box"><strong>Next focus:</strong> {last_focus}</div>
-
-<div class="chart-wrap">
-  <canvas id="qualityChart"></canvas>
-</div>
-<script>
-new Chart(document.getElementById('qualityChart'), {{
-  type: 'line',
-  data: {{
-    labels: {json.dumps(labels)},
-    datasets: [
-      {{
-        label: 'Running quality',
-        data: {json.dumps(running)},
-        borderColor: '#818cf8',
-        backgroundColor: 'rgba(129,140,248,0.1)',
-        tension: 0.2,
-        fill: true,
-      }},
-      {{
-        label: 'KEPT',
-        data: {json.dumps([r.get("Running") if "KEPT" in r.get("Decision","") else None for r in rows])},
-        borderColor: 'rgba(0,0,0,0)',
-        backgroundColor: '#34d399',
-        pointRadius: 7,
-        pointHoverRadius: 9,
-        showLine: false,
-        spanGaps: false,
-      }},
-      {{
-        label: 'REVERTED',
-        data: {json.dumps([r.get("Running") if "REVERTED" in r.get("Decision","") else None for r in rows])},
-        borderColor: 'rgba(0,0,0,0)',
-        backgroundColor: '#f87171',
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        showLine: false,
-        spanGaps: false,
-      }},
-    ]
-  }},
-  options: {{
-    responsive: true,
-    plugins: {{ legend: {{ display: true }} }},
-    scales: {{ y: {{ grid: {{ color: '#2d2d3d' }}, ticks: {{ color: '#94a3b8' }} }},
-               x: {{ grid: {{ color: '#2d2d3d' }}, ticks: {{ color: '#94a3b8' }} }} }}
-  }}
-}});
-</script>
-
-{num_charts_html}
-
-</body>
-</html>"""
-
-
-class Handler(BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass  # suppress request logs
-
-    def do_GET(self):
-        watch = "watch=1" in self.path
-        rows = parse_results()
-        desc, files, best, iters = parse_thetask()
-        html = build_html(rows, desc, files, best, iters, watch)
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.end_headers()
-        self.wfile.write(html.encode("utf-8"))
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=8765)
-    args = parser.parse_args()
-    print(f"Autoresearch dashboard → http://localhost:{args.port}")
-    print(f"Auto-refresh: http://localhost:{args.port}?watch=1")
-    print("Ctrl-C to stop")
-    HTTPServer(("", args.port), Handler).serve_forever()
-
-
-if __name__ == "__main__":
-    main()
-```
+- **`references/phase-criteria.md`** — per-phase Layer 1 default criteria (read during INIT)
+- **`scripts/server.py`** — optional dashboard template (write to the loop folder only if `output_dashboard: on`)

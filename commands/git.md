@@ -85,10 +85,10 @@ Run `git add .` and confirm what was staged.
 4. Run `git commit -m "<message>"`.
 
 **`/git ac` — add + commit:**
-Run `git add .` then follow the commit flow above.
+Run `git add .` then follow the commit flow above. **Stop after commit. Do not fetch, pull, merge, or push — even if unpushed commits exist. Alias scope is final.**
 
 **`/git acp` — add + commit + push:**
-Run `git add .`, commit (with suggested message), then push.
+Run `git add .`, commit (with suggested message), then push. **Stop after push. Do not open a PR or do anything else unless asked.**
 
 **`/git b` — branch:**
 1. Show current branch.
