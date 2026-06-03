@@ -11,6 +11,19 @@ Guides the `/git` command to read repository state accurately and apply context-
 
 **Never act blindly.** Always read repo state first. The value of `/git` is that it understands context — so every alias resolves to the right action given the current branch, staged files, commit history, and remote sync status.
 
+**Alias scope is final.** Each alias has a defined endpoint — never go beyond it, even if more work seems logical:
+
+| Alias | Endpoint | Never do after |
+|-------|----------|----------------|
+| `a` | stage | commit, push |
+| `c` | commit | push, fetch, merge |
+| `ac` | commit | fetch, pull, merge, push |
+| `acp` | push | PR creation, branch ops |
+| `p` | push or pull | merge, rebase (unless user chose rebase) |
+| `b` | branch op | commit, push |
+
+Seeing unpushed commits after `/git ac` is **not** a reason to push. The user chose `ac`, not `acp`.
+
 ## Reading repo state
 
 Always run all four checks before acting:
