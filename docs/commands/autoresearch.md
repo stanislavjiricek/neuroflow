@@ -31,7 +31,7 @@ A **single managing agent** runs the whole loop and holds the thread of all iter
 2. You name the files to improve (or use `--target path/to/file.py`)
 3. You confirm the **loop name and location** — the folder defaults to sitting next to the artifact (e.g. `scripts/analysis/connectivity_autoresearch/`), overridable
 4. Criteria are built in three layers: phase defaults → context-inferred → your additions
-5. A short **configuration interview** sets the loop's behaviour: branching, literature search, evaluation mode, outputs, answer channel, wiki promotion
+5. A **configuration interview** sets the loop's behaviour: branching, literature search, evaluation mode, outputs, answer channel, wiki promotion. The full config is shown back to you for explicit sign-off — **no iteration runs until you confirm it**
 6. The wiki is initialized, a baseline snapshot saved to `history/v000/`, and a pointer added to `.neuroflow/{phase}/autoresearch-loops.md`
 
 ### The loop — never stops until you interrupt
