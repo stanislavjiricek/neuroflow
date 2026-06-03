@@ -152,7 +152,7 @@
     },
     {
       id: "c-automation", label: "Automation",        category: "utilities",
-      desc: "Autoresearch infinite worker-evaluator loop (any artifact, any phase, live dashboard), multi-step pipeline orchestration, and hook triggers on tool events.",
+      desc: "Autoresearch infinite single-agent loop with a per-loop wiki as its memory (any artifact, any phase; branching, literature search, human Q&A, live dashboard), multi-step pipeline orchestration, and hook triggers on tool events.",
       commands: ["/autoresearch", "/pipeline"],
       url: "commands/autoresearch/"
     },

@@ -6,6 +6,12 @@ title: Changelog
 
 ---
 
+## 0.2.20
+
+- **autoresearch rebuilt around a per-loop wiki** — a single managing agent (no worker/evaluator subagent fan-out) runs the loop and uses a scoped `wiki/` as its brain: reads it before every move, records every attempt (wins *and* failures) after. Lets an infinite single-agent loop compound instead of re-treading dead ends.
+- **Loop folder moves next to the artifact** — named `{name}_autoresearch/`, located beside the tracked files (overridable); a pointer registry in `.neuroflow/{phase}/autoresearch-loops.md` keeps project memory aware. Multiple loops per phase now supported.
+- **New capabilities, all configurable** — agent-decided branching, literature search when stuck, self vs fresh-eval, a human `report.md` with a non-blocking stacked Q&A channel (answer via session or `answers.md`), and a dashboard that now renders the report + open questions alongside the trend charts.
+
 ## 0.2.19
 
 - **New `neuroflow:bids` skill** — comprehensive BIDS reference covering all modalities (MRI/EEG/MEG/iEEG/PET/DWI/NIRS/motion), entity ordering, JSON sidecar fields, derivatives structure, bids-validator, pybids, MNE-BIDS, fMRIPrep, dcm2niix/HeuDiConv conversion examples

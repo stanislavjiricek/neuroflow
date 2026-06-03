@@ -17,6 +17,12 @@
 
 ---
 
+## What's new in 0.2.20
+
+- **autoresearch rebuilt around a per-loop wiki** — [`neuroflow:autoresearch`](skills/autoresearch/SKILL.md) is now a single managing agent (no worker/evaluator fan-out) whose brain is a scoped `wiki/`: it reads the wiki before every move and records every attempt — wins *and* failures — after. That's what lets an infinite single-agent loop compound instead of going in circles.
+- **Loop lives next to the artifact** — folder named `{name}_autoresearch/` beside the tracked files (overridable), with a pointer registry in `.neuroflow/{phase}/autoresearch-loops.md`. Multiple loops per phase now work.
+- **Configurable depth + human steering** — agent-decided branching, literature search when stuck, self vs fresh-eval, and a `report.md` with a non-blocking Q&A channel (answer in-session or via `answers.md`); the dashboard renders the report and open questions next to the trend charts.
+
 ## What's new in 0.2.19
 
 - **New [`neuroflow:bids`](skills/bids/SKILL.md) skill** — comprehensive Brain Imaging Data Structure reference: full folder hierarchy for all modalities (MRI/EEG/MEG/iEEG/PET/DWI/NIRS/motion), entity ordering rules, JSON sidecar fields, derivatives structure, and tool guides for bids-validator, pybids, MNE-BIDS, fMRIPrep, and dcm2niix/HeuDiConv conversion pipelines
@@ -50,7 +56,7 @@
 
 ## What's new in 0.2.13
 
-- **[`/autoresearch`](commands/autoresearch.md)** — infinite improvement loop for any research artifact: point it at any file(s), and a worker-evaluator cycle runs indefinitely (one focused change per iteration, keep or revert, loop never stops until interrupted); live progress dashboard at `localhost:8765`; per-phase criteria auto-loaded from existing project memory; triggers via `/autoresearch` or any phase command with the word `autoresearch` in the prompt
+- **[`/autoresearch`](commands/autoresearch.md)** — infinite improvement loop for any research artifact: point it at any file(s), and a single managing agent runs indefinitely (one focused change per iteration, keep or revert, never stops until interrupted), using a per-loop wiki as its memory; the loop folder lives next to the artifact; optional branching, literature search, and a human `report.md` with a non-blocking Q&A channel; live dashboard at `localhost:8765` rendering the report and trend charts; triggers via `/autoresearch` or any phase command with the word `autoresearch` in the prompt
 - **Agent cleanup** — removed 16 unused phase agent files that were never spawned by commands; commands follow phase skills directly; the 8 agents that are actually spawned (paper-writer, paper-critic, poster-critic, literature-review, scholar, sentinel, sentinel-dev, flowie) remain unchanged
 
 ## What's new in 0.2.12
@@ -264,7 +270,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | [`/idk`](commands/idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
 | [`/search`](commands/search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase; uses `flow.md` as a fast index |
 | [`/wiki`](commands/wiki.md) | Project-level shared knowledge base — Karpathy-style LLM-maintained wiki at `.neuroflow/wiki/`, git-tracked and shared with all collaborators; ingest, query, lint, and add workflows |
-| [`/autoresearch`](commands/autoresearch.md) | Infinite improvement loop for any research artifact — worker-evaluator cycle runs one focused change per iteration, keeps or reverts; live dashboard at `localhost:8765`; never stops until interrupted |
+| [`/autoresearch`](commands/autoresearch.md) | Infinite improvement loop for any research artifact — a single managing agent makes one focused change per iteration and keeps or reverts, using a per-loop wiki as its memory; folder lives next to the artifact; live dashboard at `localhost:8765`; never stops until interrupted |
 | [`/flowie`](commands/flowie.md) | Personal research OS — link a private GitHub repository as identity profile + Kanban task board + project registry with phase tracking; Claude reads the profile to personalize assistance and surfaces active tasks at session start |
 | [`/hive`](commands/hive.md) | Team knowledge layer — connect your project to a shared GitHub org repo to sync team research directions, share findings explicitly, and get team-aware recommendations |
 | [`/meeting`](commands/meeting.md) | First-class meetings — schedule from recurring templates, prepare agendas with active task context, send Google Calendar invites, and auto-create tasks from action items at project/flowie/hive level |
@@ -280,7 +286,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`teacher`, `executor`, `critic`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
 | [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) | Worker-critic agentic loop protocol — orchestrator coordinates a worker agent and a critic agent across up to 3 revision cycles to produce a vetted output for any phase |
-| [`neuroflow:autoresearch`](skills/autoresearch/SKILL.md) | Infinite improvement loop — defines the worker-evaluator protocol, program.md format, criteria layers, snapshot management, and dashboard server for the `/autoresearch` command |
+| [`neuroflow:autoresearch`](skills/autoresearch/SKILL.md) | Infinite improvement loop — defines the single-agent protocol, per-loop wiki (the agent's brain), program.md config block, criteria layers, branching, literature search, Q&A channel, and dashboard for the `/autoresearch` command |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
 | [`neuroflow:setup`](skills/setup/SKILL.md) | Configure integrations — PubMed, Miro, Google Workspace, and custom LLM providers (including e-INFRA CZ for Czech researchers). |
@@ -335,7 +341,7 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 | [`poster-critic`](agents/poster-critic.md) | Conference poster critic — audits every LaTeX poster draft across five areas (content, layout, scientific communication, QR code, LaTeX correctness); returns APPROVED or REJECTED with actionable feedback; operates inside the /poster worker-critic loop |
 | [`flowie`](agents/flowie.md) | Personal identity agent — reads the user's flowie profile, surfaces active tasks for the current project at session start, and applies research stances, writing style, and methodological preferences throughout the session; never exposes profile data in external-facing outputs |
 | [`literature-review`](agents/literature-review.md) | Literature review specialist — runs 12 sequential analytical lenses on a set of downloaded papers (landscape mapping through future research agenda) using the worker-critic loop to ensure rigour |
-| [`autoresearch`](agents/autoresearch.md) | Autoresearch loop agent — runs the infinite worker-evaluator improvement loop for any phase; one focused change per iteration, keeps or reverts, never stops until interrupted |
+| [`autoresearch`](agents/autoresearch.md) | Autoresearch loop agent — the single managing agent that runs the infinite loop for any phase; one focused change per iteration, judged by itself, keeps or reverts, with a per-loop wiki as its memory; never stops until interrupted |
 
 ---
 
