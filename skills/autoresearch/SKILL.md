@@ -217,6 +217,8 @@ Paths are relative to the loop folder. The agent modifies the real files; the ev
 
 ## INIT — setup interview (first run only)
 
+> **HARD GATE — the loop must NOT begin until the user has explicitly signed off on the full config block.** Never set silent defaults and jump into iterations. Every configuration option below is *asked*, not assumed — branching, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, and wiki promotion. If the user gives a partial answer, ask the rest; if they say "use defaults", still show the resulting config block and get an explicit "yes" before iterating. Starting iterations with any unasked option is the failure mode this gate exists to prevent.
+
 1. Read `project_config.md` → determine active phase
 2. **Which files should this loop improve?** (or infer from `--target`)
 3. **Name and location:** derive a default name from the primary tracked file and a default location = that file's directory. Show both: *"Loop folder: `scripts/analysis/connectivity_autoresearch/`. OK, or change name/location?"*
@@ -228,13 +230,14 @@ Paths are relative to the loop folder. The agent modifies the real files; the ev
    - *Outputs:* "Live dashboard server? Human report.md (default on)? Also a PDF snapshot?" → cadence?
    - *Answers:* "Answer my questions in this session, via an answers.md inbox, or both?"
    - *Wiki promotion:* "At loop end, promote durable findings to the project wiki? (ask / auto / off)"
-6. Create the loop folder at the chosen location; initialize `wiki/` (index.md, log.md, schema.md, pages/ subfolders) — write a starter `schema.md` describing the artifact, the criteria, and the wikilink convention
-7. Snapshot tracked files → `history/v000/`; write baseline row to `results.md`
-8. Write `program.md`, `__thetask__.md`, `flow.md`
-9. Add a row to `.neuroflow/{phase}/autoresearch-loops.md` (create the registry if absent)
-10. If `output_dashboard: on`, write `server.py` from `scripts/server.py` in this skill and tell the user the URL
-11. Write the first `report.md`
-12. Start the loop
+6. **Confirm the full config (the gate).** Render the complete `## Loop configuration` block back to the user with every value filled in, and ask for an explicit go-ahead: *"This is the full configuration. Confirm to start the loop, or tell me what to change."* **Do not proceed to step 7 until the user confirms.** No iteration runs before this sign-off.
+7. Create the loop folder at the chosen location; initialize `wiki/` (index.md, log.md, schema.md, pages/ subfolders) — write a starter `schema.md` describing the artifact, the criteria, and the wikilink convention
+8. Snapshot tracked files → `history/v000/`; write baseline row to `results.md`
+9. Write `program.md` (with the confirmed config block), `__thetask__.md`, `flow.md`
+10. Add a row to `.neuroflow/{phase}/autoresearch-loops.md` (create the registry if absent)
+11. If `output_dashboard: on`, write `server.py` from `scripts/server.py` in this skill and tell the user the URL
+12. Write the first `report.md`
+13. Start the loop
 
 ---
 
@@ -274,11 +277,13 @@ REPEAT FOREVER until the human interrupts:
                   (iterations, best snapshot); append KEPT row to results.md.
        If WORSE / NO CHANGE: restore tracked files from history/vBEST/; append REVERTED row.
 
-  RECORD  (the brain — mandatory)
+  RECORD  (the brain — mandatory, EVERY round, no exceptions)
     k. Write an attempts/ page (what, why, verdict, delta, reasoning — especially for failures).
        Update synthesis/ if a pattern emerged. Update index.md + log.md.
-    l. Refresh report.md (open questions on top); refresh results.md; update the pointer registry.
-       Regenerate report.pdf / dashboard data per cadence.
+    l. Refresh ALL THREE every round: the wiki (k above), results.md, AND report.md
+       (open questions on top). report.md is not write-once-at-baseline — it is rewritten
+       each iteration so the human's live view and open-questions list stay current.
+       Update the pointer registry. Regenerate report.pdf / dashboard data per cadence.
 
   STEER
     m. Plateau (5 consecutive REVERTs): if notify_on_plateau, note it in report.md and the session,

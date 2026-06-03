@@ -48,6 +48,12 @@ After every move is judged, **RECORD**: write an `attempts/` page (what changed,
 
 ---
 
+## INIT gate — before any iteration on a new loop
+
+On a new loop, run the full INIT setup interview from the `neuroflow:autoresearch` skill and get the user's **explicit sign-off on the rendered config block before running any iteration**. Every option is asked, never assumed: branching, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, wiki promotion. Starting iterations with any unasked option — or with silent defaults — is the failure this gate prevents. Skip INIT only when resuming an existing loop.
+
+---
+
 ## Loop protocol (repeat forever)
 
 ```
@@ -78,10 +84,11 @@ KEEP / REVERT
              append KEPT row to results.md
      WORSE / NO CHANGE → restore tracked files from history/vBEST/; append REVERTED row
 
-RECORD  (the brain)
+RECORD  (the brain — every round, no exceptions)
   k. Write attempts/ page; update synthesis/ on a pattern; update wiki index.md + log.md
-  l. Refresh report.md (open questions on top, deleted when answered); refresh results.md;
-     update the pointer registry; regenerate report.pdf / dashboard data per cadence
+  l. Refresh ALL THREE every round — wiki (k), results.md, AND report.md (open questions on top,
+     deleted when answered). report.md is rewritten each iteration, not just at baseline, so the
+     human's live view stays current. Update the pointer registry; regenerate PDF/dashboard per cadence
 
 STEER
   m. Plateau (5 consecutive REVERTs): if notify_on_plateau, note it in report.md + session,
