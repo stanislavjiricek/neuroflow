@@ -31,14 +31,14 @@ A **single managing agent** runs the whole loop and holds the thread of all iter
 2. You name the files to improve (or use `--target path/to/file.py`)
 3. You confirm the **loop name and location** — the folder defaults to sitting next to the artifact (e.g. `scripts/analysis/connectivity_autoresearch/`), overridable
 4. Criteria are built in three layers: phase defaults → context-inferred → your additions
-5. A **configuration interview** sets the loop's behaviour: branching, literature search, evaluation mode, outputs, answer channel, wiki promotion. The full config is shown back to you for explicit sign-off — **no iteration runs until you confirm it**
+5. A **configuration interview** sets the loop's behaviour, one option at a time: branching, parameter sweep (scan a parameter's values within a single iteration; default on), literature search, evaluation mode, outputs, answer channel, wiki promotion. The full config is shown back to you for explicit sign-off — **no iteration runs until you confirm it**
 6. The wiki is initialized, a baseline snapshot saved to `history/v000/`, and a pointer added to `.neuroflow/{phase}/autoresearch-loops.md`
 
 ### The loop — never stops until you interrupt
 
 Each iteration:
 1. **Recall** — read the wiki (current thesis, prior attempts on this criterion) so the next move is informed, not blind
-2. **Decide** — pick the weakest criterion and one focused move; if out of ideas, optionally search the literature and ingest findings into the wiki
+2. **Decide** — pick the weakest criterion and one focused move; if the move tunes a scannable parameter, sweep several values within the iteration and keep the best; if out of ideas, optionally search the literature and ingest findings into the wiki
 3. **Act** — make one surgical change
 4. **Judge** — compare to the current best; `BETTER / WORSE / NO CHANGE`
 5. **Keep or revert** — BETTER archives to `history/vNNN/`; otherwise restore the best

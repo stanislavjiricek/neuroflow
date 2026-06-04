@@ -44,10 +44,12 @@ Read `.neuroflow/{phase}/autoresearch-loops.md` (if it exists) to find loops alr
 
 **Resume:** if one or more loops are listed, confirm which to resume (see Resume in the skill), then read that loop's `program.md`, `__thetask__.md`, `results.md`, **and its wiki** (index + synthesis), and go straight to the loop.
 
-**New loop:** run the full INIT procedure from the autoresearch skill — which files, name + location (default: next to the primary tracked file), criteria (3 layers), and the loop configuration interview (branching, literature search, evaluation mode, outputs, answer channel, wiki promotion).
+**New loop:** run the full INIT procedure from the autoresearch skill — which files, name + location (default: next to the primary tracked file), criteria (3 layers), and the loop configuration interview.
+
+> **Do the configuration interview properly — do not rush it.** Walk the user through every option ONE AT A TIME (branching, parameter sweep, literature search + sources + budget, evaluation mode, outputs + cadence, answer channel, wiki promotion), stating the default and trade-off for each and waiting for the answer. Do not batch them into one message, do not assume silent defaults, and do not start any iteration until you have rendered the complete config block and the user has explicitly confirmed it (the INIT hard gate). When you write `program.md`, include both the `## Loop configuration` block and the `## Iteration checklist` block.
 
 ### 3 — Run the loop
-The managing agent runs the loop indefinitely per the protocol in the skill: RECALL (read wiki) → DECIDE → ACT → JUDGE → KEEP/REVERT → RECORD (write wiki) → STEER → repeat. It does **not** spawn worker/evaluator subagents — it is one agent holding full context, with the wiki as externalized memory. The only optional subagent is a fresh evaluator when `evaluation: fresh-eval`.
+The managing agent runs the loop indefinitely per the protocol in the skill: RECALL (re-read program.md incl. its iteration checklist + the wiki) → DECIDE → ACT (with parameter sweep when applicable) → JUDGE → KEEP/REVERT → RECORD (write wiki + refresh report.md, **every iteration, never skipped**) → STEER → repeat. It does **not** spawn worker/evaluator subagents — it is one agent holding full context, with the wiki as externalized memory. The only optional subagent is a fresh evaluator when `evaluation: fresh-eval`.
 
 ## At end (on interruption)
 
