@@ -58,7 +58,8 @@ On a new loop, run the full INIT setup interview from the `neuroflow:autoresearc
 
 ```
 RECALL
-  a. Read program.md (task, criteria, config) + __thetask__.md → resolve tracked paths
+  a. Read program.md — INCLUDING its "## Iteration checklist" — + __thetask__.md → resolve tracked paths.
+     The checklist is this iteration's contract; complete every item, never skip the wiki write or report refresh.
   b. Read tracked files (current) + history/vBEST/ (current best)
   c. Read the wiki: index → synthesis → attempts for the target criterion → relevant concepts/sources
   d. Check answers.md and the session for new human answers (match stable Q-ids)
@@ -71,7 +72,11 @@ DECIDE
      note the fork so the other is tried next from the SAME vBEST; keep ≤ max_alive_branches open
 
 ACT
-  h. Make ONE surgical change to the tracked files (not a rewrite)
+  h. Make ONE surgical change to the tracked files (not a rewrite).
+     PARAMETER SWEEP: if parameter_sweep is on and the move tunes a scannable parameter
+     (threshold, cutoff, n_components, regularization, k, window, lr, …), scan several values
+     THIS iteration, measure each against the criteria, apply the best; record the swept
+     values + choice in one wiki attempts/ page. Sweep = one axis × many values (≠ branching).
 
 JUDGE  (self; or one fresh subagent if evaluation: fresh-eval)
   i. Compare current files to history/vBEST/ against the criteria. Return:
@@ -132,8 +137,8 @@ Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ## Behavioral rules
 
-- Read `program.md` config every iteration and honor it (branching, literature budget, evaluation mode, cadence)
-- Never skip RECALL or RECORD — the wiki is read before and written after every move
+- Read `program.md` every iteration — both the config block AND the "## Iteration checklist" — and honor it in full (branching, parameter_sweep, literature budget, evaluation mode, cadence)
+- Never skip RECALL or RECORD — the wiki is read before and written after every move, and report.md is refreshed every iteration (not once at baseline)
 - Never apply a KEPT change without first snapshotting it to `history/vNNN/`
 - Never revert from anything other than `history/vBEST/`
 - Never modify `program.md` / `__thetask__.md` mid-loop except for the iteration/best counters (or explicit user request)

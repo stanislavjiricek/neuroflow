@@ -176,6 +176,7 @@ artifact_location: scripts/analysis/connectivity_autoresearch/
 promote_to_project_wiki: ask          # on | off | ask
 branching: agent-decided              # off | agent-decided
 max_alive_branches: 3                 # cost cap when branching
+parameter_sweep: true                 # when a move tunes a scannable parameter, scan several values in ONE iteration and pick the best
 literature_search: when-stuck         # off | when-stuck | agent-decided
 literature_sources: pubmed, biorxiv   # MCP sources to query
 literature_budget: 1 per 5 iterations # rate cap
@@ -186,9 +187,22 @@ output_report_pdf: off                # on | off
 report_cadence: every-round           # every-round | every-N
 answer_channel: both                  # session | inbox | both
 notify_on_plateau: true
+
+## Iteration checklist — DO ALL, EVERY TIME, NEVER SKIP
+<!-- This block is the contract. It is re-read at the start of every iteration so it
+     can never drift out of context. Skipping ANY item is a loop failure. -->
+1. RECALL — read this program.md (incl. this checklist), __thetask__.md, the wiki (index → synthesis → relevant attempts), and check answers.md + session for new answers
+2. DECIDE — pick the weakest criterion and ONE move, informed by the wiki (never re-try a move the wiki shows failed)
+3. SWEEP — if the move tunes a scannable parameter and parameter_sweep is on, scan several values this iteration and pick the best
+4. ACT — make the change
+5. JUDGE — compare to history/vBEST/ against the criteria → BETTER | WORSE | NO CHANGE + delta
+6. KEEP/REVERT — snapshot to history/vNNN/ on BETTER, else restore from vBEST/; append a row to results.md
+7. WIKI — write an attempts/ page (what, why, verdict, delta, reasoning — especially failures); update synthesis/ on a pattern; update index.md + log.md
+8. REPORT — rewrite report.md (open questions on top); update the pointer registry; regenerate PDF/dashboard per cadence
+9. Items 7 and 8 are NOT optional and are NOT once-at-baseline — they run every single iteration. If you ever notice you skipped one, do it now before the next move.
 ```
 
-**The agent reads this config every iteration and honors it exactly** — check `literature_budget` before searching, respect `branching` and `max_alive_branches`, use the configured `evaluation` mode, refresh outputs per `report_cadence`.
+**The agent reads this config AND the iteration checklist at the start of every iteration and honors both exactly** — check `literature_budget` before searching, respect `branching` / `max_alive_branches` / `parameter_sweep`, use the configured `evaluation` mode, refresh outputs per `report_cadence`, and complete every checklist item including the wiki write and report refresh.
 
 ---
 
@@ -196,6 +210,9 @@ notify_on_plateau: true
 
 ```markdown
 # Task Manifest
+
+> EVERY ITERATION: follow the "## Iteration checklist" in program.md in full —
+> including the wiki write (step 7) and report.md refresh (step 8). Never skip them.
 
 ## Tracked files
 - `../connectivity.py`
@@ -217,14 +234,15 @@ Paths are relative to the loop folder. The agent modifies the real files; the ev
 
 ## INIT — setup interview (first run only)
 
-> **HARD GATE — the loop must NOT begin until the user has explicitly signed off on the full config block.** Never set silent defaults and jump into iterations. Every configuration option below is *asked*, not assumed — branching, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, and wiki promotion. If the user gives a partial answer, ask the rest; if they say "use defaults", still show the resulting config block and get an explicit "yes" before iterating. Starting iterations with any unasked option is the failure mode this gate exists to prevent.
+> **HARD GATE — the loop must NOT begin until the user has explicitly signed off on the full config block.** Never set silent defaults and jump into iterations. Every configuration option below is *asked* one at a time, not assumed — branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, and wiki promotion. If the user gives a partial answer, ask the rest; if they say "use defaults", still show the resulting config block and get an explicit "yes" before iterating. Starting iterations with any unasked option is the failure mode this gate exists to prevent.
 
 1. Read `project_config.md` → determine active phase
 2. **Which files should this loop improve?** (or infer from `--target`)
 3. **Name and location:** derive a default name from the primary tracked file and a default location = that file's directory. Show both: *"Loop folder: `scripts/analysis/connectivity_autoresearch/`. OK, or change name/location?"*
 4. **Build criteria** — Layer 1 (phase defaults from `references/phase-criteria.md`) + Layer 2 (context-inferred) + Layer 3 (user input) → `program.md`
-5. **Loop configuration interview** — ask and record into the config block:
+5. **Loop configuration interview — go slowly, ONE question at a time.** Ask each option as a separate message (or a clearly numbered walk-through), state the default and the trade-off, wait for the answer, then move to the next. Do NOT batch all options into one wall of text and do NOT rush to the loop — a hurried interview is exactly the failure this step guards against. Record each answer into the config block:
    - *Branching:* "When you see two equally promising directions, may I try both and keep the winner? (agent-decided / single-track)" → if agent-decided, "max directions to keep open at once?"
+   - *Parameter sweep (default yes):* "When a move tunes a parameter that makes sense to scan over a range — a threshold, filter cutoff, number of components, regularization strength — may I scan several values within a single iteration and pick the best, instead of one value per iteration? (yes / no)"
    - *Literature search:* "May I search papers when I run out of ideas or want grounding? (when-stuck / anytime / off)" → sources? → budget (e.g. 1 per 5 iterations)?
    - *Evaluation:* "Should I judge my own changes (faster, full context) or have a fresh independent check each time (slower, unbiased)? (self / fresh-eval)"
    - *Outputs:* "Live dashboard server? Human report.md (default on)? Also a PDF snapshot?" → cadence?
@@ -233,7 +251,7 @@ Paths are relative to the loop folder. The agent modifies the real files; the ev
 6. **Confirm the full config (the gate).** Render the complete `## Loop configuration` block back to the user with every value filled in, and ask for an explicit go-ahead: *"This is the full configuration. Confirm to start the loop, or tell me what to change."* **Do not proceed to step 7 until the user confirms.** No iteration runs before this sign-off.
 7. Create the loop folder at the chosen location; initialize `wiki/` (index.md, log.md, schema.md, pages/ subfolders) — write a starter `schema.md` describing the artifact, the criteria, and the wikilink convention
 8. Snapshot tracked files → `history/v000/`; write baseline row to `results.md`
-9. Write `program.md` (with the confirmed config block), `__thetask__.md`, `flow.md`
+9. Write `program.md` (with the confirmed config block **and the "## Iteration checklist" block — both are mandatory**), `__thetask__.md` (with the iteration reminder at top), `flow.md`
 10. Add a row to `.neuroflow/{phase}/autoresearch-loops.md` (create the registry if absent)
 11. If `output_dashboard: on`, write `server.py` from `scripts/server.py` in this skill and tell the user the URL
 12. Write the first `report.md`
@@ -247,7 +265,8 @@ Paths are relative to the loop folder. The agent modifies the real files; the ev
 REPEAT FOREVER until the human interrupts:
 
   RECALL
-    a. Read program.md (task, criteria, config) + __thetask__.md (resolve tracked paths)
+    a. Read program.md — INCLUDING its "## Iteration checklist" — + __thetask__.md (resolve tracked paths).
+       The checklist is the contract for this iteration; follow every item, never skip the wiki write or report refresh.
     b. Read tracked files (current state) + history/vBEST/ (current best)
     c. Read the wiki: index.md → synthesis/ → attempts/ for the target criterion → relevant concepts/sources
     d. Check answers.md and the session for new human answers (match Q-ids; see Q&A channel)
@@ -264,6 +283,13 @@ REPEAT FOREVER until the human interrupts:
 
   ACT
     h. Make ONE surgical change to the tracked files. Not a rewrite — one move.
+       PARAMETER SWEEP: if parameter_sweep is on AND the move is tuning a parameter with a
+       sensible range of values (threshold, filter cutoff, n_components, regularization,
+       k folds, window length, learning rate, …), scan several values WITHIN THIS ONE
+       iteration: try each, measure each against the criteria, and pick the best value to
+       apply. The scan is internal scratch — only the chosen value is written to the tracked
+       files. Record the swept values and the choice in one wiki attempts/ page (the curve).
+       A sweep is one axis × many values; branching (g) is many competing directions — don't conflate them.
 
   JUDGE  (self, or one fresh subagent if evaluation: fresh-eval)
     i. Compare current tracked files to history/vBEST/ against the criteria.
