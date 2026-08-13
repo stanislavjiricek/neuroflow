@@ -6,7 +6,7 @@ title: /paper
 
 **Draft and internally review every section of your manuscript — nothing is saved without critic approval.**
 
-`/paper` is the unified manuscript command. It replaces two separate steps (draft, then review) with a single brutal loop: the `paper-writer` agent drafts each section, the `paper-critic` agent applies the full six-area peer-review methodology, and the loop iterates up to 3 times per section. Only approved sections reach disk.
+`/paper` is the unified manuscript command. It replaces two separate steps (draft, then review) with a single brutal loop: the `paper-writer` agent drafts each section, the `paper-critic` agent applies the full eight-area peer-review methodology, and the loop iterates up to 3 times per section. Only approved sections reach disk.
 
 ---
 
@@ -25,7 +25,7 @@ Claude reads your project memory and asks:
 1. **Target journal?**
 2. **Format?** LaTeX or Markdown/Word
 3. **Which section(s)?** — or full paper
-4. **Review focus?** — full six-area critique on every section, or specific areas
+4. **Review focus?** — full eight-area critique on every section, or specific areas
 
 ---
 
@@ -56,7 +56,7 @@ Maximum 3 iterations per section. Nothing is written to `manuscript/` without `[
 
 ## Critic standards
 
-The `paper-critic` agent applies the full `neuroflow:review-neuro` six-area methodology to every draft:
+The `paper-critic` agent applies the full `neuroflow:review-neuro` eight-area methodology to every draft:
 
 | Area | What is checked |
 |---|---|
@@ -66,6 +66,8 @@ The `paper-critic` agent applies the full `neuroflow:review-neuro` six-area meth
 | Statistics | Effect sizes, multiple-comparison correction, null models, estimator specification |
 | Methods Reproducibility | COBIDAS/ARRIVE compliance, artefact thresholds, data/code availability |
 | Contribution & Novelty | Novelty claims, prior work comparison, journal fit |
+| Literature Gap | Missing citations vs local paper library and the manuscript's own references |
+| Figure Review | Figure citations, panel completeness, axes/units/error bars, statistical annotations |
 
 A section is approved only if it would survive peer review at a top-tier neuroscience journal. The bar is not "acceptable draft" — it is "ready for submission".
 
@@ -103,4 +105,4 @@ Approved sections are saved to `manuscript/` (or the path set in `.neuroflow/pap
 ## Related commands
 
 - [`/data-analyze`](data-analyze.md) — generate the results that go into the paper
-- [`/review`](review.md) — peer review a colleague's paper using the same six-area methodology
+- [`/review`](review.md) — peer review a colleague's paper using the same eight-area methodology

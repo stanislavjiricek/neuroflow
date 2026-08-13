@@ -12,9 +12,9 @@ Three scheduled GitHub Actions workflows provide automated repo maintenance for 
 
 | Workflow | Schedule | Discussion | Opens PRs? |
 |---|---|---|---|
-| Daily Maintainer Report | Daily 07:00 UTC | [#167](https://github.com/stanislavjiricek/neuroflow/discussions/167) | No |
-| Sentinel-dev | Daily 06:00 UTC | [#168](https://github.com/stanislavjiricek/neuroflow/discussions/168) | Yes (auto-fixable only) |
-| Research Radar | Weekly, Monday 08:00 UTC | [#169](https://github.com/stanislavjiricek/neuroflow/discussions/169) | No |
+| Daily Maintainer Report | Daily 20:00 UTC | [#167](https://github.com/stanislavjiricek/neuroflow/discussions/167) | No |
+| Sentinel-dev | Daily 20:00 UTC | [#168](https://github.com/stanislavjiricek/neuroflow/discussions/168) | Yes (auto-fixable only) |
+| Research Radar | Weekly, Friday 20:00 UTC | [#169](https://github.com/stanislavjiricek/neuroflow/discussions/169) | No |
 
 All report comments begin with a status banner so you can stop reading immediately:
 
@@ -56,7 +56,7 @@ Edit the `cron` line in `.github/workflows/daily-maintenance.yml`:
 
 ```yaml
 schedule:
-  - cron: '0 7 * * *'   # change this
+  - cron: '0 20 * * *'   # change this
 ```
 
 ### How to change the target discussion
@@ -137,7 +137,7 @@ These are set automatically in the workflow file. No additional secrets are need
 
 ```yaml
 schedule:
-  - cron: '0 8 * * 1'   # every Monday at 08:00 UTC
+  - cron: '0 20 * * 5'   # every Friday at 20:00 UTC
 ```
 
 ---

@@ -78,7 +78,7 @@ If the user asks the agent to sync, offer the exact command and explain that the
 
 > ⚠️ `integrations.json` is not gitignored in your flowie repo. Run `/flowie` to fix this before syncing, or manually add `integrations.json` to `~/.neuroflow/flowie/.gitignore`.
 
-The agent must never push a commit that includes `integrations.json` in the diff. Always run `git -C .neuroflow/flowie status --short` mentally and verify `integrations.json` is not staged before instructing any push.
+The agent must never push a commit that includes `integrations.json` in the diff. Always run `git -C ~/.neuroflow/flowie status --short` mentally and verify `integrations.json` is not staged before instructing any push.
 
 ---
 

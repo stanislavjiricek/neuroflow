@@ -25,7 +25,7 @@ writes:
 
 First-class meeting management for neuroflow. Distinct from `/notes` (which captures unstructured live input) — `/meeting` is for planned meetings with agenda, attendees, calendar integration, and action-item-to-task conversion.
 
-Read the `neuroflow:phase-meeting` skill first. Then follow the neuroflow-core lifecycle.
+Read the `neuroflow:phase-meeting` skill first. Then follow the neuroflow-core lifecycle. Action items are converted to tasks following the canonical board spec in `/tasks` (`commands/tasks.md`) — `/tasks` owns the 3-tier task model.
 
 ---
 

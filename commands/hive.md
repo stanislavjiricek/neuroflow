@@ -1,7 +1,7 @@
 ---
 name: hive
-description: Connect neuroflow to a shared team GitHub org repo for research direction coordination, explicit knowledge sharing, and team-aware recommendations. Use --init to connect, --sync to pull updates, --view to see team state, --share to explicitly push a finding, --recommend to get team-aware suggestions for the current phase. Never auto-shares personal project data.
-phase: hive
+description: Connect neuroflow to a shared team GitHub org repo for research direction coordination, explicit knowledge sharing, and team-aware recommendations. Use --init to connect, --sync to pull updates, --view to see team state, --wiki-ingest to explicitly push a finding to the team wiki, --recommend to get team-aware suggestions for the current phase. Never auto-shares personal project data.
+phase: utility
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
@@ -38,7 +38,7 @@ Parse the command for a mode flag. If no flag is given, default to `--view` if `
 | `--members` | View and edit the team roster |
 | `--projects` | View and manage the lab project registry |
 | `--ideas` | View and append to lab-wide cross-project ideas |
-| `--tasks` | Show and manage the team Kanban board |
+| `--tasks` | Show and manage the team Kanban board (follows the canonical `/tasks` board spec at hive level) |
 | `--recommend` | Get team-aware recommendations for the current phase |
 | `--wiki` | Show team wiki overview |
 | `--wiki-ingest` | Add a source to the team wiki (replaces --share) |
@@ -66,6 +66,6 @@ Append a brief entry to `.neuroflow/sessions/YYYY-MM-DD.md`:
 Examples:
 ```
 [14:23] /hive --init — Connected to acme-neuroscience/hive-lab. Team: ACME Neuro Lab. 3 active directions loaded.
-[15:01] /hive --share — Shared finding: "ICA-cleaned EEG pipeline for auditory MMN" to shared/methods/eeg-mmn-pipeline.md.
+[15:01] /hive --wiki-ingest — Shared finding: "ICA-cleaned EEG pipeline for auditory MMN" to the team wiki.
 [09:45] /hive --sync — Pulled 2 new directions and 1 new curated paper from team Hive.
 ```

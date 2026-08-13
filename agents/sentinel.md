@@ -1,5 +1,6 @@
 ---
 name: sentinel
+tools: Read, Glob, Grep, Write, Edit
 description: Project coherence guard. Audits .neuroflow/ for internal consistency — checks flow.md completeness, timestamps, broken references, preregistration drift, session consistency, and personal sensitive information (emails, passwords, private keys, names, institutions). Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
 ---
 
@@ -49,9 +50,9 @@ If `.neuroflow/preregistration/` exists, read it. Compare stated hypotheses and 
 
 Flag deviations. Do not judge — just surface them for the user.
 
-### 6 — linked_flows.md
+### 6 — Legacy structure files
 
-If `.neuroflow/linked_flows.md` exists, check that all listed paths resolve to actual `.neuroflow/` folders.
+If `.neuroflow/linked_flows.md` or `.neuroflow/team.md` exist, flag them as legacy leftovers — both were removed from the structure in 0.2.17. Collaborators belong in `project_config.md` (`collaborators:` field); cross-project links live in the flowie project registry. Suggest migrating the content and deleting the files.
 
 ### 7 — Plugin version sync
 
@@ -169,6 +170,14 @@ For each `~/.neuroflow/hives/{org-repo}/` found:
 Group all hive warnings under "⚠️ hive". These are warnings, not blocking errors.
 
 Auto-fix: offer to delete obsolete `directions.md` and guidance on removing any legacy project-level `.neuroflow/hive/`. All other issues require user action.
+
+### 14 — Ethics gate (if human data present)
+
+Only runs if `.neuroflow/data/` exists (data intake has happened).
+
+- If `.neuroflow/ethics/status.md` does not exist or its `Status` is not `approved`: flag as **blocking** — human data appears to have been collected or ingested without a recorded ethics approval. Suggest running `/ethics --approved` to record it (or confirm the project uses no human data, in which case suggest noting `ethics: not-applicable` in `project_config.md` to silence this check).
+- If `status.md` shows an `Expires` date in the past: flag as blocking — approval expired.
+- If the earliest dated entry in `.neuroflow/data/` predates the `Approved` date: flag for human review — data may predate approval (could also be legacy/shared data; do not judge, just surface).
 
 ## Report
 

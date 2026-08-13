@@ -29,7 +29,7 @@ The paper phase produces a reviewed and approved neuroscience manuscript. Every 
 The loop runs section by section, strictly following the `neuroflow:worker-critic` protocol:
 
 1. **paper-writer** receives the task, upstream memory, journal target, and rubric — drafts the section
-2. **paper-critic** receives the draft and rubric — applies the full six-area `review-neuro` methodology — returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific actionable feedback
+2. **paper-critic** receives the draft and rubric — applies the full eight-area `review-neuro` methodology — returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific actionable feedback
 3. On `REJECTED`: **paper-writer** receives the draft and the critic's feedback — revises, addressing each bullet specifically
 4. Loop repeats until `APPROVED` or three iterations are exhausted
 
@@ -77,11 +77,20 @@ If the user has not set a target journal and requests recommendations:
 | What | Where |
 |---|---|
 | Approved section drafts, final manuscript | `output_path` (default: `manuscript/`) — outside `.neuroflow/` |
+| Submission package (`--submit`) | `{output_path}/submission/` |
+| Revision + response to reviewers (`--revise`) | `{output_path}/revision/` |
+| Conference abstracts (`--abstract`) | `{output_path}/abstracts/` |
 | Phase memory, plans, critic logs | `.neuroflow/paper/` |
 | Critic loop state per section | `.neuroflow/paper/critic-log.md` |
 | Scope and framing decisions | `.neuroflow/reasoning/paper.json` |
 
 Log any framing or scope decisions that differ from the original research question in `.neuroflow/reasoning/paper.json` — ask before writing.
+
+## Publication-tail modes
+
+`/paper` also carries the manuscript past the draft: `--submit` (cover letter, availability statements, CRediT, checklist), `--revise` (reviewer rebuttal), `--abstract` (conference abstract). Full specs live in `commands/paper.md`.
+
+**The `--revise` prime rule is absolute: minimal changes, only what a reviewer explicitly asked, existing terminology only, every edit cross-referenced in the response document, ambiguous comments resolved with the user before editing, and when in doubt about scope — ask, never widen it alone.** No rule elsewhere in this skill overrides it.
 
 ## Slash command
 

@@ -10,15 +10,15 @@ The `/review` command gathers the paper, the target journal, and your review foc
 
 1. **Asks for the paper** — paste the text, upload a PDF, or provide a file path
 2. **Asks for the target journal** — used to calibrate the referee persona and standards (optional; defaults to high general standards if not provided)
-3. **Asks for review type** — full review across all six areas, or focused on specific areas (methods, statistics, writing, figures)
-4. **Delegates to `neuroflow:review-neuro`** — the skill runs the complete six-area review
+3. **Asks for review type** — full review across all eight areas, or focused on specific areas (methods, statistics, writing, figures)
+4. **Delegates to `neuroflow:review-neuro`** — the skill runs the complete eight-area review
 5. **Saves the report** to `reviews/review-[paper-title-slug]-[date].md` in your project folder
 
 ---
 
 ## What the review covers
 
-The six areas reviewed by `neuroflow:review-neuro`:
+The eight areas reviewed by `neuroflow:review-neuro`:
 
 | Area | What it checks |
 |---|---|
@@ -28,6 +28,8 @@ The six areas reviewed by `neuroflow:review-neuro`:
 | 4. Statistics & Network Inference | Power analysis, effect sizes, multiple comparisons, null models, estimator specification |
 | 5. Methods Reproducibility | Ethics, demographics, modality-specific checklists (fMRI/EEG/iEEG/modelling), open data |
 | 6. Contribution & Novelty | Novelty vs prior work, conceptual significance, alternative interpretations, journal fit, recommendation |
+| 7. Literature Gap | Missing citations to relevant work — checked against Zotero, local paper library, and the manuscript's own references |
+| 8. Figure Review | Citation order, panel completeness, axes/units/error bars, legend definitions, statistical annotations |
 
 ---
 
@@ -67,4 +69,4 @@ Review saved to reviews/review-default-mode-connectivity-2025-06-15.md
 ## Related
 
 - [`/paper`](paper.md) — for writing and reviewing **your own** manuscript before submission
-- [`neuroflow:review-neuro`](../skills/review-neuro/SKILL.md) — the core six-area review engine
+- [`neuroflow:review-neuro`](../skills/review-neuro/SKILL.md) — the core eight-area review engine

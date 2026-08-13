@@ -49,6 +49,7 @@ Document the pipeline parameters in `preprocess-config.md` in `.neuroflow/data-p
 ## At end
 
 - Save `preprocess-report.md` — parameters used, bad channels, ICA components removed, epoch rejection rate, subject-level QC notes
+- **Write a reproducibility manifest** `environment.md` next to the pipeline script in `output_path`: Python/MATLAB version, exact package versions of everything the script imports (`pip freeze` filtered to imports, or `conda list` equivalent), OS, random seeds used, and the script's git commit hash if the repo is tracked. Regenerate it whenever the pipeline reruns — it must always answer "which versions produced these outputs"
 - Update `.neuroflow/data-preprocess/flow.md`
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
 - Update `project_config.md` if phase changed

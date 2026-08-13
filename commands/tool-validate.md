@@ -13,6 +13,7 @@ writes:
   - .neuroflow/tool-validate/
   - .neuroflow/tool-validate/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+  - tools/tests/
 ---
 
 # /tool-validate
@@ -37,7 +38,7 @@ Ask:
 3. Run the validation and record results
 4. For paradigm-specific checks (timing, markers, edge cases), audit the PsychoPy script directly — verify trial timing, marker codes, response handling, and edge cases
 
-Save all output in `.neuroflow/tool-validate/`.
+Write test scripts to `output_path` (default `tools/tests/`) — tests are deliverables that live with the tool they validate, never inside `.neuroflow/`. Save the validation plan and results record (`validation-plan.md`, `validation-results.md`) in `.neuroflow/tool-validate/`.
 
 ---
 

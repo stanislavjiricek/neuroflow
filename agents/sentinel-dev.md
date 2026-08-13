@@ -1,5 +1,6 @@
 ---
 name: sentinel-dev
+tools: Read, Glob, Grep, Write, Edit
 description: Plugin development coherence guard. Monitors consistency of the neuroflow plugin itself — folder names vs frontmatter, version sync (plugin.json, README, mkdocs.yml), README tables, docs website navigation, dead references inside SKILL.md files, naming overlaps between skills and agents, and personal sensitive information (emails, passwords, private keys, names, institutions).
 ---
 
@@ -134,15 +135,15 @@ Flag each file and line number where a match is found.
 
 ### 11 — mind.js sync
 
-Read `docs/javascripts/mind.js`. Extract all node entries from the `NODES` array.
+Read `docs/javascripts/mind.js`. The mind map is a **curated concept map** (~24 concept nodes in `NODES` + `LINKS`) — not a 1:1 mirror of the repo. Verify:
 
-- For every folder in `skills/`: verify a node with `type: "skill"` and `label` matching the folder name exists in NODES. Flag missing skills.
-- For every file in `commands/` (strip `.md`): verify a node with `type: "command"` exists with a matching `label` (prefixed with `/` e.g. `/ideation`). Flag missing commands.
-- For every file in `agents/` (strip `.md`): verify a node with `type: "agent"` and `label` matching the filename exists. Flag missing agents.
+- Every file in `commands/` (strip `.md`) is referenced somewhere — as `/name` in a node's `commands:` array or label, or via a `commands/name/` url. Flag missing commands.
+- Every file in `agents/` (strip `.md`) has its name appear somewhere in the map (label or desc). Flag missing agents.
+- Every `url:` in `NODES` pointing at `commands/`, `skills/`, or `agents/` resolves to a real source file. Flag dead urls.
 
-Flag any skill, command, or agent present in the repo but absent from `mind.js`.
+Per-skill nodes are NOT required — skills are covered by their concept cluster. Flag a missing dedicated node only when a skill introduces a genuinely new concept with no covering cluster.
 
-Auto-fix: offer to add a stub node to `NODES` — but the user must fill in `desc`, `tags`, and `url` before committing.
+Auto-fix: offer to extend the most relevant concept node's `desc` or `commands:` array — the user reviews wording before committing.
 
 ### 12 — Flowie/hive path hygiene
 

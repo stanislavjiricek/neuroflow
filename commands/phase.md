@@ -6,7 +6,12 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/sessions/
-writes: []
+writes:
+  - .neuroflow/project_config.md
+  - .claude/CLAUDE.md
+  - .github/copilot-instructions.md
+  - AGENTS.md
+  - ~/.neuroflow/flowie/projects/
 ---
 
 # /phase
@@ -35,13 +40,13 @@ Shows a visual phase map of the project — current phase, visited phases, recom
    - `→` — recommended: suggested by neuroflow after the initial interview (listed in `recommended_phases` in `project_config.md`), but not yet visited
    - `○` — not started: no subfolder, not recommended
 
-   The complete ordered list of phases is:
+   The complete ordered list of phases is the **Phase taxonomy** in `neuroflow:neuroflow-core` — that section is canonical; if this file ever disagrees, core wins. Current canonical order:
 
    ```
-   ideation → preregistration → grant-proposal → experiment →
-   tool-build → tool-validate → data → data-preprocess →
-   data-analyze → paper → write-report →
-   notes → finance
+   ideation → preregistration → grant-proposal → finance → experiment →
+   tool-build → tool-validate → data → data-preprocess → data-analyze →
+   brain-build → brain-optimize → brain-run → paper → review → poster →
+   write-report → output   (+ notes — cadence-free, shown last)
    ```
 
    Print the map in order. Example output:
@@ -56,13 +61,18 @@ Shows a visual phase map of the project — current phase, visited phases, recom
      → paper               ← recommended
      ○ preregistration
      ○ grant-proposal
+     ○ finance
      ○ tool-build
      ○ tool-validate
      ○ data
+     ○ brain-build
+     ○ brain-optimize
+     ○ brain-run
      ○ review
+     ○ poster
      ○ write-report
+     ○ output
      ○ notes
-     ○ finance
 
    Legend: ◉ current  ● visited  → recommended  ○ not started
    ```
@@ -71,7 +81,17 @@ Shows a visual phase map of the project — current phase, visited phases, recom
 
    If `recommended_phases` is absent from `project_config.md`, omit the `→` entries and the legend entry for "recommended". Suggest running `/neuroflow` to set up the project and generate phase recommendations.
 
-   Below the phase map, print one line for the active personality mode:
+   **Below the phase map, render upcoming deadlines** from `.neuroflow/timeline.md` (if it exists and has entries): the next 3 entries with future dates, `⚠` on anything within 14 days, `❌ OVERDUE` on past dates that are not marked done:
+
+   ```
+   Deadlines:
+     ⚠ 2026-08-25  SfN abstract deadline          (paper)
+       2026-10-01  Ethics approval expires        (data)
+   ```
+
+   Skip the block silently if `timeline.md` is absent or empty.
+
+   Below that, print one line for the active personality mode:
 
    ```
    Personality mode: 🧐 Teacher (teacher)    [or ⚡ Executor (executor) / 🔍 Critic (critic)]
@@ -81,7 +101,7 @@ Shows a visual phase map of the project — current phase, visited phases, recom
 
 5. Ask: "Do you want to switch to a different phase, or continue with the current one?"
 
-6. If the user picks a different phase, update `project_config.md`, `.claude/CLAUDE.md`, and `.github/copilot-instructions.md` with the new active phase, then suggest the corresponding command.
+6. If the user picks a different phase, update `project_config.md`, `.claude/CLAUDE.md`, `.github/copilot-instructions.md`, and `AGENTS.md` (all three agent-instruction mirrors must stay identical) with the new active phase, then suggest the corresponding command.
 
 7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `~/.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`):
 

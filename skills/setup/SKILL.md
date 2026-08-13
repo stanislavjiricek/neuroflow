@@ -161,53 +161,45 @@ Once you have the model list (fetched or provided by user), recommend based on t
 
 | Use case | Recommend |
 |---|---|
-| Claude Code agentic workflows, MCP tools, neuroflow | Model with best tool-calling support (e.g. `kimi-k2.5` on e-INFRA) |
+| Claude Code agentic workflows, MCP tools, neuroflow | Model with best tool-calling support (e.g. `agentic` on e-INFRA) |
 | General research, writing, analysis | Largest general-purpose model available |
 | Reasoning / complex multi-step tasks | Thinking/reasoning model if available |
 | Fast iteration, simple tasks | Smallest/fastest model |
 
 Always state your recommendation and why, then confirm:
-> I recommend `kimi-k2.5` for your setup — it has the best tool-calling performance on e-INFRA, which matters for Claude Code's agentic workflows. Use this? (Y / type a different model name)
+> I recommend `agentic` for your setup — it is e-INFRA's purpose-built alias for tool-calling workloads, which matters for Claude Code's agentic workflows. Use this? (Y / type a different model name)
 
-Save the confirmed model as `BIG_MODEL` in the start script and as `model` in `integrations.json`.
+Save the confirmed model as `model` in `integrations.json`.
 
 ---
 
-**Recommended approach: custom Python proxy (`proxy.py`)**
+**Recommended approach for e-INFRA: native direct connection (no proxy)**
 
-The custom FastAPI proxy in `skills/setup/scripts/einfra/proxy.py` is the most reliable way to connect Claude Code to e-INFRA. It performs the full Anthropic↔OpenAI translation — streaming, multi-turn tool use, model name mapping — and has been specifically tested and fixed for the edge cases that arise with e-INFRA models.
+The e-INFRA gateway speaks the **Anthropic protocol natively** — Claude Code connects directly with per-process env vars. Use an isolated `CLAUDE_CONFIG_DIR` so the gateway session and a normal subscription `claude` can run concurrently with zero shared state:
 
 ```bash
-# Terminal 1 — start proxy (Unix)
-OPENAI_API_KEY=<key> OPENAI_BASE_URL=https://llm.ai.e-infra.cz/v1 \
-BIG_MODEL=kimi-k2.5 SMALL_MODEL=kimi-k2.5 \
-uv run --python 3.12 --with fastapi --with httpx --with uvicorn \
-  uvicorn proxy:app --host 0.0.0.0 --port 4001
-
-# Terminal 2 — connect Claude Code
-ANTHROPIC_BASE_URL=http://localhost:4001 ANTHROPIC_AUTH_TOKEN=dummy claude
-```
-
-**Windows PowerShell:**
-```powershell
-# Terminal 1 — use the provided start_proxy.ps1
-.\start_proxy.ps1
-
-# Terminal 2
-$env:ANTHROPIC_BASE_URL = "http://localhost:4001"
-$env:ANTHROPIC_AUTH_TOKEN = "dummy"
+CLAUDE_CONFIG_DIR="$HOME/.claude-meta" \
+ANTHROPIC_BASE_URL="https://llm.ai.e-infra.cz/v1" \
+ANTHROPIC_AUTH_TOKEN="<key>" \
+ANTHROPIC_MODEL="agentic" \
+ANTHROPIC_SMALL_FAST_MODEL="mini" \
+ANTHROPIC_DEFAULT_HAIKU_MODEL="mini" \
+ANTHROPIC_DEFAULT_SONNET_MODEL="agentic" \
+ANTHROPIC_DEFAULT_OPUS_MODEL="agentic" \
+CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1 \
 claude
 ```
 
+Key points (full detail in `skills/setup/references/einfra-cc.md`):
+- `ANTHROPIC_BASE_URL` is `https://llm.ai.e-infra.cz/v1`.
+- Map the `DEFAULT_SONNET`/`DEFAULT_OPUS` slots to the chosen gateway model so no request goes out with a `claude-*` id; route small/background tasks to `mini`.
+- Fetch the model list live (`/v1/models`) — it changes over time; `/model <id>` switches mid-session.
+- The gateway allows **4 parallel requests per key** — avoid heavy parallel subagent fan-out.
+- For models with a context window below 200k, set `CLAUDE_CODE_AUTO_COMPACT_WINDOW` (~75% of the real window, from `/v1/model/info`).
+
 Note: on Windows, use `ANTHROPIC_AUTH_TOKEN` — more reliably picked up by Claude Code CLI than `ANTHROPIC_API_KEY`.
 
-**⚠️ Why not LiteLLM?** LiteLLM was tested with e-INFRA and produced two blocking errors: (1) `Content block is not a text block` with kimi-k2.5 (thinking blocks passed through incorrectly), and (2) `No tool calls but found tool output` with deepseek-v3.2 (tool result pairing lost in multi-turn translation). Use `proxy.py` instead.
-
-**⚠️ Known proxy.py fix — `Content block not found`:** `tool_block_started` must be a `dict` mapping `openai_tool_idx → assigned_block_index`, not a `set`. Block indices assigned once at creation, never recalculated. See `skills/setup/references/einfra-cc.md` for details.
-
-**⚠️ Port conflicts on Windows (`[WinError 10048]`):** Use `netstat -ano | findstr :<port>` to find what holds the port. Kill with `cmd.exe /c "taskkill /F /PID <PID>"` (must use cmd.exe, not Git Bash). Use port 4001+, avoid 4000.
-
-For full setup, available models, Windows workflows, and troubleshooting — read `skills/setup/references/einfra-cc.md`.
+**Legacy proxy (`proxy.py`):** only needed for OpenAI-compatible-only providers, not for e-INFRA anymore. The proxy, its LiteLLM comparison, and Windows port troubleshooting live in the legacy appendix of `skills/setup/references/einfra-cc.md`.
 
 ---
 

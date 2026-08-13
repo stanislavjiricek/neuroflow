@@ -157,8 +157,9 @@ Prepopulate the `## Agenda` section with context from the project and team.
 1. Read the meeting file by slug (search across all levels)
 2. Read `.neuroflow/project_config.md` for current phase
 3. Read `.neuroflow/tasks/active/` and `.neuroflow/tasks/review/` — list active and under-review tasks
-4. If hive is connected: read `hive.md` directions for relevant team context
-5. If any tasks are tagged with the meeting slug, include them under a dedicated heading
+4. Read `.neuroflow/timeline.md` (if present) — pull entries within the next 30 days for a Deadlines block
+5. If hive is connected: read `hive.md` directions for relevant team context
+6. If any tasks are tagged with the meeting slug, include them under a dedicated heading
 
 Compose an agenda draft:
 ```markdown
@@ -168,6 +169,9 @@ Compose an agenda draft:
 - Phase: {current phase}
 - Active tasks: {list slugs with titles}
 - In review: {list slugs with titles}
+
+### Upcoming deadlines
+{timeline.md entries within 30 days, ⚠ on anything within 14 — omit section if none}
 
 ### Team context
 {relevant hive directions if any}
@@ -296,7 +300,7 @@ Set up recurring meeting templates for the current level.
 
 When resolving attendees for any mode:
 
-1. `"all-hive-members"` → read `~/.neuroflow/hives/{org-repo}/hive.md` `## Members` table → return all rows as `{name, email}`
+1. `"all-hive-members"` → read `~/.neuroflow/hives/{org-repo}/members.md` (the hive roster file) → return all rows as `{name, email}`
 2. `"all-project-collaborators"` → read `.neuroflow/project_config.md` `collaborators:` list → return all entries
 3. Plain email string → use as-is, name = email prefix
 4. Name string (no `@`) → search hive members and collaborators by name → use matched email; if ambiguous, ask

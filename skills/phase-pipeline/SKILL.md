@@ -48,10 +48,10 @@ When the user selects the full pipeline covering the complete research journey (
 
 ## Standard research pipeline sequence
 
-Use this as the default order when inferring a pipeline from project state:
+The canonical phase list and order lives in the **Phase taxonomy** section of `neuroflow:neuroflow-core` — that is the single source of truth. For inferring a pipeline from project state, use this pragmatic default:
 
 ```
-ideation → grant-proposal (optional) → experiment (optional) → tool-build (optional) → tool-validate (optional) → data → data-preprocess → data-analyze → paper
+ideation → preregistration (optional) → grant-proposal (optional) → experiment (optional) → tool-build (optional) → tool-validate (optional) → data → data-preprocess → data-analyze → paper
 ```
 
 Brain simulation phases insert between `data-analyze` and `paper`:

@@ -399,6 +399,11 @@ Then ask phase-specific questions based on what they described:
 
 Finally: "Is there anything else useful to add — collaborators, deadlines, constraints?"
 
+**Objectives and timeline (always, from the answers above — do not ask extra questions for this):**
+
+- Distill the interview into `.neuroflow/objectives.md` — one numbered sentence per aim/objective (typically 2–5). Read it back to the user in one line for confirmation ("Your objectives, as I understood them: …"). This file is the cross-phase cornerstone every command reads at session start.
+- If any deadline, milestone, or date was mentioned anywhere in the interview (conference, funder call, thesis date, data-collection window, ethics expiry), write it to `.neuroflow/timeline.md` as `| YYYY-MM-DD | what | phase it gates |`. If none were mentioned, create the file with just the header row — `/ethics`, `/meeting`, and `/paper` append to it later. `/phase` renders upcoming entries.
+
 Then ask the following consent question (always, regardless of phase):
 
 > neuroflow is in active development. If you run into a bug or something feels off, it can automatically file an anonymous issue on GitHub to help improve the plugin — no personal data, just the plugin version, phase, and a brief description of what went wrong.
@@ -430,13 +435,13 @@ Record the answer as `default_mode: teacher` / `default_mode: executor` / `defau
 
 ## Step 2b — Suggest phase sequence
 
-Based on everything learned in Steps 1 and 2, generate a recommended ordered list of phases the user is likely to move through. Use the full pipeline as a reference:
+Based on everything learned in Steps 1 and 2, generate a recommended ordered list of phases the user is likely to move through. The canonical phase list and order is the **Phase taxonomy** section in `neuroflow:neuroflow-core` (includes the `brain-*` modelling track, `poster`, `review`, and `output`); reference pipeline:
 
 ```
-ideation → preregistration → grant-proposal → experiment →
-tool-build → tool-validate → data → data-preprocess →
-data-analyze → paper → write-report →
-notes → finance
+ideation → preregistration → grant-proposal → finance → experiment →
+tool-build → tool-validate → data → data-preprocess → data-analyze →
+brain-build → brain-optimize → brain-run → paper → review → poster →
+write-report → output   (+ notes — anytime)
 ```
 
 Select only the phases that apply to this project and order them logically. For example:
@@ -456,7 +461,7 @@ Based on what you described, here is the expected phase sequence for this projec
   → data-preprocess
   → data-analyze
   → paper
-  → export
+  → output
 
 You can always run /neuroflow:phase to see your position in this sequence or adjust it.
 ```
@@ -523,9 +528,7 @@ Ask the user whether they want to connect the MCP integrations now:
 
 **If the user says no or skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 6.
 
-**If `~/.neuroflow/flowie/integrations.json` already exists with credentials set:** skip this step entirely (integrations managed globally).
-
-**If `~/.neuroflow/flowie/integrations.json` exists:** skip this step entirely — integrations are managed globally through your flowie profile.
+**If `~/.neuroflow/integrations.json` (global credentials) already exists with the relevant keys set:** skip this step entirely — integrations are managed globally on this device. (A per-project `.neuroflow/integrations.json` override also counts. `~/.neuroflow/flowie/integrations.json` holds non-secret settings only and is not a credentials store.)
 
 **Google Workspace (gws) option:**
 Also offer gws CLI setup as part of the integration wizard:
@@ -536,7 +539,7 @@ Also offer gws CLI setup as part of the integration wizard:
 > - Claude extension: `npx skills add https://github.com/googleworkspace/cli`  
 > - Skip for now? You can set this up at any time with `/neuroflow:setup`
 
-If the user skips gws **and flowie is not active**: write `gws_setup: skipped` to `~/.neuroflow/user.yaml`. If flowie is active, skip this write — integrations are owned by the flowie profile at `~/.neuroflow/flowie/integrations.json`.
+If the user skips gws: write `gws_setup: skipped` to `~/.neuroflow/user.yaml`.
 
 ---
 

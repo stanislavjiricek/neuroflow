@@ -13,6 +13,7 @@ writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
   - .neuroflow/slideshow/
   - .neuroflow/slideshow/flow.md
+  - slides/
 ---
 
 # /slideshow
@@ -182,7 +183,7 @@ Use indented plain text with `[SLIDE]`, `[TITLE]`, `[BULLET]`, and `[SPEAKER NOT
 
 ## Step 6 — Save the slideshow
 
-Save the output as `slideshow-YYYY-MM-DD.md` in `.neuroflow/slideshow/`.
+Save the deck as `slides/slideshow-YYYY-MM-DD.md` in the project root (`slides/` is the default output path — a deck is a deliverable and never lives inside `.neuroflow/`). Keep the working outline and any speaker notes in `.neuroflow/slideshow/`.
 
 If a slideshow with the same date already exists, append `-v2`, `-v3`, etc.
 
@@ -200,14 +201,14 @@ Add a row:
 Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ```
-[HH:MM] /slideshow — Built <format> slide deck covering <phases>. Saved to .neuroflow/slideshow/slideshow-YYYY-MM-DD.md.
+## HH:MM — [slideshow] Built <format> slide deck covering <phases>. Saved to slides/slideshow-YYYY-MM-DD.md.
 ```
 
 ---
 
 ## At end
 
-- Created `.neuroflow/slideshow/slideshow-YYYY-MM-DD.md`
-- Updated `.neuroflow/slideshow/flow.md`
+- Created `slides/slideshow-YYYY-MM-DD.md` (deliverable, project root)
+- Updated `.neuroflow/slideshow/flow.md` (outline + notes stay in memory)
 - Appended to `.neuroflow/sessions/YYYY-MM-DD.md`
 - Told the user where the file is and how to open it in reveal.js (if Markdown format) or import it (if PowerPoint outline)

@@ -17,8 +17,6 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 ├── project_config.md       ← current phase, research question, modality, tools, plugin_version
 ├── flow.md                 ← index of all subfolders
 ├── sentinel.md             ← sentinel audit report
-├── linked_flows.md         ← paths to other .neuroflow/ folders (optional)
-├── team.md                 ← project members and roles (optional)
 ├── timeline.md             ← milestones and deadlines (optional)
 ├── sessions/               ← one .md per day — add to .gitignore
 ├── reasoning/              ← structured per-phase decision logs (JSON)
@@ -128,16 +126,7 @@ This means every command has full project context without you needing to paste a
 
 ## Multiple projects
 
-You can link multiple `.neuroflow/` folders using `linked_flows.md`:
-
-```markdown
-# linked_flows.md
-
-- ../related-study/.neuroflow/    ← pilot data from a related project
-- ../grant-project/.neuroflow/    ← the parent grant this study is part of
-```
-
-The sentinel agent checks that all listed paths resolve to actual folders.
+Cross-project context lives at the personal and team levels rather than in per-project link files: your global [flowie profile](flowie.md) tracks all your projects in its registry (`~/.neuroflow/flowie/projects/`), and a shared [hive](../commands/hive.md) connects projects across a team. (Earlier versions used a `linked_flows.md` file — removed in 0.2.17.)
 
 ---
 

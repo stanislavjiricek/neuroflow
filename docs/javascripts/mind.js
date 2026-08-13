@@ -23,8 +23,8 @@
     {
       id: "c-tasks",    label: "Task Board",            category: "personal-profile",
       desc: "Cross-project Kanban board — inbox / active / review / done. One markdown file per task, linked to a flowie project entry.",
-      commands: ["/flowie --tasks", "/flowie --tasks --add", "/flowie --tasks --move"],
-      url: "commands/flowie/"
+      commands: ["/tasks", "/flowie --tasks", "/hive --tasks"],
+      url: "commands/tasks/"
     },
     {
       id: "c-wellbeing",label: "Wellbeing",             category: "personal-profile",
@@ -56,14 +56,14 @@
     /* ── Research Pipeline ── */
     {
       id: "c-discovery",     label: "Discovery",       category: "pipeline",
-      desc: "Ideation, literature search, brainstorming. The scholar agent runs sequential searches across bioRxiv and runs a 12-lens analytical review of downloaded papers.",
+      desc: "Ideation, literature search, brainstorming. The scholar agent runs sequential searches across PubMed and bioRxiv; the literature-review agent runs a 12-lens analytical review of downloaded papers.",
       commands: ["/ideation", "/search"],
       url: "commands/ideation/"
     },
     {
       id: "c-formalization", label: "Formalization",   category: "pipeline",
-      desc: "Preregistration, hypothesis formalization, open science. Generates OSF-compatible documents. Constrains what data collection and analysis can do.",
-      commands: ["/preregistration"],
+      desc: "Preregistration, hypothesis formalization, ethics/IRB approval tracking, open science. Generates OSF-compatible documents. The ethics gate and the registered plan constrain what data collection and analysis can do.",
+      commands: ["/preregistration", "/ethics"],
       url: "commands/preregistration/"
     },
     {
@@ -98,7 +98,7 @@
     },
     {
       id: "c-communication", label: "Communication",   category: "pipeline",
-      desc: "Posters (LaTeX, 5 templates), slide decks, phase reports, and project output archives. Final outputs from the research pipeline.",
+      desc: "Posters (LaTeX, 5 templates, reviewed by the poster-critic agent), slide decks, phase reports, and project output archives. Final outputs from the research pipeline.",
       commands: ["/poster", "/slideshow", "/write-report", "/output"],
       url: "commands/poster/"
     },
@@ -106,7 +106,7 @@
     /* ── Skill / Agent nodes ── */
     {
       id: "sk-flowie",  label: "phase-flowie skill",   category: "personal-profile",
-      desc: "Phase guidance skill for /flowie — profile read and apply rules across all phases, write rules for .neuroflow/flowie/, GitHub sync protocol, and privacy-conscious personalization.",
+      desc: "Phase guidance skill for /flowie — profile read and apply rules across all phases, write rules for ~/.neuroflow/flowie/, GitHub sync protocol, and privacy-conscious personalization.",
       commands: ["neuroflow:phase-flowie"],
       url: "skills/phase-flowie/SKILL/"
     },
@@ -146,7 +146,7 @@
     /* ── Utilities & Quality ── */
     {
       id: "c-quality",    label: "Quality & Audit",   category: "utilities",
-      desc: "Sentinel (11 consistency checks on .neuroflow/ structure, preregistration drift, sensitive data), fails log (structured failure reports), and tool validation.",
+      desc: "Sentinel (consistency checks on .neuroflow/ structure, preregistration drift, sensitive data) plus sentinel-dev guarding the plugin repo itself, fails log (structured failure reports), and tool validation.",
       commands: ["/sentinel", "/fails", "/tool-validate"],
       url: "commands/sentinel/"
     },

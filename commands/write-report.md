@@ -12,6 +12,7 @@ writes:
   - .neuroflow/write-report/
   - .neuroflow/write-report/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+  - report/
 ---
 
 # /write-report
@@ -40,7 +41,7 @@ Generates a structured report from `.neuroflow/` contents. Useful for progress u
    - **Per phase** — what was done, key outputs, open questions
    - **Overall status** — current phase, what's next
 
-4. Save as `report-[date].md` in `.neuroflow/write-report/`.
+4. Save the report as `report/report-[date].md` in the project root (default output path `report/` — reports are user-facing deliverables, per the core memory-vs-outputs rule). Keep a one-paragraph summary note in `.neuroflow/write-report/` referencing the report path.
 
 ---
 
