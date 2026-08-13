@@ -18,6 +18,8 @@ neuroflow connects to four MCP (Model Context Protocol) servers that Claude Code
 
 All are started automatically by Claude Code — you do not need to run them manually.
 
+**Optional — Zotero:** neuroflow does not bundle a Zotero server, but if you add a community one (e.g. `zotero-mcp` — `claude mcp add zotero -- uvx zotero-mcp`, with the Zotero desktop app running or a `ZOTERO_API_KEY`), `/ideation` automatically switches to library-first literature search: your existing papers are recognized and skipped, and new findings can be saved into a project collection. See `/setup` for guidance.
+
 ---
 
 ## PubMed / bioRxiv
@@ -86,49 +88,40 @@ neuroflow's `/setup` command (Step 5) lets you configure an alternative LLM API 
 
 > **Access requirement:** e-INFRA CZ LLM API is available to Czech academic researchers with Metacentrum/e-INFRA CZ membership. See https://metavo.metacentrum.cz for eligibility. This service is not available for general international use.
 
-The e-INFRA CZ platform provides free access to large open-source models via an OpenAI-compatible API at `https://llm.ai.e-infra.cz`.
+The e-INFRA CZ gateway at `https://llm.ai.e-infra.cz` provides free access to large open-source models — and it speaks the **Anthropic protocol natively**, so Claude Code connects directly. **No proxy needed.**
 
-**Available models:**
-
-| Model | Category | Notes |
-|---|---|---|
-| `qwen3.5-122b` | General / best overall | Default recommended |
-| `qwen3-coder-next` | Coding | Latest coding model |
-| `deepseek-v3.2` | Coding + reasoning | Good all-rounder |
-| `deepseek-v3.2-thinking` | Reasoning / thinking | For complex reasoning |
-| `kimi-k2.5` | Agentic / tool use | Best for tool-calling workflows |
-| `mistral-small-4` | Fast / small | Quick tasks |
-| `qwen3-coder-30b` | Fast / coding | Lighter coding model |
-
-**Direct connection:**
+**Native connection (recommended):**
 
 ```bash
-ANTHROPIC_BASE_URL=https://llm.ai.e-infra.cz/v1 \
-ANTHROPIC_API_KEY=<YOUR_API_KEY> \
+CLAUDE_CONFIG_DIR="$HOME/.claude-meta" \
+ANTHROPIC_BASE_URL="https://llm.ai.e-infra.cz/v1" \
+ANTHROPIC_AUTH_TOKEN="<YOUR_API_KEY>" \
+ANTHROPIC_MODEL="agentic" \
+ANTHROPIC_SMALL_FAST_MODEL="mini" \
+ANTHROPIC_DEFAULT_HAIKU_MODEL="mini" \
+ANTHROPIC_DEFAULT_SONNET_MODEL="agentic" \
+ANTHROPIC_DEFAULT_OPUS_MODEL="agentic" \
+CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1 \
 claude
 ```
 
-**Proxy mode (for model selection):**
+The isolated `CLAUDE_CONFIG_DIR` lets this run **alongside** your normal subscription `claude` in another terminal — zero shared state. Get an API key at [chat.ai.e-infra.cz](https://chat.ai.e-infra.cz) → Settings → Account → API keys.
 
-Copy `skills/setup/scripts/proxy.mjs` from the neuroflow plugin, edit in your API key, then:
+**Models:** the gateway list changes over time — fetch it live from `https://llm.ai.e-infra.cz/v1/models`. As of August 2026 it includes `agentic` (recommended for Claude Code tool use), `coder`, `thinker`, `mini` (background tasks), `kimi-k3`, `qwen3.5-122b`, `glm-5`, `deepseek`, and more. Switch mid-session with `/model <id>`.
 
-```bash
-node proxy.mjs kimi-k2.5   # Terminal 1 — start the proxy
-# Close Claude Code, then reopen in Terminal 2:
-ANTHROPIC_BASE_URL=http://localhost:3456 ANTHROPIC_API_KEY=any claude
-```
+**Rate limit:** 4 parallel requests per key — normal interactive use fits; heavy parallel subagent fan-out will hit 429s.
 
-For full documentation — including all available models, direct mode limitations, and the complete terminal workflow — see the `neuroflow:setup` skill → [`references/einfra-cc.md`](skills/setup/references/einfra-cc.md).
+For full documentation — env var reference, context-window handling, and the legacy proxy appendix — see the `neuroflow:setup` skill → [`references/einfra-cc.md`](skills/setup/references/einfra-cc.md).
 
 ### Other providers
 
-Any OpenAI-compatible endpoint works: set `base_url` and `api_key` during `/setup` Step 5. The custom LLM settings are saved to `.neuroflow/integrations.json` under the `custom_llm` key.
+Any OpenAI-compatible endpoint works: set `base_url` and `api_key` during `/setup` Step 5. The custom LLM settings are saved to your chosen scope's `integrations.json` under the `custom_llm` key.
 
 ---
 
 ## Credential storage
 
-When you run `/neuroflow:setup`, credentials are saved to `.neuroflow/integrations.json`:
+When you run `/neuroflow:setup`, credentials are saved to `~/.neuroflow/integrations.json` (global, all projects on this machine) or `.neuroflow/integrations.json` (per-project override — takes precedence). The wizard asks which scope to use:
 
 ```json
 {
@@ -145,7 +138,7 @@ When you run `/neuroflow:setup`, credentials are saved to `.neuroflow/integratio
 ```
 
 !!! warning "Never committed"
-    `.neuroflow/integrations.json` is automatically added to `.gitignore` by neuroflow. Your credentials are stored locally only and never committed to your repository.
+    The per-project `.neuroflow/integrations.json` is automatically added to `.gitignore` by neuroflow, and the global `~/.neuroflow/integrations.json` lives outside any repository. Your credentials are stored locally only and never committed. Only non-secret settings (never `api_key`) are ever synced via `~/.neuroflow/flowie/integrations.json`.
 
 ---
 

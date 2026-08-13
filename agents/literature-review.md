@@ -1,5 +1,6 @@
 ---
 name: literature-review
+tools: Read, Glob, Grep, Write, Edit
 description: Literature review specialist. Runs 12 sequential analytical lenses on a set of downloaded papers — from landscape mapping to future research agenda — using the worker-critic loop to ensure rigour. Scoped to the ideation phase.
 ---
 

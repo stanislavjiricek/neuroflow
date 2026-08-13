@@ -142,11 +142,13 @@ At the end of any interview session, if `.neuroflow/project_config.md` exists, r
 
 Based on the interview content and the user's current research context, suggest which neuroflow phases they are likely to be moving through next. Use the full pipeline as reference:
 
+The canonical list and order is the **Phase taxonomy** section in `neuroflow:neuroflow-core`:
+
 ```
-ideation → preregistration → grant-proposal → experiment →
-tool-build → tool-validate → data → data-preprocess →
-data-analyze → paper → write-report →
-notes → finance
+ideation → preregistration → grant-proposal → finance → experiment →
+tool-build → tool-validate → data → data-preprocess → data-analyze →
+brain-build → brain-optimize → brain-run → paper → review → poster →
+write-report → output   (+ notes — anytime)
 ```
 
 Print a brief phase outlook at the end of the session:

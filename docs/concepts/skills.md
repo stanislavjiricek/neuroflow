@@ -33,7 +33,7 @@ Skills give Claude phase-specific expertise without you having to instruct it ma
 | Skill | What it does |
 |---|---|
 | `neuroflow:neuroflow-core` | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, command lifecycle, frontmatter standard |
-| `neuroflow:review-neuro` | Rigorous six-area peer review of a neuroscience manuscript — invoked by `/review` |
+| `neuroflow:review-neuro` | Rigorous eight-area peer review of a neuroscience manuscript — invoked by `/review` |
 
 ### Phase skills
 

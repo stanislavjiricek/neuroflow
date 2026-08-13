@@ -19,12 +19,12 @@ Read the `neuroflow:phase-review` skill first. Then follow the neuroflow-core li
 
 ## What this command does
 
-Gather the inputs below, then invoke the `neuroflow:review-neuro` skill to run the full six-area review. Do not perform the review yourself — delegate entirely to the skill.
+Gather the inputs below, then invoke the `neuroflow:review-neuro` skill to run the full eight-area review. Do not perform the review yourself — delegate entirely to the skill.
 
 Ask:
 1. **Paper** — paste the full text, upload the PDF, or provide a file path.
 2. **Target journal** — which journal is it being submitted to? (If unknown, apply high general standards.)
-3. **Review type** — full review across all six areas, or focus on specific areas (methods, statistics, writing, figures)?
+3. **Review type** — full review across all eight areas, or focus on specific areas (methods, statistics, writing, figures)?
 
 Once you have the answers, pass them to the `neuroflow:review-neuro` skill and let it drive the review procedure from start to finish.
 

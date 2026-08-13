@@ -7,12 +7,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=\"${CLAUDE_TOOL_RESULT_FILE_PATH:-}\"; case \"$f\" in *.py) [ -f \"$f\" ] && ruff format \"$f\" >/dev/null 2>&1;; esac; true",
+            "command": "in=$(cat); f=$(printf '%s' \"$in\" | jq -r '.tool_input.file_path // empty' 2>/dev/null); [ -n \"$f\" ] || f=$(printf '%s' \"$in\" | python -c \"import sys,json;print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))\" 2>/dev/null); f=$(printf '%s' \"$f\" | tr '\\\\' '/'); case \"$f\" in *.py) [ -f \"$f\" ] && ruff format \"$f\" >/dev/null 2>&1;; esac; true",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "f=\"${CLAUDE_TOOL_RESULT_FILE_PATH:-}\"; case \"$f\" in */.neuroflow/flowie/*) d=\"${f%%/.neuroflow/*}/.neuroflow/flowie\"; [ -d \"$d/.git\" ] && { git -C \"$d\" add -A; git -C \"$d\" commit -m \"sync: auto\"; git -C \"$d\" push; } >/dev/null 2>&1;; esac; true",
+            "command": "in=$(cat); f=$(printf '%s' \"$in\" | jq -r '.tool_input.file_path // empty' 2>/dev/null); [ -n \"$f\" ] || f=$(printf '%s' \"$in\" | python -c \"import sys,json;print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))\" 2>/dev/null); f=$(printf '%s' \"$f\" | tr '\\\\' '/'); case \"$f\" in */.neuroflow/flowie/*) d=\"${f%%/.neuroflow/*}/.neuroflow/flowie\"; [ -d \"$d/.git\" ] && { git -C \"$d\" add -A; git -C \"$d\" reset -q -- integrations.json; git -C \"$d\" commit -m \"sync: auto\"; git -C \"$d\" push; } >/dev/null 2>&1;; esac; true",
             "timeout": 30
           }
         ]

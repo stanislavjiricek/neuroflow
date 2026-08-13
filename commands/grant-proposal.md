@@ -222,6 +222,17 @@ Work through sections in order. **Before each major section, re-read `objectives
 - PI and co-investigators with role descriptions
 - Institutional resources: scanners, clusters, core facilities
 
+**Data Management Plan (DMP) — required by every supported funder**
+- Draft as a standalone document, not a proposal section: `dmp-{funder}-{YYYY-MM-DD}.md` in `.neuroflow/grant-proposal/`
+- Use the funder's template structure:
+  - **NIH (DMS Policy, 2023)** — six elements: data type/amount, related tools & software, standards (name BIDS explicitly for neuroimaging/ephys), preservation & access (name the repository — OpenNeuro/OSF/Zenodo — and timeline), access/reuse restrictions and their justification, oversight
+  - **Horizon Europe / ERC** — DMP template on the FAIR principles: findable (DOI, metadata), accessible (repository, embargo), interoperable (formats, standards), reusable (license); open-research-data is the default, opt-outs must be justified
+  - **Wellcome** — outputs management plan: outputs foreseen, sharing venue and timing, resources needed
+  - Other funders: ask for the template, or default to the FAIR structure
+- Fill from project memory: modality and expected volume from `project_config.md`, BIDS from the `neuroflow:bids` skill, consent-based restrictions from `.neuroflow/ethics/` if present
+- **Promise only what the workflow can deliver** — the repositories and licenses named here are what `/output --archive` will later execute; do not promise a repository or timeline the user has not confirmed
+- Cross-check: sentinel compares the DMP's promises against actual practice during audits
+
 ---
 
 ## Step 6 — Quality checks before saving

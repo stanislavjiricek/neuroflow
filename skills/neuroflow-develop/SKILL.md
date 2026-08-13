@@ -104,7 +104,7 @@ writes:
 Instructions Claude follows when the user runs /neuroflow:my-command...
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `output`, `hive`, `brain-build`, `brain-optimize`, `brain-run`, `utility`
+Valid phase values: see the **Phase taxonomy** section in `neuroflow:neuroflow-core` (`skills/neuroflow-core/SKILL.md`) — the one canonical list. Do not copy it here or into any command.
 
 Every command must also follow the lifecycle defined in `neuroflow:neuroflow-core` — read `project_config.md` + `flow.md` at the start, write to `sessions/` and update `flow.md` at the end.
 
@@ -138,18 +138,23 @@ Use plain shell commands where possible (they are simpler and avoid Python impor
 
 Example of a well-formed hook:
 ```bash
-# CLAUDE_TOOL_RESULT_FILE_PATH may not always be set (or the file may be gone
-# by the time the hook runs), so check for .py extension AND file existence.
-f="${CLAUDE_TOOL_RESULT_FILE_PATH:-}"; case "$f" in *.py) [ -f "$f" ] && ruff format "$f" >/dev/null 2>&1;; esac; true
+# Hook input arrives as JSON on stdin — the edited file path is in
+# tool_input.file_path. There is NO env var carrying the path (the old
+# CLAUDE_TOOL_RESULT_FILE_PATH pattern silently never fired). Parse with jq,
+# fall back to python if jq is missing, normalize Windows backslashes, and
+# check extension AND existence (the file may be gone by the time the hook runs).
+in=$(cat); f=$(printf '%s' "$in" | jq -r '.tool_input.file_path // empty' 2>/dev/null); [ -n "$f" ] || f=$(printf '%s' "$in" | python -c "import sys,json;print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))" 2>/dev/null); f=$(printf '%s' "$f" | tr '\\' '/'); case "$f" in *.py) [ -f "$f" ] && ruff format "$f" >/dev/null 2>&1;; esac; true
 ```
+
+**Never invent hook env vars.** The documented ones are `CLAUDE_PROJECT_DIR` (and `CLAUDE_PLUGIN_ROOT` in plugins); everything else must come from the stdin JSON. After changing a hook, verify it actually fires — write a temporary debug line to a file from the hook and trigger the matching tool event. Silent-fail wrappers make a broken hook indistinguishable from a working one.
 
 Run `sentinel-dev` after changing `hooks/hooks.json` — Check 8b will flag any hook command that lacks error suppression.
 
 ## Release workflow
 
 1. Make your changes
-   - If you added, renamed, or removed a **command, skill, or agent**: update `docs/javascripts/mind.js` — add (or remove) the node in `NODES`, the link in `LINKS`, the phase angle in `PHASE_ANGLES` (if a new phase), and the entry in `NODE_PHASE_MAP`. Run a quick `Select-String -Pattern "sk-|cmd-|ag-" docs/javascripts/mind.js` sanity check after editing.
-   - **Blocking step — do not skip.** Omitting a `mind.js` entry for a new skill, command, or agent is a consistency error that sentinel-dev Check 11 will flag on the next run.
+   - If you added, renamed, or removed a **command, skill, or agent**: update `docs/javascripts/mind.js`. The mind map is a **curated concept map** (~24 concept nodes in `NODES` + `LINKS`), not a 1:1 mirror — extend the most relevant concept node so the new item is referenced: every command must appear as `/name` in some node's `commands:` array (or a `commands/name/` url), and every agent's name must appear somewhere in the map (a label or desc). New skills are covered by their concept cluster; add a dedicated `sk-*` node only when the skill introduces a genuinely new concept.
+   - **Blocking step — do not skip.** A command or agent absent from `mind.js` is a consistency error that sentinel-dev Check 9d/11 flags on the next run.
 2. **Update `README.md`** — two places:
    - Replace the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight.
    - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.

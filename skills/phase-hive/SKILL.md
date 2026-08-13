@@ -236,12 +236,12 @@ When a new team member joins a project that already has neuroflow set up, they f
 
 | What | Shared to Hive? |
 |---|---|
-| Research question | **Never** automatically — only if user explicitly runs `--share` |
+| Research question | **Never** automatically — only if user explicitly runs `--wiki-ingest` |
 | Session logs | **Never** |
 | Raw data paths or outputs | **Never** |
-| Analysis results | **Never** automatically — only with `--share` |
+| Analysis results | **Never** automatically — only with `--wiki-ingest` |
 | Personal project_config.md fields | **Never** |
-| Something the user explicitly approves via `--share` | Yes, after confirmation |
+| Something the user explicitly approves via `--wiki-ingest` | Yes, after confirmation |
 
 The Hive is **pull-first**: the researcher benefits from team knowledge without being required to share anything back.
 

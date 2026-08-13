@@ -20,9 +20,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 
 ## Relevant agents
 
-- `literature-review` — runs 12 sequential analytical protocols on downloaded papers through the worker-critic loop; produces a compiled literature review saved to `.neuroflow/ideation/literature-review-[date].md`
-- `critic` — evaluates each protocol output in the literature-review loop
-- `orchestrator` — manages the worker-critic loop when invoked
+- `literature-review` — runs 12 sequential analytical protocols on downloaded papers through the worker-critic loop; produces a compiled literature review saved to `.neuroflow/ideation/literature-review-[date].md`. The loop protocol is defined in `neuroflow:worker-critic` — the orchestrator is the current Claude instance and the critic role is played inline, not by separate agent files.
 
 > **Note:** Literature searches are performed inline by the main agent following the search protocol — the `scholar` agent is NOT spawned as a sub-agent. Use the standalone `scholar` agent only for ad-hoc searches outside the `/ideation` workflow.
 
@@ -30,6 +28,10 @@ The ideation phase is the entry point of a research project — sharpening a vag
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
 - `neuroflow:pupil-labs-neon-realtime` — if the project involves Pupil Labs Neon eye-tracking hardware, use this skill for real-time data collection and device connection during ideation/piloting
+
+## Zotero integration (optional)
+
+If a Zotero MCP server is connected (any `mcp__*zotero*` tools available), the literature workflow becomes **library-first**: search the user's Zotero library before external sources, mark already-owned papers 📚 in results (excluded from download offers), offer to save newly selected papers into a project-named Zotero collection, and let the literature review pull the user's existing Zotero notes/annotations. If no Zotero MCP is present, `/ideation` asks once per project whether to set one up (answer stored as `zotero:` in `project_config.md`; setup guidance lives in `/setup`). Never require Zotero — the plain stub-based flow is always the fallback.
 
 ## Workflow hints
 

@@ -6,6 +6,12 @@ title: Changelog
 
 ---
 
+## 0.2.21
+
+- **Consistency overhaul from a full plugin review** — hooks rewritten against the real stdin-JSON contract (both were silently dead); one canonical credentials scheme (global `~/.neuroflow/integrations.json` + per-project override, flowie non-secrets only); one canonical phase taxonomy in `neuroflow-core` replacing four divergent copies; eight-area review methodology everywhere; `/setup` step numbering fixed; dead references purged (`linked_flows.md`, ghost agents, `/export`, `--share`); e-INFRA guide rewritten for the native Anthropic gateway (no proxy needed)
+- **Lifecycle enforcement** — missing-`.neuroflow/` global rule + one canonical session-log format in core; new PR-time CI (`validate.yml` + `validate_pr.py`: JSON validity, frontmatter schema, phase values against the canonical taxonomy, docs pages, version-bump gate); sentinel-dev checks 2/5/7/10/12 implemented in `sentinel_check.py`; mind-map check aligned to the concept-map design; audit agents (`paper-critic`, `poster-critic`, `sentinel`, `sentinel-dev`, `literature-review`) get `tools:` allowlists
+- **Science-PM surface** — new `/ethics` and `/tasks` commands; `/paper --submit` / `--revise` (strict minimal-change rebuttal discipline) / `--abstract`; `/output --archive` with de-identification checklist and DOI recording; DMP drafting in `/grant-proposal`; `objectives.md`/`timeline.md` created by `/neuroflow` and rendered by `/phase`; reproducibility manifests in data phases; deliverables moved out of `.neuroflow/` (poster/slides/tests/reports); wikis guaranteed Obsidian-vault-compatible; optional Zotero-first literature search in `/ideation`
+
 ## 0.2.20
 
 - **autoresearch rebuilt around a per-loop wiki** — a single managing agent (no worker/evaluator subagent fan-out) runs the loop and uses a scoped `wiki/` as its brain: reads it before every move, records every attempt (wins *and* failures) after. Lets an infinite single-agent loop compound instead of re-treading dead ends.

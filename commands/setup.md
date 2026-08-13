@@ -41,7 +41,7 @@ Ask once at the start:
 
 - Choices: **(1) Global (recommended)**  **(2) This project only**
 
-Store the choice as `save_global` (boolean) — use it in Step 6 when writing credentials.
+Store the choice as `save_global` (boolean) — use it in Step 5 when writing credentials.
 
 If either file already exists, read both and merge (per-project overrides global).
 
@@ -66,13 +66,16 @@ Context7                 ✅ no credentials needed
 Google Workspace CLI     ✅ installed  (or ❌ not installed)
   └─ OAuth credentials   ✅ configured  (or ❌ not configured)
 Custom LLM               ✅ configured (provider: einfra)  (or ❌ not configured)
+Zotero MCP (optional)    ✅ connected  (or — not set up)
 ```
+
+**Zotero (optional):** if the user asks about Zotero (or `/ideation` sent them here), guide them to add a community Zotero MCP server — e.g. `zotero-mcp`: install per its README (typically `claude mcp add zotero -- uvx zotero-mcp` with the Zotero desktop app running for the local API, or a `ZOTERO_API_KEY` + library ID for the web API). Once the server's tools are visible, `/ideation` automatically offers library-first search and saving results into Zotero collections. No credentials are stored in `integrations.json` for this — the MCP server holds its own config.
 
 ---
 
 ## Step 2 — Miro setup
 
-**If Miro is already configured:** ask "Miro token is already set. Update it? (y/N)". If no, skip to Step 4.
+**If Miro is already configured:** ask "Miro token is already set. Update it? (y/N)". If no, skip to Step 3.
 
 **If Miro is not configured:**
 
@@ -97,9 +100,9 @@ Ask: "Paste your Miro access token (or press Enter to skip):"
 
 This step covers the `gws` CLI — a single tool for Drive, Gmail, Calendar, Sheets, Docs, and more. It is optional but enables the Google Calendar and Gmail MCP integrations in neuroflow.
 
-### 4a — Check if gws is installed
+### 3a — Check if gws is installed
 
-Run `gws --version 2>/dev/null` or `which gws` (Unix) / `where gws 2>nul` (Windows). If the command is found, skip to Step 4b.
+Run `gws --version 2>/dev/null` or `which gws` (Unix) / `where gws 2>nul` (Windows). If the command is found, skip to Step 3b.
 
 **If not installed:**
 
@@ -115,10 +118,10 @@ Tell the user:
 > Then run `/neuroflow:setup` again to configure credentials.
 
 Ask: "Install `gws` now? (y/N)"
-- If yes: run `npm install -g @googleworkspace/cli` and confirm success, then continue to 4b.
-- If no: note it was skipped, move to Step 5.
+- If yes: run `npm install -g @googleworkspace/cli` and confirm success, then continue to 3b.
+- If no: note it was skipped, move to Step 4.
 
-### 4b — Check OAuth credentials
+### 3b — Check OAuth credentials
 
 Run `which gcloud 2>/dev/null` to check if the `gcloud` CLI is present.
 
@@ -174,7 +177,7 @@ This opens the browser for OAuth consent automatically. On success, `gws auth st
 > Then run `gws auth login`.
 
 **If credentials are already configured** (client_secret.json exists at the platform path, or `GOOGLE_WORKSPACE_CLI_CLIENT_ID` env var is set):
-- Run `gws auth status 2>&1` to check. If authenticated, ask "Google Workspace is already authenticated. Re-authenticate? (y/N)". If no, skip to Step 5.
+- Run `gws auth status 2>&1` to check. If authenticated, ask "Google Workspace is already authenticated. Re-authenticate? (y/N)". If no, skip to Step 4.
 
 **If credentials are not configured:**
 - Ask: "Which auth method? (1) I'll save client_secret.json  (2) Paste Client ID + Secret  (3) Skip"
@@ -186,17 +189,17 @@ This opens the browser for OAuth consent automatically. On success, `gws auth st
 
 ## Step 4 — Custom LLM provider (optional)
 
-This step is **optional**. If the user presses Enter or types "skip" / "s", skip to Step 6.
+This step is **optional**. If the user presses Enter or types "skip" / "s", skip to Step 5.
 
 **Check existing configuration:**
 If `custom_llm` already exists in `integrations.json`, ask:
 > "Custom LLM is already configured (provider: {provider}, model: {model}). Update it? (y/N)"
-If no, skip to Step 6.
+If no, skip to Step 5.
 
 **If not configured (or user wants to update), ask:**
 > "Do you want to configure a custom LLM provider for Claude Code? This lets you use alternative LLM APIs instead of Anthropic's API. (y/N)"
 
-If no / Enter, skip to Step 6.
+If no / Enter, skip to Step 5.
 
 **Note:** e-INFRA CZ (`https://llm.ai.e-infra.cz`) is available to Czech academic researchers via Metacentrum/e-INFRA CZ membership (https://metavo.metacentrum.cz). For other providers, enter your own base URL.
 
@@ -206,22 +209,23 @@ If no / Enter, skip to Step 6.
 2. "Enter the API base URL (e.g. https://llm.ai.e-infra.cz/v1 for e-INFRA):"
 3. "Enter your API key for this provider:"
 4. "Enter preferred model name (or press Enter to skip):"
-5. "If using proxy mode: enter proxy port (default 3456, or press Enter to skip):"
+5. "Legacy proxy mode only (OpenAI-compat providers): enter proxy port (or press Enter to skip — not needed for e-INFRA):"
 
 If the user mentions **e-INFRA** or **Czech** at any point during this step, surface the `neuroflow:setup` skill and direct them to `skills/setup/references/einfra-cc.md` for detailed instructions including the proxy mode terminal workflow.
 
 **Save:**
-- Non-secrets (`provider`, `base_url`, `model`, `proxy_port`) and the `api_key` all go to `.neuroflow/integrations.json` under `custom_llm`:
+- Non-secrets (`provider`, `base_url`, `model`, `proxy_port`) and the `api_key` all go to the `integrations.json` of the scope chosen in Step 0 (global `~/.neuroflow/integrations.json` or per-project `.neuroflow/integrations.json`) under `custom_llm`:
 
 ```json
 "custom_llm": {
   "provider": "einfra",
   "base_url": "https://llm.ai.e-infra.cz/v1",
   "api_key": "<YOUR_API_KEY>",
-  "model": "qwen3.5-122b",
-  "proxy_port": 3456
+  "model": "agentic"
 }
 ```
+
+(`proxy_port` is only included when the legacy proxy mode is used.)
 
 - `api_key` is always local-only (gitignored). Never sync it.
 - If flowie is linked (check `~/.neuroflow/flowie/sync.json` exists): write non-secrets (`provider`, `base_url`, `model`, `proxy_port` — **never `api_key`**) to `~/.neuroflow/flowie/integrations.json` using this schema:
@@ -231,8 +235,7 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
     "custom_llm": {
       "provider": "einfra",
       "base_url": "https://llm.ai.e-infra.cz/v1",
-      "model": "qwen3.5-122b",
-      "proxy_port": 3456
+      "model": "agentic"
     }
   }
   ```
@@ -334,7 +337,10 @@ If the user says no, skip silently.
 
 ---
 
-## Step 7 — Suggest next step
+## Step 7 — Session log and next step
 
+**If `.neuroflow/` exists** (per the neuroflow-core lifecycle — never create it from here): append one milestone to `.neuroflow/sessions/YYYY-MM-DD.md`, e.g. `## HH:MM — [setup] Integrations updated: Miro ✅, gws skipped, custom LLM (einfra) saved to global scope.` Never write credential values into the session log — names and statuses only.
+
+Then suggest the next step:
 - If the user came from `/neuroflow`, tell them to continue with the suggested phase command.
 - Otherwise, suggest: "Run `/neuroflow:ideation` to start exploring literature, or any other command to continue your project."

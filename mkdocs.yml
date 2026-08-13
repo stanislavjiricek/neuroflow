@@ -93,7 +93,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.20"
+  version: "0.2.21"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -133,10 +133,12 @@ nav:
           - "🚀 neuroflow": commands/neuroflow.md
           - "⚙️ setup": commands/setup.md
           - "📍 phase": commands/phase.md
+          - "✅ tasks": commands/tasks.md
       - Research Pipeline:
           - "💡 Discovery": commands/ideation.md
           - "🔍 Search": commands/search.md
           - "📋 Formalization": commands/preregistration.md
+          - "🛡️ Ethics": commands/ethics.md
           - "💰 Funding": commands/grant-proposal.md
           - "💸 Finance": commands/finance.md
           - "🧪 Experiment": commands/experiment.md
@@ -227,6 +229,7 @@ nav:
           - "flowie": agents/flowie.md
           - "autoresearch": agents/autoresearch.md
       - Integrations: integrations.md
+      - Maintenance Automation: maintenance/automation.md
       - Troubleshooting: troubleshooting.md
       - Changelog: changelog.md
 

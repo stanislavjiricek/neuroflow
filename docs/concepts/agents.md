@@ -18,7 +18,7 @@ Unlike commands (which interact conversationally with you), agents operate semi-
 
 Searches PubMed then bioRxiv sequentially (with CrossRef / Semantic Scholar fallbacks) for a given topic and returns a clean, structured list of results.
 
-**Invoked by:** `/neuroflow:ideation` (Explore literature mode)
+**Invoked by:** ad-hoc literature searches outside the ideation workflow, and `/neuroflow` (journal recommendation step). Note: `/neuroflow:ideation` runs its literature searches **inline** — it does not spawn this agent.
 
 **What it does:**
 

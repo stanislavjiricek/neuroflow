@@ -14,17 +14,18 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 ```
 ~/.neuroflow/
 ├── user.yaml                        ← flowie_handle, global prefs
+├── integrations.json                ← global credentials (API keys, tokens) — device-wide, never inside any repo
 ├── flowie/                          ← ONE global clone of github.com/{handle}/flowie
 │   ├── profile.md
 │   ├── ideas.md
 │   ├── sync.json
-│   ├── integrations.json            ← custom LLM, MCP tokens (never committed)
+│   ├── integrations.json            ← NON-SECRET settings sync only (custom LLM provider/base_url/model — never api_key)
 │   ├── projects/
 │   ├── tasks/
 │   ├── notes/
 │   ├── wellbeing/
 │   └── wiki/
-└── hive/
+└── hives/
     └── {org-repo}/                  ← one cache per hive membership
         ├── hive.md
         ├── members.md
@@ -35,7 +36,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 **Key rules:**
 - `~/.neuroflow/flowie/` is a git repo (`.git/` inside) — cloned once, shared across all projects
 - `~/.neuroflow/hives/{org-repo}/` is a shallow clone or fetch cache — one per hive the user belongs to
-- `integrations.json` lives in `~/.neuroflow/flowie/` only — never in project `.neuroflow/`
+- Credentials (API keys, tokens) live in `~/.neuroflow/integrations.json` (global, device-wide), with an optional per-project override at `.neuroflow/integrations.json` (gitignored, excluded from `/output` exports). `~/.neuroflow/flowie/integrations.json` carries **non-secret** settings only (custom LLM provider/base_url/model/proxy_port) for cross-machine sync — `api_key` never enters the flowie repo
 - Neither `flowie/` nor `hive/` ever appears inside a project's `.neuroflow/`
 
 ---
@@ -54,7 +55,8 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `flow.md` | Index of all subfolders: one row per folder with name, description, date of last change. |
 | `objectives.md` | Project objectives/aims — one numbered sentence per objective. Cross-phase cornerstone: **read at the start of every command** (if it exists), keep objectives in context throughout the session, and explicitly check coverage before saving any major section. Written during `/grant-proposal` interview or `/ideation`. |
 | `sentinel.md` | Sentinel's last audit report. If all clear: last run date + "all clear". |
-| `timeline.md` | Milestones and deadlines. |
+| `timeline.md` | Milestones and deadlines — conference/submission deadlines, ethics approval expiry, funder reporting dates. Created by `/neuroflow` (interview), rendered by `/phase`, read by `/meeting` for agenda preparation. |
+| `journal-preferences.md` | Optional — the user's target-journal preferences, written during `/neuroflow` or `/ideation` journal recommendation. |
 
 #### Optional project_config.md fields
 
@@ -75,6 +77,9 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `finance/` | Grant documents, expense tracking. |
 | `fails/` | Dissatisfaction log — three fixed files: `core.md` (plugin behavior problems), `science.md` (scientific quality problems), `ux.md` (interaction quality problems). Created on first `/fails` run. |
 | `output/` | Output log — one `.md` per export run recording scope, format, destination, and excluded files. Created on first `/output` run. |
+| `tasks/` | Project-level Kanban task board (git-tracked, shared with collaborators). Owned by `/tasks` — `/flowie --tasks --level project`, `/meeting` action items, and `/hive` delegate to its spec. Created on first task. |
+| `meetings/` | Meeting files — agendas, notes, action items. Written by `/meeting`. Created on first meeting. |
+| `wiki/` | Project-level shared knowledge base (git-tracked). Owned by `/wiki` at `level: project`. Created by `/wiki --schema` or first ingest. |
 | `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
 
 **Rule: only command names may be used as phase subfolder names.** Skills must never create their own named subfolders inside `.neuroflow/`. All skill memory must be written to the active command's phase subfolder (`.neuroflow/{phase}/`). Creating a subfolder named after a skill (e.g. `.neuroflow/review-neuro/`) is a structural error.
@@ -131,10 +136,14 @@ Default output paths (used when the repo has no existing structure):
 | Phase | Default output_path |
 |---|---|
 | `experiment` | `paradigm/` |
-| `tool-build` / `tool-validate` | `tools/` |
+| `tool-build` | `tools/` |
+| `tool-validate` | `tools/tests/` (test scripts are deliverables — they live with the tool, not in memory) |
 | `data-preprocess` | `scripts/preprocessing/` |
 | `data-analyze` | `scripts/analysis/` (code) + `results/` (outputs) + `figures/` |
 | `paper` | `manuscript/` |
+| `poster` | `poster/` (the `.tex` and compiled PDF are deliverables; critic logs stay in `.neuroflow/poster/`) |
+| `write-report` | `report/` (reports are user-facing deliverables) |
+| `slideshow` (utility) | `slides/` (decks are deliverables; outlines/notes stay in `.neuroflow/slideshow/`) |
 | `review` | `.neuroflow/review/` |
 | `grant-proposal` | `.neuroflow/grant-proposal/` |
 
@@ -143,6 +152,10 @@ Default output paths (used when the repo has no existing structure):
 ## Command lifecycle
 
 **Logging is always on.** Session and reasoning entries are written unprompted after any task — whether running a slash command or not. Do not wait for the user to ask. This is not optional behavior.
+
+**If `.neuroflow/` does not exist** (global rule — applies to every command; individual commands do not need to restate it):
+- **Phase commands** (any command with a phase subfolder): tell the user this project has no neuroflow memory yet and offer to run `/neuroflow` first. If they decline, proceed with the work but skip every `.neuroflow/` read/write silently — never error, never create a partial structure.
+- **Utility commands**: degrade gracefully — do the work, and make every `.neuroflow/` touch conditional on the folder existing (the `/git` and `/quiz` pattern: "If `.neuroflow/` exists: append to the session log"). Never create `.neuroflow/` as a side effect; only `/neuroflow` scaffolds it.
 
 Every command must follow this order:
 
@@ -165,6 +178,7 @@ Write to session and reasoning logs broadly — not just at milestones, but afte
 
 1. Append to `.neuroflow/sessions/YYYY-MM-DD.md` using milestone headers:
    - **Milestone header**: `## HH:MM — [phase] description of what was accomplished` — e.g. `## 10:51 — [review] Referee report complete: REJECTED. Saved to .neuroflow/review/review-alpha-netneurosci-2026-03-22.md`
+   - **This is the one canonical session-log format.** For utility commands, use the command name in place of the phase (e.g. `## 14:23 — [hive] --init connected…`). Older bracket-style lines (`[HH:MM] /command — …`) found in some command files are non-compliant — when a command file and this section disagree, this section wins.
    - Every command must write at least one `##` milestone line at start (`## HH:MM — [phase] session started`) and one at completion. Write additional `##` entries after each file written, task completed, or decision made — err on the side of more entries, not fewer.
 2. Write to `.neuroflow/reasoning/{phase}.json` **at the moment each decision is made** — not only at the end. Save **at least 3–5 decisions per session**. Use `general.json` for project-level decisions. Append a new JSON object with exactly three fields:
    - `"statement"` — what was decided (one clear sentence)
@@ -187,7 +201,7 @@ Write to session and reasoning logs broadly — not just at milestones, but afte
 2. Write at least one `.md` memory file to `.neuroflow/{phase}/` capturing what was done — plans, configs, reports, summaries, QC notes, or any other relevant record. Format is free; use whatever structure fits the content. Every `.md` file written to the subfolder must be listed in `.neuroflow/{phase}/flow.md`.
 3. Update `.neuroflow/flow.md` if new subfolders were created
 4. Update `.neuroflow/project_config.md` if the active phase changed
-5. Update `.claude/CLAUDE.md` **and** `.github/copilot-instructions.md` if the active phase changed — keep both files identical so the project context is available regardless of which AI client the user opens it in
+5. Update `.claude/CLAUDE.md`, `.github/copilot-instructions.md`, **and** `AGENTS.md` if the active phase changed — keep all three files identical so the project context is available regardless of which AI client the user opens it in
 6. **Phase transition check:** if the outputs produced during this session clearly belong to a different (later) phase than the active phase in `project_config.md`, prompt the user: *"The work produced looks like [phase] outputs. Should I update the active phase in project_config.md?"* Do not silently leave the phase wrong.
 
 **What counts as a significant decision:**
@@ -458,4 +472,23 @@ writes:
 ---
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `brain-build`, `brain-optimize`, `brain-run`, `output`, `hive`, `utility`
+## Phase taxonomy — the canonical list
+
+This section is the **one authoritative list** of phase values. Never restate it in another file — `/phase`, `/neuroflow`, `/interview`, `/pipeline`, and the dev guide must reference this section, and if any local copy disagrees, this section wins. It is derived from the `phase:` frontmatter of `commands/*.md`; when a command is added or removed, update this table in the same change.
+
+**Pipeline phases** — each owns a `.neuroflow/{phase}/` subfolder. Canonical order:
+
+```
+ideation → preregistration → grant-proposal → finance → experiment →
+tool-build → tool-validate → data → data-preprocess → data-analyze →
+brain-build → brain-optimize → brain-run → paper → review → poster →
+write-report → output
+```
+
+- The `brain-*` triplet is the computational-modelling track — it runs alongside or instead of the data track (`data` → `data-analyze`).
+- `notes` is also a valid phase with its own subfolder, but is cadence-free — note-taking happens at any point, so it sits outside the ordered chain.
+- `finance` starts at funding and then runs alongside the whole project.
+
+**`utility`** — stateless commands that own no phase subfolder (`/git`, `/quiz`, `/search`, `/sentinel`, `/setup`, `/phase`, `/pipeline`, `/interview`, `/idk`, `/fails`, `/wiki`, `/flowie`, `/hive`, `/meeting`, `/slideshow`, `/autoresearch`, `/neuroflow`).
+
+**Valid `phase:` frontmatter values:** `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `brain-build`, `brain-optimize`, `brain-run`, `paper`, `review`, `poster`, `notes`, `write-report`, `output`, `utility`

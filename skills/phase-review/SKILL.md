@@ -18,7 +18,7 @@ Orientation for the `/review` command. The user is acting as a **referee** — t
 
 ## Delegation rule
 
-Do not perform the review directly. Delegate entirely to `neuroflow:review-neuro`, which contains the full six-area methodology:
+Do not perform the review directly. Delegate entirely to `neuroflow:review-neuro`, which contains the full eight-area methodology:
 
 1. Language, style and terminology
 2. Internal consistency and cross-reference integrity
@@ -26,6 +26,8 @@ Do not perform the review directly. Delegate entirely to `neuroflow:review-neuro
 4. Statistics, network inference and multiple comparisons
 5. Methods reproducibility, reporting standards and open science
 6. Contribution, novelty and journal fit (adversarial referee)
+7. Literature gap — missing citations against Zotero / local papers / the manuscript's own references
+8. Figure review — citation order, panel completeness, axes/units/error bars, statistical annotations
 
 ## Output
 
@@ -34,7 +36,7 @@ Do not perform the review directly. Delegate entirely to `neuroflow:review-neuro
 
 ## Relevant skills
 
-- `neuroflow:review-neuro` — the core review engine; all six areas live here
+- `neuroflow:review-neuro` — the core review engine; all eight areas live here
 - `neuroflow:neuroflow-core` — shared lifecycle rules (read project_config.md and flow.md first; write sessions last)
 
 ## Slash command

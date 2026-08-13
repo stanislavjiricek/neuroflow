@@ -10,12 +10,16 @@ reads:
   - .neuroflow/paper/flow.md
   - .neuroflow/preregistration/flow.md
 writes:
-  - .neuroflow/poster/poster-YYYY-MM-DD.tex
+  - poster/poster-YYYY-MM-DD.tex
   - .neuroflow/poster/critic-log.md
+  - .neuroflow/poster/flow.md
+  - .neuroflow/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
 # /poster
+
+Read the `neuroflow:phase-poster` skill first, and follow the `neuroflow:neuroflow-core` lifecycle — including session logging throughout (start milestone, one `##` entry per critic iteration verdict, completion milestone).
 
 Generate a publication-ready academic conference poster as a LaTeX `.tex` file from the project's `.neuroflow/` memory. The poster goes through an iterative critic loop (up to 3 revision cycles) before final output.
 
@@ -123,18 +127,19 @@ Write the critic loop state to `.neuroflow/poster/critic-log.md` after each iter
 
 ## Step 6 — Save and report
 
-1. Create `.neuroflow/poster/` if it does not exist.
-2. Write the final `.tex` to `.neuroflow/poster/poster-YYYY-MM-DD.tex`. If the file exists, use `-v2`, `-v3`, etc.
-3. Write `.neuroflow/poster/critic-log.md` with the full loop history.
-4. Update `.neuroflow/flow.md` — add a `poster` entry with date and output path.
+1. Create `.neuroflow/poster/` if it does not exist, with its own `flow.md` index (`| File | Description | Last changed |`) carrying an `output_path:` line (default `poster/`).
+2. Write the final `.tex` to `{output_path}/poster-YYYY-MM-DD.tex` (default `poster/` in the project root — the poster is a deliverable and never lives inside `.neuroflow/`). If the file exists, use `-v2`, `-v3`, etc.
+3. Write `.neuroflow/poster/critic-log.md` with the full loop history (memory stays in `.neuroflow/`).
+4. List the critic log in `.neuroflow/poster/flow.md` (with the `.tex` path noted in its description), and update the root `.neuroflow/flow.md` — add a `poster` entry with date and output path.
+5. Append a completion milestone to `.neuroflow/sessions/YYYY-MM-DD.md`: `## HH:MM — [poster] Poster saved: {output_path}/poster-YYYY-MM-DD.tex ([APPROVED after N iterations | draft, max iterations reached])`.
 
 Tell the user:
 
-> **Poster saved:** `.neuroflow/poster/poster-YYYY-MM-DD.tex`
+> **Poster saved:** `poster/poster-YYYY-MM-DD.tex`
 >
 > **To compile:**
 > ```bash
-> cd .neuroflow/poster
+> cd poster
 > pdflatex poster-YYYY-MM-DD.tex
 > ```
 > Or with latexmk: `latexmk -pdf poster-YYYY-MM-DD.tex`

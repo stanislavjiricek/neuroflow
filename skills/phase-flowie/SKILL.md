@@ -112,7 +112,7 @@ The flowie profile is mirrored to a private GitHub repository. The sync protocol
 - The profile is stored in a **private** GitHub repository. Never suggest making it public.
 - Profile data must never appear in outputs intended for external readers — papers, reports, grant proposals, talk slides.
 - When generating any external-facing document, treat profile data as context only — do not quote stances or beliefs in the output.
-- If a project is being exported (via `/export`), `~/.neuroflow/flowie/` is excluded by default. Confirm explicitly before including it.
+- If a project is being exported (via `/output`), `~/.neuroflow/flowie/` is excluded by default. Confirm explicitly before including it.
 
 ## Wellbeing tracking
 

@@ -6,7 +6,7 @@ title: Hooks
 
 **Hooks fire automatically on tool use events — no manual invocation needed.**
 
-Hooks let neuroflow act in the background while you work. They respond to tool events (file edits, Bash commands) and perform lightweight automatic actions: formatting code, logging session activity.
+Hooks let neuroflow act in the background while you work. They respond to tool events (file edits) and perform lightweight automatic actions: formatting code, syncing your personal flowie repo.
 
 ---
 
@@ -16,9 +16,7 @@ Hooks let neuroflow act in the background while you work. They respond to tool e
 
 **Trigger:** `PostToolUse` — whenever Claude uses the Edit or Write tool on a `.py` file
 
-**What it does:** Auto-formats any Python file written or edited during a session using [Ruff](https://docs.astral.sh/ruff/), the fast Python linter and formatter.
-
-This means any analysis or preprocessing script Claude generates is always PEP 8 compliant — no manual formatting step needed.
+**What it does:** Auto-formats any Python file written or edited during a session using [Ruff](https://docs.astral.sh/ruff/), the fast Python linter and formatter. Requires `ruff` to be installed and on your PATH — if it isn't, the hook silently skips.
 
 ```
 Claude writes scripts/analysis/erp_analysis.py
@@ -27,31 +25,22 @@ Claude writes scripts/analysis/erp_analysis.py
    → File is formatted before you see it
 ```
 
-### Session logger
+### Flowie git-sync
 
-**Trigger:** `PostToolUse` — whenever Claude uses Write, Edit, or Bash tools
+**Trigger:** `PostToolUse` — whenever Claude uses the Edit or Write tool on a file inside `~/.neuroflow/flowie/`
 
-**Condition:** Only fires if `.neuroflow/` exists in the working directory
+**What it does:** Auto-commits and pushes the change to your linked private flowie GitHub repo (`git add -A && git commit -m "sync: auto" && git push`), so your personal profile, tasks, and notes are always backed up. `integrations.json` is explicitly unstaged before every commit — credentials never enter the sync.
 
-**What it does:** Appends a timestamped entry to today's session log at `.neuroflow/sessions/YYYY-MM-DD.md`.
-
-Example session log entry:
-
-```markdown
-# Session: 2026-03-09
-
-- [10:32] Edit: scripts/preprocessing/preprocess.py — added ICA component rejection
-- [10:45] Bash: python scripts/preprocessing/preprocess.py — ran preprocessing on sub-01
-- [11:03] Write: .neuroflow/data-preprocess/preprocess-report.md — saved QC report
-```
-
-This gives you a chronological record of everything Claude did in a session — useful for debugging, reproducibility, and supervision reports.
+!!! note "Session logging is not a hook"
+    Earlier versions had a session-logger hook; it was removed in 0.2.8. Session logs at `.neuroflow/sessions/YYYY-MM-DD.md` are now written directly by Claude as part of the command lifecycle defined in `neuroflow-core`.
 
 ---
 
 ## How hooks are configured
 
-Hooks are defined in the plugin's `plugin.json` and are activated automatically when neuroflow is installed. You don't need to configure anything.
+Hooks are defined in the plugin's `hooks/hooks.json` and are activated automatically when neuroflow is installed. You don't need to configure anything.
+
+Technically: each hook is a small POSIX shell command that receives the tool event as JSON on stdin and reads the edited file path from `tool_input.file_path` (parsed with `jq`, falling back to `python`). All hooks fail silently by design — they never interrupt your session.
 
 ---
 

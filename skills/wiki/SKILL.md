@@ -43,6 +43,19 @@ This rule is **non-negotiable** and applies to every wiki operation — ingest, 
 
 ---
 
+## Obsidian vault compatibility
+
+Every neuroflow wiki (all three levels) must remain a **valid Obsidian vault** — users who open the wiki folder in Obsidian get graph view, backlinks, and mobile access for free, with zero neuroflow dependency on the app. Compatibility rules:
+
+- Wikilinks `[[Page Title]]` (already mandatory above) are exactly Obsidian's link syntax — never deviate from it.
+- Frontmatter is standard YAML between `---` fences — no custom fence syntax; Obsidian parses it as Properties.
+- Page filenames must avoid characters Obsidian rejects or mangles: `# ^ [ ] |` and `:` (also invalid on Windows). Stick to letters, digits, spaces, hyphens.
+- Never depend on any Obsidian app feature (plugins, dataview queries, canvas) for wiki correctness — the vault is a bonus view, plain markdown is the contract.
+- If the user opens the wiki in Obsidian, the app creates a `.obsidian/` config folder — add `.obsidian/` to the wiki repo's `.gitignore` on first sight (app state is personal and churns; syncing it causes conflicts).
+- `--wiki-lint` includes these rules: flag non-wikilink internal references, invalid filename characters, and an untracked `.obsidian/` folder.
+
+---
+
 ## Structure
 
 The wiki structure is identical at all three levels. The root path is resolved from the active level.

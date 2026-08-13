@@ -93,7 +93,7 @@ neuroflow can search PubMed and use Miro for visual collaboration. Run the setup
 /neuroflow:setup
 ```
 
-This stores credentials in `.neuroflow/integrations.json` (git-ignored).
+This stores credentials in `~/.neuroflow/integrations.json` (global, device-wide) or `.neuroflow/integrations.json` (per-project override, git-ignored) — the wizard asks which scope you want.
 
 ---
 

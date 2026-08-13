@@ -49,6 +49,15 @@ Save the result as `research-question.md` in `.neuroflow/ideation/`.
 
 ### Explore literature
 
+**Zotero (optional, first time only):** before the first search of a session, check whether a Zotero MCP server is available (any `mcp__*zotero*` tool). If it is not, and `zotero:` is not yet recorded in `project_config.md`, ask once:
+
+> Do you use **Zotero** for your reference library? If you connect it (a community `zotero-mcp` server — see `/setup`), I can search your existing library first, skip papers you already have, and file new findings into a Zotero collection instead of only local stubs. **(y/n/later)**
+
+Record the answer as `zotero: yes/no` in `project_config.md` (skip the question forever after `no`; `later` = ask again next session). **When Zotero is connected, the search flow adapts:**
+- Step 0.5: search the user's Zotero library for the topic **before** any external search — known papers are marked 📚 *in your library* in the results table and excluded from download offers
+- New papers the user selects are offered for saving into a Zotero collection (named after the project) in addition to the `.md` stubs
+- The `literature-review` agent may pull existing Zotero notes/annotations for papers that have them
+
 Perform the literature search **directly — do NOT spawn a sub-agent**. Read and follow `skills/phase-ideation/references/search-protocol.md` step by step:
 
 1. Run the MCP health check (Step 0 of the protocol)
@@ -106,7 +115,7 @@ Apply these checks at the points indicated above and whenever the user explicitl
 **PubMed / bioRxiv** — available out of the box. No setup required.
 
 **Miro** — if the user mentions Miro, asks to visualise a mind map, or wants to export ideas to a board:
-1. Read `.neuroflow/integrations.json` and check whether `MIRO_ACCESS_TOKEN` is set.
+1. Check whether `MIRO_ACCESS_TOKEN` is set — read `.neuroflow/integrations.json` (per-project) first, then fall back to `~/.neuroflow/integrations.json` (global).
 2. If not configured, show:
 
 > ⚠️ **Miro not configured.**

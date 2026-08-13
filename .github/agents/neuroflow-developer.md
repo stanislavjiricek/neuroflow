@@ -153,7 +153,7 @@ writes:
 Instructions Claude follows when the user runs /neuroflow:my-command...
 ```
 
-Valid phase values: `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `paper`, `review`, `notes`, `write-report`, `output`, `hive`, `brain-build`, `brain-optimize`, `brain-run`, `utility`
+Valid phase values: see the **Phase taxonomy** section in `skills/neuroflow-core/SKILL.md` — the one canonical list. Do not copy it here or into any command.
 
 2. Create a matching phase skill in `skills/phase-{name}/SKILL.md` (if this is a phase command)
 3. Create a docs page at `docs/commands/{name}.md`

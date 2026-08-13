@@ -1,6 +1,6 @@
 ---
 name: output
-description: Output project memory or the whole project — pack it as a zip archive or copy it to a target location for sharing, archiving, or handoff.
+description: Output project memory or the whole project — pack it as a zip archive or copy it to a target location for sharing, archiving, or handoff. Use --archive for publication archiving — repository prep (OpenNeuro/OSF/Zenodo), license, de-identification checklist, and DOI recording.
 phase: output
 reads:
   - .neuroflow/project_config.md
@@ -9,6 +9,7 @@ reads:
 writes:
   - .neuroflow/output/
   - .neuroflow/output/flow.md
+  - .neuroflow/project_config.md
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
@@ -17,6 +18,8 @@ writes:
 Pack and move project data out of the current workspace. Useful for sharing with collaborators, handing off to a supervisor, archiving before a major change, or backing up project state.
 
 Read the `neuroflow:phase-output` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+
+**`--archive` mode** — publication archiving (dataset/code to a public repository with a DOI) is a different job from backup; its spec is at the end of this file. A zip in a folder is a backup; archiving is what journals and funders mean by "data availability".
 
 ---
 
@@ -144,7 +147,7 @@ Update `.neuroflow/output/flow.md` immediately.
 Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ```
-[HH:MM] /output — Output <scope> as <format> to <destination>.
+## HH:MM — [output] Output <scope> as <format> to <destination>.
 ```
 
 ---
@@ -154,3 +157,36 @@ Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 - Updated `output/flow.md` with the new log entry
 - Appended to `sessions/YYYY-MM-DD.md`
 - Confirmed the export file or folder exists at destination
+
+---
+
+## Mode: `--archive` — publication archiving
+
+Prepare the dataset and/or code for deposit in a public repository with a DOI. This mode **guides and verifies** — the actual upload happens in the user's browser/CLI (repositories require authenticated accounts); neuroflow prepares everything so the upload is a formality, then records the result.
+
+### Step A1 — What is being archived
+
+Ask: dataset, code, or both? Then recommend the repository:
+
+| Content | Recommend |
+|---|---|
+| Neuroimaging/ephys dataset in BIDS | **OpenNeuro** (free, BIDS-native, DOI, no size fuss for typical datasets) |
+| Non-BIDS dataset, mixed materials, prereg linkage | **OSF** (DOI, versioning, links to preregistration) |
+| Code / analysis pipeline | **Zenodo** via GitHub release integration (DOI per release), code stays on GitHub |
+| Dataset with heavy access restrictions (clinical) | **EBRAINS or institutional repository** — flag that consent/GDPR terms decide, not preference |
+
+### Step A2 — Readiness checklist (run every item, report ✅/❌)
+
+1. **De-identification** — no participant names, dates of birth, or facial features (defacing for anatomical MRI); check `participants.tsv` columns against what consent permits. For BIDS data, invoke the `neuroflow:bids` skill and run `bids-validator`.
+2. **Consent covers sharing** — check `.neuroflow/ethics/status.md` exists and the consent form version in force permits public deposit. If `/ethics` was never run, warn and ask the user to confirm manually.
+3. **License chosen** — data: CC0 or CC-BY (OpenNeuro requires CC0); code: ask (MIT/BSD/GPL); record the choice in a reasoning entry.
+4. **README completeness** — dataset description, citation instructions, contact; generate a draft if missing.
+5. **Code freshness** — if archiving code, check the repo has no uncommitted changes and suggest a tagged release.
+
+Do not proceed past a ❌ without the user explicitly accepting the gap.
+
+### Step A3 — Deposit and record
+
+1. Walk the user through the deposit for the chosen repository (login → create dataset/release → upload → publish), one step at a time.
+2. When the DOI exists, record it: `project_config.md` (`dataset_doi:` / `code_doi:` field), `.neuroflow/output/archive-YYYY-MM-DD.md` (what, where, license, DOI, checklist results), and offer to update the data/code availability statements in the manuscript (`/paper --submit` reads these).
+3. Session milestone: `## HH:MM — [output] Archived {what} to {repository}: {DOI}`. Reasoning entry for the license/repository choice.

@@ -281,6 +281,8 @@ Ideas and hypotheses that span multiple projects.
 Kanban board — one folder per column, one .md file per task.
 ```
 
+> The canonical 3-tier task-board spec (levels, task frontmatter, rendering rules) lives in `/tasks` (`commands/tasks.md`). `--tasks` here is the flowie-level entry point to that spec.
+
 **`tasks/config.json`:**
 ```json
 {

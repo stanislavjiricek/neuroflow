@@ -8,10 +8,12 @@ reads:
   - .neuroflow/ideation/flow.md
   - .neuroflow/data-preprocess/flow.md
   - .neuroflow/data-analyze/flow.md
+  - .neuroflow/preregistration/flow.md
   - skills/phase-data-analyze/SKILL.md
 writes:
   - .neuroflow/data-analyze/
   - .neuroflow/data-analyze/flow.md
+  - .neuroflow/reasoning/data-analyze.json
   - .neuroflow/sessions/YYYY-MM-DD.md
 ---
 
@@ -25,6 +27,8 @@ Runs the analysis pipeline on preprocessed data. Ask:
 1. What is the analysis goal? (ERP, time-frequency, connectivity, decoding, GLM, other)
 2. Where is the preprocessed data?
 3. Is there a pre-registered analysis plan to follow?
+
+**If `.neuroflow/preregistration/` exists:** read its `flow.md` and the latest prereg document **before** writing the analysis plan. The analysis plan must state which pre-registered analyses it implements. Any departure from the registered plan is a **deviation**: log it to the preregistration deviations file and write a `reasoning/data-analyze.json` entry at the moment it happens (mandatory trigger in `neuroflow-core`) — never discover drift after the fact.
 
 Apply the appropriate analysis approach for the goal:
 - ERPs, time-frequency, connectivity → MNE-Python (Epochs, AverageTFR, spectral_connectivity)
@@ -49,7 +53,9 @@ Save the analysis plan and results summary in `.neuroflow/data-analyze/`. Write 
 ## At end
 
 - Save `analysis-summary.md` — key findings, figures produced, open questions
+- **Write a reproducibility manifest** `environment.md` next to the analysis scripts in `output_path`: Python/MATLAB version, exact package versions of everything imported, OS, random seeds (permutations, CV splits, decoding), and the git commit hash if tracked. Regenerate on every rerun — it must always answer "which MNE/sklearn versions produced Figure 2"
 - Update `.neuroflow/data-analyze/flow.md`
+- Log statistical-model and analysis-approach choices to `.neuroflow/reasoning/data-analyze.json` (test selection, correction method, rejected alternatives) — these are mandatory reasoning triggers
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
 - Update `project_config.md` if phase changed
 

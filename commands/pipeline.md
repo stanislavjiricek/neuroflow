@@ -77,10 +77,10 @@ Validate that each step is a known neuroflow command. If an unknown command appe
 Infer the full natural pipeline from the project state:
 
 1. Identify which phases have existing work in `.neuroflow/` (listed in `flow.md`)
-2. Map what remains using the standard research sequence:
+2. Map what remains using the standard research sequence (a pragmatic subset of the full canonical order — see the **Phase taxonomy** in `neuroflow:neuroflow-core`; include `preregistration`, `tool-build`/`tool-validate`, the `brain-*` track, `poster`, or `write-report` when the project's config or existing folders call for them):
 
 ```
-ideation → grant-proposal? → experiment? → data → data-preprocess → data-analyze → paper
+ideation → preregistration? → grant-proposal? → experiment? → data → data-preprocess → data-analyze → paper
 ```
 
 Mark completed phases with `[done]`. Propose the remaining phases as the pipeline steps.

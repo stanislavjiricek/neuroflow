@@ -6,7 +6,7 @@ title: /setup
 
 **Interactive credential wizard for MCP integrations.**
 
-`/setup` guides you through connecting the neuroflow MCP integrations — Miro for visual collaboration, Google Workspace, and optional custom LLM providers. It stores credentials securely in `.neuroflow/integrations.json`, which is git-ignored by default.
+`/setup` guides you through connecting the neuroflow MCP integrations — Miro for visual collaboration, Google Workspace, and optional custom LLM providers. It stores credentials securely in `~/.neuroflow/integrations.json` (global, all projects on this machine) or `.neuroflow/integrations.json` (per-project override, git-ignored) — the wizard asks which scope you want first.
 
 ---
 
@@ -56,7 +56,7 @@ Optionally configure an alternative LLM API endpoint for Claude Code. Skip this 
 
 If configuring:
 - Enter provider name, base URL, API key, preferred model, and proxy port
-- Credentials are saved to `.neuroflow/integrations.json` under `custom_llm`
+- Credentials are saved to your chosen scope's `integrations.json` under `custom_llm`
 - Non-secret settings (provider, URL, model) can also be synced to your flowie profile for cross-machine use
 
 !!! note "e-INFRA CZ"
@@ -64,7 +64,7 @@ If configuring:
 
 ### Step 5 — Save credentials
 
-Credentials are saved to `.neuroflow/integrations.json`:
+Credentials are saved to `~/.neuroflow/integrations.json` (global) or `.neuroflow/integrations.json` (per-project override):
 
 ```json
 {
@@ -81,7 +81,7 @@ Credentials are saved to `.neuroflow/integrations.json`:
 ```
 
 !!! warning "This file is local only"
-    `.neuroflow/integrations.json` is excluded from git (added to `.gitignore` by neuroflow). Your credentials are never committed to your repository.
+    The per-project `.neuroflow/integrations.json` is excluded from git (added to `.gitignore` by neuroflow) and the global file lives outside any repository. Your credentials are never committed. Only non-secret settings (never `api_key`) are synced via `~/.neuroflow/flowie/integrations.json`.
 
 ---
 
