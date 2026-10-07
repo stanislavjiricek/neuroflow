@@ -23,6 +23,8 @@ const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   phasesVisited: ['ideation', 'preregistration', 'data', 'data-analyze'],
   taskCounts: null,
   loops: [],
+  meetings: [],
+  wellbeingDue: false,
   problems: [],
   loadedAt: 0,
   ...over,

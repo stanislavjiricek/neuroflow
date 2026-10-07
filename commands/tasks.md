@@ -69,6 +69,11 @@ A level may carry `tasks/config.json` with its own `columns` list (`id`, `label`
 
 ## Modes
 
+**With the neuroflow mod**, a bare `/neuroflow:tasks` never reaches the model: the mod draws the project board as a
+pane from these files (same rendering rules), you pick a card and a column, and it puts
+`/neuroflow:tasks --move {slug} {column}` in the prompt for you to send — the move itself still runs as below. Any
+argument (`--list`, `--add`, `--move`, `--level`, …) runs this prose.
+
 | Mode | What it does |
 |---|---|
 | *(none)* | Render the board for the chosen level |

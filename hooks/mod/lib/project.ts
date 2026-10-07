@@ -1,7 +1,7 @@
 // Finding the neuroflow project and loading its typed snapshot (a mirror of the .neuroflow/ files,
 // never a source of truth). Every read is tolerant: a missing or odd file becomes a `problems`
 // entry, never an exception, so a broken file can only make the mod show less.
-import type { NfDeadline, NfEthics, NfLoop, NfPrereg, NfScope, NfSnapshot } from '../../../types'
+import type { NfDeadline, NfEthics, NfLoop, NfMeeting, NfPrereg, NfScope, NfSnapshot } from '../../../types'
 import { asList, asMap, asNumber, asString, parseLegacyConfig, parseYamlSubset, splitFrontmatter } from './frontmatter'
 import type { Frontmatter } from './frontmatter'
 import type { NfIo } from './io'
@@ -93,6 +93,28 @@ export const parseLoopRegistry = (text: string, phase: string): NfLoop[] => {
 
 const TASK_COLUMNS = ['inbox', 'ready', 'active', 'review', 'meeting', 'done', 'archive']
 
+/** A meeting file's facts (phase-meeting → file format), or null when it is not a dated meeting. */
+export const parseMeeting = (text: string, slug: string, level: NfMeeting['level'], nowMs: number): NfMeeting | null => {
+  const { block, body } = splitFrontmatter(text)
+  if (block === null) return null
+  const fm = parseYamlSubset(block)
+  const date = asString(fm.date)
+  const match = date === null ? null : /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(date)
+  if (date === null || match === null) return null
+  const [, y, mo, d, h, mi] = match
+  const startMs = new Date(Number(y), Number(mo) - 1, Number(d), Number(h ?? 9), Number(mi ?? 0)).getTime()
+  const closed = (asString(fm.closed) ?? '').trim() !== ''
+  return {
+    level,
+    slug,
+    title: asString(fm.title) ?? slug,
+    date,
+    startsIn: Math.round((startMs - nowMs) / 60_000),
+    closed,
+    openActions: body.split(/\r?\n/).filter(line => /^\s*-\s\[\s\]\s/.test(line)).length,
+  }
+}
+
 export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> => {
   const problems: string[] = []
   const nowMs = await io.now()
@@ -153,6 +175,29 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     const registry = await io.read(join(nfDir, phase, 'autoresearch-loops.md'))
     if (registry !== null) loops.push(...parseLoopRegistry(registry, phase))
   }
+  const meetings: NfMeeting[] = []
+  const home = await io.home()
+  const meetingDirs: [string, NfMeeting['level']][] = [[join(nfDir, 'meetings'), 'project']]
+  if (home) meetingDirs.push([join(toSlash(home), '.neuroflow/flowie/meetings'), 'flowie'])
+  for (const [dir, level] of meetingDirs) {
+    for (const entry of await io.list(dir)) {
+      if (entry.isDir || !entry.name.endsWith('.md')) continue
+      const text = await io.read(join(dir, entry.name))
+      const meeting = text === null ? null : parseMeeting(text, entry.name.replace(/\.md$/, ''), level, nowMs)
+      if (meeting !== null && meeting.startsIn > -2 * 24 * 60 && meeting.startsIn < 2 * 24 * 60) meetings.push(meeting)
+    }
+  }
+  meetings.sort((a, b) => a.startsIn - b.startsIn)
+  let wellbeingDue = false
+  if (home) {
+    const wellbeing = join(toSlash(home), '.neuroflow/flowie/wellbeing')
+    const config = await io.read(join(wellbeing, 'config.json'))
+    if (config !== null && /"collect"\s*:\s*true/.test(config)) {
+      const d = new Date(nowMs)
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      wellbeingDue = !(await io.exists(join(wellbeing, `${today}.json`)))
+    }
+  }
 
   return {
     root,
@@ -170,6 +215,8 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     phasesVisited,
     taskCounts,
     loops,
+    meetings,
+    wellbeingDue,
     problems,
     loadedAt: nowMs,
   }

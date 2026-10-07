@@ -7,14 +7,15 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { NfDashboardTab, NfLoopView, NfSnapshot } from '../../../types'
-import { setActivePhase } from '../lib/config'
+import type { NfCard, NfDashboardTab, NfLoopView, NfSnapshot } from '../../../types'
+import { manifestVersion, setActivePhase, setConfigKey } from '../lib/config'
 import type { NfIo } from '../lib/io'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom } from '../lib/paths'
 import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
-import { loadSnapshot } from '../lib/project'
+import { KNOWN_SCHEMA, loadSnapshot } from '../lib/project'
+import { buildBoard, cardLine, columnsFromConfig, parseTask } from '../lib/tasks'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
@@ -26,9 +27,12 @@ const pickerNoteAtom = atom({ plugin: 'neuroflow', key: 'pickerNote' } as const,
 const draftAtom = atom({ plugin: 'neuroflow', key: 'draftedDecision' } as const, null)
 const driveAtom = atom({ plugin: 'neuroflow', key: 'drive' } as const, null)
 const captureAtom = atom({ plugin: 'neuroflow', key: 'capture' } as const, null)
+const boardAtom = atom({ plugin: 'neuroflow', key: 'board' } as const, null)
+const boardPickAtom = atom({ plugin: 'neuroflow', key: 'boardPick' } as const, null)
 
 const DASHBOARD = 'nf-dashboard'
 const PICKER = 'nf-phase'
+const BOARD = 'nf-board'
 /** $.store key: the ISO date on which the person hid the band (a preference, not research state). */
 const BAND_HIDDEN_ON = 'band.hiddenOn'
 
@@ -44,9 +48,22 @@ const TABS: readonly { id: NfDashboardTab; label: string; hotkey: string }[] = [
 
 export type Tone = 'error' | 'warning' | 'success' | 'suggestion' | 'subtle'
 export type Line = { text: string; tone?: Tone; dim?: boolean }
-export type BandItem = { level: 'alert' | 'warn' | 'info'; glyph: string; text: string }
+/** A press on the band runs one neuroflow command (the person's explicit request). */
+export type BandAction = { key: string; label: string; hotkey: string; command: string; args: string }
+export type BandItem = { level: 'alert' | 'warn' | 'info'; glyph: string; text: string; actions?: BandAction[] }
 
 export const when = (days: number): string => (days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`)
+
+/** "in 45 min", "today 14:00", "tomorrow 09:30" for a meeting starting `minutes` after `nowMs`. */
+export const meetingWhen = (minutes: number, date: string, nowMs: number): string => {
+  const time = /T(\d{2}:\d{2})/.exec(date)?.[1] ?? ''
+  if (minutes < 0) return 'now'
+  if (minutes < 90) return `in ${minutes} min`
+  const start = new Date(nowMs + minutes * 60_000)
+  const now = new Date(nowMs)
+  const sameDay = start.getFullYear() === now.getFullYear() && start.getMonth() === now.getMonth() && start.getDate() === now.getDate()
+  return `${sameDay ? 'today' : 'tomorrow'}${time ? ` ${time}` : ''}`
+}
 
 /** What the band may show, most urgent first. Quiet mode keeps alerts and warnings only. */
 export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
@@ -65,6 +82,28 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
     items.push({ level: 'warn', glyph: '?', text: 'the preregistration "frozen" marker was not set by a person' })
   }
   for (const problem of snap.problems) items.push({ level: 'warn', glyph: '!', text: problem })
+  // Meetings (M082): the next one within a day, and a past one left unclosed with open action items.
+  const upcoming = snap.meetings.find(meeting => !meeting.closed && meeting.startsIn >= -15 && meeting.startsIn <= 24 * 60)
+  if (upcoming !== undefined) {
+    items.push({
+      level: upcoming.startsIn <= 120 ? 'warn' : 'info',
+      glyph: '▸',
+      text: `meeting "${upcoming.title}" ${meetingWhen(upcoming.startsIn, upcoming.date, snap.loadedAt)}`,
+      actions: [
+        { key: 'nf-meet-prepare', label: 'prepare', hotkey: 'p', command: 'neuroflow:meeting', args: `--prepare ${upcoming.slug}` },
+        { key: 'nf-meet-notes', label: 'notes', hotkey: 'o', command: 'neuroflow:meeting', args: `--notes ${upcoming.slug}` },
+      ],
+    })
+  }
+  const unclosed = snap.meetings.find(meeting => !meeting.closed && meeting.startsIn < -120 && meeting.openActions > 0)
+  if (unclosed !== undefined) {
+    items.push({
+      level: 'warn',
+      glyph: '!',
+      text: `meeting "${unclosed.title}" not closed — ${unclosed.openActions} open action item(s)`,
+      actions: [{ key: 'nf-meet-close', label: 'close', hotkey: 'c', command: 'neuroflow:meeting', args: `--close ${unclosed.slug}` }],
+    })
+  }
   if (!quiet) {
     for (const loop of snap.loops.filter(item => /running/i.test(item.status))) {
       items.push({ level: 'info', glyph: '↻', text: `autoresearch ${loop.name}: iteration ${loop.iterations}, best ${loop.best}` })
@@ -207,10 +246,17 @@ const switchPhase = async ($: EngineInterface, phase: string, via: string): Prom
   const scope = await read($, scopeAtom)
   if (scope?.root === null || scope === null) return 'No neuroflow project here.'
   const io = ioOf($)
+  const snap = await read($, snapshotAtom)
+  if (snap !== null && snap.nfSchema !== null && snap.nfSchema > KNOWN_SCHEMA) {
+    return `This project uses config schema ${snap.nfSchema}, newer than this plugin knows (${KNOWN_SCHEMA}) — update neuroflow before switching phases.`
+  }
   const path = join(scope.root, '.neuroflow/project_config.md')
   const before = await io.read(path)
-  const after = before === null ? null : setActivePhase(before, phase)
+  let after = before === null ? null : setActivePhase(before, phase)
   if (after === null) return 'This project_config.md format cannot be edited safely — run /neuroflow:migrate first.'
+  // The plugin version that last wrote the file (C1), only in the current (frontmatter) format.
+  const version = manifestVersion(await io.read(join($.plugin.root, '.claude-plugin/plugin.json')))
+  if (version !== null && snap?.dialect === 'frontmatter') after = setConfigKey(after, 'plugin_version', version) ?? after
   if (after !== before) await io.write(path, after)
   const now = await io.now()
   await appendLine(io, sessionLogPath(scope.root, now), sessionLine(now, 'phase', `Active phase → ${phase} (${via})`))
@@ -270,6 +316,75 @@ const openPicker = async ($: EngineInterface): Promise<void> => {
 
 const isPersonThere = async ($: EngineInterface): Promise<boolean> => (await $.session.surfaces()).length > 0
 
+/** Reads the project board from .neuroflow/tasks/ (commands/tasks.md format) into state. */
+const loadBoard = async ($: EngineInterface): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  if (scope?.root === null || scope === null) return
+  const io = ioOf($)
+  const dir = join(scope.root, '.neuroflow/tasks')
+  const columns = columnsFromConfig(await io.read(join(dir, 'config.json')))
+  const today = isoDate(await io.now())
+  const cards: Record<string, NfCard[]> = {}
+  for (const column of columns) {
+    cards[column.id] = []
+    for (const entry of await io.list(join(dir, column.id))) {
+      if (entry.isDir || !entry.name.endsWith('.md')) continue
+      const text = await io.read(join(dir, column.id, entry.name))
+      if (text !== null) cards[column.id].push(parseTask(text, entry.name.replace(/\.md$/, ''), today, column.id === 'done' || column.archive))
+    }
+  }
+  await update($, boardAtom, () => buildBoard(columns, cards))
+}
+
+const hideBandToday = async ($: EngineInterface): Promise<void> => {
+  await $.store.set(BAND_HIDDEN_ON, isoDate(await $.clock.now()))
+  await update($, bandHiddenAtom, () => true)
+}
+
+/** Three whole numbers 1–10 and optional notes after them ("3 6 7 slept badly"), or null. */
+export const parseWellbeing = (value: string): { anxiety: number; energy: number; happiness: number; notes: string } | null => {
+  const match = /^\s*(\d{1,2})[\s,/]+(\d{1,2})[\s,/]+(\d{1,2})\s*(.*)$/s.exec(value)
+  if (match === null) return null
+  const [anxiety, energy, happiness] = [match[1], match[2], match[3]].map(Number)
+  if (![anxiety, energy, happiness].every(score => Number.isInteger(score) && score >= 1 && score <= 10)) return null
+  return { anxiety, energy, happiness, notes: match[4].trim() }
+}
+
+/**
+ * Writes today's self-reported entry exactly as /flowie --assess does and syncs the private flowie
+ * repository (the mod's own cache). Scores go only into the file: never into state, toasts or context.
+ */
+const saveWellbeing = async ($: EngineInterface, value: string): Promise<void> => {
+  const entry = parseWellbeing(value)
+  if (entry === null) {
+    $.ui.toast('neuroflow: three whole numbers from 1 to 10, e.g. 3 6 7 (notes may follow)')
+    return
+  }
+  const io = ioOf($)
+  const home = (await io.home()) ?? ''
+  const flowie = `${home}/.neuroflow/flowie`
+  if (home === '' || !(await io.exists(`${flowie}/.git`))) return
+  const today = isoDate(await io.now())
+  await io.write(`${flowie}/wellbeing/${today}.json`, `${JSON.stringify({ date: today, ...entry }, null, 2)}\n`)
+  await appendLine(io, `${flowie}/wellbeing/.flow`, `| ${today}.json | wellbeing entry |`)
+  const git = (args: readonly string[]) => $.process.run(['git', '-C', flowie, ...args], { timeoutMs: 30_000 }).catch(() => ({ exitCode: 1, stdout: '', stderr: '' }))
+  const hooksPath = (await git(['config', '--get', 'core.hooksPath'])).stdout.trim()
+  const hooks = (await io.list(`${flowie}/.git/hooks`)).filter(item => !item.name.endsWith('.sample'))
+  let synced = hooksPath === '' && hooks.length === 0
+  if (synced) {
+    for (const args of [['add', '--', `wellbeing/${today}.json`, 'wellbeing/.flow'], ['commit', '-m', `wellbeing: ${today}`, '--', `wellbeing/${today}.json`, 'wellbeing/.flow'], ['pull', '--rebase'], ['push']]) {
+      if ((await git(args)).exitCode !== 0) {
+        synced = false
+        await appendLine(io, `${home}/.neuroflow/flowie-sync.log`, `${new Date(await io.now()).toISOString()} git ${args[0]} failed (wellbeing ${today})`)
+        break
+      }
+    }
+  }
+  const scope = await read($, scopeAtom)
+  if (scope?.root) await reload($, scope.root)
+  $.ui.toast(`neuroflow: wellbeing logged for ${today}${synced ? '' : ' — sync pending (/neuroflow:flowie --sync)'}`)
+}
+
 /** Keep (a person's press) writes the drafted decision to the reasoning log; drop discards it. Both are counted. */
 const settleDraft = async ($: EngineInterface, keep: boolean): Promise<void> => {
   const draft = await read($, draftAtom)
@@ -317,6 +432,66 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     if (!scope?.isActive || !(await isPersonThere($))) return next(e)
     await openDashboard($, e.args.trim())
     return { text: 'Dashboard open — p phase · d deadlines · i integrity · t tasks · l loop.' }
+  }).catch(($, e, next) => next(e))
+
+  // /neuroflow:tasks — bare: the project board as a pane (M070, M163); anything else: the prose flow.
+  on('command.run', { command: 'neuroflow:tasks' }, async ($, e, next) => {
+    const scope = await read($, scopeAtom)
+    if (!scope?.isActive || e.args.trim() !== '' || !(await isPersonThere($))) return next(e)
+    await loadBoard($)
+    await update($, boardPickAtom, () => null)
+    await $.ui.open({ id: BOARD, title: 'tasks' })
+    return { text: 'Task board open — pick a card, then the column to move it to. (Any argument runs the full /tasks flow: --list, --add, --move, --level.)' }
+  }).catch(($, e, next) => next(e))
+
+  on('ui.render', { component: 'Pane', requestId: BOARD }, async ($, e) => {
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const board = await read($, boardAtom)
+    if (board === null) return <Text dimColor>No task board in this project yet — /neuroflow:tasks --add "title" starts one.</Text>
+    const pick = await read($, boardPickAtom)
+    const width = Math.max(14, Math.floor((e.props.bodyColumns - 2) / Math.max(1, board.columns.length)))
+    return (
+      <Box flexDirection="column" gap={1}>
+        <Box flexDirection="row">
+          {board.columns.map(column => (
+            <Box key={`nf-col-${column.id}`} flexDirection="column" width={width} borderStyle="single" paddingX={1}>
+              <Text bold wrap="truncate-end">{column.label} {column.total}</Text>
+              {column.cards.map(card => (
+                <Button
+                  key={`nf-card-${card.slug}`}
+                  label={cardLine(card).slice(0, width - 4)}
+                  plain
+                  variant={pick === card.slug ? 'primary' : 'secondary'}
+                  onPress={() => update($, boardPickAtom, () => (pick === card.slug ? null : card.slug))}
+                />
+              ))}
+              {column.total > column.cards.length ? <Text dimColor>+{column.total - column.cards.length} more</Text> : null}
+            </Box>
+          ))}
+        </Box>
+        {pick !== null ? (
+          <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
+            <Text>move {pick} to:</Text>
+            {[...board.columns.map(column => column.id), 'done'].map(target => (
+              <Button
+                key={`nf-move-${target}`}
+                label={target}
+                onPress={async () => {
+                  await $.prompt.fill({ text: `/neuroflow:tasks --move ${pick} ${target}` })
+                  await update($, boardPickAtom, () => null)
+                  $.ui.toast('neuroflow: press Enter to move it — /tasks moves the file and records it')
+                }}
+              />
+            ))}
+          </Box>
+        ) : null}
+        <Box flexDirection="row" columnGap={1}>
+          <Text dimColor>done: {board.done} · archived: {board.archived} · level: project</Text>
+          <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadBoard($)} />
+          <Button key="nf-board-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: BOARD })} />
+        </Box>
+      </Box>
+    )
   }).catch(($, e, next) => next(e))
 
   // The band: one line of what needs attention; nothing when nothing does.
@@ -383,9 +558,22 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const snap = await read($, snapshotAtom)
     if (snap === null) return next(e)
     const items = bandItems(snap, opts.band === 'quiet')
+    // Self-reported wellbeing (M146, opt-in in flowie): one field, no scores kept anywhere but the file.
+    const idle = (await read($, activeCommandAtom)) === null
+    if (snap.wellbeingDue && idle && e.surface !== 'mobile' && items[0]?.level !== 'alert') {
+      const { Box, Button, Input, Text } = $.ui.resolve(e)
+      return (
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+          <Text color="suggestion">wellbeing today — anxiety, energy, happiness (1–10):</Text>
+          <Input key="nf-wellbeing" placeholder="e.g. 3 6 7" submitLabel="save" onSubmit={(value: string) => saveWellbeing($, value)} />
+          <Button key="nf-band-hide" label="not today" hotkey="x" plain onPress={() => hideBandToday($)} />
+        </Box>
+      )
+    }
     if (items.length === 0) return next(e)
     const shown = items.slice(0, opts.band === 'quiet' ? 1 : 2)
     const more = items.length - shown.length
+    const actions = shown[0]?.actions ?? []
     const { Box, Button, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
@@ -395,17 +583,11 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           </Text>
         ))}
         {more > 0 ? <Text dimColor>+{more} more</Text> : null}
+        {actions.map(action => (
+          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => $.command.run({ command: action.command, args: action.args }).then(() => undefined)} />
+        ))}
         <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($)} />
-        <Button
-          key="nf-band-hide"
-          label="hide today"
-          hotkey="x"
-          plain
-          onPress={async () => {
-            await $.store.set(BAND_HIDDEN_ON, isoDate(await $.clock.now()))
-            await update($, bandHiddenAtom, () => true)
-          }}
-        />
+        <Button key="nf-band-hide" label="hide today" hotkey="x" plain onPress={() => hideBandToday($)} />
       </Box>
     )
   }).catch(($, e, next) => next(e))

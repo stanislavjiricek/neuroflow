@@ -39,6 +39,20 @@ export type NfPrereg = NfStatusFile & {
 /** A dated row of timeline.md; `gates` is the phase it gates, when the row names one. */
 export type NfDeadline = { date: string; what: string; gates: string | null; daysLeft: number }
 
+/** A meeting file (.neuroflow/meetings/ or the flowie meetings folder), as the band needs it. */
+export type NfMeeting = {
+  level: 'project' | 'flowie'
+  slug: string
+  title: string
+  /** Local date-time as written (YYYY-MM-DDTHH:MM:SS, no timezone). */
+  date: string
+  /** Minutes from the snapshot's load time until it starts (negative once started). */
+  startsIn: number
+  closed: boolean
+  /** Unchecked `- [ ]` action items in the file. */
+  openActions: number
+}
+
 /** One row of a phase's autoresearch pointer registry. */
 export type NfLoop = { phase: string; name: string; location: string; iterations: string; best: string; status: string }
 
@@ -63,6 +77,10 @@ export type NfSnapshot = {
   taskCounts: Record<string, number> | null
   /** Autoresearch loops listed in the phases' pointer registries. */
   loops: NfLoop[]
+  /** Meetings from 2 days ago to 2 days ahead, soonest first. */
+  meetings: NfMeeting[]
+  /** Self-reported wellbeing is switched on in flowie and today's entry is missing (no scores are ever kept here). */
+  wellbeingDue: boolean
   /** Things the loader could not read or understand, in plain words. */
   problems: string[]
   loadedAt: number
@@ -82,6 +100,15 @@ export type NfLoopView = {
 }
 
 export type NfDashboardTab = 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
+
+export type NfCard = { slug: string; title: string; owner: string | null; due: string | null; overdue: boolean }
+
+/** The project task board as the board pane draws it (commands/tasks.md format). */
+export type NfBoard = {
+  columns: { id: string; label: string; cards: NfCard[]; total: number }[]
+  done: number
+  archived: number
+}
 
 export type NfReasoningBaseline = { path: string; lines: number }
 
@@ -150,6 +177,9 @@ declare module 'claude-code' {
       loopView: NfLoopView | null
       /** A line the phase picker shows (e.g. why it could not switch). */
       pickerNote: string | null
+      board: NfBoard | null
+      /** The task card picked on the board, to move it. */
+      boardPick: string | null
       // </feature:views>
       // <feature:loop>
       /** The autoresearch loop the mod is driving, one iteration per turn (null when none). */
