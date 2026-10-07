@@ -1,6 +1,6 @@
 ---
 name: migrate
-description: Convert a neuroflow project to the current project-memory contract — project_config.md frontmatter, JSON Lines reasoning logs, merge-safe .gitattributes, local-only .gitignore lines and the static instruction block. Shows the plan first and writes only after you agree.
+description: Bring neuroflow's memory up to the installed version after a plugin update — the project (project_config.md frontmatter, JSON Lines reasoning logs, merge-safe .gitattributes, local-only .gitignore lines, the static instruction block), your flowie and the team hive (task files in the current format, local-only files kept out of git). Shows the plan first and writes only after you agree.
 phase: utility
 reads:
   - .neuroflow/project_config.md
@@ -9,6 +9,10 @@ reads:
   - .gitattributes
   - .gitignore
   - ~/.neuroflow/user.yaml
+  - ~/.neuroflow/flowie/tasks/
+  - ~/.neuroflow/flowie/.gitignore
+  - ~/.neuroflow/hives/{org-repo}/tasks/
+  - ~/.neuroflow/hives/{org-repo}/.gitignore
   - ~/.claude/CLAUDE.md                   # report only
   - .github/copilot-instructions.md       # report only
   - AGENTS.md                             # report only
@@ -20,6 +24,10 @@ writes:
   - .gitattributes
   - .gitignore
   - ~/.neuroflow/user.yaml                # personal fields, only after the person agrees
+  - ~/.neuroflow/flowie/tasks/            # committed and pushed: the person's own repository
+  - ~/.neuroflow/flowie/.gitignore
+  - ~/.neuroflow/hives/{org-repo}/tasks/  # committed; pushed only after the person's yes
+  - ~/.neuroflow/hives/{org-repo}/.gitignore
 lifecycle: light
 produces:
   - .neuroflow/project_config.md
@@ -30,7 +38,7 @@ next:
 
 # /migrate
 
-Bring an older neuroflow project up to the current project-memory contract (`neuroflow:neuroflow-core` → **project_config.md — the config contract**, **Reasoning log**, **Merge safety**, **Sharing tiers**, **Project instruction block**). Nothing is written until the person has seen the plan and agreed.
+Bring neuroflow's memory up to the version that is running, level by level: the project (`neuroflow:neuroflow-core` → **project_config.md — the config contract**, **Reasoning log**, **Merge safety**, **Sharing tiers**, **Project instruction block**), then your flowie and the team hive (task files as `/tasks` → **Task file format** defines them, local-only files kept out of git). Nothing is written until the person has seen the plan and agreed.
 
 Read the `neuroflow:neuroflow-core` skill first: the script ships in its `scripts/` folder, and Claude Code shows the skill's base directory when it loads.
 
@@ -38,10 +46,11 @@ Read the `neuroflow:neuroflow-core` skill first: the script ships in its `script
 
 ## When to run it
 
+- **after a plugin update** — the main reason. Every command compares the version that last wrote the project with the running one and, when the project is behind, names this command in one line (`neuroflow:neuroflow-core` → **Command lifecycle**, the version notice); with the neuroflow mod, the band above the prompt shows the same line until the project is migrated
 - `/neuroflow`, `/phase` or another command reported a legacy `project_config.md` dialect (no `nf_schema` frontmatter)
 - reasoning logs are still JSON arrays (`reasoning/*.json`)
 - `.claude/CLAUDE.md` holds an older neuroflow block that names a phase
-- after a plugin update, to check whether the project needs anything
+- flowie or hive task files still sit flat in `tasks/` or carry `id` / `assignee` / `responsible` / `level` keys
 
 ---
 
@@ -51,13 +60,13 @@ Read the `neuroflow:neuroflow-core` skill first: the script ships in its `script
 python <neuroflow-core base dir>/scripts/migrate.py --root .
 ```
 
-Use `python3` where `python` is not on the PATH. The script walks up to the project root, writes nothing, and prints the plan: a diff of `project_config.md`, the reasoning conversions, the `.gitattributes` / `.gitignore` lines to add, the instruction-block fix, the decisions it needs, personal fields, and report-only findings. Add `--json` when you need the plan as data.
+Use `python3` where `python` is not on the PATH. The script walks up to the project root, writes nothing, and prints the plan: a diff of `project_config.md` (with `plugin_version` set to the running version when the project's is older or missing), the reasoning conversions, the `.gitattributes` / `.gitignore` lines to add, the instruction-block fix, the decisions it needs, personal fields, and report-only findings. Add `--json` when you need the plan as data.
 
 | Exit code | Meaning | What to do |
 |---|---|---|
-| `0` | Already current, nothing to report | Say so and stop. |
+| `0` | Already current, nothing to report | Say so and go to Step 5. |
 | `1` | Findings | Continue with Step 2. |
-| `2` | Refused or failed — `nf_schema` newer than this plugin knows, no project found, unreadable file, bad argument | Show the message and stop. A newer schema means: update the plugin — never edit the file by hand to get past it. |
+| `2` | Refused or failed — `nf_schema` newer than this plugin knows, no project found, unreadable file, bad argument | Show the message and stop. A newer schema means: update the plugin — never edit the file by hand to get past it. No project here: say so in one line and go to Step 5 — the flowie and the hive need no project. |
 
 **If Python is unavailable**, do the same conversion by hand, following the contract sections named above: show each change as an edit (Claude Code's own diff is the preview) and ask before each file.
 
@@ -94,9 +103,37 @@ For each one, show the exact block (the script prints it) and ask with `AskUserQ
 
 ---
 
+## Step 5 — Your flowie and the team hive
+
+The same plan-then-apply flow for the folders outside the project: your flowie (`~/.neuroflow/flowie/`) and each cached hive (`~/.neuroflow/hives/{org-repo}/`). Skip a folder that does not exist and say so in one line; skip the step when neither exists.
+
+1. **Pull each level first**, so the plan is made against the current state:
+   - flowie: `git -C ~/.neuroflow/flowie pull --rebase`. If it stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort`, tell the person, point at `/flowie --sync`, and leave the flowie out of this run.
+   - each hive: `git -C ~/.neuroflow/hives/{org-repo} pull --rebase`; on a conflict, `git -C ~/.neuroflow/hives/{org-repo} rebase --abort`, tell the person, and leave that hive out (`neuroflow:phase-hive` → **`--sync`**).
+   - A pull that fails for network reasons: say so once and plan against the local copy.
+2. **Dry run:**
+   ```bash
+   python <neuroflow-core base dir>/scripts/migrate.py --flowie --hives
+   ```
+   `--flowie` or `--hive {org-repo}` alone checks one level. The script plans task files written in a legacy form — flat in `tasks/`, or with `id` / `assignee` / `responsible` / `level` keys — into `tasks/{column}/{slug}.md` with the keys `/tasks` defines (**Task file format**, **Legacy files**), adds `integrations.json` (flowie) or `sync.json` (hive) to that folder's `.gitignore`, and only reports such a file when git already tracks it. Exit codes as in Step 1; `2` also names an unknown `--hive` folder.
+3. **Show the plan** per level in short form, one line per moved or rewritten file, and ask with `AskUserQuestion`: **Apply these changes** / **Cancel**. A hive change rewrites the team's shared board: say so.
+4. **Apply:** the same command with `--apply`. In a git repository the script moves tracked task files with `git mv`, so their history follows them, stages every path it changed and lists those paths per level (`commit_paths` with `--json`). It never commits or pushes.
+5. **Commit by path** — exactly the listed paths of each level, never `git add -A`:
+   ```bash
+   git -C ~/.neuroflow/flowie commit -m "migrate: current task format" -- {paths}
+   ```
+   For a hive, the same inside `~/.neuroflow/hives/{org-repo}`.
+6. **Push:**
+   - flowie — the person's own private repository, a sync target they set up (`neuroflow:neuroflow-core` → **Sharing tiers**): `git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push`. If the pull stops on a conflict, abort the rebase and leave the push for `/flowie --sync`.
+   <!-- nf-rule: EGRESS-CONFIRM -->
+   - hive — show the person the commit (its files and message) that would go to the shared hive repository, and push only after their explicit yes in this turn, pulling with rebase first (`neuroflow:phase-hive` → **Pushing to the hive**, which also covers a protected branch). Without a yes the commit stays local: say so.
+7. **Report-only findings:** show the script's message for each. A tracked `integrations.json` stays the person's call: `git rm --cached` stops tracking it, older commits keep their copies. A tracked `sync.json` in a hive is the team's call.
+
+---
+
 ## At end
 
-- When something was written, append `## HH:MM — [migrate] Project memory migrated to nf_schema 1: {what changed}` to `.neuroflow/sessions/YYYY-MM-DD.md`.
+- When something was written, append `## HH:MM — [migrate] {what changed, per level}` to `.neuroflow/sessions/YYYY-MM-DD.md` if `.neuroflow/` exists — e.g. `## 10:12 — [migrate] project to nf_schema 1 and neuroflow 0.2.22; flowie: 3 task files in the current format`.
 - Add a line to `reasoning/general.jsonl` for each decision the person made in Step 2 (for example the phase chosen for a legacy value).
-- Suggest committing the migration on its own (`/neuroflow:git`), so collaborators see one clean change. Collaborators on an older neuroflow should update the plugin before they write to `.neuroflow/` again.
+- Suggest committing the project's migration on its own (`/neuroflow:git`), so collaborators see one clean change. Collaborators on an older neuroflow should update the plugin before they write to `.neuroflow/` again.
 - Close with `Next: /neuroflow:phase`.

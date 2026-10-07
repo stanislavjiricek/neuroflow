@@ -1,30 +1,42 @@
 #!/usr/bin/env python3
-"""Migrate a neuroflow project to the current project-memory contract (neuroflow-core).
+"""Migrate neuroflow's memory to the current contracts (neuroflow-core), level by level.
 
 Dry run by default: prints the plan (with a diff of project_config.md) and writes
-nothing. --apply writes the plan. Idempotent: a migrated project has nothing to do.
+nothing. --apply writes the plan. Idempotent: a migrated level has nothing to do.
 
-Converts:
+The project (the default; found by walking up from --root):
   - project_config.md: the legacy dialects (`key: value` lines, `**Bold:**` labels,
-    or a mix) -> YAML frontmatter (nf_schema 1) followed by the free markdown body
+    or a mix) -> YAML frontmatter (nf_schema 1) followed by the free markdown body;
+    plugin_version -> the running plugin's version when it is older or missing
   - personal fields (auto_issue_reporting, researcher name, writing_style, zotero,
     notification / wellbeing settings) -> ~/.neuroflow/user.yaml, only with --move-personal
   - reasoning/*.json arrays -> *.jsonl, one element per line; the old file is kept as *.json.bak
   - missing .gitattributes (merge=union) and .gitignore (local tier) lines
   - the project's .claude/CLAUDE.md neuroflow block -> the static block, when it names a phase
-Only reports (never edits):
+  Only reports (never edits):
   - neuroflow blocks in ~/.claude/CLAUDE.md, .github/copilot-instructions.md and AGENTS.md
+
+Your flowie (--flowie) and team hives (--hive NAME, --hives), instead of the project:
+  - task files in a legacy form (flat tasks/{id}-{slug}.md, or id / assignee / responsible /
+    level keys) -> tasks/{column}/{slug}.md with the keys commands/tasks.md defines
+  - .gitignore: integrations.json (flowie) or sync.json (hive) added when it is missing
+  Only reports (never edits): integrations.json or sync.json tracked by git.
+  With --apply in a git repository, tracked task files move with `git mv` (history follows
+  them) and every changed path is staged; the result lists the paths to commit. It never
+  commits or pushes.
 
 Usage:
   python <neuroflow-core base dir>/scripts/migrate.py [--root DIR] [--apply]
       [--move-personal] [--set KEY=VALUE ...] [--json]
+  python <neuroflow-core base dir>/scripts/migrate.py [--flowie] [--hive NAME ... | --hives]
+      [--apply] [--json]
 
 Exit codes:
   0  nothing to do (already current), or --apply finished with nothing left to report
   1  findings: changes to apply, decisions needed (--set), personal fields still in the
      project file, or report-only items; with --apply and a blocking item, nothing is written
-  2  refused or failed: nf_schema newer than this script knows, no project found,
-     unreadable files, bad arguments
+  2  refused or failed: nf_schema newer than this script knows, no project found, an
+     unknown --hive name, unreadable files, a failed git command, bad arguments
 
 Stdlib only. Python 3.10+.
 """
@@ -36,7 +48,10 @@ import difflib
 import importlib.util
 import json
 import re
+import shutil
+import subprocess
 import sys
+import unicodedata
 from datetime import date
 from pathlib import Path
 
@@ -200,6 +215,18 @@ def canonical_phases() -> set[str]:
 
 def norm_phase(value: str) -> str:
     return re.sub(r"[\s_]+", "-", value.strip().lower())
+
+
+def version_key(value: str) -> tuple[int, ...]:
+    """A dotted version as numbers; a part that is not a number counts as 0."""
+    return tuple(int(part) if part.isdigit() else 0 for part in re.split(r"[.+-]", value.strip()))
+
+
+def is_older(recorded: str, running: str) -> bool:
+    """True when `recorded` is older than `running`, compared number by number (0.2.9 < 0.2.10)."""
+    a, b = version_key(recorded), version_key(running)
+    width = max(len(a), len(b))
+    return a + (0,) * (width - len(a)) < b + (0,) * (width - len(b))
 
 
 # ---------------------------------------------------------------------------
@@ -498,6 +525,15 @@ def plan_config(plan: Plan, config: Path, overrides: dict, move_personal: bool, 
             normalise("active_phase", current["active_phase"], phases, problems, "frontmatter")
         if "recommended_phases" in current:
             normalise("recommended_phases", current["recommended_phases"], phases, problems, "frontmatter")
+        # The version that last wrote the project: a newer running plugin records itself (the version notice).
+        recorded = next((segment_value(seg[1]) for seg in segs if seg[0] == "plugin_version"), None)
+        recorded = recorded if isinstance(recorded, str) and recorded else None
+        behind = bool(version) and (recorded is None or is_older(recorded, version))
+        summary_text = "update the frontmatter"
+        if behind and not changed:
+            summary_text = (f"record neuroflow {version} as the version that last wrote the project "
+                            f"(was {recorded or 'not recorded'})")
+        changed = changed or behind
         if changed and version:
             emitted = emit_key("plugin_version", version)
             for seg in segs:
@@ -509,7 +545,7 @@ def plan_config(plan: Plan, config: Path, overrides: dict, move_personal: bool, 
         if changed:
             fm = [line for seg in segs for line in seg[1]]
             new_text = "\n".join(["---", *fm, "---"]) + ("\n" + body if body else "\n")
-            plan.write(config, new_text, "update the frontmatter", newline, diff_from=original)
+            plan.write(config, new_text, summary_text, newline, diff_from=original)
         return
 
     # Legacy dialects: no frontmatter.
@@ -824,9 +860,393 @@ def print_human(result: dict) -> None:
         print("  run again with --apply to write these changes")
 
 
+# ---------------------------------------------------------------------------
+# Your flowie and team hives (--flowie, --hive NAME, --hives)
+# ---------------------------------------------------------------------------
+
+TASK_COLUMNS = ["inbox", "ready", "active", "review", "meeting", "done", "archive"]
+LEGACY_TASK_KEYS = {"id", "assignee", "responsible", "level"}
+NOT_TASK_FILES = {"flow.md", "readme.md", "index.md"}
+SLUG_MAX = 40
+FM_KEY_LINE = re.compile(r"^[A-Za-z_][\w-]*:(?:[ \t]|$)")
+# The file each level keeps on this machine: listed in its .gitignore, never committed.
+KEEP_LOCAL = {
+    "flowie": ("integrations.json", "# neuroflow: settings that stay on this machine, never synced"),
+    "hive": ("sync.json", "# neuroflow: each member's sync state stays on their machine"),
+}
+TRACKED = {
+    "flowie": ("tracked by git, so it travels with your flowie; it belongs on this machine. "
+               "`git -C {root} rm --cached integrations.json` and a commit stop tracking it. Older commits keep "
+               "their copies: if one ever held a key, revoke that key; rewriting the history is your call"),
+    "hive": ("tracked by the hive repository, so every member's sync state is shared. Agree with the team, then "
+             "`git -C {root} rm --cached sync.json`, commit, and push after your yes"),
+}
+SYNC_HINT = {"flowie": "/flowie --sync", "hive": "/hive --sync"}
+
+
+class GitError(OSError):
+    pass
+
+
+def git(root: Path, *args: str) -> subprocess.CompletedProcess:
+    try:
+        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=60, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GitError(f"git {args[0]} could not run in {root}: {exc}") from exc
+
+
+def git_ok(root: Path, *args: str) -> None:
+    proc = git(root, *args)
+    if proc.returncode != 0:
+        raise GitError(f"git {' '.join(args)} failed in {root}: {(proc.stderr or proc.stdout).strip()}")
+
+
+def slugify(text: str) -> str:
+    """The /tasks slug: lowercase ASCII, accents dropped, other runs -> '-', at most 40 characters."""
+    folded = "".join(ch for ch in unicodedata.normalize("NFKD", text) if not unicodedata.combining(ch)).lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", folded).strip("-")
+    if len(slug) > SLUG_MAX:
+        cut = slug[:SLUG_MAX]
+        if "-" in cut[SLUG_MAX // 2:]:
+            cut = cut[:cut.rfind("-")]
+        slug = cut.strip("-")
+    return slug or "task"
+
+
+def task_columns(tasks_dir: Path) -> tuple[list[str], str, str | None, str | None]:
+    """(column ids in board order, the column of a task without status, the archive column, a note)."""
+    columns: list[str] = []
+    default = archive = note = None
+    config = tasks_dir / "config.json"
+    if config.is_file():
+        try:
+            entries = json.loads(sc.read_text(config)).get("columns", [])
+        except (ValueError, AttributeError):
+            entries, note = [], "tasks/config.json is not valid JSON; the default columns apply"
+        for entry in entries if isinstance(entries, list) else []:
+            cid = entry.get("id") if isinstance(entry, dict) else None
+            if isinstance(cid, str) and cid.strip():
+                columns.append(cid.strip())
+                if entry.get("default") is True and default is None:
+                    default = cid.strip()
+                if entry.get("archive") is True and archive is None:
+                    archive = cid.strip()
+    columns = columns or list(TASK_COLUMNS)
+    default = default or ("inbox" if "inbox" in columns else columns[0])
+    archive = archive or ("archive" if "archive" in columns else None)
+    return columns, default, archive, note
+
+
+def column_for(status, columns: list[str], default: str, archive: str | None) -> str | None:
+    """The column a legacy `status` names (`archived` = the archive column); None when it names none."""
+    if not isinstance(status, str) or not status.strip():
+        return default
+    wanted = status.strip().lower()
+    if wanted == "archived" and archive:
+        return archive
+    return next((column for column in columns if column.lower() == wanted), None)
+
+
+def read_task(path: Path) -> dict | None:
+    """A task file's frontmatter segments and body; None without a frontmatter block."""
+    raw = sc.read_text(path)
+    bom = "﻿" if raw.startswith("﻿") else ""
+    text = raw[len(bom):].replace("\r\n", "\n")
+    if CONFLICT_RE.search(text):
+        return {"conflict": True}
+    split = sc.split_frontmatter(text)
+    if split is None or not any(FM_KEY_LINE.match(line) for line in split[0]):
+        return None
+    segs = segment_frontmatter(split[0])
+    return {"conflict": False, "bom": bom, "segs": segs, "body": split[1], "newline": sc.detect_newline(raw),
+            "values": {seg[0]: segment_value(seg[1]) for seg in segs if seg[0]}}
+
+
+def owner_of(value) -> str | list[str] | None:
+    """An `assignee` / `responsible` value as `owner`: roster handles without the @."""
+    items = value if isinstance(value, list) else [value]
+    handles = [item.strip().lstrip("@").strip() for item in items if isinstance(item, str)]
+    handles = [handle for handle in handles if handle]
+    if not handles:
+        return None
+    return handles[0] if len(handles) == 1 else handles
+
+
+def current_task_text(task: dict, column: str, today: str) -> tuple[str, list[str]]:
+    """The task file with the keys /tasks defines (status = its column, owner, updated), and what changed."""
+    has_owner = any(seg[0] == "owner" for seg in task["segs"])
+    out: list[list] = []
+    changed: list[str] = []
+    for key, lines in task["segs"]:
+        if key in ("id", "level"):
+            changed.append(f"{key} dropped")
+            continue
+        if key in ("assignee", "responsible"):
+            owner = owner_of(segment_value(lines))
+            if has_owner or owner is None:
+                changed.append(f"{key} dropped")
+                continue
+            out.append(["owner", emit_key("owner", owner)])
+            has_owner = True
+            changed.append(f"{key} -> owner")
+            continue
+        out.append([key, list(lines)])
+    status = next((seg for seg in out if seg[0] == "status"), None)
+    if status is None:
+        after_title = next((n + 1 for n, seg in enumerate(out) if seg[0] == "title"), 0)
+        out.insert(after_title, ["status", [f"status: {column}"]])
+        changed.append(f"status: {column}")
+    else:  # the folder is the column; an old comment listing the legacy values goes too
+        if segment_value(status[1]) != column:
+            changed.append(f"status: {segment_value(status[1]) or '(empty)'} -> {column}")
+        status[1] = [f"status: {column}"]
+    updated = next((seg for seg in out if seg[0] == "updated"), None)
+    if updated is None:  # set on every change, moves included
+        after_created = next((n + 1 for n, seg in enumerate(out) if seg[0] == "created"), len(out))
+        out.insert(after_created, ["updated", [f"updated: {today}"]])
+    else:
+        updated[1] = [f"updated: {today}"]
+    fm = [line for seg in out for line in seg[1]]
+    body = task["body"]
+    return task["bom"] + "\n".join(["---", *fm, "---"]) + ("\n" + body if body else "\n"), changed
+
+
+class LevelPlan:
+    """One user-level folder (~/.neuroflow/flowie or a cached hive) and what migrating it changes."""
+
+    def __init__(self, level: str, root: Path, home: Path, name: str | None = None) -> None:
+        self.level, self.root, self.name = level, root, name
+        try:
+            self.shown = "~/" + root.relative_to(home).as_posix()
+        except ValueError:
+            self.shown = root.as_posix()
+        self.is_repo = (root / ".git").exists()
+        self.git = self.is_repo and shutil.which("git") is not None
+        self.changes: list[dict] = []
+        self.moves: list[tuple[Path, Path, str, str]] = []  # (src, dst, text, newline); dst == src: in place
+        self.writes: list[tuple[Path, str, str]] = []
+        self.blocking: list[str] = []
+        self.report: list[dict] = []
+        self.notes: list[str] = []
+        self.commit_paths: list[str] = []
+
+    def rel(self, path: Path) -> str:
+        return path.relative_to(self.root).as_posix()
+
+    def move(self, src: Path, dst: Path, text: str, newline: str, summary: str) -> None:
+        self.moves.append((src, dst, text, newline))
+        change = {"path": self.rel(src), "action": "write" if dst == src else "move", "summary": summary}
+        if dst != src:
+            change["to"] = self.rel(dst)
+        self.changes.append(change)
+
+    def write(self, path: Path, text: str, newline: str, summary: str) -> None:
+        self.writes.append((path, text, newline))
+        self.changes.append({"path": self.rel(path), "action": "write", "summary": summary})
+
+
+def plan_tasks(plan: LevelPlan, today: str) -> None:
+    """Legacy task files -> tasks/{column}/{slug}.md with the current keys (commands/tasks.md)."""
+    tasks_dir = plan.root / "tasks"
+    if not tasks_dir.is_dir():
+        return
+    columns, default, archive, note = task_columns(tasks_dir)
+    if note:
+        plan.notes.append(note)
+    taken = {path.stem.lower() for folder in tasks_dir.iterdir() if folder.is_dir() for path in folder.glob("*.md")}
+    for column in columns:  # a file in its column folder that still carries legacy keys
+        folder = tasks_dir / column
+        for path in sorted(folder.glob("*.md")) if folder.is_dir() else []:
+            task = read_task(path)
+            if task is None or not (task["conflict"] or LEGACY_TASK_KEYS & set(task["values"])):
+                continue
+            if task["conflict"]:
+                plan.report.append({"path": plan.rel(path), "message": "merge-conflict markers; resolve them, then rerun"})
+                continue
+            text, changed = current_task_text(task, column, today)
+            plan.move(path, path, text, task["newline"], "current task keys: " + "; ".join(changed))
+    for path in sorted(p for p in tasks_dir.glob("*.md") if p.is_file()):  # flat {id}-{slug}.md files
+        if path.name.lower() in NOT_TASK_FILES:
+            continue
+        task = read_task(path)
+        if task is None or task["conflict"]:
+            message = ("merge-conflict markers; resolve them, then rerun" if task else
+                       "not a task file (no frontmatter), so the board does not show it; move or remove it")
+            plan.report.append({"path": plan.rel(path), "message": message})
+            continue
+        values = task["values"]
+        column = column_for(values.get("status"), columns, default, archive)
+        if column is None:
+            plan.report.append({"path": plan.rel(path), "message": f"status {values.get('status')!r} is not a column "
+                                f"of this board ({', '.join(columns)}); ask which column it belongs in, then "
+                                "/tasks --move moves it"})
+            continue
+        legacy_id = values.get("id") if isinstance(values.get("id"), str) else ""
+        stem = path.stem
+        if legacy_id and stem.lower().startswith(legacy_id.lower() + "-"):
+            stem = stem[len(legacy_id) + 1:]
+        elif legacy_id and stem.lower() == legacy_id.lower():
+            stem = ""
+        title = values.get("title") if isinstance(values.get("title"), str) else ""
+        base = slugify(stem or title)
+        slug, n = base, 2
+        while slug.lower() in taken:  # the slug is the task's id at this level
+            slug, n = f"{base}-{n}", n + 1
+        taken.add(slug.lower())
+        text, changed = current_task_text(task, column, today)
+        plan.move(path, tasks_dir / column / f"{slug}.md", text, task["newline"],
+                  "; ".join(["into its column folder", *changed]))
+
+
+def is_ignored(plan: LevelPlan, name: str) -> bool:
+    if plan.git:
+        code = git(plan.root, "check-ignore", "-q", "--no-index", "--", name).returncode
+        if code in (0, 1):
+            return code == 0
+    ignore = plan.root / ".gitignore"
+    return ignore.is_file() and not sc.missing_lines(ignore, [name])
+
+
+def plan_level(plan: LevelPlan, today: str) -> None:
+    if not plan.is_repo:
+        plan.notes.append("not a git repository: changes are written in place, there is nothing to commit")
+    elif not plan.git:
+        plan.notes.append("git is not installed: task files move without git mv and nothing is staged")
+    else:
+        git_dir = plan.root / ".git"
+        if any((git_dir / marker).exists() for marker in ("rebase-merge", "rebase-apply", "MERGE_HEAD")):
+            plan.blocking.append(f"a rebase or merge is in progress; finish or abort it first ({SYNC_HINT[plan.level]})")
+            return
+    plan_tasks(plan, today)
+    name, header = KEEP_LOCAL[plan.level]
+    if not is_ignored(plan, name):
+        ignore = plan.root / ".gitignore"
+        existing = sc.read_text(ignore) if ignore.exists() else None
+        plan.write(ignore, sc.append_lines_text(existing, header, [name]), sc.detect_newline(existing),
+                   f"add {name}: it stays on this machine")
+    if plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", name).returncode == 0:
+        plan.report.append({"path": name, "message": TRACKED[plan.level].format(root=plan.shown)})
+
+
+def build_levels(home: Path, flowie: bool, hive_names: list[str], all_hives: bool,
+                 today: str) -> tuple[list[LevelPlan], list[str]]:
+    base = home / ".neuroflow"
+    plans: list[LevelPlan] = []
+    notes: list[str] = []
+    if flowie:
+        if (base / "flowie").is_dir():
+            plans.append(LevelPlan("flowie", base / "flowie", home))
+        else:
+            notes.append("no flowie at ~/.neuroflow/flowie - nothing to migrate there (/flowie sets one up)")
+    hives_dir = base / "hives"
+    cached = sorted(p.name for p in hives_dir.iterdir() if p.is_dir()) if hives_dir.is_dir() else []
+    names: list[str] = []
+    for name in hive_names:
+        if name not in cached:
+            raise RefusedError(f"no cached hive {name!r} under ~/.neuroflow/hives/ (cached: {', '.join(cached) or 'none'})")
+        names.append(name)
+    if all_hives:
+        if not cached:
+            notes.append("no cached hive under ~/.neuroflow/hives - nothing to migrate there (/hive --init joins one)")
+        names += cached
+    for name in dict.fromkeys(names):
+        plans.append(LevelPlan("hive", hives_dir / name, home, name))
+    for plan in plans:
+        plan_level(plan, today)
+    return plans, notes
+
+
+def stage(plan: LevelPlan, path: Path) -> None:
+    if plan.git:
+        git_ok(plan.root, "add", "--", plan.rel(path))
+        plan.commit_paths.append(plan.rel(path))
+
+
+def apply_level(plan: LevelPlan) -> None:
+    """Writes the plan; in a git repository tracked task files move with git mv and every change is staged."""
+    for src, dst, text, newline in plan.moves:
+        if dst != src:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", plan.rel(src)).returncode == 0:
+                git_ok(plan.root, "mv", "--", plan.rel(src), plan.rel(dst))
+                plan.commit_paths.append(plan.rel(src))
+            else:
+                src.rename(dst)
+        sc.write_text(dst, text, newline)
+        stage(plan, dst)
+    for path, text, newline in plan.writes:
+        sc.write_text(path, text, newline)
+        stage(plan, path)
+
+
+def level_summary(plan: LevelPlan) -> dict:
+    return {"level": plan.level, "name": plan.name, "root": str(plan.root), "shown": plan.shown, "git": plan.git,
+            "changes": plan.changes, "blocking": plan.blocking, "report": plan.report, "notes": plan.notes,
+            "commit_paths": plan.commit_paths}
+
+
+def print_levels(result: dict) -> None:
+    mode = "applied" if result["applied"] else "dry run, nothing written"
+    print(f"neuroflow migrate ({mode}): your flowie and team hives")
+    for note in result["notes"]:
+        print(f"  note: {note}")
+    for level in result["levels"]:
+        title = "flowie" if level["level"] == "flowie" else f"hive {level['name']}"
+        print(f"  {title} ({level['shown']}):")
+        if level["changes"]:
+            print("    changes:" if result["applied"] else "    planned changes:")
+            for change in level["changes"]:
+                target = f" -> {change['to']}" if change.get("to") else ""
+                print(f"      - {change['path']}{target}: {change['summary']}")
+        else:
+            print("    no changes needed")
+        for item in level["blocking"]:
+            print(f"    needs attention (nothing is written while it remains): {item}")
+        for item in level["report"]:
+            print(f"    report only: {item['path']}: {item['message']}")
+        for note in level["notes"]:
+            print(f"    note: {note}")
+        if level["commit_paths"]:
+            print(f"    staged, not committed - commit exactly these paths: {' '.join(level['commit_paths'])}")
+    levels = result["levels"]
+    if not result["applied"] and any(lv["changes"] for lv in levels) and not any(lv["blocking"] for lv in levels):
+        print("  run again with --apply to write these changes (git changes are staged, never committed or pushed)")
+
+
+def run_levels(args: argparse.Namespace, home: Path, fail) -> int:
+    try:
+        plans, notes = build_levels(home, args.flowie, args.hive, args.hives, date.today().isoformat())
+    except RefusedError as exc:
+        return fail(str(exc))
+    except OSError as exc:
+        return fail(f"could not read your flowie or hive: {exc}")
+    blocked = any(plan.blocking for plan in plans)
+    applied = False
+    if args.apply and not blocked and any(plan.changes for plan in plans):
+        try:
+            for plan in plans:
+                apply_level(plan)
+        except OSError as exc:
+            return fail(f"write failed part-way: {exc}. Rerun the dry run to see what is left.")
+        applied = True
+    has_report = any(plan.report for plan in plans)
+    if applied:
+        code = 1 if has_report else 0
+    else:
+        code = 1 if (blocked or has_report or any(plan.changes for plan in plans)) else 0
+    result = {"levels": [level_summary(plan) for plan in plans], "applied": applied, "notes": notes,
+              "exit_code": code}
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    else:
+        print_levels(result)
+    return code
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Migrate a neuroflow project to the current memory contract. "
-                                             "Dry run unless --apply.")
+    ap = argparse.ArgumentParser(description="Migrate neuroflow's memory to the current contracts: the project "
+                                             "(default), or your flowie and team hives. Dry run unless --apply.")
     ap.add_argument("--root", default=".", help="folder inside the project (default: current directory)")
     ap.add_argument("--apply", action="store_true", help="write the planned changes")
     ap.add_argument("--move-personal", action="store_true",
@@ -834,7 +1254,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="set a frontmatter value the person chose (repeatable)")
     ap.add_argument("--plugin-version", help="override the version read from the installed plugin.json")
-    ap.add_argument("--home", help=argparse.SUPPRESS)  # tests only: stands in for the home directory
+    ap.add_argument("--flowie", action="store_true",
+                    help="check your flowie (~/.neuroflow/flowie) instead of the project")
+    ap.add_argument("--hive", action="append", default=[], metavar="NAME",
+                    help="check the cached hive ~/.neuroflow/hives/NAME instead of the project (repeatable)")
+    ap.add_argument("--hives", action="store_true",
+                    help="check every cached hive under ~/.neuroflow/hives/ instead of the project")
+    ap.add_argument("--home", help="the home folder that holds .neuroflow/ (default: your home directory)")
     ap.add_argument("--json", action="store_true", help="print the result as JSON")
     try:
         args = ap.parse_args(argv)
@@ -848,6 +1274,11 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"neuroflow migrate: refused: {message}")
         return 2
+
+    if args.flowie or args.hive or args.hives:
+        if args.set or args.move_personal:
+            return fail("--set and --move-personal apply to the project; run them without --flowie, --hive or --hives")
+        return run_levels(args, home, fail)
 
     root = sc.find_project_root(Path(args.root), home)
     if root is None:

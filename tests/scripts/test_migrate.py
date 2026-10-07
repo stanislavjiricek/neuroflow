@@ -6,8 +6,11 @@ import contextlib
 import importlib.util
 import io
 import json
+import shutil
+import subprocess
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -16,6 +19,12 @@ SCRIPT = REPO / "skills" / "neuroflow-core" / "scripts" / "migrate.py"
 spec = importlib.util.spec_from_file_location("nf_migrate_under_test", SCRIPT)
 migrate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(migrate)
+
+
+def run_git(cwd: Path, *args: str) -> str:
+    return subprocess.run(["git", "-c", "core.autocrlf=false", "-c", "user.name=Test", "-c", "user.email=test@example.org",
+                           "-c", "commit.gpgsign=false", *args],
+                          cwd=cwd, check=True, capture_output=True, text=True).stdout
 
 STALE_BLOCK = (
     "## neuroflow\n\nThis project uses the neuroflow workflow. Project memory is in `.neuroflow/`.\n\n"
@@ -236,6 +245,52 @@ class MigrateTest(unittest.TestCase):
         self.assertTrue(raw.startswith("---\r\nnf_schema: 1\r\n"))
         self.assertNotIn("\n", raw.replace("\r\n", ""))
 
+    # -- plugin_version: the version that last wrote the project ---------------
+
+    def run_version(self, running: str, *extra: str) -> tuple[int, dict]:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = migrate.main(["--root", str(self.project), "--home", str(self.home),
+                                 "--plugin-version", running, "--json", *extra])
+        return code, json.loads(out.getvalue())
+
+    def test_versions_compare_number_by_number(self) -> None:
+        self.assertTrue(migrate.is_older("0.2.9", "0.2.10"))
+        self.assertFalse(migrate.is_older("0.2.10", "0.2.9"))
+        self.assertTrue(migrate.is_older("0.2.21", "0.2.22"))
+        self.assertFalse(migrate.is_older("0.2", "0.2.0"))
+        self.assertFalse(migrate.is_older("0.2.22", "0.2.22"))
+
+    def test_an_older_project_records_the_running_version(self) -> None:
+        config = ("---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: paper\nrecommended_phases: []\n"
+                  "plugin_version: 0.2.9\n---\n\nNotes.\n")
+        self.write(".neuroflow/project_config.md", config)
+        self.run_version("0.2.9", "--apply")  # everything else current
+        self.assertEqual(self.read(".neuroflow/project_config.md"), config)
+
+        code, result = self.run_version("0.2.10")  # a plugin update arrived
+        self.assertEqual(code, 1)
+        self.assertEqual([c["path"] for c in result["changes"]], [".neuroflow/project_config.md"])
+        self.assertEqual(result["changes"][0]["summary"],
+                         "record neuroflow 0.2.10 as the version that last wrote the project (was 0.2.9)")
+        self.assertEqual(self.read(".neuroflow/project_config.md"), config, "a dry run writes nothing")
+
+        code, result = self.run_version("0.2.10", "--apply")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(self.read(".neuroflow/project_config.md"), config.replace("0.2.9", "0.2.10"))
+        self.assertEqual(self.run_version("0.2.10")[1]["changes"], [], "a second run finds nothing to do")
+        code, result = self.run_version("0.2.9")
+        self.assertEqual((code, result["changes"]), (0, []), "a newer recorded version is never lowered")
+
+    def test_a_missing_plugin_version_is_recorded(self) -> None:
+        self.write(".neuroflow/project_config.md",
+                   "---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: paper\nrecommended_phases: []\n---\n")
+        code, result = self.run_version("0.2.22")
+        change = next(c for c in result["changes"] if c["path"] == ".neuroflow/project_config.md")
+        self.assertIn("(was not recorded)", change["summary"])
+        self.run_version("0.2.22", "--apply")
+        self.assertIn("plugin_version: 0.2.22\n", self.read(".neuroflow/project_config.md"))
+
     # -- reasoning logs ------------------------------------------------------
 
     def test_reasoning_arrays_become_jsonl(self) -> None:
@@ -301,6 +356,203 @@ class MigrateTest(unittest.TestCase):
         self.assertIn("data-analyze", phases)
         self.assertIn("setup", phases)
         self.assertNotIn("utility", phases)
+
+
+class FlowieHiveTest(unittest.TestCase):
+    """--flowie, --hive NAME and --hives: task files, local-only files, git staging (never a commit)."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.home = Path(self._tmp.name) / "home"
+        self.flowie = self.home / ".neuroflow" / "flowie"
+        self.hives = self.home / ".neuroflow" / "hives"
+        self.today = date.today().isoformat()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def write(self, path: Path, text: str) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="") as fh:
+            fh.write(text)
+
+    def read(self, path: Path) -> str:
+        with open(path, encoding="utf-8", newline="") as fh:
+            return fh.read()
+
+    def repo(self, folder: Path) -> None:
+        run_git(folder, "init", "-q")
+        run_git(folder, "add", "-A")
+        run_git(folder, "commit", "-q", "-m", "init")
+
+    def levels(self, *args: str, as_json: bool = True) -> tuple[int, dict | str]:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = migrate.main(["--home", str(self.home), *(["--json"] if as_json else []), *args])
+        return code, json.loads(out.getvalue()) if as_json else out.getvalue()
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_flowie_tasks_move_into_their_column_folders(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "t-014-re-run-ica.md",
+                   "---\nid: t-014\ntitle: Re-run ICA on sub-07\nstatus: active          # inbox | active | review | done"
+                   " | archived\ncreated: 2026-08-13\nassignee: \"@jana\"\nproject: Oddball EEG\n---\n\nNotes stay.\n")
+        self.write(tasks / "t-015-old-thing.md", "---\nid: t-015\ntitle: Old thing\nstatus: archived\ncreated: 2026-01-01\n---\n")
+        self.write(tasks / "active" / "spin-tests.md",
+                   "---\ntitle: Spin tests\nlevel: flowie\nresponsible: \"@stan\"\ncreated: 2026-04-01\n---\n\n## Context\n")
+        current = "---\ntitle: Another task\nstatus: active\ncreated: 2026-04-01\nupdated: 2026-04-02\n---\n"
+        self.write(tasks / "active" / "re-run-ica.md", current)
+        self.write(self.flowie / ".gitignore", ".DS_Store\n")
+        self.repo(self.flowie)
+        self.write(self.flowie / "integrations.json", "{}\n")  # local and untracked, as it should be
+
+        code, text = self.levels("--flowie", as_json=False)
+        self.assertEqual(code, 1)
+        self.assertIn("tasks/t-014-re-run-ica.md -> tasks/active/re-run-ica-2.md", text)
+        code, result = self.levels("--flowie")
+        self.assertEqual(code, 1)
+        self.assertEqual({c["path"]: c.get("to") for c in result["levels"][0]["changes"]}, {
+            "tasks/active/spin-tests.md": None,
+            "tasks/t-014-re-run-ica.md": "tasks/active/re-run-ica-2.md",  # the slug is taken in a column: -2
+            "tasks/t-015-old-thing.md": "tasks/archive/old-thing.md",  # archived = archive
+            ".gitignore": None,
+        })
+        self.assertTrue((tasks / "t-014-re-run-ica.md").exists(), "a dry run writes nothing")
+
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(self.read(tasks / "active" / "re-run-ica-2.md"),
+                         "---\ntitle: Re-run ICA on sub-07\nstatus: active\ncreated: 2026-08-13\n"
+                         f"updated: {self.today}\nowner: jana\nproject: Oddball EEG\n---\n\nNotes stay.\n")
+        self.assertEqual(self.read(tasks / "active" / "spin-tests.md"),
+                         "---\ntitle: Spin tests\nstatus: active\nowner: stan\ncreated: 2026-04-01\n"
+                         f"updated: {self.today}\n---\n\n## Context\n")
+        self.assertIn("status: archive\n", self.read(tasks / "archive" / "old-thing.md"))
+        self.assertEqual(self.read(tasks / "active" / "re-run-ica.md"), current, "a current task is left alone")
+        self.assertEqual(self.read(self.flowie / ".gitignore"),
+                         ".DS_Store\n\n# neuroflow: settings that stay on this machine, never synced\nintegrations.json\n")
+
+        tracked = run_git(self.flowie, "ls-files").split()
+        self.assertNotIn("tasks/t-014-re-run-ica.md", tracked, "git mv: the move is staged")
+        self.assertIn("tasks/active/re-run-ica-2.md", tracked)
+        self.assertNotIn("integrations.json", tracked)
+        self.assertEqual(run_git(self.flowie, "rev-list", "--count", "HEAD").strip(), "1", "it never commits")
+        paths = result["levels"][0]["commit_paths"]
+        self.assertEqual(paths, ["tasks/active/spin-tests.md", "tasks/t-014-re-run-ica.md", "tasks/active/re-run-ica-2.md",
+                                 "tasks/t-015-old-thing.md", "tasks/archive/old-thing.md", ".gitignore"])
+        run_git(self.flowie, "commit", "-q", "-m", "migrate", "--", *paths)  # the prose's commit by path
+        self.assertEqual(run_git(self.flowie, "status", "--porcelain"), "")
+
+        code, result = self.levels("--flowie")
+        self.assertEqual((code, result["levels"][0]["changes"]), (0, []), "a second run finds nothing to do")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_tracked_integrations_file_is_reported_not_untracked(self) -> None:
+        self.write(self.flowie / "profile.md", "# Research Profile\n")
+        self.write(self.flowie / "integrations.json", '{"custom_llm": {"model": "m"}}\n')
+        self.repo(self.flowie)
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1, "the tracked file stays a finding until the person acts")
+        level = result["levels"][0]
+        self.assertEqual([item["path"] for item in level["report"]], ["integrations.json"])
+        self.assertIn("rm --cached integrations.json", level["report"][0]["message"])
+        self.assertIn("integrations.json", run_git(self.flowie, "ls-files").split())
+        self.assertEqual(self.read(self.flowie / ".gitignore"),
+                         "# neuroflow: settings that stay on this machine, never synced\nintegrations.json\n")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_hive_keeps_sync_json_local_and_gets_current_tasks(self) -> None:
+        hive = self.hives / "example-lab-hive"
+        self.write(hive / "hive.md", "# Example Lab\n")
+        self.write(hive / "sync.json", '{"member_handle": "alice"}\n')
+        self.write(hive / "tasks" / "inbox" / "shared-pipeline.md",
+                   "---\ntitle: Shared pipeline\nlevel: hive\nassignee: li\ncreated: 2026-09-01\n---\n")
+        self.repo(hive)
+        code, result = self.levels("--hive", "example-lab-hive")
+        self.assertEqual(code, 1)
+        level = result["levels"][0]
+        self.assertEqual((level["level"], level["name"]), ("hive", "example-lab-hive"))
+        self.assertEqual([c["path"] for c in level["changes"]], ["tasks/inbox/shared-pipeline.md", ".gitignore"])
+        self.assertEqual([item["path"] for item in level["report"]], ["sync.json"])
+
+        code, result = self.levels("--hive", "example-lab-hive", "--apply")
+        self.assertEqual(code, 1, "sync.json is still tracked: agreeing on that is the team's call")
+        self.assertEqual(self.read(hive / "tasks" / "inbox" / "shared-pipeline.md"),
+                         f"---\ntitle: Shared pipeline\nstatus: inbox\nowner: li\ncreated: 2026-09-01\nupdated: {self.today}\n---\n")
+        self.assertIn("sync.json", self.read(hive / ".gitignore").splitlines())
+        self.assertEqual(result["levels"][0]["commit_paths"], ["tasks/inbox/shared-pipeline.md", ".gitignore"])
+        self.assertEqual(run_git(hive, "rev-list", "--count", "HEAD").strip(), "1", "never commits, never pushes")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_hives_checks_every_cached_hive(self) -> None:
+        for name in ("lab-a", "lab-b"):
+            self.write(self.hives / name / "tasks" / "t-1-plan.md", "---\nid: t-1\ntitle: Plan\nstatus: review\n---\n")
+        self.write(self.hives / "lab-a" / ".gitignore", "sync.json\n")
+        self.repo(self.hives / "lab-a")  # lab-b is an older cache of copied files, not a clone
+        code, result = self.levels("--hives", "--apply")
+        self.assertEqual(code, 0, result)
+        self.assertEqual([level["name"] for level in result["levels"]], ["lab-a", "lab-b"])
+        for name in ("lab-a", "lab-b"):
+            self.assertTrue((self.hives / name / "tasks" / "review" / "plan.md").is_file())
+            self.assertFalse((self.hives / name / "tasks" / "t-1-plan.md").exists())
+        self.assertEqual(result["levels"][0]["commit_paths"], ["tasks/t-1-plan.md", "tasks/review/plan.md"])
+        self.assertEqual(result["levels"][1]["commit_paths"], [])
+        self.assertTrue(any("not a git repository" in note for note in result["levels"][1]["notes"]))
+
+    def test_what_cannot_be_moved_is_reported(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "t-3-wait.md", "---\nid: t-3\ntitle: Wait\nstatus: blocked\n---\n")
+        self.write(tasks / "notes.md", "Loose notes, no frontmatter.\n")
+        self.write(tasks / "flow.md", "| file | description |\n")
+        self.write(tasks / "review" / "clash.md", "---\ntitle: Clash\nassignee: li\n<<<<<<< HEAD\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1)
+        self.assertFalse(result["applied"])
+        level = result["levels"][0]
+        self.assertEqual(level["changes"], [])
+        self.assertEqual(sorted(item["path"] for item in level["report"]),
+                         ["tasks/notes.md", "tasks/review/clash.md", "tasks/t-3-wait.md"])
+        self.assertIn("'blocked'", next(i["message"] for i in level["report"] if i["path"] == "tasks/t-3-wait.md"))
+        self.assertTrue((tasks / "t-3-wait.md").exists())
+
+    def test_slugs_custom_columns_and_line_endings(self) -> None:
+        self.assertEqual(migrate.slugify("Ré-run ICA: sub-07!"), "re-run-ica-sub-07")
+        self.assertEqual(migrate.slugify("***"), "task")
+        long = migrate.slugify("Write the methods section for the oddball paradigm paper draft")
+        self.assertLessEqual(len(long), 40)
+        self.assertFalse(long.endswith("-"))
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "config.json", json.dumps({"columns": [
+            {"id": "todo", "default": True}, {"id": "doing"}, {"id": "shelf", "archive": True}]}))
+        self.write(tasks / "Big Idea.md", "---\r\ntitle: Big idea\r\nassignee: alice\r\n---\r\nBody\r\n")
+        self.write(tasks / "t-9.md", "---\r\nid: t-9\r\ntitle: Ünïcode title\r\nstatus: archived\r\n---\r\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 0, result)
+        big = self.read(tasks / "todo" / "big-idea.md")  # no status: the board's default column
+        self.assertEqual(big, f"---\r\ntitle: Big idea\r\nstatus: todo\r\nowner: alice\r\nupdated: {self.today}\r\n---\r\nBody\r\n")
+        self.assertTrue((tasks / "shelf" / "unicode-title.md").is_file(), "a name that is only the id: the title")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_rebase_in_progress_blocks_writing(self) -> None:
+        self.write(self.flowie / "tasks" / "t-1-x.md", "---\nid: t-1\ntitle: X\n---\n")
+        (self.flowie / ".git" / "rebase-merge").mkdir(parents=True)
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1)
+        self.assertFalse(result["applied"])
+        self.assertIn("rebase", result["levels"][0]["blocking"][0])
+        self.assertTrue((self.flowie / "tasks" / "t-1-x.md").exists())
+
+    def test_arguments_and_missing_levels(self) -> None:
+        (self.hives / "example-lab").mkdir(parents=True)
+        code, result = self.levels("--hive", "nope")
+        self.assertEqual(code, 2)
+        self.assertIn("example-lab", result["error"])
+        code, result = self.levels("--flowie")
+        self.assertEqual((code, result["levels"]), (0, []))
+        self.assertTrue(any("no flowie" in note for note in result["notes"]))
+        self.assertEqual(self.levels("--flowie", "--set", "active_phase=paper")[0], 2)
+        self.assertEqual(self.levels("--hives", "--move-personal")[0], 2)
 
 
 if __name__ == "__main__":
