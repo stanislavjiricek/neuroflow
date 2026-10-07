@@ -36,6 +36,20 @@ export const statusLine = (snap: NfSnapshot, degraded: readonly string[], alerts
 }
 
 export type DoctorCheck = { id: string; status: 'ok' | 'info' | 'warn' | 'fail'; message: string }
+
+/** The doctor's line for nf_check.py's counts, or null when the checker did not answer. */
+export const projectCheckLine = (report: { summary?: Record<string, number> } | null): DoctorCheck | null => {
+  const s = report?.summary
+  if (!s) return null
+  const errors = s.error ?? 0
+  const warnings = s.warn ?? 0
+  if (errors + warnings === 0) return { id: 'nf-check', status: 'ok', message: 'project memory checks: no errors or warnings' }
+  return {
+    id: 'nf-check',
+    status: errors > 0 ? 'fail' : 'warn',
+    message: `project memory checks: ${errors} error(s), ${warnings} warning(s) — /neuroflow:sentinel shows them`,
+  }
+}
 export type DoctorReport = { checks: DoctorCheck[] }
 
 const GLYPH: Record<DoctorCheck['status'], string> = { ok: '✔', info: '·', warn: '⚠', fail: '✖' }
@@ -92,6 +106,12 @@ export const registerStatus = (on: On, opts: NfOptions): void => {
     const target = scope.root ?? (await $.session.cwd())
     const run = await runScript(ioOf($), 'skills/neuroflow-core/scripts/doctor.py', ['--json', '--project', target], { timeoutMs: 60_000 })
     const report = parseJson<DoctorReport>(run.stdout)
+    // M041: the project checker's counts (the full report is /neuroflow:sentinel); without PII scan, it is quick.
+    if (scope.isActive && scope.root !== null) {
+      const checked = await runScript(ioOf($), 'skills/neuroflow-core/scripts/nf_check.py', ['--json', '--no-pii', '--project', scope.root], { timeoutMs: 60_000 })
+      const line = projectCheckLine(parseJson<{ summary?: Record<string, number> }>(checked.stdout))
+      if (line !== null) modLines.push(line)
+    }
     return { text: doctorText(modLines, report, report === null ? (run.stderr.trim().split('\n').pop() ?? null) : null) }
   }).catch(($, e, next) => next(e))
 }
