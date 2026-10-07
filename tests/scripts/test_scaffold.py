@@ -6,7 +6,10 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import re
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -165,6 +168,17 @@ class ScaffoldTest(unittest.TestCase):
         self.assertEqual(m.group(1), scaffold.CLAUDE_BLOCK)
         for line in scaffold.GITATTRIBUTES_LINES + scaffold.GITIGNORE_LINES:
             self.assertIn(line, skill)
+
+    def test_output_survives_a_legacy_code_page(self) -> None:
+        # A Windows pipe defaults to the ANSI code page; a path it cannot encode must not crash the script.
+        project = self.home / "studies" / "ü-日本"
+        project.mkdir(parents=True)
+        env = dict(os.environ, PYTHONIOENCODING="cp1250")
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "--root", str(project), "--home", str(self.home), "--plugin-version", "9.9.9"],
+            capture_output=True, env=env, timeout=60)
+        self.assertIn(proc.returncode, (0, 1), proc.stderr.decode("utf-8", "replace"))
+        self.assertIn("日本", proc.stdout.decode("utf-8"))
 
     def test_main_rejects_bad_arguments(self) -> None:
         with contextlib.redirect_stderr(io.StringIO()):

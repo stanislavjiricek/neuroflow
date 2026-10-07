@@ -387,7 +387,18 @@ def print_human(report: dict) -> None:
         print("  nothing to do: the scaffold is complete")
 
 
+def utf8_stdio() -> None:
+    """Make stdout and stderr UTF-8, so a path in any script survives a Windows pipe."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    utf8_stdio()
     ap = argparse.ArgumentParser(
         description="Create the neuroflow project scaffold. Never overwrites an existing file.")
     ap.add_argument("--root", default=".", help="project folder (default: current directory)")
