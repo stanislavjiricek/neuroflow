@@ -14,32 +14,37 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 ```
 ~/.neuroflow/
 ├── user.yaml                        ← personal layer: flowie_handle, preferences, consents (see "Personal layer")
-├── integrations.json                ← global credentials (API keys, tokens) — device-wide, never inside any repo
+├── integrations.json                ← global integration settings, no secrets (/setup stores no token or key) — device-wide, never inside any repo
 ├── private/                         ← local-only personal files that never sync (e.g. interview notes about candidates); not a git repo
+├── local-projects.json              ← machine-local project registry (flowie project name → local folder), written by /flowie --link, never synced
+├── flowie-sync.log                  ← one line per failed flowie auto-sync, machine-local, cleared by /flowie --sync
 ├── flowie/                          ← ONE global clone of github.com/{handle}/flowie
+│   ├── .gitignore                   ← integrations.json
 │   ├── profile.md
 │   ├── ideas.md
+│   ├── ideas-inbox.md
 │   ├── sync.json
-│   ├── integrations.json            ← NON-SECRET settings sync only (custom LLM provider/base_url/model — never api_key)
+│   ├── integrations.json            ← NON-SECRET settings only (custom LLM provider/base_url/model — never api_key); gitignored, stays on this machine
 │   ├── projects/
 │   ├── tasks/
 │   ├── notes/
+│   ├── meetings/
 │   ├── wellbeing/
 │   └── wiki/
 └── hives/
-    └── {org-repo}/                  ← one cache per hive membership
+    └── {org-repo}/                  ← a git clone of the hive repo (shallow is fine) — one per hive membership
         ├── hive.md
         ├── members.md
         ├── ideas.md
-        └── sync.json
+        └── sync.json                ← this member's state — gitignored by the hive repo, never pushed
 ```
 
 **Key rules:**
 - `~/.neuroflow/flowie/` is a git repo (`.git/` inside) — cloned once, shared across all projects
-- `~/.neuroflow/hives/{org-repo}/` is a shallow clone or fetch cache — one per hive the user belongs to
-- Credentials (API keys, tokens) live in `~/.neuroflow/integrations.json` (global, device-wide), with an optional per-project override at `.neuroflow/integrations.json` (gitignored, excluded from `/output` exports). `~/.neuroflow/flowie/integrations.json` carries **non-secret** settings only (custom LLM provider/base_url/model/proxy_port) for cross-machine sync — `api_key` never enters the flowie repo
+- `~/.neuroflow/hives/{org-repo}/` is a git clone of the hive repo (shallow is fine) — one per hive the user belongs to
+- Integration settings live in `~/.neuroflow/integrations.json` (global, device-wide; non-secret — `/setup` never stores a token or key), with an optional per-project override at `.neuroflow/integrations.json` (gitignored, excluded from `/output` exports). `~/.neuroflow/flowie/integrations.json` carries **non-secret** settings only (custom LLM provider/base_url/model/proxy_port), kept on this machine: it is gitignored in the flowie repo and never committed (the auto-sync hook skips it) — `api_key` never enters the flowie repo
 - Neither `flowie/` nor `hive/` ever appears inside a project's `.neuroflow/`
-- `user.yaml` and `private/` are local only: never copied into a project, pushed or exported
+- `user.yaml`, `private/`, `local-projects.json` and `flowie-sync.log` are local only: never copied into a project, pushed or exported
 
 ---
 
@@ -60,6 +65,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 | `sentinel.md` | Sentinel's last audit report. If all clear: last run date + "all clear". |
 | `timeline.md` | Milestones and deadlines — conference/submission deadlines, ethics approval expiry, funder reporting dates. Created by `/neuroflow` (interview), rendered by `/phase`, read by `/meeting` for agenda preparation. |
 | `journal-preferences.md` | Optional — the user's target-journal preferences, written during `/neuroflow` or `/ideation` journal recommendation. |
+| `integrations.json` | Optional — per-project override of the integration settings in `~/.neuroflow/integrations.json`, written by `/setup`. Local tier: gitignored, never exported (**Sharing tiers**). |
 
 #### project_config.md — the config contract
 
@@ -76,6 +82,7 @@ recommended_phases: [ideation, preregistration, experiment, data, data-analyze, 
 raw_roots: [sourcedata/]          # optional: read-only raw-data folders (relative to project root)
 paper_auto: off                   # optional: on | off (/paper --auto)
 hive_repo: owner/repo             # optional: GitHub org/repo of the team hive
+ethics: not-applicable            # optional: no approval tracked here (public de-identified data, simulations); silences the ETHICS-GATE and sentinel S4 — see /ethics
 plugin_version: 0.2.22            # the neuroflow version that last wrote this file
 ---
 ```
@@ -101,6 +108,7 @@ name: Alice Example               # researcher name
 writing_style: plain, active voice
 auto_issue_reporting: no          # consent: yes | no — absent means no
 default_mode: critic              # optional: overrides the project's team default for this person
+zotero: no                        # optional: yes | no — whether the person uses Zotero, asked once by /ideation
 ```
 
 - Consent is read **only** from this file. An `auto_issue_reporting` value in a project file is a legacy leftover: ignore it and offer `/neuroflow:migrate`, which moves personal fields here after asking.
@@ -119,7 +127,7 @@ default_mode: critic              # optional: overrides the project's team defau
 | `finance/` | Grant documents, expense tracking. |
 | `fails/` | Dissatisfaction log — three fixed files: `core.md` (plugin behavior problems), `science.md` (scientific quality problems), `ux.md` (interaction quality problems). Created on first `/fails` run. |
 | `output/` | Output log — one `.md` per export run recording scope, format, destination, and excluded files. Created on first `/output` run. |
-| `tasks/` | Project-level Kanban task board — one file per task, the column is its `status` field (git-tracked, shared with collaborators). Owned by `/tasks` — `/flowie --tasks --level project`, `/meeting` action items, and `/hive` delegate to its spec. Created by the scaffold. |
+| `tasks/` | Project-level Kanban task board — one file per task at `tasks/{column}/{slug}.md` (format: `/tasks`; git-tracked, shared with collaborators). Owned by `/tasks` — `/flowie --tasks --level project`, `/meeting` action items, and `/hive` delegate to its spec. Created by the scaffold. |
 | `meetings/` | Meeting files — agendas, notes, action items. Written by `/meeting`. Created on first meeting. |
 | `wiki/` | Project-level shared knowledge base (git-tracked). Owned by `/wiki` at `level: project`. The scaffold creates the skeleton; `/wiki --schema` or the first ingest initialises it. |
 | `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
@@ -240,6 +248,7 @@ set_at: 2026-09-12T09:00:00Z
 ---
 ```
 
+<!-- nf-rule: INTEGRITY-MARKER -->
 - `set_by: person` means a person set the value: a press in the neuroflow mod, or an explicit confirmation in the conversation ("yes, freeze it") right before the write. Never write `set_by: person` without that confirmation in the same turn. Treat `frozen` or `approved` with `set_by: model` as not set.
 - A frozen preregistration file starts with a plain-text banner, so collaborators without the mod see it: `> FROZEN 2026-10-01 — sha256 3f5a… — do not edit; record changes in deviations.md`. `deviations.md` is append-only; unfreezing is a person's action only and is itself logged there. The freeze workflow lives in `/preregistration`.
 
@@ -266,7 +275,7 @@ set_at: 2026-09-12T09:00:00Z
 
 | Tier | What | Rule |
 |---|---|---|
-| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
+| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json`, `~/.neuroflow/flowie-sync.log`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
 | `team` | everything else under `.neuroflow/` | Committed to the project repo; visible to collaborators. |
 | `public` | what `/output`, `/hive` share, NotebookLM, slides, posters and papers send outside | Only after the person confirms what leaves. Never includes `local` paths, `fails/`, `finance/`, or participant-identifying `ethics/` content. |
 
@@ -277,10 +286,11 @@ The scaffold (and `/neuroflow:migrate`) adds these lines to the project's `.giti
 .neuroflow/review/
 .neuroflow/integrations.json
 .neuroflow/flowie/
+.neuroflow/paper/xray-*
 ```
 
 <!-- nf-rule: EGRESS-CONFIRM -->
-**Egress:** every outbound data movement — uploads, pushes to shared remotes, exports, opening an issue URL — needs the person's explicit confirmation in the turn it happens. Nothing leaves "automatically".
+**Egress:** every outbound data movement — uploads, pushes to shared remotes, exports, opening an issue URL — needs the person's explicit confirmation in the turn it happens. Nothing leaves "automatically", with one exception: the person's own private flowie repository is a sync target they set up explicitly, so the flowie auto-sync hook commits the file Claude wrote there, pulls with rebase and pushes (`/flowie` → Git operations pattern). Shared targets — a hive, exports, NotebookLM, public repositories — always need the confirmation.
 
 ---
 
@@ -311,10 +321,15 @@ Every command declares `lifecycle:` in its frontmatter (**Command frontmatter st
 Every `full` command follows this order; `light` and `quiet` commands follow the parts their profile allows.
 
 **At start:**
-1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hives/*/` caches if they exist — fail silently on network errors. This ensures every session starts with fresh knowledge from GitHub.
+1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hives/*/` caches if they exist. This ensures every session starts with fresh knowledge from GitHub. It never blocks: a repository with a rebase in progress is skipped, a pull that stops on a conflict has its rebase aborted at once, and a failed flowie pull adds one line to `~/.neuroflow/flowie-sync.log` (`/flowie` reports it).
    ```bash
-   git -C ~/.neuroflow/flowie pull --rebase origin main >/dev/null 2>&1 || true
-   for d in ~/.neuroflow/hives/*/; do [ -d "$d/.git" ] && git -C "$d" pull --rebase origin main >/dev/null 2>&1 || true; done
+   for d in ~/.neuroflow/flowie ~/.neuroflow/hives/*; do
+     [ -d "$d/.git" ] || continue
+     [ -d "$d/.git/rebase-merge" ] || [ -d "$d/.git/rebase-apply" ] && continue
+     git -C "$d" pull --rebase -q >/dev/null 2>&1 && continue
+     { [ -d "$d/.git/rebase-merge" ] || [ -d "$d/.git/rebase-apply" ]; } && git -C "$d" rebase --abort >/dev/null 2>&1
+     case "$d" in */flowie) printf '%s pull failed: (command start)\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> ~/.neuroflow/flowie-sync.log;; esac
+   done; true
    ```
 2. Read `.neuroflow/project_config.md` — facts from its frontmatter (**project_config.md — the config contract**). A legacy dialect: read it as it is and offer `/neuroflow:migrate` once. `nf_schema` above 1: do not write the file; say so.
 3. Read `.neuroflow/flow.md`
@@ -355,6 +370,7 @@ Write to session and reasoning logs broadly — not just at milestones, but afte
 5. **Phase transition check:** if the outputs produced during this session clearly belong to a different (later) phase than the active phase in `project_config.md`, prompt the user: *"The work produced looks like [phase] outputs. Should I update the active phase in project_config.md?"* Do not silently leave the phase wrong.
 6. **Next step:** if the command's frontmatter lists `next:`, close with `Next: /neuroflow:<name>` for the entry that fits what was done.
 7. **Open checklist items:** if TodoWrite or task items that are real research work (not micro-steps of this session) are still open, offer once to add them with `/tasks --add` — never add them unasked.
+8. **Living paper ledger:** if `paper_auto: on` in the `project_config.md` frontmatter and this command produced paper-relevant facts (`preregistration`, `ethics`, `experiment`, `data`, `data-preprocess`, `data-analyze`, `brain-build`, `brain-optimize`, `brain-run`), append them to `.neuroflow/paper/paper-ledger.md` as rows `| Key | Value | Source | Date | draft |` (`neuroflow:phase-paper` → **Living paper skeleton**). Aggregate counts only, never taken from `sessions/`, never marked `final`, and never a change to `active_phase`.
 
 **What counts as a significant decision:**
 - Analysis approach chosen (e.g. reference scheme, epoch length, statistical test)
@@ -512,15 +528,16 @@ Every rule a mod guard may enforce has an HTML comment marker on the line before
 
 | id | Rule | Prose lives in |
 |---|---|---|
-| `PREREG-FROZEN` | Frozen preregistration files are never edited; changes go to `deviations.md` | phase-preregistration skill, `/preregistration` |
+| `PREREG-FROZEN` | Frozen preregistration files are never edited; changes go to `deviations.md` | phase-preregistration skill, `/preregistration`, phase-paper skill |
 | `RAW-READONLY` | Files under `raw_roots` are never modified | bids skill, `/data` |
 | `MEMORY-PURITY` | `.neuroflow/` holds only the documented structure | neuroflow-core |
-| `GIT-NO-SECRETS` | Never stage `integrations.json`, `sessions/`, `review/`, `user.yaml`; never `git clean -x` | `/git` |
+| `GIT-NO-SECRETS` | Never stage `integrations.json`, `sessions/`, `review/`, `paper/xray-*`, `user.yaml`; never `git clean -x` | `/git` |
 | `GIT-ALIAS-SCOPE` | Git aliases act only on the scope the person named | `/git` |
 | `ETHICS-GATE` | No data collection steps before the ethics status is approved | `/ethics`, `/data`, `/experiment` |
-| `EGRESS-CONFIRM` | Every outbound upload, push or export needs explicit confirmation | neuroflow-core (Sharing tiers) |
-| `PARTICIPANT-ROUTE` | Participant data is read by the model only if `ai_processing` allows it | `/ethics`, neuroflow-core |
+| `EGRESS-CONFIRM` | Every outbound upload, push or export needs explicit confirmation | neuroflow-core (Sharing tiers), review-neuro skill |
+| `PARTICIPANT-ROUTE` | Participant data is read by the model only if `ai_processing` allows it | `/ethics`, neuroflow-core, phase-paper skill |
 | `LOGIN-NODE` | No heavy compute on HPC login nodes | phase-brain-run skill |
+| `INTEGRITY-MARKER` | The model never writes `set_by: person` without the person's confirmation in the same turn | neuroflow-core (Integrity markers), `/ethics`, `/preregistration` |
 
 ### Mod-written lines
 
@@ -541,6 +558,8 @@ Be scientifically correct. Do not soften findings, overstate certainty, or make 
 - If asked to make a result significant or to drop inconvenient data, offer the honest options instead: record a deviation via `/preregistration`, label the analysis exploratory, or report every variant. Never write the request itself into project memory.
 
 Do not sugar-coat. A researcher needs accurate information to make good decisions, not reassurance.
+
+**Name the test, not the virtue.** A check label states the test performed, its scope and its date — for example "DOI resolves (2026-10-07)", "names and sidecars conform", "reported p matches t and df", "no drift detected on <date> against <hash>". Never use a bare "verified", "valid" or "consistent", and never roll checks up into a single project-health score. AI-use statements reuse the same labels.
 
 ### Asking questions
 
@@ -631,7 +650,7 @@ If any phase command is invoked with the keyword `autoresearch` anywhere in the 
 
 This rule applies to all phase commands without requiring individual modifications to each command.
 
-**Note on sub-subfolders:** The `autoresearch/` subfolder is valid within any phase folder (`.neuroflow/{phase}/autoresearch/`). This is an internal subfolder of the phase — not a top-level `.neuroflow/` folder. It does not change the active phase in `project_config.md`.
+**Where a loop lives:** the loop folder `{name}_autoresearch/` sits next to the artifact it improves (anywhere the person chooses, including inside `.neuroflow/`). Project memory holds only the pointer registry `.neuroflow/{phase}/autoresearch-loops.md` and, for exploratory analysis loops, `.neuroflow/data-analyze/multiverse.md`. A loop does not change the active phase in `project_config.md`.
 
 ---
 

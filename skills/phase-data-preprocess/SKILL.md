@@ -12,6 +12,7 @@ The data-preprocess phase filters, cleans, epochs, and quality-checks raw data t
 - Read `.neuroflow/data/` inventory first — understand the dataset before choosing methods
 - Confirm the modality; preprocessing steps differ significantly between EEG, fMRI, ECG, eye-tracking
 - Document every parameter choice (filter cutoffs, epoch windows, rejection thresholds) before running
+- Read the power-line frequency and sampling rate from `raw.info` (`line_freq`, `sfreq`) or the BIDS sidecars (`PowerLineFrequency`, `SamplingFrequency`); never hardcode 50/60 Hz or the sampling rate
 - QC plots and rejection summaries are required outputs — not optional. QC numbers come from code (*QC JSON and the QC table*), never transcribed by hand
 - A QC flag is a prompt to look, not an exclusion: exclude subjects or data only by criteria fixed before the outcome is known (preregistration, or `preprocess-config.md` written first), and log each exclusion decision
 

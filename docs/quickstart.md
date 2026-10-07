@@ -72,13 +72,13 @@ If you already have a `.neuroflow/` folder (here or in a folder above), it will 
 
 ## Step 4 — Set up integrations (optional)
 
-neuroflow searches PubMed and bioRxiv without any setup. For Miro boards or a custom LLM provider, run the setup wizard:
+neuroflow searches PubMed and bioRxiv without any setup. For Miro boards or a custom LLM gateway, run the setup wizard:
 
 ```
 /neuroflow:setup
 ```
 
-This stores credentials in `~/.neuroflow/integrations.json` (global, device-wide) or `.neuroflow/integrations.json` (per-project override, git-ignored) — the wizard asks which scope you want.
+The wizard never asks for a token or key in the chat: it shows you how to add Miro in your own terminal, and it stores only settings, not credentials, in `~/.neuroflow/integrations.json` (global, device-wide) or `.neuroflow/integrations.json` (per-project override, git-ignored) — it asks which scope you want.
 
 ---
 

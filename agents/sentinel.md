@@ -33,7 +33,7 @@ Without Python, do the checks in the table by reading the files and say in the r
 | Id | Check | What it verifies |
 |---|---|---|
 | NF1 | flow.md index | The root `flow.md` lists every subfolder; every other subfolder — except `sessions/`, `tasks/`, `wiki/` and `meetings/`, which have their own structure — has a `flow.md` that lists every file and folder in it; nothing listed is missing on disk; `flow.md` holds no narrative tables. |
-| NF2 | project_config.md | YAML frontmatter per neuroflow-core (`nf_schema`, `project_name`, `active_phase`, `recommended_phases`, `plugin_version`); `nf_schema` not newer than the plugin knows (then nothing may write the file); `active_phase` and `recommended_phases` are canonical phases; `plugin_version` matches the installed plugin; no personal fields (`auto_issue_reporting`, `writing_style`, `researcher`) — those live in `~/.neuroflow/user.yaml`. A legacy dialect (no frontmatter) is reported, never rewritten. |
+| NF2 | project_config.md | YAML frontmatter per neuroflow-core (`nf_schema`, `project_name`, `active_phase`, `recommended_phases`, `plugin_version`); `nf_schema` not newer than the plugin knows (then nothing may write the file); `active_phase` and `recommended_phases` are canonical phases; `plugin_version` matches the installed plugin; no personal fields (`auto_issue_reporting`, `writing_style`, `researcher`, `zotero`) — those live in `~/.neuroflow/user.yaml`. A legacy dialect (no frontmatter) is reported, never rewritten. |
 | NF3 | Integrity status | `preregistration/status.md` and `ethics/status.md` frontmatter. A frozen preregistration is re-hashed by the preregistration skill's `freeze.py verify`: a changed or missing frozen file is an error; a missing FROZEN banner or a freeze not set by a person is a warning. An approval set by the model counts as not set; an expired approval is an error. |
 | NF4 | Reasoning logs | Every line of `reasoning/*.jsonl` is one JSON object with `statement`, `source` and `reasoning`; legacy `*.json` arrays are reported for `/neuroflow:migrate`. |
 | NF5 | Conflict markers | No `<<<<<<<` / `>>>>>>>` lines anywhere under `.neuroflow/`. |
@@ -75,12 +75,14 @@ Only runs if `.neuroflow/data/` exists (data intake has happened). Read the fron
 
 ### S5 — Personal sensitive information
 
+The deterministic scan — emails, phone numbers, configured ID patterns, roster names and secrets — has one home: `skills/phase-output/scripts/pii_scan.py`, which NF8 runs (it reports path, line and class, never the value). Do not repeat it; this check keeps the judgement calls a pattern cannot make.
+
 Always check, inside `.neuroflow/`:
 
 - **Full names in unexpected locations**: a sequence of two or more capitalised words (likely a full name) in a reasoning log, session log, or `flow.md` entry — rather than in the `collaborators:` list of `project_config.md`. This check may produce false positives on proper nouns and tool names; treat every finding as requiring human confirmation.
 - **Institutional affiliations outside `project_config.md`**: an institution name, department, or postal address in any other file. Treat findings as requiring human confirmation, as false positives on common terms are possible.
 
-When NF8 was `skipped`, also scan for:
+Only when NF8 was `skipped` (the script is missing or could not run), scan by reading for:
 
 - **Email addresses**: strings matching `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`. This pattern covers the most common address formats; it does not handle quoted local parts, IP-address domains, or internationalised domain names — note any such edge cases manually. Skip addresses whose domain is clearly synthetic: `example.com`, `example.org`, `test.com`, `domain.com`, or `localhost`.
 - **Passwords and secrets**: lines where a key matching `password`, `passwd`, `secret`, `api_key`, `token`, or `private_key` (case-insensitive, with `:` or `=` separator) is followed by a non-empty value. A value is a placeholder — skip it — if it is all-uppercase (e.g. `YOUR_API_KEY`), enclosed in angle brackets (e.g. `<token>`), or contains the word `placeholder`, `example`, or `changeme`.

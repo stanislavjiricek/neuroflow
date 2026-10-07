@@ -49,6 +49,7 @@ GITIGNORE_LINES = [
     ".neuroflow/review/",
     ".neuroflow/integrations.json",
     ".neuroflow/flowie/",
+    ".neuroflow/paper/xray-*",
 ]
 GITIGNORE_HEADER = "# neuroflow: local-only project memory, never committed (neuroflow-core, Sharing tiers)"
 

@@ -7,7 +7,6 @@ reads:
   - .neuroflow/flow.md
   - .neuroflow/ideation/flow.md
   - .neuroflow/ideation/watch.md
-  - .neuroflow/integrations.json
   - ~/.neuroflow/user.yaml
   - skills/phase-ideation/SKILL.md
   - skills/phase-ideation/references/search-protocol.md
@@ -147,12 +146,18 @@ Apply these checks at the points indicated above and whenever the user explicitl
 **PubMed / bioRxiv** — available out of the box. No setup required.
 
 **Miro** — if the user mentions Miro, asks to visualise a mind map, or wants to export ideas to a board:
-1. Check whether `MIRO_ACCESS_TOKEN` is set — read `.neuroflow/integrations.json` (per-project) first, then fall back to `~/.neuroflow/integrations.json` (global).
-2. If not configured, show:
+1. Miro is available when a tool whose name contains `miro` exists in this session. Never read `integrations.json` for Miro, and never ask for the token.
+2. If no such tool exists, show the `/neuroflow:setup` Step 2 instructions:
 
-> ⚠️ **Miro not configured.**
-> To use Miro you need a personal access token stored in `MIRO_ACCESS_TOKEN`.
+> ⚠️ **Miro not connected.**
+> You add Miro once, yourself, for all your projects:
+> 1. Create a personal access token at https://miro.com/app/settings/user-profile/apps → **Create new app** (or open an existing one) → **Token** → **Create token**.
+> 2. In a **separate terminal** — not in this chat — run:
+>    `claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<your-token> -- npx -y @k-jarzyna/mcp-miro`
+> 3. Restart Claude Code; the Miro tools then appear in every project.
+>
+> Please don't paste the token here.
 >
 > Would you like to set it up now?
-> - **Y** — run `/neuroflow:setup` to configure the Miro token, then continue
+> - **Y** — run `/neuroflow:setup`, which walks you through these steps; Miro is available after the restart
 > - **n** — skip Miro; I'll describe what would be created instead

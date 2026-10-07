@@ -278,13 +278,14 @@ class NF2Tests(Base):
 
     def test_fields(self):
         cfg = (CONFIG.replace("active_phase: ideation", "active_phase: brainstorming")
-               .replace("default_mode: critic", "default_mode: chaos\nauto_issue_reporting: yes")
+               .replace("default_mode: critic", "default_mode: chaos\nauto_issue_reporting: yes\nzotero: yes")
                .replace("recommended_phases: [ideation, data]\n", ""))
         self.set_config(cfg)
         text = self.messages("NF2")
         self.assertIn("`active_phase: brainstorming` is not a canonical phase", text)
         self.assertIn("default_mode: chaos", text)
         self.assertIn("`auto_issue_reporting`", text)
+        self.assertIn("`zotero`", text)
         self.assertIn("missing `recommended_phases`", text)
 
     def test_absolute_raw_root(self):

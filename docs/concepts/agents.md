@@ -16,19 +16,20 @@ Unlike commands (which interact conversationally with you), agents operate semi-
 
 **Academic literature research specialist.**
 
-Searches PubMed then bioRxiv sequentially (with CrossRef / Semantic Scholar fallbacks) for a given topic and returns a clean, structured list of results.
+Searches PubMed and bioRxiv in parallel for a given topic — with CrossRef / Semantic Scholar / arXiv fallbacks through the same MCP server — and returns a clean, structured list of results.
 
 **Invoked by:** ad-hoc literature searches outside the ideation workflow, and `/neuroflow` (journal recommendation step). Note: `/neuroflow:ideation` runs its literature searches **inline** — it does not spawn this agent.
 
 **What it does:**
 
-1. Runs the query sequentially: PubMed first, then bioRxiv, then fallbacks one at a time if needed
+1. Runs PubMed and bioRxiv in parallel, then the fallbacks one at a time when bioRxiv returns little
 2. If results are thin, generates 2–3 alternative queries (synonyms, narrower/broader terms)
 3. Deduplicates results across sources
-4. Downloads open-access full text in batches of 2; skips paywalled papers (saves metadata stub)
+4. Downloads only open-access copies (preprint server, Semantic Scholar open-access link, publisher open access) in batches of 2, never Sci-Hub; papers without an open copy keep a metadata stub and a note to get them through the library
 5. Returns results in a structured format with markers:
    - ⚠️ `PREPRINT` — bioRxiv papers that have not been peer-reviewed
    - 🔒 `PAYWALLED` — papers without open-access full text
+6. Ends every reply with a `[REPORT downloaded=... files=... stubs=...]` line
 
 **Output format:**
 
@@ -59,7 +60,7 @@ literature. White noise as a specific stressor is understudied — a gap exists.
 
 **Rules:**
 - Never fabricates papers, authors, or DOIs
-- If a DOI cannot be verified, it is marked as unverified
+- Each DOI is labelled with the check actually done (`doi_check`: from an API record, resolves on a date, does not resolve), never "verified"
 - PubMed and bioRxiv results are always presented separately
 
 !!! note "No credentials required"
@@ -75,11 +76,11 @@ Audits `.neuroflow/` for internal consistency and drift. Called by the `/neurofl
 
 **Invoked by:** `/neuroflow:sentinel` (when `.neuroflow/` exists)
 
-**What it checks:**
+**What it checks:** it runs `nf_check.py` first — the deterministic checks NF1–NF8 — then the judgement checks a script cannot make:
 
 - `flow.md` completeness — files listed vs files on disk
 - Timestamp drift — stale `flow.md` vs recent file activity
-- Broken references in `reasoning/` JSON files
+- Reasoning logs (`reasoning/*.jsonl`)
 - Phase consistency — active phase vs session logs vs folder activity
 - Preregistration drift — planned analyses vs what was actually done
 - Plugin version sync — `project_config.md` vs current `plugin.json`
@@ -98,7 +99,7 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 
 **Invoked by:** `/neuroflow:sentinel` (when `.claude-plugin/plugin.json` exists)
 
-**What it checks:**
+**What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (README hooks documentation, real names and institutions, concept-map placement, guards versus prose):
 
 - Command folder names vs frontmatter `name:` fields
 - Skill folder names vs `SKILL.md` frontmatter
@@ -109,28 +110,16 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 
 ---
 
-### Phase agents
+### `literature-review`
 
-**Specialist autonomous subprocesses, one per research phase.**
+**Structured literature review of downloaded papers.**
 
-Each phase agent has deep domain knowledge scoped to its phase. It operates with a plan-first, confirm-before-executing discipline — it drafts a plan, shows it to you, and only proceeds after confirmation.
+Runs 12 analytical protocols on the papers in `.neuroflow/ideation/papers/`, from landscape mapping to a future research agenda. Each protocol is checked by a rubric critic pass inside the agent (a self-check) and saved as a resumable checkpoint in `.neuroflow/ideation/literature-review-[date]/`; `/ideation` can add an independent critic.
 
-| Agent | Phase | What it does |
-|---|---|---|
-| `ideation` | ideation | Crystallises research questions via brainstorm, literature explore, formalise, or proposal modes |
-| `grant-proposal` | grant-proposal | Structures proposals section by section for a target funder (NIH, ERC, Wellcome, MRC) |
-| `experiment` | experiment | Paradigm design (PsychoPy), recording setup, and instrument configuration for EEG, fMRI, eye-tracking, ECG |
-| `tool-build` | tool-build | Spec-first design and implementation of acquisition, real-time, LSL, BCI, and analysis pipeline tools |
-| `tool-validate` | tool-validate | Timing, marker integrity, output format, and edge-case testing; writes validation plan before running any tests |
-| `data` | data | Inventory → BIDS validation → conversion sequence; confirms modality before touching anything |
-| `data-preprocess` | data-preprocess | Modality-aware preprocessing pipeline (EEG, fMRI, ECG, eye-tracking); documents all parameters before running |
-| `data-analyze` | data-analyze | Statistical analysis — ERPs, time-frequency, connectivity, decoding, GLM; audits assumptions and applies multiple-comparison correction |
-| `review` | review | Reads a colleague's paper and produces a structured referee report calibrated to the target journal; delegates to the `review-neuro` skill |
-| `notes` | notes | Captures freeform input without interruption; reformats into a structured document only when asked |
-| `write-report` | write-report | Synthesises `.neuroflow/` memory into a structured report for any phase or the full project |
-| `brain-build` | brain-build | Spec-first design of neuron models and network topology for NEURON, Brian2, NetPyNE, NEST, tvb-library |
-| `brain-optimize` | brain-optimize | Plans parameter sweeps or data-fitting runs; selects the right algorithm (grid, differential evolution, Bayesian, BluePyOpt) |
-| `brain-run` | brain-run | Configures and executes simulation runs, sanity-checks outputs for silence, runaway activity, or NaN values; supports HPC job submission |
+**Invoked by:** `/neuroflow:ideation`, after papers are retrieved
+
+!!! note "Per-phase agents were removed"
+    Earlier versions listed one agent per research phase. Those agent files were never spawned by commands and have been removed: each command follows its phase skill directly.
 
 ---
 

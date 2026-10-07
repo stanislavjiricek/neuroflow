@@ -56,6 +56,8 @@ hives:
 ```
 Written by `/setup` Step 6. Read by `/neuroflow` Step 1b to pre-fill the GitHub username without asking again.
 
+The same file is the person's whole personal layer (`neuroflow:neuroflow-core` → **Personal layer — `~/.neuroflow/user.yaml`**): other commands also keep `name`, `writing_style`, `auto_issue_reporting`, `default_mode`, `gws_setup` and `zotero` there. Merge, never replace — when `/setup` writes its keys, every other line stays.
+
 When guiding a user, ask:
 > "Save these settings for this project only, or globally on this machine (all projects)?"
 
@@ -192,7 +194,7 @@ Key points (details and the PowerShell version in the guide):
 - **No secrets in chat or in neuroflow files.** `/setup` never asks for a token, key or client secret. `integrations.json` (global or per-project) holds non-secret settings only and stays local (gitignored).
 - **Global config** (`~/.neuroflow/integrations.json`) is in the home directory — not inside any repository.
 - **Per-project config** (`.neuroflow/integrations.json`) is gitignored through the project's `.gitignore` (the scaffold adds it). Double-check this is in place before any `git push`.
-- **Non-secret settings** (provider name, base URL, preferred model, proxy port) may be synced to the user's flowie profile (`~/.neuroflow/flowie/integrations.json`, private GitHub repo) for cross-machine use — a push, so only after the person confirms.
+- **Non-secret settings** (provider name, base URL, preferred model, proxy port) may also be written to `~/.neuroflow/flowie/integrations.json`, but that file stays on this machine: it is gitignored in the flowie repo and the auto-sync hook never commits it, so on another machine the settings are entered again (or the file is copied).
 
 ---
 

@@ -22,7 +22,7 @@ title: /phase
 
 1. Reads `project_config.md` to get the current active phase and the phases recommended at setup
 2. Checks which phase subfolders exist in `.neuroflow/` and when the last session was
-3. Prints the phase map — `◉` current, `●` visited, `→` recommended, `○` not started — followed by upcoming deadlines from `timeline.md` and your personality mode
+3. Prints the phase map — `◉` current, `●` visited, `→` recommended, `○` not started — followed by upcoming deadlines from `timeline.md`, a one-line living-paper status (only with `/paper --auto` on), any long runs not yet reviewed, and your personality mode
 4. For the current phase, lists its expected inputs and outputs (`[x]` present, `[ ]` missing — information only, never a gate) and the commands that usually come next
 5. Asks whether to switch, as a **menu**: move with the arrow keys and press Enter, or click an option. "Stay in the current phase" comes first, then the next recommended phases; **Other** lets you type any phase.
 6. If you pick a different phase, it changes `active_phase` in `project_config.md` — that one value — logs the switch, and suggests the new phase's command.
@@ -73,7 +73,7 @@ Claude: ✅ Active phase updated to: data-analyze
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/sessions/`, `.neuroflow/timeline.md`, `~/.neuroflow/user.yaml` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/sessions/`, `.neuroflow/timeline.md`, `.neuroflow/paper/` (only with `/paper --auto` on), `.neuroflow/*/runs.md`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json` (flowie sync) |
 | Writes | only when you switch: `active_phase` in `project_config.md`, a session line, a `reasoning/general.jsonl` entry, and your flowie project registry (if linked) |
 
 ---

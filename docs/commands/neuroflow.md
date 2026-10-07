@@ -103,7 +103,7 @@ The block is written only to the project's `.claude/CLAUDE.md` — never to your
 
 **5. Optional: integration setup**
 
-Asks whether you want to connect Miro and custom LLM providers now. You can skip and run `/neuroflow:setup` later.
+Asks whether you want to set up integrations now — Miro (which you add yourself, in your own terminal) and a custom LLM gateway. You can skip and run `/neuroflow:setup` later. neuroflow never asks you to paste a token into the chat.
 
 **5b. Optional: fewer permission prompts**
 
@@ -159,7 +159,7 @@ Next step: /neuroflow:data-preprocess
 
 ## Related commands
 
-- [`/setup`](setup.md) — configure integration credentials
+- [`/setup`](setup.md) — set up integrations (Miro, Google Workspace, a custom LLM gateway)
 - [`/phase`](phase.md) — check or switch the active phase
 - [`/migrate`](migrate.md) — bring an older project up to the current format
 - [`/sentinel`](sentinel.md) — audit `.neuroflow/` for consistency

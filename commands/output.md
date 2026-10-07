@@ -60,7 +60,7 @@ Ask the user which scope to export:
 
 If the user is unsure, recommend **A** for sharing project context and **B** for full archiving or handoff.
 
-Whatever the scope, these never leave through `/output` (neuroflow-core → Sharing tiers): the local tier (`sessions/`, `review/`, `integrations.json`, `flowie/`), `fails/`, `finance/`, ethics files that are not on the non-identifying allowlist (`status.md`, `flow.md`, `consent-vN.md` form versions, `protocol*.md`, `amendment*.md`), and credential files anywhere in the tree (`.env`, `*.pem`, private SSH keys, `client_secret*.json`, …). The exporter drops them from the file list before anything is copied.
+Whatever the scope, these never leave through `/output` (neuroflow-core → Sharing tiers): the local tier (`sessions/`, `review/`, `integrations.json`, `flowie/`, `paper/xray-*`), `fails/`, `finance/`, ethics files that are not on the non-identifying allowlist (`status.md`, `flow.md`, `consent-vN.md` form versions, `protocol*.md`, `amendment*.md`), and credential files anywhere in the tree (`.env`, `*.pem`, private SSH keys, `client_secret*.json`, …). The exporter drops them from the file list before anything is copied.
 
 ---
 
@@ -182,6 +182,7 @@ Ask: dataset, code, or both? Then recommend the repository:
 4. **README completeness** — dataset description, citation instructions, contact; generate a draft if missing.
 5. **Code freshness** — if archiving code, check the repo has no uncommitted changes and suggest a tagged release. If the pipeline wrote provenance records (`provenance/*.json` and `environment.md`, from the data-analyze skill's `nf_provenance.py`), keep them in the deposit and verify each first: `python <phase-data-analyze skill base dir>/scripts/nf_provenance.py verify <record>` (exit `1` = recorded outputs changed or missing — re-run or explain before depositing).
 6. **Git history** — required before any repository becomes public (a code DOI through a public repository needs one): `python <phase-output skill base dir>/scripts/history_audit.py --json`. Going public publishes every commit: memory, credentials and participant files deleted long ago are still in the history, and existing clones keep it. Exit `0` → write the audited HEAD commit into the archive record; `1` → do not change the repository's visibility. Offer the clean route — a new publication repository made from a scope-B folder export (`export.py --scope project --format folder`, then `git init` inside the copy: no history) — or a history rewrite the person runs with a dedicated tool, and rotate every credential the audit found; then audit again. `2` → not a git repository or a git error.
+7. **Clean-room reproduction** (optional — offer it; if declined, record "not run") — rerun the confirmatory results from a fresh clone in a fresh environment: `python <phase-data-analyze skill base dir>/scripts/cleanroom.py --record <nf_provenance run record> --requirements requirements.txt --link <untracked input data> --report .neuroflow/data-analyze/cleanroom-<date>.md` (in the background for long pipelines). ✅ only on exit `0`; `1` → ❌, list the outputs that differ or are missing; `2` → setup failed (clone, environment, data link): fix and rerun.
 
 Do not proceed past a ❌ without the user explicitly accepting the gap; record each accepted gap in the archive record.
 

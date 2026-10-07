@@ -21,6 +21,7 @@ Standard library only.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -30,8 +31,20 @@ import sys
 import time
 from pathlib import Path
 
+
+def _load_nf_check():
+    """nf_check.py is the one home of the frontmatter reader and the known nf_schema (contract C10)."""
+    spec = importlib.util.spec_from_file_location("nf_check_for_doctor", Path(__file__).with_name("nf_check.py"))
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module  # its dataclasses look the module up while they are built
+    spec.loader.exec_module(module)
+    return module
+
+
+nfc = _load_nf_check()
+
 VERSION_FLOOR = (2, 1, 292)
-KNOWN_SCHEMA = 1
+KNOWN_SCHEMA = nfc.SUPPORTED_NF_SCHEMA
 LOCAL_ONLY = [".neuroflow/sessions/", ".neuroflow/review/", ".neuroflow/integrations.json", ".neuroflow/flowie/"]
 UNION_FILES = [".neuroflow/reasoning/*.jsonl", ".neuroflow/sessions/*.md"]
 SYNCED_MARKERS = ("onedrive", "dropbox", "icloud", "google drive", "googledrive", "my drive", "box sync", "nextcloud", "owncloud")
@@ -120,18 +133,17 @@ def check_config(checks: list[dict], project: Path) -> None:
     if not config.exists():
         check(checks, "config", "info", "no .neuroflow/project_config.md — run /neuroflow to set the project up")
         return
-    text = config.read_text(encoding="utf-8", errors="replace")
-    match = re.match(r"\A﻿?---\s*\n(.*?)\n---\s*(\n|$)", text, re.DOTALL)
-    if match is None:
+    frontmatter, _, _ = nfc.split_frontmatter(config.read_text(encoding="utf-8", errors="replace"))
+    if frontmatter is None:
         check(checks, "config", "warn", "project_config.md uses a legacy format — run /neuroflow:migrate")
         return
-    schema = re.search(r"^nf_schema:\s*(\d+)", match.group(1), re.MULTILINE)
-    if schema is None:
+    schema = str(frontmatter.get("nf_schema") or "").strip()
+    if not schema.isdigit():
         check(checks, "config", "warn", "project_config.md has no nf_schema — run /neuroflow:migrate")
-    elif int(schema.group(1)) > KNOWN_SCHEMA:
-        check(checks, "config", "warn", f"project_config.md has nf_schema {schema.group(1)}, newer than this plugin knows ({KNOWN_SCHEMA}) — update neuroflow")
+    elif int(schema) > KNOWN_SCHEMA:
+        check(checks, "config", "warn", f"project_config.md has nf_schema {schema}, newer than this plugin knows ({KNOWN_SCHEMA}) — update neuroflow")
     else:
-        check(checks, "config", "ok", f"project_config.md uses the current contract (nf_schema {schema.group(1)})")
+        check(checks, "config", "ok", f"project_config.md uses the current contract (nf_schema {schema})")
 
 
 def check_git_files(checks: list[dict], project: Path) -> None:

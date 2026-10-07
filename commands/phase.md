@@ -7,7 +7,12 @@ reads:
   - .neuroflow/flow.md
   - .neuroflow/sessions/
   - .neuroflow/timeline.md                # if it exists — deadlines under the map
+  - .neuroflow/paper/paper-ledger.md      # only with paper_auto: on — the auto paper line
+  - .neuroflow/paper/skeleton.md          # only with paper_auto: on — its sync date
+  - .neuroflow/paper/gaps.md              # only with paper_auto: on
+  - .neuroflow/*/runs.md                  # if any — long runs not yet reviewed
   - ~/.neuroflow/user.yaml                # personal default_mode, if set
+  - ~/.neuroflow/local-projects.json      # flowie phase sync: which flowie project this folder is
   - commands/{active_phase}.md            # plugin file — its requires/produces/next frontmatter
 writes:
   - .neuroflow/project_config.md          # active_phase only, when the person switches
@@ -98,6 +103,10 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
 
    Skip the block silently if `timeline.md` is absent or empty.
 
+   **Auto paper** — only when `paper_auto: on` in the frontmatter, print one line: `Auto paper: on | {n} facts ({m} final) | synced {date} | {g} gaps`. `{n}` = keys in `.neuroflow/paper/paper-ledger.md` (a later row with the same key supersedes earlier ones), `{m}` = keys whose latest row says `final`, `{date}` = the date in the first line of `skeleton.md`, `{g}` = gap rows in `gaps.md` (`neuroflow:phase-paper` → **Living paper skeleton**). Print nothing when `paper_auto` is off or absent, or when the files are missing.
+
+   **Long runs** — if any `.neuroflow/*/runs.md` exists, run `python <neuroflow-core base dir>/../phase-brain-run/scripts/runs.py list --json` from the project root and print one line per run not yet reviewed: `Run {id}: {status} — {command}`. Print nothing when the list is empty, Python is unavailable or the script exits 2.
+
    Below that, print one line for the active personality mode and where it comes from:
 
    ```
@@ -115,14 +124,14 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
 
 6. If the user picks a different phase, set `active_phase` in the `project_config.md` frontmatter — that one key, in place (`neuroflow:neuroflow-core` → **project_config.md — the config contract**). Nothing else follows the phase: the `.claude/CLAUDE.md` block is static and is never edited here, and no other instruction file is written. Then append `## HH:MM — [phase] Active phase: {old} → {new}` to `sessions/YYYY-MM-DD.md`, add a line to `reasoning/general.jsonl` (a phase change is a mandatory reasoning trigger — `neuroflow:neuroflow-core` → **Reasoning log**), and suggest the new phase's command.
 
-7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `~/.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`). The person's choice in step 5 is the confirmation for this push to their own private flowie repo — never push for a phase change the model inferred:
+7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `~/.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`). The person's own private flowie repo is a sync target they set up, so this sync asks nothing more (`neuroflow:neuroflow-core` → **Sharing tiers**); it runs only for a phase change the person chose in step 5 — never for one the model inferred. These are the steps of `/flowie` → **Phase sync**:
 
-   - Pull: `git -C ~/.neuroflow/flowie pull --rebase origin main || true`
-   - Read `projects/projects.json` — find the project entry where `"id"` matches the linked project name
+   - Pull (`/flowie` → Git operations pattern): skip the whole sync while `~/.neuroflow/flowie/.git/rebase-merge` or `rebase-apply` exists (a rebase the person has in progress). Otherwise `git -C ~/.neuroflow/flowie pull --rebase`; if it stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — only the rebase this pull started — and skip the rest
+   - Read `projects/projects.json` — find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the `projects.json` entry whose `repos[].url` matches `git remote get-url origin`. If neither matches, skip the rest
    - Update `current_phase` to the new phase
    - Append to `visited_phases` if this phase is not already listed: `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`
    - Write updated `projects/projects.json`
    - Read `projects/{name}.md` — append a new row to the Phase timeline table: `| {new_phase} | {YYYY-MM-DD} |`
-   - Commit and push: `git -C ~/.neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie push || true`
+   - Commit, pull and push: `git -C ~/.neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push || true` — if this pull stops on a conflict, abort it as above; the commit stays local for `/flowie --sync`
 
    If `~/.neuroflow/flowie/` does not exist, `flowie_profiles` is absent or empty, or any git operation fails, skip silently — never surface flowie errors to the user during a phase switch.

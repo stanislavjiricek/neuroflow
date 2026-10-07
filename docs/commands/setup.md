@@ -58,7 +58,7 @@ Optionally run Claude Code through an Anthropic-compatible gateway — for examp
 If configuring:
 - Enter a provider name, the base URL, a preferred model, and (legacy proxy only) a proxy port — never the API key
 - Keep the API key in a file only you can read (or your OS credential store); the launch command reads it
-- The settings are saved to your chosen scope's `integrations.json` under `custom_llm`, and can be synced to your flowie profile after you confirm
+- The settings are saved to your chosen scope's `integrations.json` under `custom_llm`; with flowie linked, you can also keep a copy in `~/.neuroflow/flowie/integrations.json` (for `/flowie --credentials`), which stays on this machine
 
 See the [integrations guide](../integrations.md#custom-llm-gateways) for the launch command and caveats.
 
@@ -77,7 +77,7 @@ Non-secret settings are saved to `~/.neuroflow/integrations.json` (global) or `.
 ```
 
 !!! warning "This file is local only"
-    The per-project `.neuroflow/integrations.json` is excluded from git (added to `.gitignore` by neuroflow) and the global file lives outside any repository. It holds no secrets. Only non-secret settings are synced via `~/.neuroflow/flowie/integrations.json`, and only after you confirm.
+    The per-project `.neuroflow/integrations.json` is excluded from git (added to `.gitignore` by neuroflow) and the global file lives outside any repository. It holds no secrets. The copy in `~/.neuroflow/flowie/integrations.json` stays on this machine too: it is gitignored in your flowie repo and never pushed, so on another machine you enter the settings again (or copy the file).
 
 ---
 
@@ -112,7 +112,7 @@ Non-secret settings are saved to `~/.neuroflow/integrations.json` (global) or `.
 | Direction | Files |
 |---|---|
 | Reads | `~/.neuroflow/integrations.json`, `.neuroflow/integrations.json` (key names only), `~/.neuroflow/user.yaml` |
-| Writes | `~/.neuroflow/integrations.json` or `.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/flowie/integrations.json` (after you confirm a sync) |
+| Writes | `~/.neuroflow/integrations.json` or `.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/flowie/integrations.json` (only if you agree; it stays on this machine) |
 
 ---
 

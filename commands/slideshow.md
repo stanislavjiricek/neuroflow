@@ -189,6 +189,8 @@ Save the deck as `slides/slideshow-YYYY-MM-DD.md` in the project root (`slides/`
 
 If a slideshow with the same date already exists, append `-v2`, `-v3`, etc.
 
+If the deck cites DOIs, run `python <phase-slideshow skill base dir>/../phase-paper/scripts/cite_check.py <the saved deck file>` once. Exit 0: say "DOIs resolve; no retraction notice found in Crossref as of {date}". Exit 1: report each flagged DOI to the person in the script's words ("does not resolve", a retraction, withdrawal or expression-of-concern notice, "could not be checked"). Exit 2 (no network or an unreadable file): say the DOIs were not checked. Never call a reference "verified".
+
 ---
 
 ## Step 7 — Update flow and log session

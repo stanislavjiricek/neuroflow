@@ -134,7 +134,7 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
 **PubMed / bioRxiv** — no credentials required, works out of the box.
 
-**Miro** — if you mention Miro or ask to visualize a mind map, Claude checks `MIRO_ACCESS_TOKEN` and offers to configure it if missing.
+**Miro** — if you mention Miro or ask to visualize a mind map, Claude checks whether Miro tools are available in the session. If not, it shows how to add Miro yourself with `claude mcp add` in a separate terminal (the `/setup` Step 2 instructions); it never asks for your token.
 
 ---
 
@@ -142,7 +142,7 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/ideation/watch.md`, `.neuroflow/integrations.json`, `~/.neuroflow/user.yaml` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/ideation/watch.md`, `~/.neuroflow/user.yaml` |
 | Writes | `.neuroflow/ideation/` (including `papers/`, `watch.md`, `literature-review-[date].md`), `.neuroflow/ideation/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `~/.neuroflow/user.yaml` (your Zotero answer) |
 
 ---

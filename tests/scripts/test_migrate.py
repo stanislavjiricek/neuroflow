@@ -156,6 +156,20 @@ class MigrateTest(unittest.TestCase):
         self.assertNotIn("auto_issue_reporting: yes", user)
         self.assertTrue(user.startswith("flowie_handle: alice\n"))
 
+    def test_zotero_answer_is_personal(self) -> None:
+        self.write(".neuroflow/project_config.md", "# cfg\n\nactive_phase: ideation\nzotero: Yes\n")
+        code, result = self.migrate()
+        self.assertTrue(result["personal_pending"], "moved only after the person agrees")
+        self.assertEqual([item["target"] for item in result["personal"]], ["zotero"])
+        self.migrate("--apply", "--move-personal")
+        self.assertNotIn("zotero", self.read(".neuroflow/project_config.md"))
+        self.assertIn("zotero: yes\n", self.read(".neuroflow/user.yaml", base=self.home))
+
+        self.write(".neuroflow/project_config.md", "---\nnf_schema: 1\nactive_phase: ideation\nzotero: no\n---\n")
+        code, result = self.migrate("--apply", "--move-personal")
+        self.assertNotIn("zotero", self.read(".neuroflow/project_config.md"))
+        self.assertEqual(result["personal"][0]["status"], "user.yaml keeps its own value 'yes'; the project value is dropped")
+
     def test_frontmatter_without_schema_keeps_its_lines(self) -> None:
         self.write(".neuroflow/project_config.md",
                    "---\nproject_name: X   # team name\nactive_phase: data\ncustom_key: kept\n---\n\nNotes.\n")

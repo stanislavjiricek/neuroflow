@@ -229,9 +229,7 @@ Say once before collecting anything: with a gateway, every prompt, file the mode
 
 (`proxy_port` is only included when the legacy proxy mode is used.)
 
-- If flowie is linked (check `~/.neuroflow/flowie/sync.json` exists), offer to sync these non-secret settings to the flowie profile.
-  <!-- nf-rule: EGRESS-CONFIRM -->
-  A push to the flowie repository is outbound: ask *"Sync the gateway settings (no key) to your flowie profile on GitHub? (y/N)"* and act only on yes. Write `provider`, `base_url`, `model` and `proxy_port` to `~/.neuroflow/flowie/integrations.json`:
+- If flowie is linked (check `~/.neuroflow/flowie/sync.json` exists), offer to also save these non-secret settings to `~/.neuroflow/flowie/integrations.json`, where `/flowie --credentials` shows them. On yes, write `provider`, `base_url`, `model` and `proxy_port` there:
 
   ```json
   {
@@ -243,13 +241,7 @@ Say once before collecting anything: with a gateway, every prompt, file the mode
   }
   ```
 
-  Then commit and push:
-
-  ```bash
-  git -C ~/.neuroflow/flowie add integrations.json && git -C ~/.neuroflow/flowie commit -m "sync: custom_llm settings" -- integrations.json && git -C ~/.neuroflow/flowie push
-  ```
-
-  Report a failure instead of hiding it. On success tell the user: "Synced the gateway settings (no key) to your flowie profile."
+  That file stays on this machine: it is gitignored in the flowie repo and the auto-sync hook never commits it — never stage or push it. Tell the user that on another machine the settings are entered again (or the file is copied).
 
 ---
 

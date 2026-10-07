@@ -29,7 +29,7 @@ Claude writes scripts/analysis/erp_analysis.py
 
 **Trigger:** `PostToolUse` — whenever Claude uses the Edit or Write tool on a file inside `~/.neuroflow/flowie/`
 
-**What it does:** Auto-commits and pushes the change to your linked private flowie GitHub repo (`git add -A && git commit -m "sync: auto" && git push`), so your personal profile, tasks, and notes are always backed up. `integrations.json` is explicitly unstaged before every commit — credentials never enter the sync.
+**What it does:** Commits only the file Claude just wrote (`git commit -- <file>`, never `git add -A`), pulls with rebase, then pushes to your private flowie repo. `integrations.json`, gitignored files, and repos in the middle of a rebase or merge are skipped. It never blocks: a failed pull, commit or push (offline, auth, or a conflict, whose rebase is aborted at once) leaves the commit local and appends one line to `~/.neuroflow/flowie-sync.log`; `/flowie` mentions the log and `/flowie --sync` resolves and clears it.
 
 !!! note "Session logging is not a hook"
     Earlier versions had a session-logger hook; it was removed in 0.2.8. Session logs at `.neuroflow/sessions/YYYY-MM-DD.md` are now written directly by Claude as part of the command lifecycle defined in `neuroflow-core`.

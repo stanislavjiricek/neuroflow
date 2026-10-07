@@ -87,7 +87,7 @@ class ScaffoldTest(unittest.TestCase):
         ignore = (self.project / ".gitignore").read_text(encoding="utf-8")
         self.assertTrue(ignore.startswith("node_modules/\n.neuroflow/sessions/\n"))
         self.assertEqual(ignore.count(".neuroflow/sessions/"), 1)
-        self.assertEqual(report["appended"][".gitignore"], 3)
+        self.assertEqual(report["appended"][".gitignore"], len(scaffold.GITIGNORE_LINES) - 1)
         text = claude.read_text(encoding="utf-8")
         self.assertTrue(text.startswith("# Team rules\n\nBe kind.\n"))
         self.assertTrue(text.endswith(scaffold.CLAUDE_BLOCK))

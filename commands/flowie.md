@@ -549,11 +549,11 @@ If push fails (e.g. auth error, network), report the error clearly and do not up
 
 Display the custom LLM settings from `flowie/integrations.json` as ready-to-run export commands, so the user can paste them into their terminal before starting Claude Code.
 
-**Do not read from `.neuroflow/integrations.json`** (local file, contains the API key). Read only from `~/.neuroflow/flowie/integrations.json` (synced, non-secrets only).
+Read only from `~/.neuroflow/flowie/integrations.json` (non-secret settings only). No `integrations.json` holds the gateway key: the person's launch command reads it from their key file (`skills/setup/references/custom-gateway.md` → Storing the key).
 
 **If `~/.neuroflow/flowie/integrations.json` does not exist or has no `custom_llm` section:**
 
-> No custom LLM configured in your flowie profile. Run `/neuroflow:setup` and choose Step 5 to configure one.
+> No custom LLM configured in your flowie profile. Run `/neuroflow:setup` and choose Step 4 to configure one.
 
 **If it exists and `custom_llm` has `provider`, `base_url`, and `model` set:**
 
@@ -567,19 +567,21 @@ Custom LLM settings from your flowie profile:
   Model:      {model}
   Proxy port: {proxy_port}  (shown only if set)
 
-To activate — paste in your terminal before starting Claude Code:
+To activate — paste in your terminal before starting Claude Code (the key is read
+from your key file; change the path if yours is elsewhere):
 
   export ANTHROPIC_BASE_URL="{base_url}"
-  export ANTHROPIC_API_KEY="<your-api-key>"
+  export ANTHROPIC_AUTH_TOKEN="$(cat ~/.claude-gateway/gateway-key)"
 
 Or to persist across sessions, add to your ~/.zshrc or ~/.bashrc.
 
 To use the proxy instead (for model selection):
-  node <path-to-proxy.mjs> {model}                                    # Terminal 1
-  ANTHROPIC_BASE_URL=http://localhost:{proxy_port} ANTHROPIC_API_KEY=any claude  # Terminal 2
+  GATEWAY_URL="{base_url}" GATEWAY_KEY="$(cat ~/.claude-gateway/gateway-key)" node <path-to-proxy.mjs> {model} {proxy_port}  # Terminal 1
+  ANTHROPIC_BASE_URL=http://localhost:{proxy_port} ANTHROPIC_AUTH_TOKEN=dummy claude  # Terminal 2
 
-Note: Your API key is stored locally in .neuroflow/integrations.json — it is never
-synced to your flowie GitHub repo.
+Note: neuroflow never stores your gateway key — integrations.json holds non-secret
+settings only. Full launch command, Windows PowerShell version and model mapping:
+skills/setup/references/custom-gateway.md.
 ```
 
 Do not write anything during `--credentials`. This is a read-only display mode.

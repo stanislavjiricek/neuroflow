@@ -143,6 +143,7 @@ Then offer the shorthand aliases table and ask what the user wants to do.
 ## Context rules
 
 - **On `main` or `master`**: before staging or committing, warn the user they are on the default branch and ask if they meant to be on a feature branch.
+- **Notebook outputs**: when the files to stage include any `.ipynb` and `git config --get filter.nbstripout.clean` prints nothing, warn before staging that the notebooks' outputs (participant rows, absolute paths, names) will be committed, and offer `nbstripout --install` (strips outputs at every later `git add`) or clearing the outputs first. Never strip silently.
 - **No remote configured**: skip push/pull steps and tell the user.
 - **Detached HEAD**: warn the user and refuse to commit until they check out a branch.
 - **Merge conflict markers detected** (`git status` shows "both modified"): surface the conflicted files and guide the user to resolve before continuing.

@@ -64,7 +64,7 @@ LEGACY_ROOT_FILES = {
     "team.md": "removed in 0.2.17; collaborators belong in project_config.md (`collaborators:`)",
 }
 REQUIRED_CONFIG_KEYS = ("nf_schema", "project_name", "active_phase", "recommended_phases", "plugin_version")
-PERSONAL_CONFIG_KEYS = {"auto_issue_reporting", "writing_style", "researcher"}
+PERSONAL_CONFIG_KEYS = {"auto_issue_reporting", "writing_style", "researcher", "zotero"}
 MODES = {"teacher", "executor", "critic"}
 PREREG_STATUSES = {"draft", "frozen"}
 ETHICS_STATUSES = {"none", "pending", "approved", "expired", "withdrawn"}
@@ -721,7 +721,7 @@ def _check_ethics(ctx: Context, out: list[Finding]) -> None:
     legacy = fm is None
     if legacy:
         out.append(Finding("NF3", WARN, shown, err or "legacy ethics status format (no frontmatter)",
-                           fix="run /neuroflow:migrate"))
+                           fix="run /ethics --status, which writes the frontmatter after a person confirms the values"))
         fm = _legacy_ethics(text)
         fm.setdefault("set_by", "person")  # the old format did not record who set it
         words = re.findall(r"[a-z]+", str(fm.get("status") or ""))

@@ -66,7 +66,7 @@ The loop searches over analysis choices — legitimate, as long as the search is
 ```markdown
 # Analysis multiverse — EXPLORATORY
 
-> Every analysis specification an autoresearch loop ran on the study data, with its result — kept and discarded.
+> Every analysis specification run on the study data — by autoresearch loops and by multiverse.py — with its result, kept and discarded.
 > Nothing here is confirmatory. A result that came from this search is reported together with this ledger or its summary.
 
 | Date | Loop | Iter | Choice | Value | Result | Kept |
@@ -75,7 +75,7 @@ The loop searches over analysis choices — legitimate, as long as the search is
 | 2026-10-07 | connectivity | 012 | band-pass low cutoff | 0.5 Hz | d = 0.52, p = .01 | yes |
 ```
 
-The ledger is append-only — rows only, no running totals — so two people's appends merge cleanly (`merge=union`). The number of specifications tried is the number of rows.
+The ledger is append-only — rows only, no running totals — so two people's appends merge cleanly (`merge=union`). The number of specifications tried is the number of rows. `multiverse.py` (phase-data-analyze) appends one row per specification: Loop = `multiverse:<name>`, Iter = spec id (`s01`…), Kept = `n/a`.
 
 ---
 

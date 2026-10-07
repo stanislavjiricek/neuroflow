@@ -260,7 +260,7 @@ Since flowie repositories are always private, use the following fetch order:
 
 1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch `profile.md`. Also fetch `integrations.json` with `gh api /repos/{username}/flowie/contents/integrations.json --jq '.content' | base64 -d 2>/dev/null` (ignore if missing). If `profile.md` succeeds, proceed to the field mapping table.
 2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` and `integrations.json` (if it exists) from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
-3. **Only if both of the above fail**, ask the user for a GitHub Personal Access Token (PAT) with `repo` scope. Use it in the Authorization header to call `GET https://api.github.com/repos/{username}/flowie/contents/profile.md`. Decode the base64 `content` field. Also attempt `GET .../integrations.json` in the same request batch (ignore 404).
+3. **If both of the above fail**, never ask for a token in chat. Suggest that the person signs in with `gh auth login` in their own terminal (or stores a GitHub credential for git themselves, e.g. with `git credential approve`), then retry steps 1–2 once.
 4. **If none of the above works**: fall back to the full interview (Step 2).
 
 Do not attempt additional `gh` commands (config file paths, env var checks, etc.) between steps 1 and 2. One `gh auth status` check is sufficient — if it fails, move directly to the git clone attempt.
@@ -294,7 +294,7 @@ Ask: *"What is your team's Hive repo? (e.g. my-lab/hive-research)"*
 
 **Check locally first:** if `~/.neuroflow/hives/` contains a cache for this org/repo, read the index files from there directly.
 
-**If no local hive data:** fetch the Hive index using the same authentication approach as for flowie above (`gh` CLI preferred, PAT as fallback). Try the following locations in order:
+**If no local hive data:** fetch the Hive index using the same authentication approach as for flowie above (`gh api` preferred, a shallow `git clone` as fallback — never a token in chat). Try the following locations in order:
 
 1. Root `README.md`: `GET https://api.github.com/repos/{org}/{repo}/contents/README.md`
 2. `directions.md` at the repo root: `GET https://api.github.com/repos/{org}/{repo}/contents/directions.md`
@@ -473,7 +473,7 @@ The block lives in the project's `.claude/CLAUDE.md` only:
 Ask the user with `AskUserQuestion` whether they want to connect the MCP integrations now:
 
 > **Set up integrations?**
-> neuroflow can connect to Miro (visual collaboration) and custom LLM providers.
+> neuroflow can connect to Miro (visual collaboration — you add it yourself, in your own terminal) and a custom LLM gateway.
 >
 > - **Set up now** — run the setup wizard (takes ~1 minute)
 > - **Skip** — you can run `/neuroflow:setup` at any time
@@ -482,7 +482,7 @@ Ask the user with `AskUserQuestion` whether they want to connect the MCP integra
 
 **If the user picks Skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 5b.
 
-**If `~/.neuroflow/integrations.json` (global credentials) already exists with the relevant keys set:** skip this step entirely — integrations are managed globally on this device. (A per-project `.neuroflow/integrations.json` override also counts. `~/.neuroflow/flowie/integrations.json` holds non-secret settings only and is not a credentials store.)
+**If integrations are already set up on this device** — a tool whose name contains `miro` is available in this session (Miro is not a key in any `integrations.json`), or `~/.neuroflow/integrations.json` (global, non-secret settings; a per-project `.neuroflow/integrations.json` override also counts) already holds `custom_llm` — skip this step entirely. `~/.neuroflow/flowie/integrations.json` stays on this machine and is not a credentials store.
 
 **Google Workspace (gws) option:**
 Also offer gws CLI setup as part of the integration wizard:

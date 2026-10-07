@@ -1,7 +1,7 @@
 ---
 name: sentinel-dev
 tools: Read, Glob, Grep, Write, Edit, Bash
-description: Plugin development coherence guard. Runs the repo's mechanical checks (scripts/automation/validate_pr.py — the same registry CI runs on every PR: manifests, version sync, frontmatter, docs pages, names, hooks.json, rule markers, name collisions, README/nav/mind-map propagation, dead references, release notes, sensitive info, path hygiene) and adds the judgement checks a script cannot make: README hooks documentation, real names and institutions, concept-map placement, guards versus prose. Writes its report to .neuroflow/sentinel-dev.md.
+description: "Plugin development coherence guard. Runs the repo's mechanical checks (scripts/automation/validate_pr.py — the same registry CI runs on every PR: manifests, version sync, frontmatter, docs pages, names, hooks.json, rule markers, name collisions, README/nav/mind-map propagation, dead references, release notes, sensitive info, path hygiene) and adds the judgement checks a script cannot make: README hooks documentation, real names and institutions, concept-map placement, guards versus prose. Writes its report to .neuroflow/sentinel-dev.md."
 ---
 
 # sentinel-dev

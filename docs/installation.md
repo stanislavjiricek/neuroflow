@@ -53,16 +53,15 @@ You should see neuroflow scan your project and offer to set up `.neuroflow/` pro
 
 ## MCP server requirements
 
-neuroflow uses four MCP (Model Context Protocol) servers that are launched automatically via `npx`. No manual installation is needed — they are pulled from npm on first use.
+neuroflow uses three MCP (Model Context Protocol) servers that are launched automatically via `npx`. No manual installation is needed — they are pulled from npm on first use.
 
 | Server | npm package | Purpose |
 |---|---|---|
 | PubMed / bioRxiv | `paper-search-mcp-nodejs` | Literature and preprint search |
-| Miro | `@k-jarzyna/mcp-miro` | Visual collaboration boards |
 | Context7 | `@upstash/context7-mcp` | Library documentation lookup |
 | Sequential thinking | `@modelcontextprotocol/server-sequential-thinking` | Structured multi-step reasoning |
 
-Miro needs credentials — see the [Integrations](integrations.md) page for how to configure them.
+None needs credentials. Miro and Zotero are optional servers you add yourself — see [Integrations](integrations.md).
 
 ---
 

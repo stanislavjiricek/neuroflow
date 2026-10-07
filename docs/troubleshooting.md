@@ -140,13 +140,16 @@ Add them to `permissions.allow` yourself if you skipped the offer. Avoid a blank
 
 ### Miro commands don't work
 
-**Cause:** `MIRO_ACCESS_TOKEN` is not configured, or the token has expired.
+**Cause:** Miro has not been added to Claude Code (neuroflow does not bundle it), or its token has expired.
 
 **Fix:**
 
-1. Run `/neuroflow:setup` and enter a fresh token
-2. Create a new token at [https://miro.com/app/settings/user-profile/apps](https://miro.com/app/settings/user-profile/apps)
-3. Export the token: `export MIRO_ACCESS_TOKEN="eyJ..."`
+1. Create a new token at [https://miro.com/app/settings/user-profile/apps](https://miro.com/app/settings/user-profile/apps)
+2. In a separate terminal — not in the Claude Code chat — add the server (to replace an expired token, first run `claude mcp remove --scope user miro`):
+   ```bash
+   claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<your-token> -- npx -y @k-jarzyna/mcp-miro
+   ```
+3. Restart Claude Code (or check `/mcp`). `/neuroflow:setup` shows the same steps; it never asks for the token.
 
 ---
 

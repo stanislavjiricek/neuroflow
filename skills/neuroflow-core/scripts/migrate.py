@@ -7,7 +7,7 @@ nothing. --apply writes the plan. Idempotent: a migrated project has nothing to 
 Converts:
   - project_config.md: the legacy dialects (`key: value` lines, `**Bold:**` labels,
     or a mix) -> YAML frontmatter (nf_schema 1) followed by the free markdown body
-  - personal fields (auto_issue_reporting, researcher name, writing_style,
+  - personal fields (auto_issue_reporting, researcher name, writing_style, zotero,
     notification / wellbeing settings) -> ~/.neuroflow/user.yaml, only with --move-personal
   - reasoning/*.json arrays -> *.jsonl, one element per line; the old file is kept as *.json.bak
   - missing .gitattributes (merge=union) and .gitignore (local tier) lines
@@ -85,8 +85,10 @@ PERSONAL_KEYS = {
     "auto_issue_reporting": "auto_issue_reporting",
     "researcher": "name", "researcher_name": "name",
     "writing_style": "writing_style",
+    "zotero": "zotero",  # the /ideation answer: whether this person uses Zotero
 }
 PERSONAL_PREFIXES = ("notification", "wellbeing")
+YES_NO_KEYS = {"auto_issue_reporting", "zotero"}
 
 KV_RE = re.compile(r"^(?P<key>[a-z_][a-z0-9_]*):(?:[ \t]+(?P<value>.*?))?[ \t]*$")
 BOLD_RE = re.compile(r"^(?:[-*+][ \t]+)?\*\*(?P<label>[^*\n]+?)[ \t]*:?[ \t]*\*\*[ \t]*:?[ \t]*(?P<value>.*?)[ \t]*$")
@@ -269,7 +271,7 @@ def normalise(key: str, value, phases: set[str], problems: Problems, origin: str
 
 def personal_value(target: str, value) -> str:
     text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
-    if target == "auto_issue_reporting":
+    if target in YES_NO_KEYS:
         low = text.strip().lower()
         if low in {"yes", "true", "on", "y"}:
             return "yes"
@@ -728,7 +730,7 @@ def plan_personal(plan: Plan, move_personal: bool) -> None:
         elif any(line.startswith(f"{target}:") for line in additions):
             item["status"] = "duplicate in the project file; the first value is moved"
         else:
-            plain = target == "auto_issue_reporting" and value in {"yes", "no"}
+            plain = target in YES_NO_KEYS and value in {"yes", "no"}
             additions.append(f"{target}: {value if plain else sc.yaml_scalar(value)}")
             item["status"] = "moved to ~/.neuroflow/user.yaml"
     if additions:

@@ -40,7 +40,7 @@ The bioRxiv integration enables the [scholar agent](concepts/agents.md) to searc
     The scholar agent marks all bioRxiv results with ⚠️ PREPRINT. Preprints have not been peer-reviewed and should be treated with appropriate caution.
 
 !!! warning "bioRxiv API keyword-search limitation"
-    The bioRxiv MCP server uses a date-range API that does not support keyword filtering. When a keyword search returns zero results, the scholar agent will warn you and automatically fall back to **CrossRef** and **Semantic Scholar** — both free public APIs that support full keyword search across preprints and peer-reviewed literature. No additional setup is required for the fallback.
+    The bioRxiv / medRxiv search tools only scan one page of recent preprints (default: the last 30 days) for the exact query phrase, so keyword searches find little there; the search protocol then falls back to CrossRef, Semantic Scholar and arXiv through the same server, with no setup needed. Downloads use open-access routes only; the server Sci-Hub tools are never used (and are blocked by the plugin PreToolUse hook).
 
 ---
 
@@ -125,7 +125,7 @@ When you run `/neuroflow:setup`, non-secret settings are saved to `~/.neuroflow/
 ```
 
 !!! warning "No secrets, never committed"
-    neuroflow never asks for a token or key in the chat and stores none in `integrations.json`: Miro's token lives in Claude Code's own MCP configuration, a gateway key in your key file, Google OAuth in `gws`. The per-project `.neuroflow/integrations.json` is automatically added to `.gitignore` by neuroflow, and the global `~/.neuroflow/integrations.json` lives outside any repository. Non-secret settings are synced via `~/.neuroflow/flowie/integrations.json` only after you confirm.
+    neuroflow never asks for a token or key in the chat and stores none in `integrations.json`: Miro's token lives in Claude Code's own MCP configuration, a gateway key in your key file, Google OAuth in `gws`. The per-project `.neuroflow/integrations.json` is automatically added to `.gitignore` by neuroflow, and the global `~/.neuroflow/integrations.json` lives outside any repository. A copy in `~/.neuroflow/flowie/integrations.json` stays on this machine too: it is gitignored in your flowie repo and never committed, so on another machine you enter the settings again (or copy the file).
 
 ---
 
