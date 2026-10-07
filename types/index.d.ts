@@ -156,6 +156,8 @@ declare module 'claude-code' {
       drive: NfDrive | null
       // </feature:loop>
       // <feature:capture>
+      /** Live note capture in progress (the flag .neuroflow/notes/.capturing names the target). */
+      capture: { target: string; count: number } | null
       // </feature:capture>
       // <feature:user>
       // </feature:user>

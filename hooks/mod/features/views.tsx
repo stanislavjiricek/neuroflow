@@ -25,6 +25,7 @@ const loopViewAtom = atom({ plugin: 'neuroflow', key: 'loopView' } as const, nul
 const pickerNoteAtom = atom({ plugin: 'neuroflow', key: 'pickerNote' } as const, null)
 const draftAtom = atom({ plugin: 'neuroflow', key: 'draftedDecision' } as const, null)
 const driveAtom = atom({ plugin: 'neuroflow', key: 'drive' } as const, null)
+const captureAtom = atom({ plugin: 'neuroflow', key: 'capture' } as const, null)
 
 const DASHBOARD = 'nf-dashboard'
 const PICKER = 'nf-phase'
@@ -360,6 +361,19 @@ export const registerViews = (on: On, opts: NfOptions): void => {
             }}
           />
           <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($, 'loop')} />
+        </Box>
+      )
+    }
+    // A live note capture shows while it runs: messages go to the notes, not to the model.
+    const capture = await read($, captureAtom)
+    if (capture !== null) {
+      const { Box, Button, Text } = $.ui.resolve(e)
+      return (
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+          <Text color="warning" wrap="truncate-end">
+            ● capturing notes → {capture.target} · {capture.count} entr{capture.count === 1 ? 'y' : 'ies'} · messages are not sent to the model
+          </Text>
+          <Button key="nf-capture-done" label="done" hotkey="e" plain onPress={() => $.prompt.submit({ text: 'done' }).then(() => undefined)} />
         </Box>
       )
     }

@@ -4,16 +4,67 @@
 //  - M034: a scholar run's closing [REPORT downloaded=… files=… stubs=…] line is checked against the disk
 //  - M101: a reminder when pinned literature queries in .neuroflow/ideation/watch.md go unchecked for a week
 // Zero-turn note and idea capture (M104, M149) and the citation trigger (M030, G107, G101) live here too.
-import { atom, read } from 'claude-code'
+import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import { asList, parseYamlSubset, splitFrontmatter } from '../lib/frontmatter'
 import type { NfIo } from '../lib/io'
+import { appendLine, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join } from '../lib/paths'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
+const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
 const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
+const captureAtom = atom({ plugin: 'neuroflow', key: 'capture' } as const, null)
+
+/** The flag a /notes or /meeting --notes live capture writes (phase-notes → Live capture); empty = off. */
+export const CAPTURE_FLAG = '.neuroflow/notes/.capturing'
+
+/** One inbox line, exactly as /notes --idea writes it. */
+export const ideaLine = (ms: number, phase: string | null, text: string): string => {
+  const d = new Date(ms)
+  const two = (n: number): string => String(n).padStart(2, '0')
+  return `- ${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())} [${phase ?? 'none'}] ${text.trim()}`
+}
+
+/** `{path}` or `{path}#Notes` from the capture flag; null when capture is off. */
+export const captureTarget = (flag: string | null): { path: string; section: string | null } | null => {
+  const line = (flag ?? '').split(/\r?\n/)[0].trim()
+  if (line === '') return null
+  const [path, section] = line.split('#')
+  return { path: path.trim(), section: section ? `## ${section.trim()}` : null }
+}
+
+/** Messages that end or bypass capture and go to the model: commands and done/finish. */
+export const isCaptureExit = (text: string): boolean => /^\s*\//.test(text) || /^\s*(done|finish(ed)?)\s*[.!]?\s*$/i.test(text)
+
+/** The document with `entry` appended at the end of `heading`'s section (before the next `## `), or at the end. */
+export const appendToSection = (doc: string, heading: string | null, entry: string): string => {
+  const body = doc.endsWith('\n') || doc === '' ? doc : `${doc}\n`
+  if (heading === null) return `${body}${entry}\n`
+  const lines = body.split('\n')
+  const at = lines.findIndex(line => line.trim() === heading)
+  if (at < 0) return `${body}\n${heading}\n\n${entry}\n`
+  let end = lines.findIndex((line, index) => index > at && /^##\s/.test(line))
+  if (end < 0) end = lines.length - 1
+  while (end > at + 1 && lines[end - 1].trim() === '') end -= 1
+  lines.splice(end, 0, entry)
+  return lines.join('\n')
+}
+
+/** Count of `[HH:MM]` entries in a capture target (or its section). */
+export const captureCount = (doc: string, heading: string | null): number => {
+  const lines = doc.split(/\r?\n/)
+  const start = heading === null ? 0 : lines.findIndex(line => line.trim() === heading)
+  if (start < 0) return 0
+  let count = 0
+  for (const line of lines.slice(start + (heading === null ? 0 : 1))) {
+    if (heading !== null && /^##\s/.test(line)) break
+    if (/^\[\d{2}:\d{2}\]\s/.test(line)) count += 1
+  }
+  return count
+}
 
 export type CommandKeys = { requires: string[]; next: string[] }
 
@@ -81,7 +132,100 @@ const ioOf = ($: EngineInterface): NfIo => ({
 const keysOf = async ($: EngineInterface, name: string): Promise<CommandKeys> =>
   commandKeys(await ioOf($).read(join($.plugin.root, 'commands', `${name}.md`)))
 
+/**
+ * Commits one file in the personal flowie repository and syncs it (the mod's own cache — charter: mod git
+ * only there). Skipped when the repository has git hooks or LFS, which $.process.run would bypass.
+ */
+const syncFlowie = async ($: EngineInterface, flowie: string, file: string, message: string): Promise<string> => {
+  const git = (args: readonly string[]) =>
+    $.process.run(['git', '-C', flowie, ...args], { timeoutMs: 30_000 }).catch(error => ({ exitCode: 1, stdout: '', stderr: String(error) }))
+  const hooksPath = (await git(['config', '--get', 'core.hooksPath'])).stdout.trim()
+  const hooks = (await ioOf($).list(`${flowie}/.git/hooks`)).filter(entry => !entry.name.endsWith('.sample'))
+  const attributes = (await ioOf($).read(`${flowie}/.gitattributes`)) ?? ''
+  if (hooksPath !== '' || hooks.length > 0 || /filter=lfs/.test(attributes)) return 'saved locally — this flowie repository uses git hooks or LFS, so sync it with /neuroflow:flowie --sync'
+  for (const args of [['add', '--', file], ['commit', '-m', message, '--', file], ['pull', '--rebase'], ['push']]) {
+    const run = await git(args)
+    if (run.exitCode !== 0 && !(args[0] === 'commit' && /nothing to commit/i.test(`${run.stdout}${run.stderr}`))) {
+      const home = (await ioOf($).home()) ?? ''
+      const first = `${run.stderr}${run.stdout}`.trim().split(/\r?\n/)[0] ?? ''
+      await appendLine(ioOf($), `${home}/.neuroflow/flowie-sync.log`, `${new Date(await $.clock.now()).toISOString()} git ${args[0]} failed: ${first}`)
+      return 'saved locally; the sync failed and was logged — /neuroflow:flowie --sync resolves it'
+    }
+  }
+  return 'synced'
+}
+
+/** Appends one idea to the inbox (flowie when set up, else the project), exactly as /notes --idea does. */
+const saveIdea = async ($: EngineInterface, text: string): Promise<string> => {
+  const scope = await read($, scopeAtom)
+  const snap = await read($, snapshotAtom)
+  const io = ioOf($)
+  const home = (await io.home()) ?? ''
+  const flowie = `${home}/.neuroflow/flowie`
+  const toFlowie = home !== '' && (await io.exists(`${flowie}/.git`))
+  if (!toFlowie && (scope?.root === null || scope === null)) return 'No inbox here: set up flowie, or run this inside a neuroflow project.'
+  const path = toFlowie ? `${flowie}/ideas-inbox.md` : join(scope?.root as string, '.neuroflow/notes/ideas-inbox.md')
+  if (!(await io.exists(path))) await io.write(path, '# Ideas inbox\n\n')
+  const now = await io.now()
+  await appendLine(io, path, ideaLine(now, snap?.phase ?? null, text))
+  const count = ((await io.read(path)) ?? '').split(/\r?\n/).filter(line => line.startsWith('- ')).length
+  if (scope?.root) await appendLine(io, sessionLogPath(scope.root, now), sessionLine(now, 'notes', `idea captured (${toFlowie ? 'flowie inbox' : 'project inbox'})`))
+  const synced = toFlowie ? ` · ${await syncFlowie($, flowie, 'ideas-inbox.md', 'idea: inbox')}` : ' · project inbox (shared with collaborators)'
+  return `Idea saved — inbox: ${count}${synced}`
+}
+
+/** Appends one live-capture message to the target named by the capture flag; returns the entry count. */
+const captureMessage = async ($: EngineInterface, root: string, target: { path: string; section: string | null }, text: string): Promise<number> => {
+  const io = ioOf($)
+  const path = join(root, target.path)
+  const now = new Date(await io.now())
+  const stamp = `[${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}]`
+  const doc = (await io.read(path)) ?? ''
+  const next = appendToSection(doc, target.section, `${stamp} ${text.replace(/\r\n/g, '\n').trimEnd()}`)
+  await io.write(path, next)
+  const after = (await io.read(path)) ?? ''
+  if (!after.includes(`${stamp} ${text.replace(/\r\n/g, '\n').trimEnd()}`)) throw new Error('the capture did not land in the file')
+  return captureCount(after, target.section)
+}
+
 export const registerCapture = (on: On, _opts: NfOptions): void => {
+  // M149: `/neuroflow:notes --idea "…"` saves the idea without a model turn.
+  on('command.run', { command: 'neuroflow:notes' }, async ($, e, next) => {
+    const match = /^--idea\s+(.+)$/s.exec(e.args.trim())
+    if (match === null) return next(e)
+    const text = match[1].trim().replace(/^["“](.*)["”]$/s, '$1')
+    return { text: await saveIdea($, text) }
+  }).catch(($, e, next) => next(e))
+
+  // M149 + M104: typed messages the person sends — `idea: …` goes to the inbox, and while a live capture
+  // runs every message is written to the notes verbatim instead of reaching the model.
+  on('prompt.submit', { origin: { kind: ['composer', 'bridge'] } }, async ($, e, next) => {
+    const scope = await read($, scopeAtom)
+    if (!scope?.isActive || scope.root === null || (await read($, activeCommandAtom))?.lifecycle === 'quiet') return next(e)
+    const idea = /^\s*idea:\s*(.+)$/is.exec(e.text)
+    if (idea !== null) {
+      try {
+        return { drop: await saveIdea($, idea[1]) }
+      } catch {
+        return { drop: 'neuroflow: the idea could not be saved — nothing was sent to the model; try again or use /neuroflow:notes --idea' }
+      }
+    }
+    const target = captureTarget(await ioOf($).read(join(scope.root, CAPTURE_FLAG)))
+    if (target === null) {
+      if ((await read($, captureAtom)) !== null) await update($, captureAtom, () => null)
+      return next(e)
+    }
+    if (isCaptureExit(e.text)) return next(e)
+    try {
+      const count = await captureMessage($, scope.root, target, e.text)
+      await update($, captureAtom, () => ({ target: target.path, count }))
+      return { drop: `✓ ${count}` }
+    } catch {
+      // Note text must never reach the model as an instruction: drop it, visibly.
+      return { drop: `neuroflow: could not write this note to ${target.path} — it was NOT sent to the model; try again` }
+    }
+  }).catch(($, e, next) => next(e))
+
   // M001: name missing `requires:` — to the model as a note after the command's prompt, to the person as a toast.
   on('command.run', { command: /^neuroflow:/ }, async ($, e, next) => {
     const result = await next(e)
