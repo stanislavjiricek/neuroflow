@@ -728,9 +728,12 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const lines = tabLines(tab, snap, await read($, loopViewAtom))
     const frozenByPerson = snap.prereg?.status === 'frozen' && snap.prereg.setBy === 'person'
     const title = `${snap.projectName ?? 'neuroflow project'} · ${snap.phase ?? 'no phase'}${snap.mode ? ` · ${snap.mode}` : ''}`
+    // The prose dashboard's Update line (commands/dashboard.md): here too, also after the band was hidden for today.
+    const behind = versionNotice(snap)
     return (
       <Box flexDirection="column" gap={1}>
         <Text bold wrap="truncate-end">{title}</Text>
+        {behind !== null ? <Text color={TONE_COLOR.warning} wrap="wrap">{`↑ ${behind}`}</Text> : null}
         <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
           {TABS.map(item => (
             <Button
@@ -757,6 +760,9 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           ) : null}
           {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-verify" label="verify" hotkey="v" onPress={() => verifyFromDashboard($)} /> : null}
           {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey="u" onPress={() => unfreezeFromDashboard($)} /> : null}
+          {behind !== null ? (
+            <Button key="nf-dash-migrate" label="migrate" hotkey="m" onPress={() => $.command.run({ command: 'neuroflow:migrate', args: '' }).then(() => undefined)} />
+          ) : null}
           <Button key="nf-dash-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: DASHBOARD })} />
         </Box>
       </Box>

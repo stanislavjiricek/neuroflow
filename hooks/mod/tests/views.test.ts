@@ -214,6 +214,39 @@ describe('engine', () => {
     expect(ran).toEqual(['neuroflow:meeting --prepare lab-2026-10-07'])
     await ui.unmount()
   })
+
+  test('the dashboard pane carries the Update line and a migrate key, like the prose dashboard', { options: { runtime: 'observe' } }, async ($, on) => {
+    const project = '/work/proj'
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\nplugin_version: 0.2.21\n---\n',
+      '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.open', () => ({ value: undefined }))
+    on('ui.toast', () => ({ value: undefined }))
+    on('ui.status', () => ({ value: undefined }))
+    const ran: string[] = []
+    on('command.run', ($, e) => {
+      ran.push(e.command)
+      return { text: '' }
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: '' })
+    const ui = await $.ui.mount({
+      plugin: 'neuroflow',
+      surface: 'terminal',
+      component: 'Pane',
+      requestId: 'nf-dashboard',
+      props: { title: 'neuroflow', isFocused: true, bodyColumns: 120, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
+    } as never)
+    expect(JSON.stringify(await ui.drawn())).toContain('↑ neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate')
+    await ui.press({ key: 'nf-dash-migrate' })
+    expect(ran).toContain('neuroflow:migrate')
+    await ui.unmount()
+  })
 })
 
 describe('phase switching', () => {
