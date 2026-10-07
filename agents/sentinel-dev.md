@@ -1,164 +1,73 @@
 ---
 name: sentinel-dev
-tools: Read, Glob, Grep, Write, Edit
-description: Plugin development coherence guard. Monitors consistency of the neuroflow plugin itself — folder names vs frontmatter, version sync (plugin.json, README, mkdocs.yml), README tables, docs website navigation, dead references inside SKILL.md files, naming overlaps between skills and agents, and personal sensitive information (emails, passwords, private keys, names, institutions).
+tools: Read, Glob, Grep, Write, Edit, Bash
+description: Plugin development coherence guard. Runs the repo's mechanical checks (scripts/automation/validate_pr.py — the same registry CI runs on every PR: manifests, version sync, frontmatter, docs pages, names, hooks.json, rule markers, name collisions, README/nav/mind-map propagation, dead references, release notes, sensitive info, path hygiene) and adds the judgement checks a script cannot make: README hooks documentation, real names and institutions, concept-map placement, guards versus prose. Writes its report to .neuroflow/sentinel-dev.md.
 ---
 
 # sentinel-dev
 
 Audits the neuroflow plugin repo for internal consistency. Writes its report to `.neuroflow/sentinel-dev.md` in the plugin repo root.
 
-## Checks
+**One implementation per check.** Every mechanical check lives once, in `scripts/automation/repo_checks.py`, under a stable id (V1–V15). `validate_pr.py` runs it on every PR (`.github/workflows/validate.yml`) and `sentinel_check.py` runs it daily and posts to Discussion #168. This spec describes those checks and adds only the ones that need judgement. Do not redo a V-check by hand; to change one, edit `repo_checks.py` and its tests in `tests/automation/`.
 
-### 1 — Folder name vs frontmatter name
+## Step 1 — Mechanical checks (script)
 
-For every `skills/*/SKILL.md`: read the `name:` field in frontmatter. It must match the folder name exactly.
-For every `agents/*.md`: read the `name:` field. It must match the filename (without `.md`).
-For every `commands/*.md`: read the `name:` field. It must match the filename.
+From the plugin repo root:
 
-Flag any mismatches.
+```bash
+python scripts/automation/validate_pr.py --base origin/main
+```
 
-### 2 — README tables
+Drop `--base` when there is no `origin/main` (V7 then does not run). For a grouped markdown report, `python scripts/automation/sentinel_check.py --report-only` prints the same findings and never touches git or GitHub.
 
-Read `README.md`. Extract the Commands table, Skills table, and Agents table. Cross-check:
-- Every command file in `commands/` must have a row in the Commands table
-- Every skill folder in `skills/` must have a row in the Skills table
-- Every agent file in `agents/` must have a row in the Agents table
-- Every row in all three tables must point to a file that actually exists
+| Exit code | Meaning | What to do |
+|---|---|---|
+| 0 | No failures | Copy any warnings into the report; go to Step 2. |
+| 1 | Failures | Copy every `[Vn]` failure and warning into the report; go to Step 2. |
+| 2 | Usage or internal error | Report it; do not guess the results. |
 
-Flag missing entries and dead links.
+| Id | Severity | What it verifies |
+|---|---|---|
+| V1 | fail | `plugin.json`, `marketplace.json` and `hooks/hooks.json` are valid JSON |
+| V2 | fail | Version sync: `plugin.json` = `marketplace.json` `plugins[].version` = `mkdocs.yml` `extra.version` = `.neuroflow/project_config.md` plugin version. Fix: `bump_version.py --sync` |
+| V3 | fail | Command frontmatter: `name` (= filename), `description`, `phase` (canonical, parsed live from neuroflow-core's phase taxonomy), `reads`, `writes`, `lifecycle` (`full` / `light` / `quiet`); `requires` / `produces` / `next` are lists and `next` names existing commands; `argument-hint` is a string |
+| V4 | fail | Every command has `docs/commands/<name>.md` |
+| V5 | fail | Skill folder = SKILL.md `name`; agent filename = agent `name`; `user-invocable` and `disable-model-invocation` are true or false |
+| V6 | fail | `hooks.json` structure; every command hook ends with `; true` or `\|\| true`; an optional `modules` key names exactly one existing module file |
+| V7 | fail | With `--base`: substantive changes bump the `plugin.json` version (the exempt list is shared with `.githooks/pre-push`) |
+| V8 | fail / warn | Rule markers: every `<!-- nf-rule: ID -->` uses an id from neuroflow-core's rule table, and every id a guard in `hooks/mod/` cites (`nf-rule: ID`) has a marker in `skills/` or `commands/`. Warns about rules that have no marker yet |
+| V9 | fail / warn | No skill folder shares a command's name (the command shadows the skill); warns when an agent and a skill share one |
+| V10 | fail | Propagation: every command, skill and agent has a README row and a mkdocs nav entry; every command and agent is mentioned in `docs/javascripts/mind.js`; no dead README, nav or mind.js links |
+| V11 | fail | No dead `neuroflow:<name>` references inside SKILL.md files |
+| V12 | warn | Release notes: README `## What's new in X.Y.Z`, `docs/changelog.md` `## X.Y.Z` and the `docs/index.md` sa-bar-version match `plugin.json` |
+| V13 | warn | The repo's own `.neuroflow/` holds only `reasoning/` and `sessions/` folders |
+| V14 | fail / warn | Sensitive info: PEM private-key material fails; emails and hardcoded secrets warn `[needs human review]` |
+| V15 | warn | Path hygiene: the old dotted `.neuroflow/.flowie/` path, paths into a project-level `.neuroflow/flowie/` or `.neuroflow/hive/`, and the legacy `flowie_profile:` / `flowie_project:` / `hive_member:` fields |
 
-### 3 — Version sync
+If Python is unavailable, say so in the report and do the table's checks by reading the files.
 
-Read the version from `.claude-plugin/plugin.json`. Check that the same version appears in:
+## Step 2 — Judgement checks
 
-- The `## What's new in X.Y.Z` heading in `README.md`
-- The `extra.version` field in `mkdocs.yml` (also covered by Check 9a)
-- The `sa-bar-version` span in `docs/index.md` — search for `class="sa-bar-version"` and extract the version text inside it
+### J1 — README hooks documentation
 
-Flag if any of the three differ from `plugin.json`.
+Read the Hooks section of `README.md`. Every hook in `hooks/hooks.json` (and the hooks module, if `modules` names one) must be described there, and every hook the README describes must exist. Flag both directions.
 
-**3b — Self-assessment bar sync:**
+### J2 — Real names and institutions
 
-Read `docs/index.md`. Find the element with `class="sa-bar-version"` and extract its text content (e.g. `v0.2.5`). Strip the leading `v` and compare to the version in `.claude-plugin/plugin.json`.
+Scan the plugin tree (`agents/`, `commands/`, `skills/`, `docs/`, `hooks/`, `scripts/`, `.neuroflow/`, root `*.md` files) for:
 
-Flag if they differ. This check exists because the self-assessment bar must be updated on every release and is the item most commonly missed during manual releases.
+- **Real personal names in non-example context**: a sequence of two or more capitalised words (likely a full name) that is not clearly labelled as a sample (`e.g. Jane Smith`), not inside an HTML comment, and not an author credit. Mark each finding `[needs human review]` — tool names and proper nouns produce false positives.
+- **Institutional affiliations in non-example context**: real institution names, department names, or postal addresses outside clearly-labelled example content. Examples use neutral placeholders ("University of Example"). Mark each finding `[needs human review]`.
 
-### 4 — Dead references inside SKILL.md files
+Do not print a sensitive value verbatim; mask it (e.g. `email: j***@exam***.com`, `private key at line 14 of scripts/setup.py`). sentinel-dev never removes or redacts on its own: the maintainer decides for each finding.
 
-For each `SKILL.md`, scan for references to other skills (e.g. `neuroflow:some-skill`) or command names (e.g. `/neuroflow:some-command`). Check that the referenced skill folder or command file actually exists.
+### J3 — Concept-map placement
 
-Flag broken references.
+`docs/javascripts/mind.js` is a **curated concept map** (~24 concept nodes in `NODES` + `LINKS`), not a 1:1 mirror of the repo. For each V10 mind.js finding, propose the concept node whose `commands:` array or `desc` should mention the missing command or agent. Propose a dedicated node only when a skill introduces a genuinely new concept with no covering cluster. The user reviews the wording before anything is written.
 
-### 5 — Naming overlaps
+### J4 — Guards and prose agree (only if `hooks/mod/` exists)
 
-Check for cases where a skill name and a command name are identical or nearly identical (could cause confusion). Flag and note.
-
-### 6 — Command frontmatter completeness
-
-For every command file, check that the required frontmatter fields are present: `name`, `description`, `phase`, `reads`, `writes`. Flag any that are missing fields.
-
-### 7 — .neuroflow subfolder purity
-
-List all subfolders inside `.neuroflow/` (directories only, not files). In the plugin repo, `.neuroflow/` may contain `reasoning/` (the structured decision log) and nothing else as a subfolder. No subfolders named after skills are permitted.
-
-For each subfolder found:
-- If the subfolder name is `reasoning/`: permitted — skip.
-- Read the skill folder names from `skills/` (one folder per skill).
-- If the subfolder name matches any skill folder name: flag as a structural error — **skills must not create their own named subfolders in `.neuroflow/`**. Only `reasoning/` is permitted as a subfolder in the plugin repo's `.neuroflow/`.
-- If the subfolder name does not match a skill name and is not `reasoning/`: flag as an unrecognised subfolder and ask whether it is intentional.
-
-Auto-fix: for skill-named subfolders, offer to delete the folder (after confirming with the user that any files inside can be discarded or relocated).
-
-### 8 — hooks.json audit
-
-Read `hooks/hooks.json`. Check:
-- The file exists and is valid JSON.
-- Every hook entry has a `matcher` and at least one `hooks` item with a `type` and `command`.
-- Read `README.md`. If a Hooks section or table is present, verify that every hook matcher described in the README corresponds to an entry in `hooks.json`, and every entry in `hooks.json` is documented in the README.
-
-Flag any hooks present in `hooks.json` but missing from README, or documented in README but absent from `hooks.json`.
-
-**8b — Hook error suppression:**
-
-For every hook `command`, check that it has explicit error suppression so that failures never surface noise to the user. A command passes if it contains at least one of:
-- `; true` (ensures exit code 0)
-- `|| true` (fallback on failure)
-- `2>/dev/null` (suppresses stderr)
-- A Python `try:` / `except` block
-
-Flag any hook command that lacks all of these.
-
-### 9 — Docs website sync
-
-Read `mkdocs.yml`. Check:
-
-**9a — Version sync with mkdocs.yml:**
-Read `extra.version` from `mkdocs.yml`. Read the version from `.claude-plugin/plugin.json`.
-They must be identical. Flag if they differ — both must be updated together on every release.
-
-**9b — Command docs completeness:**
-For every file in `commands/` (e.g. `commands/ideation.md`): a corresponding page must exist at `docs/commands/<name>.md` and must appear in the `mkdocs.yml` nav under the Commands section. Flag any commands that are missing a docs page or missing from the nav.
-
-**9c — Skill docs completeness:**
-For every folder in `skills/` (e.g. `skills/phase-ideation/`): the skill's `SKILL.md` must appear in the `mkdocs.yml` nav under the Skills section. Flag any skills missing from the nav.
-
-**9d — No dead nav links:**
-For every path listed in the `mkdocs.yml` nav, check that the referenced file actually exists under `docs/`. Flag any nav entry pointing to a non-existent file.
-
-### 10 — Personal sensitive information
-
-Scan the plugin file tree for patterns that suggest personal sensitive information has been hardcoded into the plugin. Check the following paths:
-
-- `agents/` — agent definitions
-- `commands/` — command definitions
-- `skills/` — skill documentation (all `SKILL.md` files and any other `.md` files)
-- `docs/` — documentation website content
-- `hooks/hooks.json` — hook definitions
-- `scripts/` — automation scripts
-- `.neuroflow/` — plugin-level project memory
-- `README.md`, `AGENTS.md`
-
-For each file, look for:
-
-- **Email addresses**: search for strings matching `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`. This pattern covers the most common address formats; it does not handle quoted local parts, IP-address domains, or internationalised domain names — note any such edge cases manually. Skip addresses whose domain is one of the clearly synthetic domains: `example.com`, `example.org`, `test.com`, `domain.com`, or `localhost`. All other addresses should be flagged.
-- **Passwords and secrets**: flag lines where a key matching `password`, `passwd`, `secret`, `api_key`, `token`, or `private_key` (case-insensitive, with `:` or `=` separator) is followed by a non-empty value. A value is considered a placeholder — and should be skipped — if it is all-uppercase (e.g. `YOUR_API_KEY`), enclosed in angle brackets (e.g. `<token>`), or contains the word `placeholder`, `example`, or `changeme`.
-- **Private keys**: strings beginning with `-----BEGIN` (PEM-format private keys, certificates, or similar).
-- **Real personal names in non-example context**: if a sequence of two or more capitalised words (likely a full name) appears in a non-example, non-template context (i.e. not clearly labelled as a sample such as `e.g. Jane Smith`, not inside an HTML comment, and not in a heading or list item that names an author credit), flag it. Mark each finding as `[needs human review]`, as automated name detection may produce false positives on proper nouns and tool names.
-- **Institutional affiliations in non-example context**: real institution names, department names, or postal addresses that appear outside of clearly-labelled example content. Mark each finding as `[needs human review]`, as false positives on common terms are possible.
-
-Do not print the sensitive value verbatim in the report. Mask it (e.g. `email: j***@exam***.com`, `password: ***`, `private key at line 14 of scripts/setup.py`).
-
-Flag each file and line number where a match is found.
-
-**Note**: sentinel-dev does **not** auto-remove or redact sensitive content. Each finding must be reviewed by the plugin maintainer, who decides whether to redact, remove, or confirm the value is intentionally included.
-
-### 11 — mind.js sync
-
-Read `docs/javascripts/mind.js`. The mind map is a **curated concept map** (~24 concept nodes in `NODES` + `LINKS`) — not a 1:1 mirror of the repo. Verify:
-
-- Every file in `commands/` (strip `.md`) is referenced somewhere — as `/name` in a node's `commands:` array or label, or via a `commands/name/` url. Flag missing commands.
-- Every file in `agents/` (strip `.md`) has its name appear somewhere in the map (label or desc). Flag missing agents.
-- Every `url:` in `NODES` pointing at `commands/`, `skills/`, or `agents/` resolves to a real source file. Flag dead urls.
-
-Per-skill nodes are NOT required — skills are covered by their concept cluster. Flag a missing dedicated node only when a skill introduces a genuinely new concept with no covering cluster.
-
-Auto-fix: offer to extend the most relevant concept node's `desc` or `commands:` array — the user reviews wording before committing.
-
-### 12 — Flowie/hive path hygiene
-
-Scan **all files** in the plugin repo for the following stale patterns:
-
-- `.neuroflow/.flowie/` — old path (with dot prefix). Canonical: `~/.neuroflow/flowie/`. Flag every occurrence with file + line number.
-- `.neuroflow/flowie/` — project-level path (now deprecated). Canonical global path: `~/.neuroflow/flowie/`. Flag every occurrence **outside** `docs/changelog.md` and sentinel-context files (those are historical references). Flag file + line number.
-- `.neuroflow/hive/` — project-level path (now deprecated). Canonical global path: `~/.neuroflow/hives/{org-repo}/`. Flag every occurrence **outside** `docs/changelog.md` and sentinel-context files.
-- `flowie_profile:` — old field name (pre-Kanban). Current canonical: `flowie_profiles:` list. Flag every occurrence with file + line number.
-- `flowie_project:` — legacy scalar field (replaced by `flowie_profiles:` list). Flag if found outside of migration/changelog/sentinel contexts.
-- `hive_member:` — legacy scalar field (removed). Flag every occurrence.
-
-These are left-over from earlier plugin versions. Report them as **blocking issues** — stale references will confuse agents about where to find flowie/hive data. Flag even occurrences in comments or string literals (except documented historical entries).
-
-Auto-fix: offer to replace `.neuroflow/.flowie/` → `~/.neuroflow/flowie/`, `.neuroflow/flowie/` → `~/.neuroflow/flowie/`, `.neuroflow/hive/` → `~/.neuroflow/hives/{org-repo}/`, `flowie_profile:` → (remove, add `flowie_profiles:` list), and `flowie_project:` scalar → `flowie_profiles:` list entry in each flagged file.
+V8 proves that a marker exists, not that the guard enforces what the prose says. For each rule id a guard cites, read the marked prose and the guard. Flag a guard that blocks more than the rule states, and a rule the guard enforces only partly without saying so in its deny reason.
 
 ## Report
 
@@ -169,7 +78,7 @@ Last run: YYYY-MM-DD
 
 ## Issues found
 
-- [description of issue]
+- [check id] [description of issue]
 
 ## All clear
 (written only if zero issues found)
@@ -177,4 +86,6 @@ Last run: YYYY-MM-DD
 
 Then ask the user: for each issue, fix automatically or leave for manual review?
 
-After applying any fixes, rewrite `.neuroflow/sentinel-dev.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.
+Fixes sentinel-dev may apply after the user agrees: version drift (`python scripts/automation/bump_version.py --sync`), missing README rows, nav entries and mind.js mentions (the user reviews the wording), and stale paths flagged by V15. Never automatic: sensitive information (V14, J2) and anything under `hooks/mod/` (J4).
+
+After applying any fixes, run `validate_pr.py` again and rewrite `.neuroflow/sentinel-dev.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.

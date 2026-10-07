@@ -208,7 +208,7 @@ Update the `eval_metadata.json` files and `evals/evals.json` with the assertions
 
 ### Step 3: As runs complete, capture timing data
 
-When each subagent task completes, you receive a notification containing `total_tokens` and `duration_ms`. Save this data immediately to `timing.json` in the run directory:
+When each subagent task completes, its notification carries a `<usage>` block with the token count (`subagent_tokens`; some builds say `total_tokens`) and `duration_ms`. Save it to `timing.json` in the run directory as each notification arrives:
 
 ```json
 {
@@ -218,7 +218,7 @@ When each subagent task completes, you receive a notification containing `total_
 }
 ```
 
-This is the only opportunity to capture this data — it comes through the task notification and isn't persisted elsewhere. Process each notification as it arrives rather than trying to batch them.
+If a notification was missed, the numbers are not lost: Claude Code keeps every task notification in the session transcript (`~/.claude/projects/<project folder>/<session id>.jsonl`, one JSON object per line). Find the `<task-notification>` entry for the run and copy its `<usage>` values. Recording each one as it arrives is still simpler than reconstructing them afterwards.
 
 ### Step 4: Grade, aggregate, and launch the viewer
 

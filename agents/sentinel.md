@@ -1,194 +1,150 @@
 ---
 name: sentinel
-tools: Read, Glob, Grep, Write, Edit
-description: Project coherence guard. Audits .neuroflow/ for internal consistency — checks flow.md completeness, timestamps, broken references, preregistration drift, session consistency, and personal sensitive information (emails, passwords, private keys, names, institutions). Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
+tools: Read, Glob, Grep, Write, Edit, Bash
+description: Project coherence guard. Audits .neuroflow/ for internal consistency — runs the deterministic checks in nf_check.py first (flow.md index, project_config contract, integrity status and frozen-preregistration hashes, reasoning logs, conflict markers, memory structure, instruction block, sensitive data), then the judgement checks (timestamps, phase consistency, preregistration drift, ethics gate, names and institutions, flowie/wiki/hive structure). Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
 ---
 
 # sentinel
 
 Audits the `.neuroflow/` folder for consistency and drift. Called by the `/sentinel` command. Writes its report to `.neuroflow/sentinel.md`.
 
-**Default scope: `.neuroflow/` only.** Do not read, list, or inspect files outside `.neuroflow/` unless the user explicitly requests a full workspace scan (see [Optional: Full workspace scan](#optional-full-workspace-scan) below).
+**Default scope: `.neuroflow/` only.** Do not read, list, or inspect files outside `.neuroflow/` unless the user explicitly requests a full workspace scan (see [Optional: Full workspace scan](#optional-full-workspace-scan) below). The exceptions are named in the checks: `.claude/CLAUDE.md` and its stale copies (NF7), and the global `~/.neuroflow/` caches (S6–S8).
 
-## Checks
+**The mechanical checks have one executable home:** `nf_check.py` in the neuroflow-core skill's `scripts/` folder. Run it first and do not redo its checks by hand — spend your reading on the judgement checks in Step 2.
 
-### 1 — flow.md completeness
+## Step 1 — Mechanical checks (script)
 
-Read root `.neuroflow/flow.md` and every subfolder's `flow.md` that lives **inside `.neuroflow/`**. For each:
-- Every file listed in `flow.md` must actually exist on disk inside `.neuroflow/`
-- Every file that exists **inside `.neuroflow/`** must be listed in the relevant `flow.md`
-- Flag any mismatches
+Run from the project root (the folder that contains `.neuroflow/`):
 
-Do not scan or list files outside `.neuroflow/`.
+```bash
+python <neuroflow-core skill base dir>/scripts/nf_check.py --json
+```
 
-### 2 — Timestamp drift
+Claude Code shows the base directory when the `neuroflow:neuroflow-core` skill loads; in an installed plugin it is `~/.claude/plugins/cache/neuroflow/neuroflow/<version>/skills/neuroflow-core`. The script never writes anything.
 
-Check `flow.md` last-changed dates against actual modification times of files **inside `.neuroflow/`** only. Flag:
-- Subfolders of `.neuroflow/` with recent file activity but stale `flow.md`
-- Subfolders of `.neuroflow/` that haven't been touched in a long time while the project is active (possible abandoned phase)
+| Exit code | Meaning | What to do |
+|---|---|---|
+| 0 | Clean | Note "NF1–NF8: all clear" for the report and go to Step 2. |
+| 1 | Findings | Copy every finding (check id, path, line, message, suggested fix) into the report. `info` lines are notes, not issues. Then go to Step 2. |
+| 2 | The script could not run (no `.neuroflow/`, bad arguments, internal error) | Say so in the report, then do the checks in the table below by reading the files. |
 
-### 3 — Broken references
+Without Python, do the checks in the table by reading the files and say in the report that the script did not run.
 
-Read `.neuroflow/reasoning/flow.md` if it exists. For each JSON file listed:
-- Parse the JSON array; for each entry check that `statement`, `source`, and `reasoning` fields are present
-- Flag any entries missing required fields
+| Id | Check | What it verifies |
+|---|---|---|
+| NF1 | flow.md index | The root `flow.md` lists every subfolder; every other subfolder — except `sessions/`, `tasks/`, `wiki/` and `meetings/`, which have their own structure — has a `flow.md` that lists every file and folder in it; nothing listed is missing on disk; `flow.md` holds no narrative tables. |
+| NF2 | project_config.md | YAML frontmatter per neuroflow-core (`nf_schema`, `project_name`, `active_phase`, `recommended_phases`, `plugin_version`); `nf_schema` not newer than the plugin knows (then nothing may write the file); `active_phase` and `recommended_phases` are canonical phases; `plugin_version` matches the installed plugin; no personal fields (`auto_issue_reporting`, `writing_style`, `researcher`) — those live in `~/.neuroflow/user.yaml`. A legacy dialect (no frontmatter) is reported, never rewritten. |
+| NF3 | Integrity status | `preregistration/status.md` and `ethics/status.md` frontmatter. A frozen preregistration is re-hashed by the preregistration skill's `freeze.py verify`: a changed or missing frozen file is an error; a missing FROZEN banner or a freeze not set by a person is a warning. An approval set by the model counts as not set; an expired approval is an error. |
+| NF4 | Reasoning logs | Every line of `reasoning/*.jsonl` is one JSON object with `statement`, `source` and `reasoning`; legacy `*.json` arrays are reported for `/neuroflow:migrate`. |
+| NF5 | Conflict markers | No `<<<<<<<` / `>>>>>>>` lines anywhere under `.neuroflow/`. |
+| NF6 | Memory structure | The `.neuroflow/` root holds only the files and folders neuroflow-core documents, plus folders named after commands. Flags folders named after skills, legacy files (`linked_flows.md`, `team.md`), and project-level `flowie/` or `hive/` folders (both live under `~/.neuroflow/`). |
+| NF7 | Instruction block | `.claude/CLAUDE.md` exists, points at `project_config.md` and holds no `Active phase` line (it goes stale; the phase lives in `project_config.md`). No neuroflow block in `~/.claude/CLAUDE.md` (injected into every session) or in `.github/copilot-instructions.md` / `AGENTS.md` (copies neuroflow no longer maintains). |
+| NF8 | Sensitive data | Runs the phase-output skill's `pii_scan.py` over the shared (team-tier) files: emails, phone numbers, configured ID patterns, roster names, secrets. When NF8 says `skipped`, do the scan yourself in S5. |
 
-### 4 — Phase consistency
+## Step 2 — Judgement checks
+
+### S1 — Timestamp drift
+
+Compare the `Last changed` dates in `flow.md` files with the modification times of the files **inside `.neuroflow/`**. Flag:
+- Subfolders of `.neuroflow/` with recent file activity but stale `flow.md` dates
+- Subfolders that have not been touched in a long time while the project is active (possible abandoned phase)
+
+### S2 — Phase consistency
 
 Compare:
-- Active phase in `.neuroflow/project_config.md`
-- Most recent session log in `.neuroflow/sessions/`
+- `active_phase` in the frontmatter of `.neuroflow/project_config.md` (in a legacy dialect: the `Phase:` line)
+- The most recent session log in `.neuroflow/sessions/`
 - Which phase subfolders exist inside `.neuroflow/` and when they were last modified
 
 Flag if these tell different stories.
 
-### 5 — Preregistration vs progress
+### S3 — Preregistration vs progress
 
-If `.neuroflow/preregistration/` exists, read it. Compare stated hypotheses and planned analyses against:
-- `.neuroflow/reasoning/` (were there undocumented deviations?)
+If `.neuroflow/preregistration/` exists, read it. NF3 already checked that the frozen files are unchanged; here, compare the stated hypotheses and planned analyses against:
+- `.neuroflow/reasoning/` (were there decisions that deviate from the plan?)
 - `.neuroflow/data-analyze/` analysis summary (were different analyses run?)
 
-Flag deviations. Do not judge — just surface them for the user.
+Flag every deviation that has no entry in `preregistration/deviations.md`. Do not judge — just surface them for the user.
 
-### 6 — Legacy structure files
+### S4 — Ethics gate (if human data present)
 
-If `.neuroflow/linked_flows.md` or `.neuroflow/team.md` exist, flag them as legacy leftovers — both were removed from the structure in 0.2.17. Collaborators belong in `project_config.md` (`collaborators:` field); cross-project links live in the flowie project registry. Suggest migrating the content and deleting the files.
+Only runs if `.neuroflow/data/` exists (data intake has happened). Read the frontmatter of `.neuroflow/ethics/status.md` (`status`, `expires`, `set_by`; NF3 already reported expiry and model-set approvals).
 
-### 7 — Plugin version sync
+- If the file does not exist, or `status` is not `approved` with `set_by: person`: flag as **blocking** — human data appears to have been collected or ingested without a recorded ethics approval. Suggest running `/ethics --approved` to record it, or — if the project uses no human data — noting `ethics: not-applicable` in the `project_config.md` frontmatter, which silences this check.
+- If the earliest dated entry in `.neuroflow/data/` predates the approval date: flag for human review — data may predate approval (it could also be legacy or shared data; do not judge, just surface).
 
-Read the neuroflow `plugin.json` to get the current plugin version. Compare it against `plugin_version` in `.neuroflow/project_config.md`.
+### S5 — Personal sensitive information
 
-- If `plugin_version` is missing from `project_config.md`: flag it — the field is required
-- If the plugin version is higher than `plugin_version` in `project_config.md`: flag as out of sync — the plugin has been updated since this project was last configured, structural changes may apply
-- If versions match: all clear
+Always check, inside `.neuroflow/`:
 
-Auto-fix: update `plugin_version` in `project_config.md` to match the current plugin version.
+- **Full names in unexpected locations**: a sequence of two or more capitalised words (likely a full name) in a reasoning log, session log, or `flow.md` entry — rather than in the `collaborators:` list of `project_config.md`. This check may produce false positives on proper nouns and tool names; treat every finding as requiring human confirmation.
+- **Institutional affiliations outside `project_config.md`**: an institution name, department, or postal address in any other file. Treat findings as requiring human confirmation, as false positives on common terms are possible.
 
-### 8 — .neuroflow subfolder names
+When NF8 was `skipped`, also scan for:
 
-List all subfolders inside `.neuroflow/` (directories only, not files).
-
-Derive the set of valid phase subfolder names dynamically:
-- Read all files in the `commands/` directory of the neuroflow plugin. Extract the `name:` field from each command's frontmatter. These are the valid phase names.
-- Also allow the standard root subfolders that are not phase-specific: `sessions`, `reasoning`, `ethics`, `preregistration`, `finance`, `flowie`, `tasks`, `wiki`, `meetings`, `hive`.
-
-Derive the set of known skill names dynamically:
-- Read all subfolders inside the `skills/` directory of the neuroflow plugin. Each subfolder name is a skill name.
-
-Flag any `.neuroflow/` subfolder whose name does not appear in either valid list. Specifically:
-
-- If the subfolder name matches a skill name: flag as a structural error — **skills must not create their own named subfolders in `.neuroflow/`**. All skill memory must be written to the active command's phase subfolder, not into a skill-named folder.
-- If the subfolder name matches neither a command name nor a skill name: flag as an unrecognised subfolder and ask the user whether it is a custom phase or can be removed.
-
-Auto-fix: for skill-named subfolders, offer to move any `.md` files inside them into the appropriate phase subfolder (based on `project_config.md` active phase) and then delete the skill-named folder.
-
-### 9 — CLAUDE.md neuroflow reference
-
-Check whether `.claude/CLAUDE.md` exists in the project repo.
-
-- If it does not exist: flag it — Claude Code will not load project config without it
-- If it exists but does not reference `project_config.md`: flag it — Claude Code agents will not know where project memory lives
-
-Auto-fix: if the file exists but is missing the neuroflow block, append the same block that `/neuroflow` writes:
-
-```markdown
-## neuroflow
-
-This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
-
-- Active phase: {phase from project_config.md}
-- Config: `.neuroflow/project_config.md`
-- Start any session by reading `project_config.md` and `flow.md` first.
-```
-
-If the file does not exist at all, create `.claude/CLAUDE.md` with this block.
-
-### 10 — Personal sensitive information
-
-Scan all files inside `.neuroflow/` for patterns that suggest personal sensitive information has been committed. Check for:
-
-- **Email addresses**: search for strings matching `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`. This pattern covers the most common address formats; it does not handle quoted local parts, IP-address domains, or internationalised domain names — note any such edge cases manually. Skip addresses whose domain is clearly synthetic: `example.com`, `example.org`, `test.com`, `domain.com`, or `localhost`.
-- **Passwords and secrets**: flag lines where a key matching `password`, `passwd`, `secret`, `api_key`, `token`, or `private_key` (case-insensitive, with `:` or `=` separator) is followed by a non-empty value. A value is considered a placeholder — and should be skipped — if it is all-uppercase (e.g. `YOUR_API_KEY`), enclosed in angle brackets (e.g. `<token>`), or contains the word `placeholder`, `example`, or `changeme`.
+- **Email addresses**: strings matching `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`. This pattern covers the most common address formats; it does not handle quoted local parts, IP-address domains, or internationalised domain names — note any such edge cases manually. Skip addresses whose domain is clearly synthetic: `example.com`, `example.org`, `test.com`, `domain.com`, or `localhost`.
+- **Passwords and secrets**: lines where a key matching `password`, `passwd`, `secret`, `api_key`, `token`, or `private_key` (case-insensitive, with `:` or `=` separator) is followed by a non-empty value. A value is a placeholder — skip it — if it is all-uppercase (e.g. `YOUR_API_KEY`), enclosed in angle brackets (e.g. `<token>`), or contains the word `placeholder`, `example`, or `changeme`.
 - **Private keys**: strings beginning with `-----BEGIN` (PEM-format private keys, certificates, or similar).
-- **Full names in unexpected locations**: if a sequence of two or more capitalised words (likely a full name) appears in a reasoning log, session log, or flow.md entry — rather than in `project_config.md` under the `researcher:` field — flag it as a possible name leak. This check may produce false positives on proper nouns and tool names; treat every finding as requiring human confirmation.
-- **Institutional affiliations outside project_config.md**: if an institution name, department, or postal address appears in a file other than `project_config.md`, flag it. Treat findings as requiring human confirmation, as false positives on common terms are possible.
 
-Do not print the sensitive value verbatim in the report. Mask it instead (e.g. `email: j***@exam***.com`, `password: ***`, `private key in line 4 of reasoning/general.json`).
+Do not print the sensitive value verbatim in the report. Mask it instead (e.g. `email: j***@exam***.com`, `password: ***`, `private key in line 4 of reasoning/general.jsonl`).
 
 Flag each file and line number where a match is found. Mark name and institution findings as `[needs human review]` since automated detection of these categories is imprecise.
 
-### 11 — Flowie structure (if present)
+### S6 — Flowie structure (if present)
 
-This check only runs if `~/.neuroflow/flowie/` exists (global path — not inside any project repo).
+This check only runs if `~/.neuroflow/flowie/` exists (global path — not inside any project repo). NF6 already flags a project-level `.neuroflow/flowie/` folder.
 
 - **Git repo:** check that `~/.neuroflow/flowie/.git/` exists. If the folder exists but is not a git repo, flag it — it should be a clone of the user's private `flowie` GitHub repository.
 - **sync.json:** check that `~/.neuroflow/flowie/sync.json` exists and contains a `github_repo` field with a non-empty value. Flag if missing or empty.
 - **flowie_profiles binding:** check that `flowie_profiles` is set and non-empty in `project_config.md`. If `~/.neuroflow/flowie/` is set up but `flowie_profiles` is absent, flag it — the project should be linked via `/flowie --link`.
 - **Project registry match:** if `flowie_profiles` is set AND `~/.neuroflow/flowie/projects/projects.json` exists, check that the first entry's handle matches an entry in the projects array. Flag if no matching project is found.
-- **Migration check:** verify `project_config.md` does NOT contain legacy scalar fields `flowie_project:` or `hive_member:` (replaced by `flowie_profiles:` list). Flag if found and suggest running `/neuroflow` to migrate.
-- **Legacy path check:** if `.neuroflow/flowie/` exists INSIDE the project repo, flag as error — flowie must never be inside a project repo; it lives at `~/.neuroflow/flowie/`. Offer to move it.
+- **Migration check:** verify `project_config.md` does NOT contain the legacy scalar fields `flowie_project:` or `hive_member:` (replaced by the `flowie_profiles:` list). Flag if found and suggest `/neuroflow:migrate`.
 
-Flag any failed sub-check as a warning (not a blocking error — flowie may be intentionally partial). Group all flowie warnings under a single "⚠️ flowie" section in the report.
+Flag any failed sub-check as a warning (not a blocking error — flowie may be intentionally partial). Group all flowie warnings under a single "⚠️ flowie" section in the report. All of them require user action (re-running `/flowie` or `/flowie --link`).
 
-Auto-fix: for the legacy path check, offer guidance on moving. All other issues require user action (re-running `/flowie` or `/flowie --link`).
-
-### 12 — Wiki structure (if present)
+### S7 — Wiki structure (if present)
 
 Run for each wiki level that exists:
 
-**12a — Flowie wiki** (`if ~/.neuroflow/flowie/wiki/` exists):
+**S7a — Flowie wiki** (if `~/.neuroflow/flowie/wiki/` exists):
 - **index.md:** exists and "Last updated" within 90 days
 - **log.md:** exists and non-empty
 - **schema.md:** exists — if missing, flag and suggest `/flowie --wiki-schema`
 - **raw/ and pages/:** both directories exist
 - **Orphan check (light):** files in `wiki/pages/` not listed in `wiki/index.md` > 5 → flag, suggest `/flowie --wiki-lint`
-- **Log vs pages:** last 10 `ingest` entries in `log.md` — check matching file in `pages/sources/`
+- **Log vs pages:** last 10 `ingest` entries in `log.md` — check for a matching file in `pages/sources/`
 
 Group under "⚠️ wiki (flowie)".
 
-**12b — Project wiki** (`if .neuroflow/wiki/` exists):
-- Same checks as 12a, but paths are relative to `.neuroflow/wiki/`
+**S7b — Project wiki** (if `.neuroflow/wiki/` exists):
+- Same checks as S7a, but paths are relative to `.neuroflow/wiki/`
 - If `.neuroflow/wiki/` exists but is empty (only `.gitkeep` stubs from init): note as uninitialized — suggest running `/wiki --schema` to initialize
-- Check that `wiki/` is listed in `.neuroflow/flow.md`
 
-Group under "⚠️ wiki (project)".
+Group under "⚠️ wiki (project)". All issues require user action.
 
-Auto-fix: add missing `wiki/` row to `flow.md`. All other issues require user action.
+### S8 — Hive structure (if present)
 
-### 13 — Hive structure (if present)
-
-This check only runs if `~/.neuroflow/hives/` exists (global path). Hive caches live at `~/.neuroflow/hives/{org-repo}/` — one folder per hive the user belongs to. Check all sub-folders.
+This check only runs if `~/.neuroflow/hives/` exists (global path). Hive caches live at `~/.neuroflow/hives/{org-repo}/` — one folder per hive the user belongs to. Check all sub-folders. NF6 already flags a project-level `.neuroflow/hive/` folder.
 
 For each `~/.neuroflow/hives/{org-repo}/` found:
 - **hive.md:** check that `~/.neuroflow/hives/{org-repo}/hive.md` exists and is non-empty. Flag if missing.
-- **members.md:** check that `~/.neuroflow/hives/{org-repo}/members.md` exists. Flag if missing — suggest running `/hive --members` to add team roster.
+- **members.md:** check that `~/.neuroflow/hives/{org-repo}/members.md` exists. Flag if missing — suggest running `/hive --members` to add the team roster.
 - **sync.json:** check that `~/.neuroflow/hives/{org-repo}/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
-- **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If a hive cache exists but `hive_repo` is absent from config, flag as inconsistency.
+- **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If a hive cache exists but `hive_repo` is absent from the config, flag as inconsistency.
 - **No old `directions.md`:** if `directions.md` exists in the cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
-- **Legacy path check:** if `.neuroflow/hive/` exists INSIDE the project repo, flag as error — hive cache must never be inside a project repo; it lives at `~/.neuroflow/hives/{org-repo}/`. Offer to remove it.
 
 Group all hive warnings under "⚠️ hive". These are warnings, not blocking errors.
 
-Auto-fix: offer to delete obsolete `directions.md` and guidance on removing any legacy project-level `.neuroflow/hive/`. All other issues require user action.
-
-### 14 — Ethics gate (if human data present)
-
-Only runs if `.neuroflow/data/` exists (data intake has happened).
-
-- If `.neuroflow/ethics/status.md` does not exist or its `Status` is not `approved`: flag as **blocking** — human data appears to have been collected or ingested without a recorded ethics approval. Suggest running `/ethics --approved` to record it (or confirm the project uses no human data, in which case suggest noting `ethics: not-applicable` in `project_config.md` to silence this check).
-- If `status.md` shows an `Expires` date in the past: flag as blocking — approval expired.
-- If the earliest dated entry in `.neuroflow/data/` predates the `Approved` date: flag for human review — data may predate approval (could also be legacy/shared data; do not judge, just surface).
-
 ## Report
 
-Write to `.neuroflow/sentinel.md`:
+Write to `.neuroflow/sentinel.md` (the last audit only — not a history):
 
 ```
 Last run: YYYY-MM-DD
 
 ## Issues found
 
-- [description of issue]
+- [check id] [description of issue]
 
 ## All clear
 (written only if zero issues found)
@@ -198,13 +154,19 @@ Then ask the user: for each issue, fix automatically or leave for manual review?
 
 ## Fixes sentinel can apply automatically
 
-- Add a missing file to the relevant `flow.md`
-- Remove a `flow.md` entry for a file that no longer exists
-- Update the active phase in `project_config.md` if drift is unambiguous
-- Add or update `plugin_version` in `project_config.md` to match the current plugin version (Check 7)
-- Move `.md` files out of a skill-named subfolder in `.neuroflow/` into the appropriate phase subfolder, then delete the skill-named folder (Check 8)
-- Append the neuroflow block to `.claude/CLAUDE.md`, or create the file, if the reference to `project_config.md` is missing (Check 9)
-- For Check 10 (personal sensitive information): sentinel does **not** auto-remove or redact sensitive content — it only surfaces findings. The user must review each flagged item and decide whether to redact, remove, or confirm it is intentionally stored.
+Only after the user agrees, issue by issue:
+
+- Add a missing row to the relevant `flow.md`, or remove a row for a file that no longer exists (NF1)
+- Update `active_phase` in `project_config.md` if drift is unambiguous (S2)
+- Update `plugin_version` in `project_config.md` to the installed plugin version (NF2) — never in a file whose `nf_schema` is newer than the plugin knows; a legacy dialect gets only that value changed in place (converting the file is `/neuroflow:migrate`'s job)
+- Move `.md` files out of a skill-named subfolder in `.neuroflow/` into the active phase's subfolder, then delete the skill-named folder (NF6)
+- Write the static block from neuroflow-core (**Project instruction block**) to `.claude/CLAUDE.md`, or replace an older block that names an active phase with it (NF7)
+- Remove the neuroflow block from `~/.claude/CLAUDE.md`, `.github/copilot-instructions.md` or `AGENTS.md` (NF7) — show the exact block first and keep the rest of those files
+- Add a missing `wiki/` row to `.neuroflow/flow.md` (NF1, S7b); delete an obsolete hive `directions.md` (S8)
+
+Never automatic:
+- Frozen preregistration files and `preregistration/status.md` (NF3, S3) — freezing and unfreezing are a person's actions; changes go to `deviations.md`. Never write `set_by: person`.
+- Sensitive information (NF8, S5) — sentinel only surfaces findings. The user decides whether to redact, remove, or confirm each item.
 
 After applying any fixes, rewrite `.neuroflow/sentinel.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.
 

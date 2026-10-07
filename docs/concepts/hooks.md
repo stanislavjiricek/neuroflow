@@ -40,22 +40,24 @@ Claude writes scripts/analysis/erp_analysis.py
 
 Hooks are defined in the plugin's `hooks/hooks.json` and are activated automatically when neuroflow is installed. You don't need to configure anything.
 
-Technically: each hook is a small POSIX shell command that receives the tool event as JSON on stdin and reads the edited file path from `tool_input.file_path` (parsed with `jq`, falling back to `python`). All hooks fail silently by design — they never interrupt your session.
+Technically: each hook is a small POSIX shell command that receives the tool event as JSON on stdin and reads the edited file path from `tool_input.file_path` (parsed with `jq`, falling back to `python`). All hooks fail silently by design — they never interrupt your session. Because a silent hook can also break silently, CI feeds both hooks a simulated tool event on every pull request and checks that ruff ran and that the flowie change was committed and pushed without `integrations.json`.
+
+The same `hooks.json` can also name the optional neuroflow mod (a hooks module) next to these shell hooks; see [The neuroflow mod](mods.md). The shell hooks work with or without it.
 
 ---
 
 ## Pre-session orientation
 
-In addition to event hooks, neuroflow uses `.claude/CLAUDE.md` injection for pre-session orientation. When `/neuroflow` runs, it writes a neuroflow block to `.claude/CLAUDE.md`:
+In addition to event hooks, neuroflow uses `.claude/CLAUDE.md` injection for pre-session orientation. When `/neuroflow` runs, it writes a static neuroflow block to the project's `.claude/CLAUDE.md`:
 
 ```markdown
 ## neuroflow
 
-This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
+This project uses neuroflow, a Claude Code plugin. Project memory is in `.neuroflow/`.
 
-- Active phase: data-preprocess
-- Config: `.neuroflow/project_config.md`
-- Start any session by reading `project_config.md` and `flow.md` first.
+- Read `.neuroflow/project_config.md` (its frontmatter holds `active_phase` and the other project facts) and `.neuroflow/flow.md` at the start of every session.
+- Record project decisions in `.neuroflow/reasoning/`, not in Claude's auto-memory.
+- Keep this block static: no phase or other changing facts here.
 ```
 
-Claude Code reads `.claude/CLAUDE.md` at the start of every session, so Claude always knows your active phase and where to find project context — even before you type the first message.
+Claude Code reads `.claude/CLAUDE.md` at the start of every session, so Claude always knows where project memory lives and reads your active phase from `project_config.md` — even before you type the first message. The block names no phase, so it never goes stale, and it lives only in the project: never in your global `~/.claude/CLAUDE.md`, which every session on the machine would load.

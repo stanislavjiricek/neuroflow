@@ -29,6 +29,10 @@ jobs:
             python scripts/automation/validate_pr.py
           fi
 
+      - name: Unit tests (scripts, repo checks, hook smoke test)
+        if: ${{ !cancelled() }}
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
       - name: Docs build (strict)
         run: |
           pip install -r requirements.txt
