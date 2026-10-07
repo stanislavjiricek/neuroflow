@@ -5,7 +5,7 @@ When a project changes hands, this gathers what the successor needs that no
 single file states: git state (uncommitted, unpushed, stashed, local-only
 branches), data roots, the preregistration freeze (verified by
 phase-preregistration/scripts/freeze.py), ethics status and expiry, open tasks
-by assignee, integrations that were connected with personal credentials (key
+by owner, integrations that were connected with personal credentials (key
 names only), HPC jobs, and what stays with the person leaving.
 
 Read-only: it never writes, commits, pushes or uploads anything. It prints the
@@ -37,7 +37,10 @@ import sys
 from datetime import date
 from pathlib import Path
 
-DONE_STATES = {"done", "archived", "archive"}
+# The task board as commands/tasks.md defines it: default columns, and the keys that name a task's people
+# (`owner`, then the legacy `assignee` / `responsible`, read as owner).
+DEFAULT_COLUMNS = ("inbox", "ready", "active", "review", "meeting", "done", "archive")
+OWNER_KEYS = ("owner", "assignee", "responsible")
 EXPIRY_WARN_DAYS = 60
 WALK_CAP = 200_000
 
@@ -232,22 +235,65 @@ def section_ethics(root: Path, attention: list[str], today: date) -> dict:
             "approval_id": fm.get("approval_id"), "ai_processing": fm.get("ai_processing"), "set_by": set_by}
 
 
+def task_columns(folder: Path) -> tuple[list[str], set[str]]:
+    """The board's column ids (tasks/config.json, else the defaults) and the columns whose tasks are not open:
+    done and every archive column (commands/tasks.md -> Columns)."""
+    columns: list[str] = []
+    closed = {"done", "archive"}
+    try:
+        config = json.loads((folder / "config.json").read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        config = None
+    entries = config.get("columns") if isinstance(config, dict) else None
+    for entry in entries if isinstance(entries, list) else []:
+        cid = entry.get("id") if isinstance(entry, dict) else None
+        if isinstance(cid, str) and cid.strip():
+            columns.append(cid.strip().lower())
+            if entry.get("archive") is True:
+                closed.add(columns[-1])
+    return columns or list(DEFAULT_COLUMNS), closed
+
+
+def task_owners(fm: dict) -> list[str]:
+    """Each person a task names in `owner` (one handle or a list), then in the legacy `assignee` / `responsible`:
+    roster handles without the @, each once (commands/tasks.md -> Task file format)."""
+    people: dict[str, str] = {}
+    for key in OWNER_KEYS:
+        value = fm.get(key)
+        for item in value if isinstance(value, list) else [value]:
+            handle = item.strip().lstrip("@").strip() if isinstance(item, str) else ""
+            if handle:
+                people.setdefault(handle.lower(), handle)
+    return list(people.values())
+
+
 def section_tasks(root: Path, today: date) -> dict:
+    """Open tasks by owner. A task at tasks/{column}/{slug}.md is in its folder's column, whatever its `status`
+    says; a legacy flat tasks/{id}-{slug}.md is in the column its `status` names (`archived` = archive; without
+    one, the inbox, or the board's first column when it has no inbox). Tasks in done or an archive column are not
+    open. A task naming several people is listed under each, so nobody is dropped from the handoff."""
     folder = root / ".neuroflow" / "tasks"
     by_owner: dict[str, list] = {}
     if not folder.is_dir():
         return by_owner
+    columns, closed = task_columns(folder)
+    inbox = "inbox" if "inbox" in columns else columns[0]
+    headings: dict[str, str] = {}  # one heading per person: handles compare without case
     for path in sorted(folder.rglob("*.md")):
         if path.name == "flow.md":
             continue
         fm = _frontmatter(path)
-        status = str(fm.get("status") or path.parent.name).lower()
-        if status in DONE_STATES:
+        parts = path.relative_to(folder).parts
+        status = (parts[0] if len(parts) > 1 else str(fm.get("status") or inbox)).strip().lower()
+        if status == "archived":
+            status = "archive"
+        if status in closed:
             continue
         due = _parse_date(fm.get("due"))
         task = {"id": fm.get("id") or path.stem, "title": fm.get("title") or path.stem, "status": status,
                 "due": due.isoformat() if due else None, "overdue": bool(due and due < today)}
-        by_owner.setdefault(str(fm.get("assignee") or "unassigned"), []).append(task)
+        for person in task_owners(fm) or ["unassigned"]:
+            by_owner.setdefault(headings.setdefault(person.lower(), person), []).append(task)
     return by_owner
 
 
@@ -373,7 +419,7 @@ def to_markdown(d: dict) -> str:
                    f"AI processing: {e['ai_processing'] or '-'}")
     else:
         out.append("- no ethics/status.md")
-    out += ["", "## Open tasks by assignee", ""]
+    out += ["", "## Open tasks by owner", ""]
     for owner, tasks in sorted(d["tasks"].items()):
         out.append(f"### {owner}")
         for t in tasks:

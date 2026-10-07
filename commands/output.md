@@ -200,7 +200,7 @@ When a student leaves mid-project or a project changes hands, compile what the s
 
 ### Step H1 — Collect
 
-Run `python <phase-output skill base dir>/scripts/handoff.py --json` (add `--no-hpc` when not on a cluster). It is read-only: git state (uncommitted, unpushed, stashed, local-only branches), data roots, the preregistration freeze (verified by the preregistration freeze script), ethics status and expiry, open tasks by assignee, integrations connected with personal credentials (key names only), HPC jobs. Exit `0` → nothing needs attention; `1` → items under `attention` need the person; `2` → no `.neuroflow/` or a runtime error.
+Run `python <phase-output skill base dir>/scripts/handoff.py --json` (add `--no-hpc` when not on a cluster). It is read-only: git state (uncommitted, unpushed, stashed, local-only branches), data roots, the preregistration freeze (verified by the preregistration freeze script), ethics status and expiry, open tasks by owner (a task naming several people is listed under each), integrations connected with personal credentials (key names only), HPC jobs. Exit `0` → nothing needs attention; `1` → items under `attention` need the person; `2` → no `.neuroflow/` or a runtime error.
 
 ### Step H2 — Complete it with the person
 
