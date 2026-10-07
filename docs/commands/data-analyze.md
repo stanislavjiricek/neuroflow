@@ -114,6 +114,19 @@ After running analysis, Claude audits the statistical approach:
 - **Multiple comparison correction** — cluster permutation, FDR, Bonferroni
 - **Effect size reporting** — Cohen's d, partial η², AUC
 - **Pre-registration compliance** — if a plan exists, flags any deviations
+- **Peeking check** — before a confirmatory test on fewer participants than the preregistered `planned_n`, Claude stops and asks; an interim look you approve is logged in `deviations.md`
+
+---
+
+## Reproducibility and robustness
+
+| What | How |
+|---|---|
+| **Provenance** | Each analysis script calls `nf_provenance`, which writes `environment.md` (Python, package versions, declared seeds, git commit and dirty flag) and one run record per run with input and output hashes — on your laptop or in an HPC job. |
+| **Notebooks** | Outputs are stripped before committing (`nbstripout`); a number from a notebook counts only after a clean headless rerun, or when a script writes it to `results/`. |
+| **Multiverse** (exploratory) | `multiverse.py` runs a declared grid of analysis choices and logs every specification, with its result, to `multiverse.md`. You report the whole curve, labelled exploratory. |
+| **Clean-room reproduction** | `cleanroom.py` clones the project at the recorded commit, builds a fresh environment, reruns the pipeline and compares the outputs — before submission or archiving. |
+| **Long runs** | Analyses over ~10 minutes run in the background or detached and are tracked in `.neuroflow/data-analyze/runs.md`. |
 
 ---
 
@@ -154,7 +167,11 @@ Claude: Analysis plan:
 |---|---|---|
 | `analysis-plan.md` | `.neuroflow/data-analyze/` | What will be computed, comparisons, statistical tests, expected output |
 | `analysis.py` | `scripts/analysis/` | Analysis code |
+| `environment.md`, `provenance/*.json` | `scripts/analysis/` | Versions, seeds and git commit; one run record per run (written by `nf_provenance`) |
 | `analysis-summary.md` | `.neuroflow/data-analyze/` | Key findings, figures produced, open questions |
+| `multiverse.md` | `.neuroflow/data-analyze/` | Append-only ledger of every exploratory specification and its result |
+| `cleanroom-YYYY-MM-DD.md` | `.neuroflow/data-analyze/` | Clean-room reproduction report (when run) |
+| `runs.md` | `.neuroflow/data-analyze/` | Registry of long or detached runs |
 | Figures | `figures/` | All generated plots |
 | Results | `results/` | Statistical output tables |
 
@@ -164,8 +181,8 @@ Claude: Analysis plan:
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/data-preprocess/flow.md`, `.neuroflow/data-analyze/flow.md` |
-| Writes | `.neuroflow/data-analyze/`, `.neuroflow/data-analyze/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `scripts/analysis/`, `results/`, `figures/` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/data-preprocess/flow.md`, `.neuroflow/data-analyze/flow.md`, `.neuroflow/preregistration/flow.md`, `.neuroflow/preregistration/status.md` |
+| Writes | `.neuroflow/data-analyze/`, `.neuroflow/data-analyze/flow.md`, `.neuroflow/reasoning/data-analyze.jsonl`, `.neuroflow/preregistration/deviations.md` (deviations only), `.neuroflow/sessions/YYYY-MM-DD.md`, `scripts/analysis/`, `results/`, `figures/` |
 
 ---
 

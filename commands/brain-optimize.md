@@ -11,12 +11,23 @@ reads:
 writes:
   - .neuroflow/brain-optimize/
   - .neuroflow/brain-optimize/flow.md
+  - .neuroflow/brain-optimize/runs.md
+  - .neuroflow/reasoning/brain-optimize.jsonl
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: full
+requires:
+  - .neuroflow/brain-build/model-spec.md
+produces:
+  - .neuroflow/brain-optimize/optimize-plan.md
+next:
+  - brain-run
 ---
 
 # /brain-optimize
 
 Read the `neuroflow:phase-brain-optimize` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/brain-optimize/flow.md` before starting. Also check `.neuroflow/brain-build/` for the existing model spec and code location.
+
+**Earlier runs first:** if `.neuroflow/brain-optimize/runs.md` exists, check it (`python <skill base dir>/../phase-brain-run/scripts/runs.py check --file .neuroflow/brain-optimize/runs.md`; exit 1 = something finished or failed) and inspect finished sweeps before starting new ones.
 
 ## What this command does
 
@@ -35,7 +46,7 @@ Ask:
 - How many parameter combinations? Grid, random, or Latin hypercube sampling?
 - Run locally or via HPC/cluster?
 
-Produce a sweep script that iterates over the parameter grid, runs the model for each combination, and saves per-run metrics to a results file.
+Declare the sweep as a spec and run it with `sweep_run.py` (skill → *Sweeps with sweep_run.py*): it iterates over the parameter grid, runs the model for each combination behind a smoke-test gate, and saves per-run metrics to `results.csv`. For random or Latin hypercube sampling, generate the points in code and pass them as the spec's `points`.
 
 ## Data fitting
 
@@ -53,9 +64,9 @@ Produce an optimisation script with a cost function, parameter bounds, and optim
 ## Steps
 
 1. Write an `optimize-plan.md` — parameters being searched, target features, algorithm, cost function, convergence criteria
-2. Implement the optimisation or sweep script
-3. Run a minimal test (2–3 parameter combinations) to confirm the pipeline works end-to-end before a full run
-4. After a full run: summarise best-fit parameters, cost value, and whether convergence was reached
+2. Implement the optimisation script, or the sweep spec
+3. Run a minimal test (2–3 parameter combinations) to confirm the pipeline works end-to-end before a full run — for sweeps, `sweep_run.py`'s smoke gate (`--smoke-only` also times one run). Long or HPC runs follow the skill's pointer to the long-run convention (`runs.md`, no compute on login nodes)
+4. After a full run: summarise best-fit parameters, cost value, and whether convergence was reached — from `results.csv`/`summary.json` or the optimiser's own output, computed in code, never asserted from a plot
 
 Save plans and result summaries in `.neuroflow/brain-optimize/`. Write scripts and raw results to `output_path` (from `.neuroflow/brain-optimize/flow.md`, default: `models/optimize/`) — not inside `.neuroflow/`.
 
@@ -65,5 +76,5 @@ Save plans and result summaries in `.neuroflow/brain-optimize/`. Write scripts a
 
 - Update `.neuroflow/brain-optimize/flow.md`
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
-- Log key parameter decisions in `.neuroflow/reasoning/brain-optimize.json`
-- Update `project_config.md` if phase changed
+- Log key parameter decisions in `.neuroflow/reasoning/brain-optimize.jsonl`
+- Update `active_phase` in `project_config.md` if the phase changed

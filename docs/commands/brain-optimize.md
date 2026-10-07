@@ -32,7 +32,7 @@ Claude asks which you want:
     - How many parameter combinations — grid, random, or Latin hypercube sampling
     - Run locally or via HPC/cluster
 
-    **Output:** a sweep script that iterates over the parameter grid, runs the model for each combination, and saves per-run metrics to a results file.
+    **Output:** a sweep spec run by `sweep_run.py`, which iterates over the parameter grid, runs the model for each combination, and saves per-run metrics to `results.csv` and the best configurations to `summary.json`. A smoke configuration runs first; the sweep is refused until it passes.
 
 === "Data fitting"
 
@@ -52,11 +52,11 @@ Claude asks which you want:
 ## Steps
 
 1. Write `optimize-plan.md` — parameters being searched, target features, algorithm, cost function, convergence criteria
-2. Implement the optimisation or sweep script
-3. Run a minimal test (2–3 parameter combinations) to confirm the pipeline works end-to-end
-4. After a full run: summarise best-fit parameters, cost value, and whether convergence was reached
+2. Implement the optimisation script, or the sweep spec
+3. Run a minimal test (2–3 parameter combinations) to confirm the pipeline works end-to-end — for sweeps, the smoke gate of `sweep_run.py`
+4. After a full run: summarise best-fit parameters, cost value, and whether convergence was reached — computed from the results files, not read off a plot. A grid sweep returns the best grid point, and `sweep_run.py` warns when it sits on the edge of the grid
 
-Plans and result summaries go to `.neuroflow/brain-optimize/`. Scripts and raw results go to your `models/optimize/` folder.
+Plans and result summaries go to `.neuroflow/brain-optimize/`. Scripts and raw results go to your `models/optimize/` folder. Long sweeps run in the background or as cluster jobs and are tracked in `.neuroflow/brain-optimize/runs.md`.
 
 ---
 
@@ -65,7 +65,7 @@ Plans and result summaries go to `.neuroflow/brain-optimize/`. Scripts and raw r
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/brain-optimize/flow.md`, `.neuroflow/brain-build/flow.md` |
-| Writes | `.neuroflow/brain-optimize/`, `.neuroflow/brain-optimize/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `models/optimize/` (scripts and results) |
+| Writes | `.neuroflow/brain-optimize/`, `.neuroflow/brain-optimize/flow.md`, `.neuroflow/reasoning/brain-optimize.jsonl`, `.neuroflow/sessions/YYYY-MM-DD.md`, `models/optimize/` (scripts and results) |
 
 ---
 

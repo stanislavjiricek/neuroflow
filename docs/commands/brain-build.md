@@ -48,8 +48,12 @@ Claude reads `.neuroflow/brain-build/flow.md` and any existing model spec to und
 2. Plan the implementation: compartment definitions, synapse types, connectivity matrices, parameter ranges
 3. Build the model iteratively — write code, run a minimal test (single neuron fires, small network connects), refine
 4. Apply domain best practices for the chosen framework (`NEURON .hoc/.py`, `Brian2 NeuronGroup/Synapses`, `NetPyNE netParams/simConfig`, etc.)
+5. Pass the smoke test before scaling up — `smoke_test.py` runs a short simulation, checks its metrics in code (no NaN, not silent, no runaway rates, plus your own `*_ok` checks) and writes `smoke-record.json` with a hash of the model code
 
 Model code is saved to your `models/` folder (or the path set in `.neuroflow/brain-build/flow.md`). Specs and notes go to `.neuroflow/brain-build/`.
+
+!!! info "Smoke record"
+    The smoke record goes stale as soon as the model code changes. `/brain-run` and `/brain-optimize` check it before a full run or sweep and ask for a fresh smoke test when it is stale, failing or missing.
 
 ---
 
@@ -58,7 +62,7 @@ Model code is saved to your `models/` folder (or the path set in `.neuroflow/bra
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/brain-build/flow.md` |
-| Writes | `.neuroflow/brain-build/`, `.neuroflow/brain-build/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `models/` (code output) |
+| Writes | `.neuroflow/brain-build/`, `.neuroflow/brain-build/flow.md`, `.neuroflow/brain-build/smoke-record.json`, `.neuroflow/sessions/YYYY-MM-DD.md`, `models/` (code output) |
 
 ---
 

@@ -34,12 +34,20 @@ Claude asks:
 ## Steps
 
 1. Write `run-config.md` — model path, duration, dt, inputs, recording targets, output directory
-2. Confirm or generate a run script (`run_sim.py` or equivalent) that loads the model and applies the run config
-3. Run the simulation (or prepare the HPC submission script)
-4. After the run: load and inspect outputs — check for obvious errors (no spikes, unbounded activity, NaN values), produce a brief summary plot or statistics
-5. Write `run-summary.md` — duration, time step, key output statistics (mean firing rate, dominant frequency), path to output files
+2. Confirm or generate a run script (`run_sim.py` or equivalent) that loads the model and applies the run config — it stops with a reason on NaN, silence or runaway rates, writes its statistics to a metrics file, and records its provenance
+3. Check that the smoke record from `/brain-build` is fresh, then run the simulation (or prepare the HPC submission script)
+4. After the run: load and inspect outputs — check for obvious errors (no spikes, unbounded activity, NaN values) with `smoke_test.py check` on the metrics file, produce a brief summary plot or statistics
+5. Write `run-summary.md` — duration, time step, key output statistics (mean firing rate, dominant frequency) copied from the metrics file, path to output files
 
 Configs and summaries go to `.neuroflow/brain-run/`. Simulation output files (spike data, voltage traces, figures) go to `models/results/`.
+
+---
+
+## Long runs and HPC
+
+- **Long runs** (more than ~10 minutes, or overnight) run in the background or detached, and are registered in `.neuroflow/brain-run/runs.md` with `runs.py`. The next `/brain-run` checks the registry first and has finished runs inspected before anything new starts.
+- **Clusters** — job scripts start from the SLURM and PBS templates shipped with the phase skill (resources from the smoke test, mail on end and failure). Simulations never run on a cluster login node: they are submitted as jobs, or run inside an interactive job.
+- **Job status** — on the cluster, `runs.py check` reads `squeue`/`sacct` or `qstat`; elsewhere the scheduler's end-of-job mail tells you.
 
 ---
 
@@ -48,7 +56,7 @@ Configs and summaries go to `.neuroflow/brain-run/`. Simulation output files (sp
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/brain-run/flow.md`, `.neuroflow/brain-build/flow.md` |
-| Writes | `.neuroflow/brain-run/`, `.neuroflow/brain-run/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `models/results/` (simulation outputs) |
+| Writes | `.neuroflow/brain-run/`, `.neuroflow/brain-run/flow.md`, `.neuroflow/brain-run/runs.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `models/results/` (simulation outputs) |
 
 ---
 

@@ -10,7 +10,15 @@ reads:
 writes:
   - .neuroflow/brain-build/
   - .neuroflow/brain-build/flow.md
+  - .neuroflow/brain-build/smoke-record.json
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: full
+produces:
+  - .neuroflow/brain-build/model-spec.md
+  - .neuroflow/brain-build/smoke-record.json
+next:
+  - brain-run
+  - brain-optimize
 ---
 
 # /brain-build
@@ -47,6 +55,7 @@ Ask:
 2. Plan the implementation: compartment definitions, synapse types, connectivity matrices, parameter ranges
 3. Build the model iteratively — write code, run a minimal test (single neuron fires, small network connects), refine
 4. Apply domain best practices for the chosen framework (NEURON `.hoc`/`.py`, Brian2 `NeuronGroup`/`Synapses`, NetPyNE `netParams`/`simConfig`, etc.)
+5. Before handing the model to `/brain-run` or `/brain-optimize`: pass the smoke test with `smoke_test.py` (skill → *Smoke test*) — it writes `.neuroflow/brain-build/smoke-record.json`, tied to a hash of the model code
 
 Save specs and notes (`model-spec.md`, connectivity notes) in `.neuroflow/brain-build/`. Write the actual model code to `output_path` (from `.neuroflow/brain-build/flow.md`, default: `models/`) — not inside `.neuroflow/`.
 
@@ -56,4 +65,4 @@ Save specs and notes (`model-spec.md`, connectivity notes) in `.neuroflow/brain-
 
 - Update `.neuroflow/brain-build/flow.md`
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
-- Update `project_config.md` if phase changed
+- Update `active_phase` in `project_config.md` if the phase changed
