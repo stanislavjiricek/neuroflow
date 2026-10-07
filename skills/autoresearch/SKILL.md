@@ -1,25 +1,25 @@
 ---
 name: autoresearch
-description: Infinite improvement loop for any research artifact in any phase — a single managing agent makes one focused change per iteration, judges it against the previous best, keeps or reverts. Its memory is a per-loop wiki it reads before every move and writes after every move. The loop never stops until the human interrupts it. Inspired by Andrej Karpathy's autoresearch (MIT).
+description: Open-ended improvement loop for any research artifact in any phase — a single managing agent makes one focused change per iteration, judges it against the previous best, keeps or reverts. Its memory is a per-loop wiki it reads before every move and writes after every move. The loop never stops on its own judgement — only at the caps set at setup (iterations, wall-clock time, cost where measurable), when the human stops it, or after repeated tool errors. Inspired by Andrej Karpathy's autoresearch (MIT).
 ---
 
 <!-- Inspired by Andrej Karpathy's autoresearch (MIT) — https://github.com/karpathy/autoresearch -->
 
 # autoresearch
 
-An infinite, multi-session improvement loop for any research artifact. **One managing agent** runs the whole loop — it makes a focused change, judges it against the current best, keeps the winner and reverts the rest. Its long-term memory is a **per-loop wiki** that it consults before every move and updates after every move. The loop never stops on its own.
+An open-ended, multi-session improvement loop for any research artifact. **One managing agent** runs the whole loop — it makes a focused change, judges it against the current best, keeps the winner and reverts the rest. Its long-term memory is a **per-loop wiki** that it consults before every move and updates after every move. The loop never stops on its own judgement, and it always stops at the caps the human set.
 
 ---
 
-## Core rule — NEVER STOP
+## Core rule — never stop on your own judgement, always stop at the caps
 
-**The loop runs until the human interrupts it. Period.**
+**The loop runs until a stop condition fires — never earlier, never later.**
 
 - Never decide the artifact is "good enough" and exit
 - Never stop because the score plateaued or iterations look repetitive
 - Plateau is a signal to change direction (new angle, branch, or literature search) — not to stop
 - Open questions to the human are **non-blocking** — park them, keep going on a best guess
-- The only valid exit is the human pressing Ctrl-C or typing a stop command
+- **Always stop** when a stop condition fires: a cap set at INIT is reached (`max_iterations`, `max_wall_clock`, `max_cost`), the human stops the loop, or `max_consecutive_errors` tool errors happen in a row — see [Stopping](#stopping). A loop without a cap is never started.
 
 ---
 
@@ -29,7 +29,7 @@ Two principles define this loop. Hold both.
 
 **1. One managing agent — no subagent fan-out.** A single agent runs the entire loop and holds the thread of all iterations. It plays worker (makes the change) and evaluator (judges it) itself. The only optional exception is the evaluation step, which can use one fresh subagent when `evaluation: fresh-eval` is set (see [Evaluation](#evaluation)). Everything else is one agent, because context continuity across iterations is what lets it reason about the whole search instead of one move at a time.
 
-**2. The wiki is the brain.** A single agent running an infinite loop will exhaust its context window. The per-loop **wiki** is the externalized memory that survives that — context is working memory, the wiki is long-term memory. This is not optional decoration. **The agent reads the wiki before deciding every move and writes to it after every move.** Without the wiki the agent is amnesiac: it re-treads dead ends, forgets why something failed, and goes in circles forever instead of getting smarter. The wiki is what makes an infinite single-agent loop *compound* rather than *wander*.
+**2. The wiki is the brain.** A single agent running a long loop will exhaust its context window. The per-loop **wiki** is the externalized memory that survives that — context is working memory, the wiki is long-term memory. This is not optional decoration. **The agent reads the wiki before deciding every move and writes to it after every move.** Without the wiki the agent is amnesiac: it re-treads dead ends, forgets why something failed, and goes in circles forever instead of getting smarter. The wiki is what makes a long single-agent loop *compound* rather than *wander*.
 
 > Treat the wiki the way you treat your own memory: you would never re-run an experiment you already know failed. Neither should the loop. Query the wiki first, always.
 
@@ -59,7 +59,7 @@ The loop folder is named `{name}_autoresearch/` and lives **next to the artifact
 ├── server.py              ← optional dashboard (only written if output_dashboard: on)
 ├── flow.md
 └── history/
-    ├── v000/              ← baseline snapshot of tracked files
+    ├── v000/              ← baseline snapshot of tracked files (+ .ar-manifest.json: original path + sha256 per file)
     ├── v001/              ← snapshot saved on each KEPT iteration
     └── ...
 
@@ -79,7 +79,7 @@ The loop folder is named `{name}_autoresearch/` and lives **next to the artifact
 | Name | Location | Iterations | Best | Status |
 |------|----------|-----------|------|--------|
 | connectivity | scripts/analysis/connectivity_autoresearch/ | 47 | v031 | running |
-| intro | manuscript/intro_autoresearch/ | 12 | v009 | paused |
+| intro | manuscript/intro_autoresearch/ | 12 | v009 | stopped: max_wall_clock |
 ```
 
 ---
@@ -137,7 +137,7 @@ related: []              # file paths; in-body refs use [[Page Title]]
 ### Promotion to the project wiki
 
 Per `promote_to_project_wiki` in the config:
-- `ask` (default) — at loop end / interruption, surface durable findings and ask which to promote
+- `ask` (default) — when the loop stops or is interrupted, surface durable findings and ask which to promote
 - `on` — promote durable findings automatically
 - `off` — keep everything local
 
@@ -175,6 +175,10 @@ Started: YYYY-MM-DD
 loop_name: connectivity
 artifact_location: scripts/analysis/connectivity_autoresearch/
 integrity_mode: confirmatory          # confirmatory | exploratory | n/a — set by the INIT integrity gate (references/integrity.md)
+max_iterations: 40                    # CAP — iterations per run (a run = one start or resume); asked at INIT, no default
+max_wall_clock: 8h                    # CAP — time per run (90m, 8h, 1d); asked at INIT, no default
+max_cost: n/a                         # CAP — usage or spend per run (e.g. 20 USD) — only where this session can measure it, else n/a
+max_consecutive_errors: 3             # stop after this many tool errors in a row
 promote_to_project_wiki: ask          # on | off | ask
 branching: agent-decided              # off | agent-decided
 max_alive_branches: 3                 # cost cap when branching
@@ -193,21 +197,22 @@ notify_on_plateau: true
 ## Iteration checklist — DO ALL, EVERY TIME, NEVER SKIP
 <!-- This block is the contract. It is re-read at the start of every iteration so it
      can never drift out of context. Skipping ANY item is a loop failure. -->
-1. RECALL — read this program.md (incl. this checklist), __thetask__.md, the wiki (index → synthesis → relevant attempts), and check answers.md + session for new answers
+1. RECALL — first run `ar.py status` (the autoresearch skill's scripts/ar.py; exit 1 → a cap is reached or the loop state needs attention: Stopping in the skill); read this program.md (incl. this checklist), __thetask__.md, the wiki (index → synthesis → relevant attempts), and check answers.md + session for new answers and for a stop request
 2. DECIDE — pick the weakest criterion and ONE move, informed by the wiki (never re-try a move the wiki shows failed)
 3. SWEEP — if the move tunes a scannable parameter and parameter_sweep is on, scan several values this iteration and pick the best
 4. ACT — make the change
 5. JUDGE — compare to history/vBEST/ against the criteria → BETTER | WORSE | NO CHANGE + delta
-6. KEEP/REVERT — snapshot to history/vNNN/ on BETTER, else restore from vBEST/; append a row to results.md
+6. KEEP/REVERT — `ar.py keep` on BETTER (snapshot to history/vNNN/), else `ar.py revert` (restore from vBEST/); both append the results.md row and update the __thetask__.md counters
 7. WIKI — write an attempts/ page (what, why, verdict, delta, reasoning — especially failures); update synthesis/ on a pattern; update index.md + log.md
 8. REPORT — rewrite report.md (open questions on top); update the pointer registry; regenerate PDF/dashboard per cadence
 9. Items 7 and 8 are NOT optional and are NOT once-at-baseline — they run every single iteration. If you ever notice you skipped one, do it now before the next move.
 10. INTEGRITY — whenever integrity_mode is not n/a, this binds steps 3–6 (rules: references/integrity.md in the neuroflow:autoresearch skill):
     confirmatory → run tracked code only on blind inputs; never touch an item frozen in Out of scope; judge outcome-blind criteria only — a larger effect, smaller p-value, or more significant tests is never BETTER
     exploratory → every specification run on the study data — each sweep value included — goes into .neuroflow/data-analyze/multiverse.md with its result before JUDGE; ledger rows are never edited or deleted
+11. STOP — at a cap, on a human stop, or after max_consecutive_errors tool errors in a row: stop (Stopping in the skill). Never stop for any other reason — a plateau means change approach.
 ```
 
-**The agent reads this config AND the iteration checklist at the start of every iteration and honors both exactly** — check `literature_budget` before searching, respect `branching` / `max_alive_branches` / `parameter_sweep`, apply the `integrity_mode` rules, use the configured `evaluation` mode, refresh outputs per `report_cadence`, and complete every checklist item including the wiki write and report refresh.
+**The agent reads this config AND the iteration checklist at the start of every iteration and honors both exactly** — stop at the caps, check `literature_budget` before searching, respect `branching` / `max_alive_branches` / `parameter_sweep`, apply the `integrity_mode` rules, use the configured `evaluation` mode, refresh outputs per `report_cadence`, and complete every checklist item including the wiki write and report refresh.
 
 ---
 
@@ -231,22 +236,27 @@ history/v031/
 
 ## Iterations run
 47 (last: YYYY-MM-DD)
+
+## Current run
+started: 2026-10-07T21:04:00+02:00
+iterations at start: 40
 ```
 
-Paths are relative to the loop folder. The agent modifies the real files; the evaluator compares current state to `history/vBEST/`.
+Paths are relative to the loop folder. The agent modifies the real files; the evaluator compares current state to `history/vBEST/`. `ar.py` keeps the last three sections (`ar.py begin` writes `## Current run` — the caps count from it).
 
 ---
 
 ## INIT — setup interview (first run only)
 
-> **HARD GATE — the loop must NOT begin until the user has explicitly signed off on the full config block.** Never set silent defaults and jump into iterations. Every configuration option below is *asked* one at a time, not assumed — the integrity mode (analysis-touching loops, step 3), branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, and wiki promotion. If the user gives a partial answer, ask the rest; if they say "use defaults", still show the resulting config block and get an explicit "yes" before iterating. Starting iterations with any unasked option is the failure mode this gate exists to prevent.
+> **HARD GATE — the loop must NOT begin until the user has explicitly signed off on the full config block.** Never set silent defaults and jump into iterations. Every configuration option below is *asked* one at a time, not assumed — the integrity mode (analysis-touching loops, step 3), the caps (no defaults), branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, and wiki promotion. If the user gives a partial answer, ask the rest; if they say "use defaults", still show the resulting config block and get an explicit "yes" before iterating. Starting iterations with any unasked option is the failure mode this gate exists to prevent.
 
-1. Read `project_config.md` → determine active phase
+1. Read `project_config.md` → determine active phase (`active_phase` in its frontmatter)
 2. **Which files should this loop improve?** (or infer from `--target`)
-3. **Integrity gate.** Read `references/integrity.md` and decide whether the loop is *analysis-touching* — phase `data-analyze` / `data-preprocess`, a tracked file that computes results from study data, or a tracked file implementing a preregistered analysis. If it is, ask the integrity question as its own step: **confirmatory** (a fixed analysis improved on blind inputs, scored only on outcome-blind criteria) or **exploratory** (confirmatory scripts forked, everything labelled exploratory, every specification logged with its result to `.neuroflow/data-analyze/multiverse.md`). There is no default — "use defaults" does not answer it. Record `integrity_mode`, log the choice to `.neuroflow/reasoning/{phase}.json`, and apply the mode's rules in every later step: forked tracked files, frozen items in `## Out of scope`, outcome-blind criteria, sweep and evaluation defaults. Not analysis-touching → `integrity_mode: n/a`, no question.
+3. **Integrity gate.** Read `references/integrity.md` and decide whether the loop is *analysis-touching* — phase `data-analyze` / `data-preprocess`, a tracked file that computes results from study data, or a tracked file implementing a preregistered analysis. If it is, ask the integrity question as its own step: **confirmatory** (a fixed analysis improved on blind inputs, scored only on outcome-blind criteria) or **exploratory** (confirmatory scripts forked, everything labelled exploratory, every specification logged with its result to `.neuroflow/data-analyze/multiverse.md`). There is no default — "use defaults" does not answer it. Record `integrity_mode`, log the choice to `.neuroflow/reasoning/{phase}.jsonl`, and apply the mode's rules in every later step: forked tracked files, frozen items in `## Out of scope`, outcome-blind criteria, sweep and evaluation defaults. Not analysis-touching → `integrity_mode: n/a`, no question.
 4. **Name and location:** derive a default name from the primary tracked file and a default location = that file's directory. Show both: *"Loop folder: `scripts/analysis/connectivity_autoresearch/`. OK, or change name/location?"*
 5. **Build criteria** — Layer 1 (phase defaults from `references/phase-criteria.md`) + Layer 2 (context-inferred) + Layer 3 (user input) → `program.md`
 6. **Loop configuration interview — go slowly, ONE question at a time.** Ask each option as a separate message (or a clearly numbered walk-through), state the default and the trade-off, wait for the answer, then move to the next. Do NOT batch all options into one wall of text and do NOT rush to the loop — a hurried interview is exactly the failure this step guards against. Record each answer into the config block:
+   - *Caps (no defaults — "use defaults" does not answer them; suggest a starting point such as 30 iterations / 4h):* "How long may each run of this loop go? A maximum number of iterations, and a maximum wall-clock time — one of them may be 'none', not both." → `max_iterations`, `max_wall_clock`. Then: "A cost or usage limit too?" — record it as `max_cost` only if this session can measure its usage or cost, otherwise record `n/a` and say that the iteration and time caps bound the run. Stop after `max_consecutive_errors` tool errors in a row (default 3). Caps count per run: each start or resume gets the full budget.
    - *Branching:* "When you see two equally promising directions, may I try both and keep the winner? (agent-decided / single-track)" → if agent-decided, "max directions to keep open at once?"
    - *Parameter sweep (default yes; no when `integrity_mode: confirmatory`):* "When a move tunes a parameter that makes sense to scan over a range — a threshold, filter cutoff, number of components, regularization strength — may I scan several values within a single iteration and pick the best, instead of one value per iteration? (yes / no)"
    - *Literature search:* "May I search papers when I run out of ideas or want grounding? (when-stuck / anytime / off)" → sources? → budget (e.g. 1 per 5 iterations)?
@@ -256,26 +266,29 @@ Paths are relative to the loop folder. The agent modifies the real files; the ev
    - *Wiki promotion:* "At loop end, promote durable findings to the project wiki? (ask / auto / off)"
 7. **Confirm the full config (the gate).** Render the complete `## Loop configuration` block back to the user with every value filled in — and, when `integrity_mode` is not `n/a`, the frozen `## Out of scope` items and any planned fork — and ask for an explicit go-ahead: *"This is the full configuration. Confirm to start the loop, or tell me what to change."* **Do not proceed to step 8 until the user confirms.** No iteration runs before this sign-off.
 8. Create the loop folder at the chosen location — and, for an exploratory fork, the `_exploratory` copies of the confirmatory files (`references/integrity.md`); initialize `wiki/` (index.md, log.md, schema.md, pages/ subfolders) — write a starter `schema.md` describing the artifact, the criteria, and the wikilink convention
-9. Snapshot tracked files → `history/v000/`; write baseline row to `results.md`
-10. Write `program.md` (with the confirmed config block **and the "## Iteration checklist" block — both are mandatory**), `__thetask__.md` (with the iteration reminder at top), `flow.md`
+9. Write `program.md` (with the confirmed config block **and the "## Iteration checklist" block — both are mandatory**), `__thetask__.md` (with the iteration reminder at top), `flow.md`
+10. Baseline: `python <skill base dir>/scripts/ar.py init {loop folder}` — snapshots the tracked files to `history/v000/`, writes `results.md` with the baseline row, and sets the counters in `__thetask__.md` (see [Bookkeeping with ar.py](#bookkeeping-with-arpy))
 11. Add a row to `.neuroflow/{phase}/autoresearch-loops.md` (create the registry if absent). If `integrity_mode: exploratory`, create `.neuroflow/data-analyze/multiverse.md` if absent (format in `references/integrity.md`) and list it in `.neuroflow/data-analyze/flow.md`
 12. If `output_dashboard: on`, write `server.py` from `scripts/server.py` in this skill and tell the user the URL
 13. Write the first `report.md`
-14. Start the loop
+14. `python <skill base dir>/scripts/ar.py begin {loop folder}` — the caps count from here — then start the loop
 
 ---
 
-## Loop protocol — NEVER STOP
+## Loop protocol
 
 ```
-REPEAT FOREVER until the human interrupts:
+REPEAT until a stop condition fires (see Stopping):
 
   RECALL
-    a. Read program.md — INCLUDING its "## Iteration checklist" — + __thetask__.md (resolve tracked paths).
+    a. Run ar.py status. Exit 1 → handle its findings before anything else (a cap → Stopping).
+       It also prints this iteration's number (next) and the REVERTs in a row.
+       Read program.md — INCLUDING its "## Iteration checklist" — + __thetask__.md (resolve tracked paths).
        The checklist is the contract for this iteration; follow every item, never skip the wiki write or report refresh.
     b. Read tracked files (current state) + history/vBEST/ (current best)
     c. Read the wiki: index.md → synthesis/ → attempts/ for the target criterion → relevant concepts/sources
-    d. Check answers.md and the session for new human answers (match Q-ids; see Q&A channel)
+    d. Check answers.md and the session for new human answers (match Q-ids; see Q&A channel),
+       and for a stop request in any language ("stop", "pause", "that's enough") → Stopping.
 
   DECIDE
     e. Pick the single weakest criterion and ONE focused move to improve it,
@@ -311,10 +324,11 @@ REPEAT FOREVER until the human interrupts:
        If integrity_mode is confirmatory: outcome-blind criteria only — a larger effect,
        a smaller p-value, or more significant tests is never BETTER.
 
-  KEEP / REVERT
-    j. If BETTER: snapshot tracked files → history/vNNN/; update __thetask__.md
-                  (iterations, best snapshot); append KEPT row to results.md.
-       If WORSE / NO CHANGE: restore tracked files from history/vBEST/; append REVERTED row.
+  KEEP / REVERT  (one ar.py call — see Bookkeeping with ar.py)
+    j. If BETTER: ar.py keep --iter N --delta D --focus "…" → snapshot tracked files → history/vNNN/,
+                  KEPT row in results.md (Running = previous + delta), __thetask__.md iterations + best.
+       If WORSE / NO CHANGE: ar.py revert --iter N --verdict WORSE|"NO CHANGE" --delta D --focus "…"
+                  → restore tracked files from history/vBEST/, REVERTED row, iterations counter.
 
   RECORD  (the brain — mandatory, EVERY round, no exceptions)
     k. Write an attempts/ page (what, why, verdict, delta, reasoning — especially for failures).
@@ -325,11 +339,63 @@ REPEAT FOREVER until the human interrupts:
        Update the pointer registry. Regenerate report.pdf / dashboard data per cadence.
 
   STEER
-    m. Plateau (5 consecutive REVERTs): if notify_on_plateau, note it in report.md and the session,
-       then CHANGE APPROACH — new angle from the wiki, a branch, or a literature search. DO NOT STOP.
+    m. Plateau (5 consecutive REVERTs — ar.py status reports it): if notify_on_plateau, note it in report.md
+       and the session, then CHANGE APPROACH — new angle from the wiki, a branch, or a literature search. DO NOT STOP.
 
-  n. Go to RECALL. Never stop on your own.
+  n. Go to RECALL. Never stop on your own judgement — stop only when a stop condition fires.
 ```
+
+---
+
+## Stopping
+
+The loop never ends on its own judgement — and it always ends on one of these:
+
+| Stop condition | How it is detected |
+|---|---|
+| `max_iterations` reached | `ar.py status` at RECALL — iterations this run ≥ the cap |
+| `max_wall_clock` reached | `ar.py status` at RECALL — time since `ar.py begin` ≥ the cap (checked between iterations, so a long iteration can overrun it by its own length) |
+| `max_cost` reached | only where this session can measure its usage or cost; `n/a` otherwise |
+| The human stops it | Esc / Ctrl-C, or a stop message in any language ("stop", "pause", "that's enough") |
+| `max_consecutive_errors` tool errors in a row | your own count of failed tool calls — a command that cannot start, a refused write, a failing search tool or API, a rate limit. Retry a failed call once before counting it; a finished iteration resets the count. A change that breaks the tracked code is **not** an error — it is a WORSE verdict, and the loop goes on |
+
+**At a cap or the error limit:** leave the loop clean — the last judged move's KEEP/REVERT and RECORD done, an unjudged change put back with `ar.py restore` — so the tracked files equal the best snapshot and the wiki is current. Then put `STOPPED — {reason} — iteration {N} — best {snapshot}` at the top of `report.md`, right under the title, set the registry status to `stopped: {reason}`, log the stop line (Session logging), offer wiki promotion per `promote_to_project_wiki`, and end the turn with a short summary: why it stopped, iterations this run, best snapshot, open questions, and that `/autoresearch` resumes it with a fresh budget.
+
+**On a human stop:** start nothing new. If the current move is already judged, finish its KEEP/REVERT and RECORD; if not, put the tracked files back (`ar.py restore`) and note the discarded move in `wiki/log.md`. Set the registry status to `interrupted` and log the interrupt line. After Esc / Ctrl-C nothing more can happen in that turn — on the next message, run `ar.py status` first and tidy up the same way, asking before you restore a cut-off change.
+
+**Never restart on your own.** After any stop, the loop runs again only when the human asks for it (`/autoresearch` → Resume).
+
+### Driven by the neuroflow mod — one iteration per turn
+
+When the neuroflow mod is live and the human starts a loop with `/autoresearch drive {name}`, the mod drives it: the
+mod has already run `ar.py begin`, so the caps count from now. **Your job each turn is exactly one iteration** — one
+full pass of the iteration checklist (resume path first in the first turn: program.md, __thetask__.md, results.md, the
+wiki) — **then end your turn.** Do not start the next iteration yourself: the mod checks `ar.py status` after every
+answered turn and starts the next one only on exit 0, and stops at a cap, after `max_consecutive_errors` errored turns,
+on Esc, or when the human presses stop. The stop rules above still apply inside your turn. Without the mod, `drive` is
+not available: run the loop in the normal way (`/autoresearch` → Resume). `/autoresearch stop` ends a drive.
+
+---
+
+## Bookkeeping with ar.py
+
+Snapshots, restores, the `results.md` rows and the `__thetask__.md` counters are done by a tested script, not by hand: one call per step, every file replaced atomically, and repeating a call with the same `--iter` is safe. Run it as `python <skill base dir>/scripts/ar.py <command> {loop folder}` — the skill base dir is the folder holding this SKILL.md.
+
+| Command | When | What it does |
+|---|---|---|
+| `init` | INIT step 10 | snapshots the tracked files to `history/v000/` (with `.ar-manifest.json`), writes `results.md` with the baseline row, sets the counters |
+| `begin` | INIT step 14, every resume | records the run start under `## Current run` in `__thetask__.md` — the caps count from here |
+| `status` | RECALL, every iteration | iterations, next iteration number, best snapshot, running total, REVERTs in a row (plateau at 5), the caps, tracked files vs best |
+| `keep --iter N --delta D --focus "…"` | BETTER | snapshot → `history/vNNN/`, KEPT row, best + iterations in `__thetask__.md` |
+| `revert --iter N --verdict WORSE\|"NO CHANGE" --delta D --focus "…"` | WORSE / NO CHANGE | restores the tracked files from the best snapshot, REVERTED row, iterations counter |
+| `restore` | a cut-off move the human wants discarded | puts the tracked files back to the best snapshot; no row |
+| `adopt --iter N --focus "…"` | outside edits the human wants kept | snapshots the current files as the new best; row `KEPT (outside edit)` |
+
+`--value V` (repeatable) fills extra numeric columns; `--json` gives machine-readable output.
+
+**Exit codes.** `0` — done; go on. `1` — findings (`status`, `begin`), each with a kind: `cap` → stop ([Stopping](#stopping)); `no-cap` / `cap-unreadable` → ask the human for caps; `no-run` → run `ar.py begin`; `dirty` → the tracked files differ from the best snapshot at RECALL, so a move was cut off or someone edited them — ask the human, then `restore` or `adopt`, never decide alone; `missing` / `not-in-best` / `best-missing` → halt and ask the human to fix `__thetask__.md`, the file or the snapshot; `not-initialized` → run `ar.py init`. `2` — the call was refused or failed and nothing was half-written: read the message, fix the cause, run the same call again.
+
+**No Python?** Do each step by hand as the table says — copy the files, append the row (Running: KEPT adds delta, REVERTED leaves it unchanged), update the counters — and track the caps yourself: note the run start time and count this run's iterations.
 
 ---
 
@@ -373,7 +439,7 @@ Started: YYYY-MM-DD HH:MM
 | 002 | WORSE | -1 | 3 | REVERTED | Overcomplicated methods |
 ```
 
-Running: KEPT adds delta; REVERTED leaves it unchanged. Append numeric columns (power, R², word_count…) after `Next focus` for phases with numeric criteria.
+Running: KEPT adds delta; REVERTED leaves it unchanged. Append numeric columns (power, R², word_count…) after `Next focus` for phases with numeric criteria. `ar.py` writes every row: `init --column NAME` adds a numeric column, `keep` / `revert --value V` fills it.
 
 ### report.md format — human steering surface
 
@@ -416,12 +482,13 @@ A costly/irreversible move (large deletion, expensive recompute) should be raise
 ## Session logging & registry
 
 Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
-- Loop start: `## HH:MM — [autoresearch/{name}] started — tracking {N} file(s) at {location} — integrity: {integrity_mode}`
-- Every 10 iterations: `## HH:MM — [autoresearch/{name}] iter {N} — running {R} — best {snapshot}`
-- Plateau: `## HH:MM — [autoresearch/{name}] PLATEAU — changing approach`
-- Interrupt: `## HH:MM — [autoresearch/{name}] interrupted at iter {N} — best {snapshot}`
+- Loop start or resume: `## HH:MM — [autoresearch] {name} started — tracking {N} file(s) at {location} — integrity: {integrity_mode} — caps: {max_iterations} iterations / {max_wall_clock}`
+- Every 10 iterations: `## HH:MM — [autoresearch] {name} iter {N} — running {R} — best {snapshot}`
+- Plateau: `## HH:MM — [autoresearch] {name} PLATEAU — changing approach`
+- Stop at a cap or the error limit: `## HH:MM — [autoresearch] {name} stopped ({reason}) at iter {N} — best {snapshot}`
+- Interrupt: `## HH:MM — [autoresearch] {name} interrupted at iter {N} — best {snapshot}`
 
-Keep the pointer registry (`.neuroflow/{phase}/autoresearch-loops.md`) current: iterations, best, status (running / paused / interrupted).
+Keep the pointer registry (`.neuroflow/{phase}/autoresearch-loops.md`) current: iterations, best, status (running / paused / stopped: {reason} / interrupted).
 
 ---
 
@@ -448,10 +515,11 @@ Build `program.md` criteria in three layers on first run:
 ## Resume
 
 If `.neuroflow/{phase}/autoresearch-loops.md` lists one or more loops:
-- One loop → confirm: *"Resume autoresearch '{name}' at {location}? {N} iterations logged, best {snapshot}."*
+- One loop → confirm: *"Resume autoresearch '{name}' at {location}? {N} iterations logged, best {snapshot}. Caps for this run: {max_iterations} iterations / {max_wall_clock} — keep them?"*
 - Multiple → list them and ask which to resume
-- On resume: read that loop's `program.md`, `__thetask__.md`, `results.md`, and **the wiki** (index + synthesis), then go straight to the loop (skip INIT)
+- On resume: read that loop's `program.md`, `__thetask__.md`, `results.md`, and **the wiki** (index + synthesis), run `ar.py begin` (a new run — the caps count from here), then `ar.py status`. If the tracked files differ from the best snapshot (`dirty`), an earlier run was cut off or someone edited them — ask whether to `restore` or `adopt` before anything else. Then go straight to the loop (skip INIT)
 - Exception: if the loop's config has no `integrity_mode` (it predates the integrity gate) and the loop is analysis-touching, run INIT step 3 first and write the answer — plus the mode's frozen items, fork, and checklist item 10 — into `program.md` before the next iteration
+- Exception: if the loop's config has no caps (it predates them), ask the caps question (INIT step 6) and write the caps — plus checklist item 11 and the `ar.py` calls in items 1 and 6 — into `program.md` before the next iteration. Snapshots made before `ar.py` work as they are (files are found by name)
 
 ---
 
@@ -465,4 +533,5 @@ If `.neuroflow/{phase}/autoresearch-loops.md` lists one or more loops:
 
 - **`references/phase-criteria.md`** — per-phase Layer 1 default criteria (read during INIT)
 - **`references/integrity.md`** — the integrity gate: when it applies, confirmatory vs exploratory rules, the multiverse ledger format (read during INIT step 3)
+- **`scripts/ar.py`** — the loop's bookkeeping: snapshots, restores, results rows, counters, caps and plateau status (see [Bookkeeping with ar.py](#bookkeeping-with-arpy)); run it from the skill, never copy it into the loop folder
 - **`scripts/server.py`** — optional dashboard template (write to the loop folder only if `output_dashboard: on`)

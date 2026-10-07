@@ -95,6 +95,24 @@ export type NfDraftedDecision = {
   at: number
 }
 
+export type NfDrive = {
+  name: string
+  phase: string
+  /** The loop folder, absolute. */
+  folder: string
+  /** Its location as the registry writes it (project-relative). */
+  location: string
+  startedAt: number
+  /** Turns this drive submitted. */
+  turns: number
+  /** Turns in a row that ended in an error. */
+  errors: number
+  maxErrors: number
+  /** The run's cost cap in USD, when program.md sets one this session can measure. */
+  maxCostUsd: number | null
+  costAtStart: number | null
+}
+
 /** The neuroflow command running in this turn, if any. */
 export type NfActiveCommand = { name: string; phase: string; lifecycle: string; startedAt: number }
 
@@ -132,6 +150,8 @@ declare module 'claude-code' {
       pickerNote: string | null
       // </feature:views>
       // <feature:loop>
+      /** The autoresearch loop the mod is driving, one iteration per turn (null when none). */
+      drive: NfDrive | null
       // </feature:loop>
       // <feature:capture>
       // </feature:capture>

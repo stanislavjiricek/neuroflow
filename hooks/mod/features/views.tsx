@@ -24,6 +24,7 @@ const bandHiddenAtom = atom({ plugin: 'neuroflow', key: 'bandHidden' } as const,
 const loopViewAtom = atom({ plugin: 'neuroflow', key: 'loopView' } as const, null)
 const pickerNoteAtom = atom({ plugin: 'neuroflow', key: 'pickerNote' } as const, null)
 const draftAtom = atom({ plugin: 'neuroflow', key: 'draftedDecision' } as const, null)
+const driveAtom = atom({ plugin: 'neuroflow', key: 'drive' } as const, null)
 
 const DASHBOARD = 'nf-dashboard'
 const PICKER = 'nf-phase'
@@ -332,6 +333,33 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           <Text color="suggestion" wrap="truncate-end">✎ decision drafted for {draft.phase}: {draft.statement}</Text>
           <Button key="nf-draft-keep" label="keep" hotkey="k" plain onPress={() => settleDraft($, true)} />
           <Button key="nf-draft-drop" label="drop" hotkey="n" plain onPress={() => settleDraft($, false)} />
+        </Box>
+      )
+    }
+    // A driven autoresearch loop always shows, with its stop control (charter: no paid turns without one).
+    const drive = await read($, driveAtom)
+    if (drive !== null) {
+      const { Box, Button, Text } = $.ui.resolve(e)
+      return (
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+          <Text color="suggestion" wrap="truncate-end">
+            ↻ driving autoresearch "{drive.name}" · turn {drive.turns}
+            {drive.errors > 0 ? ` · ${drive.errors} error(s) in a row` : ''}
+          </Text>
+          <Button
+            key="nf-drive-stop"
+            label="stop"
+            hotkey="s"
+            plain
+            onPress={async () => {
+              await update($, driveAtom, () => null)
+              const root = (await read($, scopeAtom))?.root
+              const now = await $.clock.now()
+              if (root) await appendLine(ioOf($), sessionLogPath(root, now), sessionLine(now, `autoresearch/${drive.name}`, `driver stopped after ${drive.turns} turn(s): stopped by the person`))
+              $.ui.toast(`neuroflow: stopped driving "${drive.name}" — the current iteration finishes, no new one starts`)
+            }}
+          />
+          <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($, 'loop')} />
         </Box>
       )
     }
