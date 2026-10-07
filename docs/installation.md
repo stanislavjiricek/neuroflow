@@ -10,19 +10,27 @@ neuroflow is a plugin for [Claude Code](https://claude.ai/code), and only for Cl
 
 ## From the marketplace
 
-The easiest way to install neuroflow:
+In Claude Code, one command adds the marketplace and installs the plugin:
+
+```
+/plugin install neuroflow --marketplace stanislavjiricek/neuroflow
+```
+
+Or in two steps, from a terminal:
 
 ```bash
 claude plugin marketplace add stanislavjiricek/neuroflow
 claude plugin install neuroflow@neuroflow
 ```
 
-Or from within an interactive Claude Code session:
+or inside Claude Code:
 
 ```
 /plugin marketplace add stanislavjiricek/neuroflow
 /plugin install neuroflow@neuroflow
 ```
+
+After a new version arrives, run `/neuroflow:migrate` once in each project — see [Upgrading](upgrading.md).
 
 ---
 

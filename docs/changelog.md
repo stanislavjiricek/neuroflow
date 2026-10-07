@@ -8,6 +8,15 @@ title: Changelog
 
 ## 0.2.22
 
+**Site, docs and upgrading**
+
+- A one-screen landing page: scrolling turns the cycle of nineteen phases, then a memory chapter (you, the project, the team) and the next study
+- Documentation without a top bar or tabs: one index on the left with search across every page (it filters the index and lists matching sections), sections for the phases, memory and team, commands, the harness, agents, skills and reference; the page outline on the right; light and dark colours from the system setting
+- New pages: [Overview](overview.md), [Three levels](concepts/memory.md) and [Upgrading](upgrading.md); [the mod page](concepts/mods.md) shows the harness as Claude Code draws it; the mind map and the self-assessment bar are gone, with their checks
+- The upgrade path: the first neuroflow command after an update says which version wrote the project and names `/neuroflow:migrate`, which also brings your flowie and the team hive to the current formats (plan first; a hive push only after your yes); with the mod, the same line waits in the band
+- Skill renames, so no skill hides behind a command of the same name: `autoresearch-protocol`, `wiki-protocol`, `setup-guide`; internal skills leave the slash menu
+- Fixes: neuroflow commands use the running plugin's folder and never a cached copy; `doctor.py`, `nf_check.py` and `scaffold.py` no longer fail on Windows pipes with a legacy code page; `/doctor` reports the flowie's unpushed commits and sync failures; `nf_check` flags a `wiki_auto` key left in the shared config; the wiki-card judge never raises a skipped card again
+
 **The neuroflow mod** (optional Claude Code hooks module — see [The neuroflow mod](concepts/mods.md))
 
 - Views drawn by code at zero tokens: a dashboard pane (phase map, deadlines, integrity, tasks, autoresearch loop with a quality sparkline and open questions), a phase picker for `/neuroflow:phase`, a task board for `/neuroflow:tasks`, a one-line band above the prompt that speaks only when something needs attention (deadlines, expired approvals, meetings with prepare/notes/close keys, an opt-in wellbeing check-in), an exception-only status line, a footer label, and one stable identity section in the system prompt

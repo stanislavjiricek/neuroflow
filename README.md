@@ -1,7 +1,8 @@
 <div align="center">
   <img src="logo-full.svg" alt="neuroflow" width="80%" />
   <h1>neuroflow</h1>
-  <p><strong>The agentic operating system for neuroscience research.</strong></p>
+  <p><strong>A complete research system for neuroscience teams.</strong></p>
+  <p><a href="https://stanislavjiricek.github.io/neuroflow/">Website and documentation</a></p>
   <p>
     <a href="#whats-new">What's new</a> ·
     <a href="#why-neuroflow">Why</a> ·
@@ -20,9 +21,9 @@
 
 ## What's new in 0.2.22
 
-- **The neuroflow mod** — an optional [Claude Code hooks module](docs/concepts/mods.md) layered on the plugin: a [dashboard](commands/dashboard.md) pane (with freeze and unfreeze of the preregistration on a key press), a phase picker, a task board, living-paper, X-ray and wiki-review panes, a quiet one-line band and status line, an instant [`/doctor`](commands/doctor.md), note and idea capture without model turns, citation and hidden-text checks triggered by what the model just did, an autoresearch driver that runs one iteration per turn under its caps, a decision drafter you approve with one key, and guards for the rules the skills state (frozen preregistrations, read-only raw data, local-only files, participant-data routes, login nodes, git alias scope). Everything still works without it; a 30-rule charter keeps it quiet, honest and removable, and a [design record](docs/concepts/design-record.md) says what became of all 270 ideas behind it
-- **Research integrity and machine-readable project memory** — an [autoresearch](skills/autoresearch-protocol/SKILL.md) integrity gate (confirmatory vs exploratory, multiverse ledger), caps and a tested `ar.py`; preregistration freezing with hashes; an ethics gate and AI data-route field; AI-use disclosure at submission; citation, statistics, revision and hidden-text checks; config, status and reasoning-log contracts with [`/migrate`](commands/migrate.md); sharing tiers with confirmed egress
-- **Claude Code only, provider-neutral, tested** — one static project instruction block (never in your global CLAUDE.md); 40+ portable Python checks with unit tests (provenance, QC tables, clean-room reruns, PsychoPy audit, timing and stream checks, exporters and audits); pinned MCP servers with Sci-Hub blocked; a provider-neutral gateway guide; one implementation per repository check, enforced in CI
+- **A new site and one command after every update** — the [landing page](https://stanislavjiricek.github.io/neuroflow/) turns the research cycle as you scroll, and the [documentation](docs/overview.md) has no top bar: one index with search holds every phase, command, agent and skill, a [Memory & team](docs/concepts/memory.md) section explains the three levels (you, the project, the team), and [the mod page](docs/concepts/mods.md) shows the harness as it looks. After an update, the first neuroflow command names [`/neuroflow:migrate`](commands/migrate.md), which brings the project, your flowie and the team hive up to date ([upgrading](docs/upgrading.md))
+- **The neuroflow mod** — an optional [Claude Code hooks module](docs/concepts/mods.md): dashboard and task-board panes drawn in code, freezing the preregistration on a key press, a quiet band and status line, an instant [`/doctor`](commands/doctor.md), capture without model turns, checks triggered by what the model did, an autoresearch driver, a decision drafter and guards for the rules the skills state. Everything works without it; a [design record](docs/concepts/design-record.md) says what became of all 270 ideas behind it
+- **Research integrity and machine-readable memory** — an [autoresearch](skills/autoresearch-protocol/SKILL.md) integrity gate and caps, preregistration freezing with hashes, an ethics gate and AI data route, AI-use disclosure, citation, statistics and hidden-text checks; config, status and reasoning-log contracts; sharing tiers with confirmed egress; 40+ tested Python checks; Claude Code only
 
 ## What's new in 0.2.21
 
@@ -434,18 +435,17 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 
 ## Installation
 
-neuroflow is a Claude Code plugin.
+neuroflow is a Claude Code plugin. In Claude Code:
+
+```
+/plugin install neuroflow --marketplace stanislavjiricek/neuroflow
+```
+
+Or in two steps, from a terminal or inside Claude Code:
 
 ```bash
 claude plugin marketplace add stanislavjiricek/neuroflow
 claude plugin install neuroflow@neuroflow
-```
-
-Or from within Claude Code:
-
-```
-/plugin marketplace add stanislavjiricek/neuroflow
-/plugin install neuroflow@neuroflow
 ```
 
 For local development:
@@ -455,7 +455,7 @@ git clone https://github.com/stanislavjiricek/neuroflow
 claude --plugin-dir ./neuroflow
 ```
 
-Once installed, run `/neuroflow:neuroflow` in any project folder to get started. Older projects: `/neuroflow:migrate`.
+Once installed, run `/neuroflow:neuroflow` in any project folder to get started. After an update, run `/neuroflow:migrate` once per project ([upgrading](docs/upgrading.md)).
 
 ---
 
