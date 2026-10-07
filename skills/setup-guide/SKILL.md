@@ -9,6 +9,7 @@ reads:
 writes:
   - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
+user-invocable: false
 ---
 
 # neuroflow:setup-guide

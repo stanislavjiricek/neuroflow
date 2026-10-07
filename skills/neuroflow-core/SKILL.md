@@ -1,6 +1,7 @@
 ---
 name: neuroflow-core
 description: Core rules and lifecycle for all neuroflow commands and agents. Read this whenever running any neuroflow command to understand the .neuroflow/ folder structure and the required behaviour at the start and end of every command.
+user-invocable: false
 ---
 
 # neuroflow-core

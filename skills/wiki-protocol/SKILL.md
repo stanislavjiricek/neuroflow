@@ -1,6 +1,7 @@
 ---
 name: wiki-protocol
 description: Knowledge base skill — Karpathy-style LLM-maintained wiki at three levels (personal/flowie, project, team/hive). Handles ingest, query, lint, schema, and project-tagging workflows. Invoked by /flowie --wiki-* (personal), /wiki (project), /hive --wiki-* (team).
+user-invocable: false
 ---
 
 # wiki-protocol

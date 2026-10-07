@@ -1,6 +1,7 @@
 ---
 name: phase-data-analyze
 description: Phase guidance for the neuroflow /data-analyze command. Loaded automatically when /data-analyze is invoked to orient agent behavior, relevant skills, and workflow hints for the data-analyze phase.
+user-invocable: false
 ---
 
 # phase-data-analyze

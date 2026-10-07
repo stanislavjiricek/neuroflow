@@ -1,6 +1,7 @@
 ---
 name: autoresearch-protocol
 description: Open-ended improvement loop for any research artifact in any phase — a single managing agent makes one focused change per iteration, judges it against the previous best, keeps or reverts. Its memory is a per-loop wiki it reads before every move and writes after every move. The loop never stops on its own judgement — only at the caps set at setup (iterations, wall-clock time, cost where measurable), when the human stops it, or after repeated tool errors. Inspired by Andrej Karpathy's autoresearch (MIT).
+user-invocable: false
 ---
 
 <!-- Inspired by Andrej Karpathy's autoresearch (MIT) — https://github.com/karpathy/autoresearch -->

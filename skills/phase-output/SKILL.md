@@ -1,6 +1,7 @@
 ---
 name: phase-output
 description: Phase guidance for the neuroflow /output command. Orients agent approach for outputting project memory or the whole project safely and with correct exclusions.
+user-invocable: false
 ---
 
 # phase-output
