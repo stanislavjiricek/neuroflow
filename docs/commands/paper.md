@@ -67,8 +67,8 @@ Maximum 3 iterations per section. Nothing is written to `manuscript/` without `[
 | `--revise` | Reviewer rebuttal under the prime rule: minimal changes, only what a reviewer asked; an audit script checks that every change traces to a comment |
 | `--coauthor <file.docx>` | Works through a coauthor's Word comments and tracked changes one row at a time; the coauthor's file is never edited |
 | `--abstract` | Conference abstract with one critic pass |
-| `--xray <file>` | Sentence-by-sentence check: an annotated copy with red (countable defects) and orange (judgement) findings; reports only |
-| `--auto on\|off\|status\|sync` | A living paper skeleton in `.neuroflow/paper/`: facts with sources, preregistered hypotheses quoted word for word, one Results slot per planned test, reporting gaps — no prose results |
+| `--xray <file>` | Sentence-by-sentence check: an annotated copy with red (countable defects) and orange (judgement) findings; reports only. With the neuroflow mod, `--xray view` opens the findings as a pane to accept or reject, and `--xray check <file>` runs only the statistics and citation scripts |
+| `--auto on\|off\|status\|sync` | A living paper skeleton in `.neuroflow/paper/`: facts with sources, preregistered hypotheses quoted word for word, one Results slot per planned test, reporting gaps — no prose results. With the neuroflow mod, `--auto status` opens a pane with the gaps and the sources changed since the last sync |
 
 ---
 

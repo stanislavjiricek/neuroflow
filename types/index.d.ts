@@ -93,6 +93,36 @@ export type NfSnapshot = {
 /** One row of a wiki's index.md: which wiki, the page title, its file and one-line summary. */
 export type NfWikiPage = { level: string; title: string; path: string; summary: string }
 
+/** The living paper pane (phase-paper → Living paper skeleton). */
+export type NfPaperView = {
+  status: string
+  gaps: { gap: string; item: string; fill: string }[]
+  /** Results slots (H1, H2…) the skeleton still shows without a final result. */
+  slots: string[]
+  /** Allow-listed source files changed since skeleton.md was written. */
+  stale: string[]
+  /** A submission or revision exists: sync rewrites nothing. */
+  frozen: boolean
+}
+
+/** One X-ray finding (phase-paper → X-ray files). */
+export type NfXrayFinding = {
+  id: string
+  scope: string
+  sentence?: string
+  line?: number
+  severity: string
+  area?: number
+  basis?: string
+  finding: string
+  fix?: string
+  status: string
+  reason?: string
+}
+
+/** The X-ray pane: which files, and their findings. */
+export type NfXrayView = { jsonl: string; md: string | null; title: string; findings: NfXrayFinding[] }
+
 /** What the dashboard's loop tab shows for one autoresearch loop. */
 export type NfLoopView = {
   name: string
@@ -211,6 +241,12 @@ declare module 'claude-code' {
       citeQueue: string[]
       // </feature:checks>
       // <feature:user>
+      /** The living paper pane: the status line, gaps, open Results slots and changed sources (U1). */
+      paperView: NfPaperView | null
+      /** The X-ray pane: the newest X-ray's findings (U3). */
+      xrayView: NfXrayView | null
+      /** The X-ray finding picked in the pane. */
+      xrayPick: string | null
       // </feature:user>
     }
   }

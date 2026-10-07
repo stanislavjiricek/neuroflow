@@ -217,6 +217,8 @@ At end: list both files in `.neuroflow/paper/flow.md`; session line `## HH:MM �
 3. Write `.neuroflow/paper/xray-{file-stem}-YYYY-MM-DD.md` and `.jsonl`, list both in `.neuroflow/paper/flow.md`, and give the person the counts. These files critique an unpublished manuscript, so they are local tier (neuroflow-core → Sharing tiers): never committed, never exported. If the project `.gitignore` lacks the `.neuroflow/paper/xray-*` line (a project scaffolded before it existed), `/migrate` adds it.
 4. **Applying fixes — only when asked.** The person ticks the findings to accept. Apply only ticked items, exactly as written, to a `-r1` copy under the `--revise` prime rule; a `NEEDS-SOURCE` item only with the value the person supplies. Record each applied fix in `.neuroflow/paper/xray-changes-YYYY-MM-DD.md` (one `## S3.2-1` heading per finding, then `Changed (…):` and the new wording quoted) and run `revise_audit.py` on it before showing the result.
 
+**With the neuroflow mod active:** `/paper --xray view` opens the newest X-ray as a pane, where the person accepts a finding (its box is ticked) or rejects it with a reason (recorded in both X-ray files); `/paper --xray check <file>` runs only `statcheck.py` and `cite_check.py` (from the DOI cache) and reports them without a model turn. Without the mod, the person ticks the boxes in the `.md` copy.
+
 At end: session line `## HH:MM — [paper] X-ray of {file}: {r} red, {o} orange`.
 
 ---
@@ -231,5 +233,7 @@ At end: session line `## HH:MM — [paper] X-ray of {file}: {r} red, {o} orange`
 - **`status`** — one line, e.g. `Auto paper: on | 42 facts (7 final) | synced 2026-10-07 | 5 gaps | H2: no final result`.
 
 A result becomes `final` only when the person says so; then append a `final` ledger row in that turn. For an unattended refresh: `/loop 1d /paper --auto sync`, or a scheduled `claude -p "/paper --auto sync"`.
+
+**With the neuroflow mod active,** `--auto status` is answered in code and opens a pane with the reporting gaps, the Results slots still without a final result and the allow-listed sources changed since the last sync; `y` in the pane runs `--auto sync` (a normal model turn). The mod never writes the skeleton itself.
 
 At end: list the three files in `.neuroflow/paper/flow.md`; session line `## HH:MM — [paper] Auto skeleton synced: {n} facts, {g} gaps`.

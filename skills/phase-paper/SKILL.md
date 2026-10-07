@@ -191,7 +191,7 @@ Section findings:
 {"id": "S3.2-1", "scope": "sentence", "sentence": "S3.2", "line": 42, "severity": "red", "area": 4, "basis": "script:statcheck", "finding": "reported p does not match t and df (recomputed p = .022)", "fix": "NEEDS-SOURCE: the p-value from the analysis output", "status": "open"}
 ```
 
-`scope` is `sentence`, `paragraph`, `section` or `paper`; `basis` is `script:statcheck`, `script:cite_check` or `model`; `status` is `open`, `accepted` (ticked) or `rejected`. A rejected scientific finding stays in the file with the person's reason, and a later X-ray raises it again only if the sentence changed.
+`scope` is `sentence`, `paragraph`, `section` or `paper`; `basis` is `script:statcheck`, `script:cite_check` or `model`; `status` is `open`, `accepted` (ticked) or `rejected` (with a `reason`). A rejected scientific finding stays in the file with the person's reason, and a later X-ray raises it again only if the sentence changed. In the `.md` copy a rejection keeps the box empty and appends ` — rejected: <reason>` to the finding's line.
 
 ## Slash command
 
