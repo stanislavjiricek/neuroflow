@@ -5,6 +5,8 @@
 //    or bloated injection) — deadlines and tasks belong on screen, not in the prompt.
 //  - M004: when a neuroflow command starts, a compact digest of the facts its prose reads first
 //    (config, integrity state, the phase's flow.md, the latest problem note) follows the command
+//  - every neuroflow command, in a project or not, is told which folder neuroflow runs from, so its
+//    prose never searches for its own scripts and lands on another cached version
 //  - M143: with a linked flowie profile, a capped digest of it (identity and wellbeing left out) is a
 //    second stable section — the prose reads the same file silently at every command start
 //  - M133: a prompt that names wiki pages gets their titles and summaries attached (at most three,
@@ -13,6 +15,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { NfSnapshot, NfWikiPage } from '../../../types'
+import { manifestVersion } from '../lib/config'
 import type { NfIo } from '../lib/io'
 import type { NfOptions } from '../lib/options'
 import { join, toSlash } from '../lib/paths'
@@ -37,6 +40,13 @@ export const identitySection = (snap: NfSnapshot): string =>
     `Project: ${snap.projectName ?? 'unnamed'} · active phase: ${snap.phase ?? 'none'}${snap.mode ? ` · mode: ${snap.mode}` : ''}.`,
     'Project memory lives in .neuroflow/; project_config.md is the source of truth for these facts.',
     'Read project_config.md and flow.md before neuroflow work, and follow the neuroflow-core lifecycle.',
+  ].join('\n')
+
+/** The folder neuroflow runs from, for the prose that addresses its own scripts (neuroflow-core → The plugin's own files). */
+export const pluginNote = (root: string, version: string | null): string =>
+  [
+    `neuroflow${version === null ? '' : ` ${version}`} is loaded from ${toSlash(root)}; a neuroflow skill's base directory is ${toSlash(root)}/skills/<skill name>.`,
+    'Use these paths for neuroflow\'s own scripts and files. Never search ~/.claude/plugins or elsewhere for neuroflow: other versions may be cached there.',
   ].join('\n')
 
 const DIGEST_MAX = 1600
@@ -237,18 +247,24 @@ export const registerContext = (on: On, _opts: NfOptions): void => {
     return result
   }).catch(($, e, next) => next(e))
 
-  // M004: the command-start digest follows a markdown command; code-answered and quiet commands get none.
+  // M004: the command-start digest follows a markdown command in a project; before it, every markdown
+  // command (a new project's /neuroflow:neuroflow too) learns the folder neuroflow runs from.
+  // Code-answered and quiet commands get neither.
   on('command.run', { command: /^neuroflow:/ }, async ($, e, next) => {
     const result = await next(e)
     if (result.ref === undefined) return result
+    const command = await read($, activeCommandAtom)
+    if (command === null || command.lifecycle === 'quiet') return result
+    const io = ioOf($)
+    const notes = [pluginNote($.plugin.root, manifestVersion(await io.read(join($.plugin.root, '.claude-plugin/plugin.json'))))]
     const scope = await read($, scopeAtom)
     const snap = await read($, snapshotAtom)
-    const command = await read($, activeCommandAtom)
-    if (!scope?.isActive || scope.root === null || snap === null || command === null || command.lifecycle === 'quiet') return result
-    if (command.name === 'wiki') await loadAmbient($, scope.root, snap).catch(() => undefined)
-    const flow = command.phase === 'utility' ? null : await ioOf($).read(join(scope.root, '.neuroflow', command.phase, 'flow.md'))
-    const digest = commandDigest(command.name, command.phase, snap, flow, await latestProblem($, scope.root))
-    return { ...result, context: [...(result.context ?? []), digest] }
+    if (scope?.isActive && scope.root !== null && snap !== null) {
+      if (command.name === 'wiki') await loadAmbient($, scope.root, snap).catch(() => undefined)
+      const flow = command.phase === 'utility' ? null : await io.read(join(scope.root, '.neuroflow', command.phase, 'flow.md'))
+      notes.push(commandDigest(command.name, command.phase, snap, flow, await latestProblem($, scope.root)))
+    }
+    return { ...result, context: [...(result.context ?? []), ...notes] }
   }).catch(($, e, next) => next(e))
 
   // M133: wiki pages a typed prompt names are attached as data (never for slash commands).

@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import type { NfSnapshot } from '../../../types'
-import { commandDigest, footerLabel, identitySection, parseWikiIndex, profileDigest, wikiMatches, wikiNote } from '../features/context'
+import { commandDigest, footerLabel, identitySection, parseWikiIndex, pluginNote, profileDigest, wikiMatches, wikiNote } from '../features/context'
 import { QUIET_MS, isQuiet } from '../features/scope'
 import { phaseMark } from '../features/views'
 import { fakeFs } from './fakefs'
@@ -39,6 +39,16 @@ const full = {
   deadlines: [{ date: '2026-10-20', what: 'Abstract', gates: null, daysLeft: 13 }], phasesVisited: [], taskCounts: null, loops: [], meetings: [],
   wellbeingDue: false, ethicsNotApplicable: false, flowieProfiles: [], wikiCapture: null, wikiPending: 0, problems: [], loadedAt: 0,
 } as NfSnapshot
+
+describe('plugin note', () => {
+  test('names the running folder and warns off cached copies', () => {
+    const note = pluginNote('C:\\dev\\neuroflow', '0.2.22')
+    expect(note).toContain('neuroflow 0.2.22 is loaded from C:/dev/neuroflow;')
+    expect(note).toContain('base directory is C:/dev/neuroflow/skills/<skill name>')
+    expect(note).toContain('Never search ~/.claude/plugins')
+    expect(pluginNote('/opt/nf', null)).toContain('neuroflow is loaded from /opt/nf;')
+  })
+})
 
 describe('command digest', () => {
   test('names the integrity facts the prose reads first, compactly', () => {
@@ -115,6 +125,9 @@ describe('context in a session', () => {
     [`${root}/.neuroflow/wiki/index.md`]: '| [P300 amplitude](pages/concepts/p300.md) | Oddball P300 amplitude and attention load | 2026-09-01 | 3 |\n',
     '*/commands/data-analyze.md': '---\nname: data-analyze\nphase: data-analyze\nlifecycle: full\n---\n',
     '*/commands/idk.md': '---\nname: idk\nphase: utility\nlifecycle: quiet\n---\n',
+    '*/commands/neuroflow.md': '---\nname: neuroflow\nphase: setup\nlifecycle: full\n---\n',
+    // Not named "neuroflow": the pattern also matches the project, which would then read as the plugin's own repo.
+    '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
   }
 
   test('a command start carries the digest; a quiet command none', { options: { runtime: 'observe' } }, async ($, on) => {
@@ -131,6 +144,23 @@ describe('context in a session', () => {
     expect((run.context ?? []).join('\n')).toContain('| analysis-plan.md | the plan |')
     const quiet = await $.command.run({ command: 'neuroflow:idk', args: '' })
     expect((quiet.context ?? []).join('\n')).not.toContain('neuroflow digest')
+    expect((run.context ?? [])[0]).toContain('neuroflow 0.2.22 is loaded from ')
+    expect((quiet.context ?? []).join('\n')).not.toContain('is loaded from')
+  })
+
+  test('outside a project a command still learns where neuroflow runs from', { options: { runtime: 'observe' } }, async ($, on) => {
+    fakeFs(on, files, '/work/empty')
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: 0 })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.toast', () => ({ value: undefined }))
+    on('command.run', () => ({ text: '', ref: 1 }))
+    await $.session.start({ cwd: '/work/empty', surface: 'terminal', isInteractive: true })
+    const run = await $.command.run({ command: 'neuroflow:neuroflow', args: '' })
+    const context = (run.context ?? []).join('\n')
+    expect(context).toContain('neuroflow 0.2.22 is loaded from ')
+    expect(context).not.toContain('neuroflow digest')
   })
 
   test('a typed prompt that names a wiki page gets it attached', { options: { runtime: 'observe' } }, async ($, on) => {

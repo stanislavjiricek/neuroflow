@@ -20,7 +20,7 @@ Run from the project root (the folder that contains `.neuroflow/`):
 python <neuroflow-core skill base dir>/scripts/nf_check.py --json
 ```
 
-Claude Code shows the base directory when the `neuroflow:neuroflow-core` skill loads; in an installed plugin it is `~/.claude/plugins/cache/neuroflow/neuroflow/<version>/skills/neuroflow-core`. The script never writes anything.
+Claude Code shows the base directory when the `neuroflow:neuroflow-core` skill loads; use that path and never look for the script under `~/.claude/plugins`, where other versions may be cached (`neuroflow:neuroflow-core` → **The plugin's own files**). The script never writes anything.
 
 | Exit code | Meaning | What to do |
 |---|---|---|

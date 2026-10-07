@@ -35,7 +35,9 @@ next:
 
 ## Greeting
 
-Before doing anything else, display the ASCII welcome logo:
+First load the `neuroflow:neuroflow-core` skill with the Skill tool. Claude Code shows its base directory when it loads; every `<neuroflow-core base dir>` below is that path (`neuroflow:neuroflow-core` → **The plugin's own files**). Never search `~/.claude/plugins` or anywhere else for neuroflow's files: other versions may be cached there.
+
+Then, before anything else, display the ASCII welcome logo:
 
 ```
    ____  ___  __  ___________  / __/ /___ _      __

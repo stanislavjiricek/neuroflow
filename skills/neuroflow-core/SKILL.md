@@ -305,6 +305,10 @@ The scaffold (and `/neuroflow:migrate`) adds these lines to the project's `.giti
 
 Find `.neuroflow/` by walking up from the working directory: the project root is the first folder whose `.neuroflow/` contains `project_config.md`. Stop at the git repository root and never look at or above the home directory — `~/.neuroflow/` there is the user-level folder, not project memory. Started in a subfolder, use the project above it; never scaffold a second `.neuroflow/` inside a project or in the home directory.
 
+### The plugin's own files
+
+Scripts and files that ship with neuroflow (`scaffold.py`, `nf_check.py`, `.claude-plugin/plugin.json`, …) are addressed from a skill's base directory, which Claude Code shows when that skill loads; load the skill with the Skill tool when it is not loaded yet. Never search for neuroflow under `~/.claude/plugins` or anywhere else: older versions stay cached there, and a development copy may run from another folder, so a search can find files that are not the running plugin's. With the neuroflow mod active, a neuroflow command's start also names the folder neuroflow is loaded from.
+
 ### Lifecycle profiles
 
 Every command declares `lifecycle:` in its frontmatter (**Command frontmatter standard**). Follow its profile:
