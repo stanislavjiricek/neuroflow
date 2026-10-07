@@ -11,11 +11,12 @@ Distinct from [`/notes`](notes.md), which captures unstructured live input. `/me
 | Flag | What it does |
 |------|-------------|
 | `--new` | Schedule a new meeting (from template or custom) |
-| `--prepare <slug>` | Populate agenda with active tasks and project context |
+| `--prepare <slug>` | Populate agenda with active tasks, follow-ups from earlier meetings of the same series, and project context |
+| `--notes <slug>` | Take live notes straight into the meeting file (`a:` action items, `d:` decisions) |
 | `--view <slug>` | Display meeting file with linked task statuses inline |
-| `--list` | List all meetings at the current level |
-| `--invite <slug>` | Send or re-send Google Calendar invites |
-| `--close <slug>` | Finalize meeting and auto-create tasks from action items |
+| `--list` | List meetings at the current level — next upcoming and not-yet-closed first |
+| `--invite <slug>` | Send or re-send Google Calendar invites, after you confirm the recipient list |
+| `--close <slug>` | Finalize meeting and create tasks from action items (dry run first) |
 | `--init` | Create recurring meeting templates |
 
 ---
@@ -61,20 +62,23 @@ Define templates once in `config.json` — reuse on every `/meeting --new`:
 
 ## Calendar integration
 
-`--new` optionally calls the Google Calendar MCP to create an event with all attendees, returning an event link stored in the meeting file's frontmatter.
+`--new` optionally calls the Google Calendar MCP to create an event with all attendees, returning an event link stored in the meeting file's frontmatter. Invites email real people, so Claude lists every recipient address and sends only after you say yes.
+
+Email addresses come only from the roster (the hive's `members.md`, `collaborators:` in `project_config.md`, your flowie profile) or from you — Claude never guesses or constructs one. Attendees without an address are left out of invites.
 
 ---
 
 ## Action items → tasks
 
-`--close` parses the `## Action Items` section and creates tasks:
+`--close` turns the open checkboxes in `## Action Items` into task files in the [`/tasks`](tasks.md) format:
 
 ```markdown
-- [ ] Fix RT pipeline → @stanislav [project/active]
-- [ ] Update ethics form [project/inbox]
+- [ ] Fix RT pipeline → @alex [project/active]
+- [ ] Review grant draft -> @sam due:2026-10-20 [flowie]
+- [ ] Update ethics form
 ```
 
-Each item becomes a task file at the specified level and column, tagged with `meeting:{slug}`.
+Owner (`→ @handle`), `due:` and `[level/column]` are optional; the default is `[project/inbox]`. The conversion is done by a small script (`meeting_close.py`) so it is the same every time: it first shows a dry-run plan, writes only after you confirm, records the new tasks in the meeting's `linked_tasks`, stamps `closed:`, and never creates a task twice. It never sends invites or emails and never pushes.
 
 ---
 
@@ -83,4 +87,4 @@ Each item becomes a task file at the specified level and column, tagged with `me
 - [`neuroflow:phase-meeting`](../skills/phase-meeting/SKILL.md) — full skill with mode-by-mode implementation
 - [`/hive`](hive.md) — team Hive for shared directions and hive-level meetings
 - [`/notes`](notes.md) — unstructured live note capture (use this for talks, seminars)
-- [`/flowie --tasks`](flowie.md) — 3-tier Kanban task board
+- [`/tasks`](tasks.md) — the 3-tier Kanban task board (task file format)

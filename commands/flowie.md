@@ -17,6 +17,8 @@ reads:
   - ~/.neuroflow/flowie/wiki/index.md
   - ~/.neuroflow/flowie/wiki/log.md
   - ~/.neuroflow/flowie/wiki/pages/**
+  - ~/.neuroflow/local-projects.json
+  - ~/.neuroflow/flowie-sync.log
   - skills/wiki/SKILL.md
 writes:
   - ~/.neuroflow/flowie/profile.md
@@ -30,8 +32,11 @@ writes:
   - ~/.neuroflow/flowie/wellbeing/config.json
   - ~/.neuroflow/flowie/wellbeing/*.json
   - ~/.neuroflow/flowie/wiki/
+  - ~/.neuroflow/local-projects.json
+  - ~/.neuroflow/flowie-sync.log
   - .neuroflow/project_config.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: light
 ---
 
 # /flowie
@@ -39,7 +44,7 @@ writes:
 Personal research OS for neuroflow. Links the current project to a private GitHub repository — the user's `flowie` repo — which stores four layers of research infrastructure:
 
 1. **Identity layer** — `profile.md`, `ideas.md`: research stances, writing style, methodological preferences, cross-project hypotheses
-2. **Kanban task board** — `tasks/`: column-per-folder, task-per-.md-file, ASCII board view
+2. **Kanban task board** — `tasks/`: column-per-folder, task-per-.md-file, ASCII board view (format and board rules: `/tasks`)
 3. **Project registry** — `projects/`: `projects.json` machine index + one `{name}.md` per project with phase timeline
 4. **Personal wiki** — `wiki/`: LLM-maintained knowledge base with indexed pages, source summaries, concept synthesis, and method library
 
@@ -53,15 +58,28 @@ Flowie is fully optional. Nothing breaks if it is not set up.
 
 ## Git operations pattern
 
-All git operations use the `-C` flag to target the flowie repo directory. All push operations fail silently to avoid blocking the user on network issues.
+All git operations use the `-C` flag to target the flowie repo directory. Network failures never block the person — but they are reported, not swallowed.
+
+**Pull** (before any read):
 
 ```bash
-# Pull before any read:
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-
-# After any write:
-git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "..." && git -C ~/.neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie pull --rebase
 ```
+
+If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — never leave a half-finished rebase — tell the person, and resolve it with them in `--sync`. If it fails for network reasons, say so once and carry on with the local copy.
+
+**Sync** (after a write) — `{paths}` are exactly the files this mode changed:
+
+```bash
+git -C ~/.neuroflow/flowie add -- {paths}
+git -C ~/.neuroflow/flowie commit -m "{message}" -- {paths}   # "nothing to commit" is fine: the auto-sync hook already did it
+git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push
+```
+
+<!-- nf-rule: GIT-NO-SECRETS -->
+Never `git add -A`, never stage `integrations.json`. If the pull stops on a conflict, abort it as above and leave the push for `--sync`.
+
+Files written with Edit/Write are synced by the plugin's **flowie auto-sync hook**: it commits that one file, pulls with rebase, then pushes. It skips `integrations.json` and gitignored files, does nothing while a rebase or merge is in progress, and never blocks — each failure is appended as one line to `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The Sync step above still runs for every write, so the prose works with hooks disabled, and it is the only thing that commits changes made through Bash (`git mv`, deletions).
 
 Never use a staging/remote-sync subdirectory. The flowie directory is the repo.
 
@@ -80,7 +98,7 @@ Read `.neuroflow/project_config.md` and `.neuroflow/flow.md`.
 Check whether `~/.neuroflow/flowie/` exists:
 
 - **If it does not exist** — this is first run. Go to Step 2.
-- **If it exists** — pull latest from GitHub (`git -C ~/.neuroflow/flowie pull --rebase origin main || true`), then read `sync.json` to confirm the linked GitHub repo and last sync time. Go to Step 3 (mode menu).
+- **If it exists** — pull latest from GitHub (Git operations pattern), then read `sync.json` to confirm the linked GitHub repo and last sync time. If `~/.neuroflow/flowie-sync.log` exists and is not empty, tell the person once: *"{N} flowie auto-sync failure(s) since {first timestamp} — run `/flowie --sync` to resolve."* Go to Step 3 (mode menu).
 
 ---
 
@@ -169,7 +187,7 @@ Confirm creation succeeded, then continue to Step 2c (init path).
 git clone --depth 1 https://github.com/{username}/flowie ~/.neuroflow/flowie
 ```
 
-After cloning, scaffold any missing files/folders from the spec below without overwriting existing content.
+After cloning, scaffold any missing files/folders from the spec below without overwriting existing content. If `.gitignore` exists but does not list `integrations.json`, append that line.
 
 **If creating a new repo** (Step 2b created one):
 
@@ -178,6 +196,7 @@ Create `~/.neuroflow/flowie/` and scaffold the full structure:
 ```
 ~/.neuroflow/flowie/
   .flow                          ← root index (neuroflow convention)
+  .gitignore                     ← integrations.json (never synced)
   profile.md                     ← research identity template
   ideas.md                       ← cross-project hypotheses template
   sync.json
@@ -297,12 +316,14 @@ Kanban board — one folder per column, one .md file per task.
   ],
   "projects": {},
   "task_schema": {
-    "required": ["title", "project"],
-    "optional": ["phase", "due", "tags", "blocked_by"]
+    "required": ["title", "status", "created", "updated", "project"],
+    "optional": ["owner", "due", "phase", "tags", "blocked_by", "source"]
   },
   "archive_after_days": 90
 }
 ```
+
+`task_schema` mirrors the one task format defined in `/tasks` — that file wins if they ever disagree.
 
 Each column folder (`inbox/`, `ready/`, `active/`, `review/`, `meeting/`, `done/`, `archive/`) gets a `.flow` file:
 ```markdown
@@ -341,16 +362,23 @@ Tasks in this column.
 }
 ```
 
-**Init and push to GitHub:**
+**`.gitignore`:**
+```
+integrations.json
+```
+
+**Init and push to GitHub** (stage the scaffold by name — never `git add -A`):
 
 ```bash
 cd ~/.neuroflow/flowie
-git init
+git init -b main
 git remote add origin https://github.com/{username}/flowie
-git add -A
+git add -- .gitignore .flow profile.md ideas.md sync.json projects tasks notes wellbeing
 git commit -m "init: scaffold flowie research OS"
-git push -u origin main || true
+git push -u origin main
 ```
+
+If the push fails, say why (auth, network) and leave it for `/flowie --sync`.
 
 Tell the user:
 ```
@@ -421,10 +449,7 @@ Ask each question one at a time. Do not rush.
 
 9. *"Would you like to track your daily wellbeing — anxiety, energy, and happiness on a 1–10 scale? Claude will prompt you to fill in a rating each day when you sync flowie. [y/N]"*
 
-   If yes: read `wellbeing/config.json`, set `collect` to `true`, write the file, then push:
-   ```bash
-   git -C ~/.neuroflow/flowie add wellbeing/config.json && git -C ~/.neuroflow/flowie commit -m "wellbeing: enable daily tracking" && git -C ~/.neuroflow/flowie push || true
-   ```
+   If yes: read `wellbeing/config.json`, set `collect` to `true`, write the file, then Sync `wellbeing/config.json` (`wellbeing: enable daily tracking`).
 
 After collecting all answers, write a structured `profile.md`:
 
@@ -460,10 +485,7 @@ Here is your profile. Does this look right? [Y / edit]
 
 If the user wants to edit, accept their corrections. Only write the file once they confirm.
 
-After writing, push to GitHub:
-```bash
-git -C ~/.neuroflow/flowie add profile.md && git -C ~/.neuroflow/flowie commit -m "profile: initial build" && git -C ~/.neuroflow/flowie push || true
-```
+After writing, Sync `profile.md` (`profile: initial build`).
 
 Offer to sync to GitHub immediately if push fails:
 ```
@@ -480,34 +502,29 @@ Read `sync.json` for the repo URL. If it is missing, tell the user to run `/flow
 
 ### Pull step
 
-```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-```
-
-If the pull succeeds, report what changed (use `git -C ~/.neuroflow/flowie diff --stat HEAD@{1} HEAD` to summarise).
+Pull (Git operations pattern). If the pull succeeds, report what changed (use `git -C ~/.neuroflow/flowie diff --stat HEAD@{1} HEAD` to summarise).
 
 - If nothing changed, report "No changes to pull."
 - If there are changes, show a brief diff summary.
 
+If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort`, show the conflicting files with both versions side by side (local vs `git -C ~/.neuroflow/flowie show @{u}:{path}`), and agree each one with the person. Then pull again, write the agreed version of each conflicting file, `git add` it and `git rebase --continue` — never pick a side silently, and push nothing before the rebase is finished (phase-flowie → GitHub sync protocol).
+
 ### Push step
 
-Check for local uncommitted changes:
+Check for local uncommitted changes and unpushed commits:
 
 ```bash
 git -C ~/.neuroflow/flowie status --short
+git -C ~/.neuroflow/flowie rev-list --count @{u}..HEAD
 ```
 
-If there are staged or unstaged changes:
+If files changed, list them for the person, then Sync exactly those paths (`sync: {YYYY-MM-DD HH:MM}`) — never `add -A`, never `integrations.json`. If only unpushed commits remain, push them.
 
-```bash
-git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "sync: {YYYY-MM-DD HH:MM}" && git -C ~/.neuroflow/flowie push || true
-```
+Update `last_synced` in `sync.json` to the current ISO 8601 timestamp, then Sync `sync.json` (`sync: update last_synced`).
 
-Update `last_synced` in `sync.json` to current ISO 8601 timestamp, then commit the update:
+### Auto-sync log
 
-```bash
-git -C ~/.neuroflow/flowie add sync.json && git -C ~/.neuroflow/flowie commit -m "sync: update last_synced" && git -C ~/.neuroflow/flowie push || true
-```
+If `~/.neuroflow/flowie-sync.log` has lines, show them (newest last). Once the pull and the push above have both succeeded, the failures it records are resolved: empty the file. If either step failed, leave the log as it is.
 
 ### Wellbeing check
 
@@ -518,6 +535,7 @@ Report:
 Sync complete — {YYYY-MM-DD HH:MM}
   Pulled: {summary or "no changes"}
   Pushed: {N files or "nothing to push"}
+  Auto-sync failures: {N cleared, or "none"}
   Last synced: {timestamp}
 ```
 
@@ -572,10 +590,7 @@ Do not write anything during `--credentials`. This is a read-only display mode.
 
 **Trigger:** user runs `/flowie --link` or selects "Link this project to your flowie profile".
 
-Pull first:
-```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-```
+Pull first (Git operations pattern).
 
 After pulling, run the wellbeing check (same as in `--sync`): if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before continuing.
 
@@ -593,7 +608,16 @@ Which project does this neuroflow repo belong to? [1/2/3]
 
 If the user selects an existing project:
 - Read `.neuroflow/project_config.md`. If a `flowie_profiles:` list already exists, append a new entry `- handle: {username}\n  repo: {username}/flowie` if this handle is not already present. If no `flowie_profiles:` list exists, add one (replacing any legacy `flowie_project:` or `flowie_profile:` scalar field). The entry for the user who ran `--link` becomes the first entry if the list was empty.
-- Open `projects/{name}.md`, add the current repo path under a `## Linked repos` section if not already present
+- Open `projects/{name}.md` and, under a `## Linked repos` section, add this repo's remote URL (`git remote get-url origin`) if it has one and it is not listed yet. Never write the local folder path there — flowie syncs to every machine you use.
+- Record the local folder in the machine-local registry `~/.neuroflow/local-projects.json` (create it if missing; it lives outside the flowie repo and is never committed or synced). One entry per local folder, forward slashes; if the path is already listed, update `last_opened`:
+  ```json
+  {
+    "projects": [
+      { "name": "AlphaModulation", "path": "/home/me/code/alpha-modulation", "remote": "https://github.com/me/alpha-modulation", "last_opened": "2026-10-07" }
+    ]
+  }
+  ```
+  `name` is the flowie project id; `remote` is optional.
 
 If the user selects "create new", run `--projects --add` inline to register the project first, then link.
 
@@ -603,10 +627,7 @@ This project is now linked to {name} in your flowie registry.
 Claude will read your profile and project registry when assisting in any neuroflow phase.
 ```
 
-Push changes:
-```bash
-git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "link: {project} ← {repo-basename}" && git -C ~/.neuroflow/flowie push || true
-```
+Sync `projects/{name}.md` if it changed (`link: {project} ← {repo-basename}`). `~/.neuroflow/local-projects.json` is never staged.
 
 Write to `sessions/YYYY-MM-DD.md`.
 
@@ -616,10 +637,7 @@ Write to `sessions/YYYY-MM-DD.md`.
 
 **Trigger:** user runs `/flowie --view` or selects "Show your current profile summary".
 
-Pull first:
-```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-```
+Pull first (Git operations pattern).
 
 Read `~/.neuroflow/flowie/profile.md`. Display it formatted:
 
@@ -652,10 +670,7 @@ Do not write anything during `--view`.
 
 **Trigger:** user runs `/flowie --identify` or selects "Generate a 'who you are' paragraph from existing data".
 
-Pull first:
-```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-```
+Pull first (Git operations pattern).
 
 Read all files in `~/.neuroflow/flowie/`. Also read `.neuroflow/project_config.md` and any reasoning logs in `.neuroflow/reasoning/` to gather additional signal about how the user thinks.
 
@@ -680,10 +695,7 @@ If the user corrects it, incorporate their corrections. Then ask:
 Update your profile with this description? [Y/n]
 ```
 
-If yes, append a `## Claude's read` section to `profile.md` with the confirmed paragraph, then push:
-```bash
-git -C ~/.neuroflow/flowie add profile.md && git -C ~/.neuroflow/flowie commit -m "profile: add Claude's read" && git -C ~/.neuroflow/flowie push || true
-```
+If yes, append a `## Claude's read` section to `profile.md` with the confirmed paragraph, then Sync `profile.md` (`profile: add Claude's read`).
 
 ---
 
@@ -691,156 +703,12 @@ git -C ~/.neuroflow/flowie add profile.md && git -C ~/.neuroflow/flowie commit -
 
 **Trigger:** user runs `/flowie --tasks` (with or without sub-flags).
 
-**Rendering rule (mandatory):** ALWAYS render task displays as ASCII box kanban boards. NEVER use plain lists, bullet points, or prose for any task display operation — this applies to the default board view, filtered views, `--list`, and single-task lookups. The only exception is `--list`, which has its own defined flat-list format below.
+`/flowie --tasks [sub-flags]` is `/tasks --level flowie [sub-flags]`: follow `commands/tasks.md` exactly — the task file format (`tasks/{column}/{slug}.md` with `status`, `owner`, `updated`, …), the columns, the modes (`--list`, `--add`, `--move`, `--done`, `--archive`, `--project`), moves, and the mandatory ASCII board. This section only adds what is specific to flowie:
 
-Pull first:
-```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-```
-
-Read `tasks/config.json` for column definitions. Read all `.md` files from all column folders (excluding `.flow`).
-
-Determine the active task level: if `--level project` or `--level hive` is passed, operate at that level (see 3-tier model below). Default is `flowie` (`~/.neuroflow/flowie/tasks/`).
-
-### 3-tier task levels
-
-Tasks exist at three levels with identical kanban structure:
-
-| Level | Location | Git-tracked in | Visible to |
-|-------|----------|----------------|------------|
-| `flowie` (default) | `~/.neuroflow/flowie/tasks/` | flowie private repo | owner only |
-| `project` | `.neuroflow/tasks/` | project repo | all collaborators |
-| `hive` | `{hive-repo}/tasks/` | hive org repo | whole team |
-
-Use `--level project` for tasks that belong to the shared project (sprint work, analysis steps, paper milestones). Use `--level hive` for team-wide tasks (shared methods, joint deadlines). Use `--level flowie` (default) for personal todos.
-
-All git operations for `--level project` target the project repo directly (no `-C` flag needed). For `--level hive`, use GitHub API or `gh` CLI targeting the hive repo.
-
-### --tasks (no sub-flag) — ASCII Kanban board
-
-Show the non-archive columns as a horizontal board. Show at most 5 tasks per column, truncated to 20 chars. Always show the done count and the active level at the bottom. Apply `--project` filter if provided.
-
-```
-┌─ 📥 Inbox ──────────┐  ┌─ ⚡ Active ──────────┐  ┌─ 👁 Review ──────────┐
-│ spin-tests-5ht2a    │  │ fix-rt-glasses @stan │  │ grant-draft @jana    │
-│ ethics-form         │  │ eeg-param-sweep      │  │                      │
-└─────────────────────┘  └──────────────────────┘  └──────────────────────┘
-[done: 3 tasks · level: flowie]
-```
-
-Show `responsible:` as `@{handle}` (truncated to fit 20-char column limit, appended after title). Omit if not set.
-
-Omit empty columns unless they are `inbox` or `active`. Show `meeting` and `ready` only if they contain tasks.
-
-### --tasks --list
-
-Flat list of all tasks across all non-archive columns, sorted by column order then by `due` date (soonest first, undated tasks last).
-
-```
-[inbox]   spin-tests-5ht2a     AlphaModulation  @—          due: 2026-04-15
-[inbox]   ethics-form          RT_DES           @—          due: —
-[active]  fix-rt-glasses       RT_DES           @stan       due: 2026-04-10
-[active]  eeg-param-sweep      AlphaModulation  @stan       due: —
-[review]  grant-draft          AlphaModulation  @jana       due: 2026-04-20
-```
-
-### --tasks --add
-
-Before starting, run the wellbeing check: if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before proceeding.
-
-Mini interview to create a new task. Ask:
-
-1. *"Task title?"*
-2. *"Level? [flowie / project / hive] (default: flowie)"*
-3. *"Which project? (list projects from projects.json)"*
-4. *"Responsible? (@handle or name, optional — who owns this task)"*
-5. *"Phase? (optional — press enter to skip)"*
-6. *"Due date? (YYYY-MM-DD, optional)"*
-7. *"Tags? (comma-separated, optional)"*
-8. *"Blocked by? (comma-separated slugs, optional)"*
-
-Generate slug from title: lowercase, spaces to hyphens, strip special chars, max 40 chars.
-
-Determine task root based on level:
-- `flowie` → `tasks/inbox/` (in `~/.neuroflow/flowie/tasks/inbox/`)
-- `project` → `.neuroflow/tasks/inbox/`
-- `hive` → `tasks/inbox/` in hive repo (via GitHub API or `gh`)
-
-Write task file to `{task-root}/{slug}.md`:
-
-```markdown
----
-title: {title}
-level: {flowie|project|hive}
-project: {project}
-responsible: {@ github handle or name, optional}
-phase: {phase or omit}
-created: {YYYY-MM-DD}
-due: {due or omit}
-tags: [{tags or empty}]
-blocked_by: [{blocked_by or empty}]
----
-
-## Context
-
-
-## Links
-
-```
-
-Confirm:
-```
-Task created: [{level}] tasks/inbox/{slug}.md
-```
-
-Push (flowie level):
-```bash
-git -C ~/.neuroflow/flowie add tasks/inbox/{slug}.md && git -C ~/.neuroflow/flowie commit -m "task: add {slug}" && git -C ~/.neuroflow/flowie push || true
-```
-
-Push (project level — standard git in project repo):
-```bash
-git add .neuroflow/tasks/inbox/{slug}.md && git commit -m "task: add {slug}" && git push || true
-```
-
-Push (hive level): use `gh` CLI or GitHub API to push to hive repo.
-
-### --tasks --move \<slug\> \<column\>
-
-Move a task file from its current column folder to the target column folder.
-
-1. Find `{slug}.md` across all column folders
-2. If not found, report "Task not found: {slug}"
-3. If found, move: `git -C ~/.neuroflow/flowie mv tasks/{current}/{slug}.md tasks/{column}/{slug}.md`
-4. Commit and push:
-   ```bash
-   git -C ~/.neuroflow/flowie commit -m "task: move {slug} → {column}" && git -C ~/.neuroflow/flowie push || true
-   ```
-5. Confirm: `Moved {slug} → {column}`
-
-### --tasks --done \<slug\>
-
-Shorthand for `--tasks --move {slug} done`. Move the task to `tasks/done/`.
-
-### --tasks --archive
-
-Manual archive sweep. Read all tasks in `tasks/done/`. For each task, check `created` date. If the task has been in done/ for more than `archive_after_days` (from config.json, default 90), move it to `tasks/archive/`.
-
-Report:
-```
-Archive sweep complete.
-  Moved to archive: {N} tasks
-  Kept in done: {M} tasks (not yet {archive_after_days} days old)
-```
-
-Push all moves in a single commit:
-```bash
-git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "tasks: archive sweep {YYYY-MM-DD}" && git -C ~/.neuroflow/flowie push || true
-```
-
-### --tasks --project \<name\>
-
-Filter the board (or list, if combined with `--list`) to show only tasks where `project:` matches `{name}`. Applies to `--tasks` (board view) and `--tasks --list`.
+- **Default level is `flowie`.** `--level project` and `--level hive` behave exactly as in `/tasks`.
+- Pull first (Git operations pattern). Column labels come from `tasks/config.json` when it exists.
+- `--add` at flowie level: `project` is required — suggest the current repo's entry in `~/.neuroflow/local-projects.json`, else the projects in `projects/projects.json`. Before `--add`, run the wellbeing check: if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline first.
+- New and edited task files are synced by the auto-sync hook and the Sync step; moves and the archive sweep are committed by path as in `/tasks` → Moves.
 
 ---
 
@@ -848,12 +716,9 @@ Filter the board (or list, if combined with `--list`) to show only tasks where `
 
 **Trigger:** user runs `/flowie --projects` (with or without sub-flags).
 
-Pull first:
-```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-```
+Pull first (Git operations pattern).
 
-Read `projects/projects.json`.
+Read `projects/projects.json`, and `~/.neuroflow/local-projects.json` if it exists (where each project lives on this machine).
 
 ### --projects (no sub-flag) — ASCII phase timeline
 
@@ -872,6 +737,8 @@ RT_DES [active]
 ```
 
 Only show phases that have been visited or are current/future relative to `current_phase`. Skip phases not yet reached and not in `visited_phases` unless `current_phase` is past them (show all visited + current + one next).
+
+If the project has an entry in `~/.neuroflow/local-projects.json`, add a `local: {path}` line under its repos — or `local: {path} (not found on this machine)` when the folder is gone. Never delete a registry entry unless the person asks.
 
 ### --projects --add
 
@@ -933,10 +800,7 @@ Confirm:
 Project registered: {id}
 ```
 
-Push:
-```bash
-git -C ~/.neuroflow/flowie add projects/projects.json projects/{id}.md && git -C ~/.neuroflow/flowie commit -m "projects: add {id}" && git -C ~/.neuroflow/flowie push || true
-```
+Sync `projects/projects.json projects/{id}.md` (`projects: add {id}`).
 
 ---
 
@@ -952,7 +816,9 @@ Read `wellbeing/config.json`. If `collect` is `false`:
 Wellbeing tracking is disabled. Enable it? [y/N]
 ```
 
-If yes: set `collect: true`, write `wellbeing/config.json`, push. If no: stop.
+If yes: set `collect: true`, write `wellbeing/config.json`, Sync it. If no: stop.
+
+Wellbeing is opt-in and self-reported: record exactly what the person answers — never estimate, suggest or pre-fill a score.
 
 Check whether `wellbeing/{today}.json` exists. If it already exists:
 
@@ -987,10 +853,7 @@ Write `wellbeing/{today}.json`:
 
 Update `wellbeing/.flow` — append a row: `| {today}.json | wellbeing entry |`.
 
-Push:
-```bash
-git -C ~/.neuroflow/flowie add wellbeing/{today}.json wellbeing/.flow && git -C ~/.neuroflow/flowie commit -m "wellbeing: {today}" && git -C ~/.neuroflow/flowie push || true
-```
+Sync `wellbeing/{today}.json wellbeing/.flow` (`wellbeing: {today}`).
 
 Confirm: `Wellbeing logged for {today}.`
 
@@ -1002,15 +865,9 @@ Confirm: `Wellbeing logged for {today}.`
 
 All wiki modes load the `neuroflow:wiki` skill and follow its full operation workflows. The wiki lives at `~/.neuroflow/flowie/wiki/`. The skill file defines all page formats, index/log conventions, ingest/query/lint/add workflows, and the neuroflow-specific integrations (project tagging, ideas.md sync, profile evolution, fails integration).
 
-Pull before every wiki read operation:
-```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-```
+Pull before every wiki read operation (Git operations pattern).
 
-Push after every wiki write:
-```bash
-git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "wiki: {description}" && git -C ~/.neuroflow/flowie push || true
-```
+After every wiki write, Sync the pages, `index.md` and `log.md` that the operation changed (`wiki: {description}`) — by path, never `add -A`.
 
 ### Mode: --wiki
 
@@ -1077,14 +934,11 @@ Load `neuroflow:wiki` skill. Follow the **Schema workflow** defined there. If `w
 
 ## Phase sync (called programmatically by /phase)
 
-This section is invoked automatically when the active phase in `project_config.md` changes. It is not a user-facing mode — `/phase` calls this logic after updating its own state.
+This section is invoked automatically when `active_phase` in `project_config.md` changes. It is not a user-facing mode — `/phase` calls this logic after updating its own state.
 
 1. Read `flowie_profiles` from `.neuroflow/project_config.md`. Use the first entry (`flowie_profiles[0]`). If the list is absent or empty, skip silently.
-2. Pull:
-   ```bash
-   git -C ~/.neuroflow/flowie pull --rebase origin main || true
-   ```
-3. Read `projects/projects.json`. Find the project entry where `id` matches the linked project name (from `projects/{name}.md` or the link step).
+2. Pull (Git operations pattern).
+3. Read `projects/projects.json`. Find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the entry whose `repos[].url` matches this repo's remote URL. If neither matches, skip silently.
    - Update `current_phase` to the new phase.
    - If the new phase is not already in `visited_phases`, append `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`.
 4. Write the updated `projects/projects.json`.
@@ -1092,10 +946,7 @@ This section is invoked automatically when the active phase in `project_config.m
    ```
    | {new_phase} | {YYYY-MM-DD} | — |
    ```
-6. Commit and push:
-   ```bash
-   git -C ~/.neuroflow/flowie add projects/projects.json projects/{name}.md && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie push || true
-   ```
+6. Sync `projects/projects.json projects/{name}.md` (`phase: {project} → {new_phase}`).
 
 If any step fails (file not found, JSON parse error), fail silently and log the error only to the session file. Do not surface the error to the user during a `/phase` run — flowie sync is a background concern.
 
@@ -1106,31 +957,33 @@ If any step fails (file not found, JSON parse error), fail silently and log the 
 - Never print the PAT to the terminal or write it to any file.
 - The `flowie` repo must be private. Do not confirm or suggest making it public.
 - Do not log task content, project details, or profile contents to `.neuroflow/sessions/` beyond the one-line summary.
+- Never write machine-local absolute paths (`C:/Users/…`, `/home/…`) into any flowie file — they sync to every machine. Local folders live only in `~/.neuroflow/local-projects.json`.
+- Wellbeing is self-reported only: never infer mood, stress or energy from messages, typing, timing or work patterns, and never record an inferred value anywhere.
 
 ---
 
 ## At end
 
-Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
+Append to `.neuroflow/sessions/YYYY-MM-DD.md` (canonical format — neuroflow-core → Command lifecycle):
 
 ```
-[HH:MM] /flowie — {mode}: {brief summary of what happened}
+## HH:MM — [flowie] {mode}: {brief summary of what happened}
 ```
 
 Examples:
-- `[14:22] /flowie — --init: built initial profile for {name}`
-- `[14:45] /flowie — --sync: pulled 3 changes from GitHub, pushed 1 file`
-- `[15:01] /flowie — --link: linked current project to AlphaModulation`
-- `[15:10] /flowie — --view: displayed profile`
-- `[15:18] /flowie — --identify: generated identity paragraph, user confirmed`
-- `[15:30] /flowie — --tasks: showed Kanban board (5 tasks across 3 columns)`
-- `[15:35] /flowie — --tasks --add: created task spin-tests-5ht2a in inbox`
-- `[15:40] /flowie — --tasks --move: moved fix-rt-glasses → active`
-- `[16:00] /flowie — --projects: showed phase timeline for 2 projects`
-- `[16:10] /flowie — --projects --add: registered project RT_DES`
-- `[16:30] /flowie — --wiki: showed wiki overview (24 pages, 8 sources)`
-- `[16:45] /flowie — --wiki-ingest: ingested "Gamma in WM" paper, updated 6 pages, tagged AlphaModulation`
-- `[17:00] /flowie — --wiki-query: answered "what do I know about ICA?", filed as synthesis page`
-- `[17:20] /flowie — --wiki-lint: found 3 orphan pages, 1 missing concept page, fixed 2`
-- `[17:30] /flowie — --wiki-add: created method page for "FOOOF spectral parameterization"`
-- `[17:45] /flowie — --wiki-schema: initialized wiki for EEG/cognition domain`
+- `## 14:22 — [flowie] --init: built initial profile for {name}`
+- `## 14:45 — [flowie] --sync: pulled 3 changes from GitHub, pushed 1 file, cleared 2 auto-sync failures`
+- `## 15:01 — [flowie] --link: linked current project to AlphaModulation`
+- `## 15:10 — [flowie] --view: displayed profile`
+- `## 15:18 — [flowie] --identify: generated identity paragraph, user confirmed`
+- `## 15:30 — [flowie] --tasks: showed Kanban board (5 tasks across 3 columns)`
+- `## 15:35 — [flowie] --tasks --add: created task spin-tests-5ht2a in inbox`
+- `## 15:40 — [flowie] --tasks --move: moved fix-rt-glasses → active`
+- `## 16:00 — [flowie] --projects: showed phase timeline for 2 projects`
+- `## 16:10 — [flowie] --projects --add: registered project RT_DES`
+- `## 16:30 — [flowie] --wiki: showed wiki overview (24 pages, 8 sources)`
+- `## 16:45 — [flowie] --wiki-ingest: ingested "Gamma in WM" paper, updated 6 pages, tagged AlphaModulation`
+- `## 17:00 — [flowie] --wiki-query: answered "what do I know about ICA?", filed as synthesis page`
+- `## 17:20 — [flowie] --wiki-lint: found 3 orphan pages, 1 missing concept page, fixed 2`
+- `## 17:30 — [flowie] --wiki-add: created method page for "FOOOF spectral parameterization"`
+- `## 17:45 — [flowie] --wiki-schema: initialized wiki for EEG/cognition domain`

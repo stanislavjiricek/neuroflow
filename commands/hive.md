@@ -8,10 +8,13 @@ reads:
   - ~/.neuroflow/hives/{org-repo}/hive.md
   - ~/.neuroflow/hives/{org-repo}/members.md
   - ~/.neuroflow/hives/{org-repo}/sync.json
+  - ~/.neuroflow/hives/{org-repo}/errata/
+  - ~/.neuroflow/hives/{org-repo}/review_checklist.md
 writes:
   - ~/.neuroflow/hives/{org-repo}/
   - ~/.neuroflow/hives/{org-repo}/sync.json
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: light
 ---
 
 # /hive
@@ -39,6 +42,8 @@ Parse the command for a mode flag. If no flag is given, default to `--view` if `
 | `--projects` | View and manage the lab project registry |
 | `--ideas` | View and append to lab-wide cross-project ideas |
 | `--tasks` | Show and manage the team Kanban board (follows the canonical `/tasks` board spec at hive level) |
+| `--errata` | View known problems in shared datasets, or add one (`--errata --add`) |
+| `--doctor` | Check this member's setup (GitHub auth, hive clone, roster, flowie, ignored secrets) — read-only |
 | `--recommend` | Get team-aware recommendations for the current phase |
 | `--wiki` | Show team wiki overview |
 | `--wiki-ingest` | Add a source to the team wiki (replaces --share) |
@@ -57,15 +62,15 @@ Follow the instructions for the selected mode exactly as defined in `neuroflow:p
 
 ## Step 3 — Session log
 
-Append a brief entry to `.neuroflow/sessions/YYYY-MM-DD.md`:
+Append a brief entry to `.neuroflow/sessions/YYYY-MM-DD.md` (canonical format — neuroflow-core → Command lifecycle):
 
 ```
-[HH:MM] /hive --{mode} — {one-line summary of what was done}.
+## HH:MM — [hive] --{mode}: {one-line summary of what was done}
 ```
 
 Examples:
 ```
-[14:23] /hive --init — Connected to acme-neuroscience/hive-lab. Team: ACME Neuro Lab. 3 active directions loaded.
-[15:01] /hive --wiki-ingest — Shared finding: "ICA-cleaned EEG pipeline for auditory MMN" to the team wiki.
-[09:45] /hive --sync — Pulled 2 new directions and 1 new curated paper from team Hive.
+## 14:23 — [hive] --init: connected to acme-neuroscience/hive-lab. Team: ACME Neuro Lab. 3 active directions loaded.
+## 15:01 — [hive] --wiki-ingest: shared finding "ICA-cleaned EEG pipeline for auditory MMN" to the team wiki.
+## 09:45 — [hive] --sync: pulled 2 new directions, 1 new erratum for oddball-eeg-2024.
 ```

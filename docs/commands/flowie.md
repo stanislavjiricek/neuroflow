@@ -19,7 +19,7 @@ The `flowie` GitHub repo has three layers:
 | Layer | Files | Purpose |
 |---|---|---|
 | **Identity** | `profile.md`, `ideas.md` | Research identity: stances, writing style, preferred methods, key beliefs; cross-project hypotheses |
-| **Kanban** | `tasks/config.json`, `tasks/{column}/` | Task board — one `.md` file per task, one folder per column |
+| **Kanban** | `tasks/config.json`, `tasks/{column}/{slug}.md` | Task board — one `.md` file per task, one folder per column; the format is defined by [`/tasks`](tasks.md) |
 | **Registry** | `projects/projects.json`, `projects/{name}.md` | Project list with GitHub repos, current phase, phase history |
 
 All data lives in `~/.neuroflow/flowie/` locally (this folder IS a git clone). GitHub is the canonical source of truth — pull before read, push after every write.
@@ -56,12 +56,12 @@ Then run `/flowie --init` to build your profile through a short interview.
 | `--link` | Link the current project to a flowie project entry; adds an entry to the `flowie_profiles:` list in `project_config.md` |
 | `--view` | Display your current profile summary |
 | `--identify` | Claude generates a "who you are" paragraph from your profile; you confirm or correct it |
-| `--tasks` | ASCII Kanban board view (all projects, or filtered with `--project {name}`) |
+| `--tasks` | ASCII Kanban board view (all projects, or filtered with `--project {name}`) — same as `/tasks --level flowie` |
 | `--tasks --list` | Flat list view of all tasks |
-| `--tasks --add` | Add a task via a mini interview (title → project → phase, due) |
+| `--tasks --add` | Add a task (title, project; owner, due date and phase when they apply) |
 | `--tasks --move <slug> <column>` | Move a task to a different column |
 | `--tasks --done <slug>` | Move a task to the `done/` column |
-| `--tasks --archive` | Sweep `done/` → `archive/` for tasks older than `archive_after_days` |
+| `--tasks --archive` | Sweep `done/` → `archive/` for tasks not updated for `archive_after_days` |
 | `--projects` | List all registered projects with ASCII phase timelines |
 | `--projects --add` | Register a new project (name, description, GitHub repos) |
 
@@ -71,7 +71,7 @@ If no mode flag is provided, `/flowie` shows the mode menu.
 
 ## Kanban board
 
-Tasks live as `.md` files inside column folders (`tasks/inbox/`, `tasks/active/`, etc.). Column definitions are in `tasks/config.json`.
+Tasks live as `.md` files inside column folders (`tasks/inbox/`, `tasks/active/`, etc.), one file per task named by its slug. Column definitions are in `tasks/config.json`. The file format and board rules are the same at every level — see [`/tasks`](tasks.md).
 
 **Default columns:** 📥 Inbox · 🟢 Ready · ⚡ Active · 👁 Review · 📅 Meeting · ✅ Done · 📦 Archive
 
@@ -97,6 +97,8 @@ AlphaModulation
 
 Phase changes are auto-synced: whenever `/phase` switches the active phase, if the project has a `flowie_profiles` binding, it updates the registry and pushes silently.
 
+Where each project lives on *this* machine is kept in `~/.neuroflow/local-projects.json`, outside the flowie repo and never synced — so no local folder paths end up in your GitHub repo. `/flowie --link` writes it; `/flowie --projects` shows the local folder next to each project.
+
 ---
 
 ## How Claude uses the profile
@@ -118,6 +120,8 @@ The profile informs suggestions — it does not override your explicit instructi
 - Profile data never appears in outputs intended for external readers (papers, grant proposals, reports)
 - `~/.neuroflow/flowie/` is excluded from `/export` by default
 - The PAT (if used) is held in memory only — never written to disk
+- `integrations.json` is gitignored in the flowie repo and never committed
+- Wellbeing entries are only what you type in `--assess` — nothing is inferred from your messages or working patterns
 
 ---
 
@@ -125,13 +129,13 @@ The profile informs suggestions — it does not override your explicit instructi
 
 `--sync` always pulls before pushing:
 
-1. Fetches remote changes and shows a diff
-2. You confirm before remote changes are applied
-3. Merge conflicts are shown side by side — never silently resolved
-4. Local changes are pushed after the pull step
-5. `last_synced` in `sync.json` is updated only if the push succeeds
+1. Pulls remote changes (rebase) and summarises what came in
+2. Merge conflicts are shown side by side — never silently resolved; a half-finished rebase is always aborted
+3. Local changes are listed, then committed by path (never `git add -A`, never `integrations.json`) and pushed
+4. `last_synced` in `sync.json` is updated only if the push succeeds
+5. Failures recorded by the auto-sync hook are shown, and cleared once a pull and a push have both succeeded
 
-All other write operations (task add/move/done, project add, phase sync) push silently with `|| true`.
+Every other write (task add/move/done, project add, wellbeing, phase sync) is synced as it happens: the plugin's auto-sync hook commits the one file Claude just wrote, pulls with rebase, then pushes. It never blocks you — if anything fails (offline, auth, a conflict), the commit stays local and one line goes to `~/.neuroflow/flowie-sync.log`, which `/flowie` mentions until `--sync` resolves it.
 
 ---
 
