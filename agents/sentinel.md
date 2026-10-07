@@ -160,13 +160,13 @@ Only after the user agrees, issue by issue:
 
 - Add a missing row to the relevant `flow.md`, or remove a row for a file that no longer exists (NF1)
 - Update `active_phase` in `project_config.md` if drift is unambiguous (S2)
-- Update `plugin_version` in `project_config.md` to the installed plugin version (NF2) — never in a file whose `nf_schema` is newer than the plugin knows; a legacy dialect gets only that value changed in place (converting the file is `/neuroflow:migrate`'s job)
 - Move `.md` files out of a skill-named subfolder in `.neuroflow/` into the active phase's subfolder, then delete the skill-named folder (NF6)
 - Write the static block from neuroflow-core (**Project instruction block**) to `.claude/CLAUDE.md`, or replace an older block that names an active phase with it (NF7)
 - Remove the neuroflow block from `~/.claude/CLAUDE.md`, `.github/copilot-instructions.md` or `AGENTS.md` (NF7) — show the exact block first and keep the rest of those files
 - Add a missing `wiki/` row to `.neuroflow/flow.md` (NF1, S7b); delete an obsolete hive `directions.md` (S8)
 
 Never automatic:
+- An older or missing `plugin_version` (NF2): suggest `/neuroflow:migrate`, which records the version after bringing the project, the flowie and the hive up to date. Never set the version by hand — that silences the update notice while the formats stay old
 - Frozen preregistration files and `preregistration/status.md` (NF3, S3) — freezing and unfreezing are a person's actions; changes go to `deviations.md`. Never write `set_by: person`.
 - Sensitive information (NF8, S5) — sentinel only surfaces findings. The user decides whether to redact, remove, or confirm each item.
 
