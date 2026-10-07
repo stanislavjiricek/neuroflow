@@ -11,6 +11,8 @@ answers a few commands instantly, fills bookkeeping gaps, and enforces a small s
 The mod is a layer, not the product. Every command works without it — slower, and with the model doing the
 bookkeeping — because the prose in `skills/` and `commands/` stays the source of truth.
 
+What became of each idea in the review behind the mod is in the [design record](design-record.md).
+
 !!! warning "Early access"
     Claude Code function hooks are an early-access API that changes between releases. The mod is tested against a
     minimum Claude Code version and a weekly canary on the latest release; when it cannot load, neuroflow keeps

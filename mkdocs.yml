@@ -123,6 +123,7 @@ nav:
       - Skills: concepts/skills.md
       - Hooks: concepts/hooks.md
       - The neuroflow mod: concepts/mods.md
+      - Design record: concepts/design-record.md
       - Personal Profile:
           - "👤 Research Profile": commands/flowie.md
           - "🧠 Personal Wiki": skills/wiki/SKILL.md
