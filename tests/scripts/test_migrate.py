@@ -14,6 +14,7 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "skills" / "neuroflow-core" / "scripts" / "migrate.py"
@@ -379,6 +380,33 @@ class MigrateTest(unittest.TestCase):
         self.assertIn("setup", phases)
         self.assertNotIn("utility", phases)
 
+    def test_a_project_file_that_is_not_utf8_blocks_and_is_never_rewritten(self) -> None:
+        config = self.nf / "project_config.md"
+        data = ("# Project config\n\n**Project:** Oddball\n**Active phase:** ideation\n"
+                "Instituce: Příklad, oddělení řízení.\n").encode("cp1250")
+        config.write_bytes(data)
+        code, result = self.migrate("--apply")
+        self.assertFalse(result["applied"])
+        self.assertTrue(any("is not UTF-8" in item for item in result["blocking"]), result["blocking"])
+        self.assertEqual(config.read_bytes(), data, "never rewritten")
+        self.assertFalse((self.project / ".gitignore").exists(), "nothing is written while it blocks")
+
+    def test_project_config_is_written_last(self) -> None:
+        # It records plugin_version: a run that stops part-way must leave the version notice in place.
+        self.write(".neuroflow/project_config.md", KEY_VALUE_CONFIG)
+        written: list[str] = []
+        real = migrate.sc.write_text
+
+        def record(path, text, newline="\n"):
+            written.append(Path(path).name)
+            real(path, text, newline)
+
+        with mock.patch.object(migrate.sc, "write_text", record):
+            code, result = self.migrate("--apply", "--move-personal")
+        self.assertTrue(result["applied"])
+        self.assertGreater(len(written), 2)
+        self.assertEqual(written[-1], "project_config.md")
+
     def test_output_survives_a_legacy_code_page(self) -> None:
         # A Windows pipe defaults to the ANSI code page; the plan and its paths must reach the model whole.
         project = self.home / "studies" / "ü-日本"
@@ -733,6 +761,43 @@ class FlowieHiveTest(unittest.TestCase):
         self.assertTrue(any("no flowie" in note for note in result["notes"]))
         self.assertEqual(self.levels("--flowie", "--set", "active_phase=paper")[0], 2)
         self.assertEqual(self.levels("--hives", "--move-personal")[0], 2)
+
+    def test_an_empty_owner_gives_way_to_the_legacy_person(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "t-1-plan.md", "---\nid: t-1\ntitle: Plan\nstatus: active\nowner:\nassignee: jana\n---\n")
+        self.write(tasks / "review" / "check.md", "---\ntitle: Check\nowner: \"\"\nresponsible: \"@li\"\n---\n")
+        self.write(tasks / "inbox" / "nobody.md", "---\ntitle: Nobody\nowner:\nlevel: flowie\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(self.read(tasks / "active" / "plan.md"),
+                         f"---\ntitle: Plan\nstatus: active\nowner: jana\nupdated: {self.today}\n---\n")
+        self.assertEqual(self.read(tasks / "review" / "check.md"),
+                         f"---\ntitle: Check\nstatus: review\nowner: li\nupdated: {self.today}\n---\n")
+        self.assertEqual(self.read(tasks / "inbox" / "nobody.md"),
+                         f"---\ntitle: Nobody\nstatus: inbox\nowner:\nupdated: {self.today}\n---\n", "nobody invented")
+
+    def test_a_level_gitignore_that_is_not_utf8_is_reported_never_rewritten(self) -> None:
+        data = "# Poznámky k souborům\n.DS_Store\n".encode("cp1250")
+        ignore = self.flowie / ".gitignore"
+        ignore.parent.mkdir(parents=True, exist_ok=True)
+        ignore.write_bytes(data)
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1)
+        level = result["levels"][0]
+        self.assertEqual([item["path"] for item in level["report"]], [".gitignore"])
+        self.assertIn("is not UTF-8", level["report"][0]["message"])
+        self.assertEqual(ignore.read_bytes(), data, "never rewritten")
+
+    def test_a_column_folder_legacy_id_in_blocked_by_follows_the_task(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "active" / "plan.md", "---\nid: t-2\ntitle: Plan\nassignee: jana\n---\n")
+        self.write(tasks / "ready" / "after.md", "---\ntitle: After\nstatus: ready\nblocked_by: [t-2]\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 0, result)
+        self.assertNotIn("id:", self.read(tasks / "active" / "plan.md"))
+        self.assertIn("blocked_by: [plan]\n", self.read(tasks / "ready" / "after.md"), "the dropped id follows")
 
     def test_task_paths_survive_a_legacy_code_page(self) -> None:
         # The prose commits the paths it reads from --json: a name outside the ANSI code page must reach it.

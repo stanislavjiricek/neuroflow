@@ -420,6 +420,20 @@ def segment_value(lines: list[str]):
     return parse_block(lines[1:])
 
 
+NOT_UTF8 = ("is not UTF-8; convert it (from the encoding it was saved in), then rerun: rewriting it now would "
+            "replace every character that could not be read")
+
+
+def read_utf8(path: Path) -> str | None:
+    """A file's text with its own line endings, decoded strictly as UTF-8; None when it does not decode. Every
+    file this script rewrites is read this way: one that does not decode is reported, never written back."""
+    try:
+        with open(path, encoding="utf-8", newline="") as fh:
+            return fh.read()
+    except UnicodeDecodeError:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # The migration plan
 # ---------------------------------------------------------------------------
@@ -461,7 +475,10 @@ class Plan:
 
 def plan_config(plan: Plan, config: Path, overrides: dict, move_personal: bool, version: str | None,
                 phases: set[str]) -> None:
-    original = sc.read_text(config)
+    original = read_utf8(config)
+    if original is None:
+        plan.problems.blocking.append(f"{plan.rel(config)} {NOT_UTF8}.")
+        return
     if CONFLICT_RE.search(original):
         plan.problems.blocking.append(f"{plan.rel(config)} contains merge-conflict markers; resolve them first.")
         return
@@ -632,8 +649,11 @@ def plan_reasoning(plan: Plan) -> None:
         return
     renamed: list[str] = []
     for src in sorted(folder.glob("*.json")):
-        text = sc.read_text(src)
+        text = read_utf8(src)
         rel = plan.rel(src)
+        if text is None:
+            plan.problems.blocking.append(f"{rel} {NOT_UTF8}.")
+            continue
         if CONFLICT_RE.search(text):
             plan.problems.blocking.append(f"{rel} contains merge-conflict markers; resolve them first.")
             continue
@@ -647,7 +667,10 @@ def plan_reasoning(plan: Plan) -> None:
             continue
         dst = src.with_suffix(".jsonl")
         seen: set[str] = set()
-        existing = sc.read_text(dst) if dst.exists() else ""
+        existing = read_utf8(dst) if dst.exists() else ""
+        if existing is None:
+            plan.problems.blocking.append(f"{plan.rel(dst)} {NOT_UTF8}.")
+            continue
         if CONFLICT_RE.search(existing):
             plan.problems.blocking.append(f"{plan.rel(dst)} contains merge-conflict markers; resolve them first.")
             continue
@@ -681,7 +704,10 @@ def plan_reasoning(plan: Plan) -> None:
     if not renamed:
         return
     index = folder / "flow.md"
-    original = sc.read_text(index) if index.is_file() else ""
+    original = read_utf8(index) if index.is_file() else ""
+    if original is None:
+        plan.problems.blocking.append(f"{plan.rel(index)} {NOT_UTF8}.")
+        return
     updated = original.replace("\r\n", "\n")
     for name, _ in renamed:
         updated = re.sub(rf"\b{re.escape(name)}\b(?!\.bak)", name + "l", updated)
@@ -708,7 +734,10 @@ def plan_git_files(plan: Plan) -> None:
         target = plan.root / rel
         missing = sc.missing_lines(target, wanted)
         if missing:
-            existing = sc.read_text(target) if target.exists() else None
+            existing = read_utf8(target) if target.exists() else None
+            if target.exists() and existing is None:
+                plan.problems.blocking.append(f"{rel} {NOT_UTF8}.")
+                continue
             plan.write(target, sc.append_lines_text(existing, header, missing),
                        f"add {len(missing)} line(s): {', '.join(missing)}", sc.detect_newline(existing))
 
@@ -717,8 +746,9 @@ def plan_instruction_blocks(plan: Plan) -> None:
     claude = plan.root / ".claude" / "CLAUDE.md"
     if not claude.exists():
         plan.write(claude, sc.CLAUDE_BLOCK, "create the static neuroflow instruction block")
+    elif (original := read_utf8(claude)) is None:
+        plan.problems.blocking.append(f"{plan.rel(claude)} {NOT_UTF8}.")
     else:
-        original = sc.read_text(claude)
         text = original.replace("\r\n", "\n")
         span = sc.neuroflow_block_span(text)
         if span is None:
@@ -766,8 +796,12 @@ def plan_personal(plan: Plan, move_personal: bool) -> None:
         return
     user_yaml = plan.home / ".neuroflow" / "user.yaml"
     existing: dict[str, str] = {}
-    if user_yaml.is_file():
-        for line in sc.read_text(user_yaml).splitlines():
+    original = read_utf8(user_yaml) if user_yaml.is_file() else None
+    if user_yaml.is_file() and original is None:
+        plan.problems.blocking.append(f"~/.neuroflow/user.yaml {NOT_UTF8}.")
+        return
+    if original is not None:
+        for line in original.splitlines():
             m = re.match(r"^([A-Za-z_][\w-]*):(?:[ \t]+(.*))?$", line)
             if m:
                 existing[m.group(1)] = clean_scalar(m.group(2) or "")
@@ -784,7 +818,6 @@ def plan_personal(plan: Plan, move_personal: bool) -> None:
             additions.append(f"{target}: {value if plain else sc.yaml_scalar(value)}")
             item["status"] = "moved to ~/.neuroflow/user.yaml"
     if additions:
-        original = sc.read_text(user_yaml) if user_yaml.exists() else None
         header = f"# moved from a project_config.md by /neuroflow:migrate on {date.today().isoformat()}"
         plan.write(user_yaml, sc.append_lines_text(original, header, additions),
                    f"add {len(additions)} personal field(s)", sc.detect_newline(original))
@@ -803,10 +836,14 @@ def build_plan(root: Path, home: Path, overrides: dict, move_personal: bool, ver
 
 
 def apply_plan(plan: Plan) -> None:
-    for path, text, newline in plan.writes:
+    # project_config.md last: it records plugin_version, so a run that stops part-way keeps the version notice.
+    config = plan.root / ".neuroflow" / "project_config.md"
+    for path, text, newline in [write for write in plan.writes if write[0] != config]:
         sc.write_text(path, text, newline)
     for src, dst in plan.renames:
         src.rename(dst)
+    for path, text, newline in [write for write in plan.writes if write[0] == config]:
+        sc.write_text(path, text, newline)
 
 
 def parse_overrides(pairs: list[str], phases: set[str]) -> dict:
@@ -1046,10 +1083,14 @@ def current_task_text(task: dict, column: str, today: str,
     The caller has checked that the task names at most one person (task_owners): that person becomes `owner`.
     `blocked_by`, when given, replaces that key's entries (slugs this migration renamed)."""
     owners = task_owners(task)
-    has_owner = any(seg[0] == "owner" for seg in task["segs"])
+    # An owner key counts only when it names someone: an empty one gives way to the legacy key's person.
+    has_owner = any(key == "owner" and handles_in(segment_value(lines)) for key, lines in task["segs"])
     out: list[list] = []
     changed: list[str] = []
     for key, lines in task["segs"]:
+        if key == "owner" and owners and not handles_in(segment_value(lines)):
+            changed.append("empty owner dropped")
+            continue
         if key in ("id", "level"):
             changed.append(f"{key} dropped")
             continue
@@ -1164,7 +1205,9 @@ def plan_tasks(plan: LevelPlan, today: str) -> None:
             if legacy and not one_owner_or_report(plan, path, task):
                 held.append((path, task))
                 continue
-            entries.append({"path": path, "dst": path, "task": task, "column": column, "legacy": legacy, "was": []})
+            legacy_id = task["values"].get("id") if legacy and isinstance(task["values"].get("id"), str) else ""
+            was = [legacy_id] if legacy_id and legacy_id.lower() != path.stem.lower() else []  # the dropped id
+            entries.append({"path": path, "dst": path, "task": task, "column": column, "legacy": legacy, "was": was})
     for path in sorted(p for p in tasks_dir.glob("*.md") if p.is_file()):  # flat {id}-{slug}.md files
         if path.name.lower() in NOT_TASK_FILES:
             continue
@@ -1277,9 +1320,12 @@ def plan_level(plan: LevelPlan, today: str) -> None:
     name, header = KEEP_LOCAL[plan.level]
     if not is_ignored(plan, name):
         ignore = plan.root / ".gitignore"
-        existing = sc.read_text(ignore) if ignore.exists() else None
-        plan.write(ignore, sc.append_lines_text(existing, header, [name]), sc.detect_newline(existing),
-                   f"add {name}: it stays on this machine")
+        existing = read_utf8(ignore) if ignore.exists() else None
+        if ignore.exists() and existing is None:
+            plan.report.append({"path": ".gitignore", "message": f"{NOT_UTF8}, so {name} is not added to it"})
+        else:
+            plan.write(ignore, sc.append_lines_text(existing, header, [name]), sc.detect_newline(existing),
+                       f"add {name}: it stays on this machine")
     if plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", name).returncode == 0:
         plan.report.append({"path": name, "message": TRACKED[plan.level].format(root=plan.shown)})
 
