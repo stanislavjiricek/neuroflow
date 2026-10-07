@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
-import type { NfSnapshot } from '../../../types'
+import type { NfMeeting, NfSnapshot } from '../../../types'
 import { setActivePhase } from '../lib/config'
 import { nextPhase, phaseMap, pickerOrder } from '../lib/phases'
 import { bandItems, freezeCandidates, parseOpenQuestions, parseRunning, sparkline, tabLines } from '../features/views'
@@ -66,6 +66,23 @@ describe('band items', () => {
     expect(bandItems(snapshot({ pluginVersion: null }), true)[0].text).toContain('this project is on an older version')
     expect(bandItems(snapshot({ pluginVersion: '0.2.23' }), false).some(item => item.text.includes('is installed'))).toBe(false)
     expect(bandItems(snapshot({ runningVersion: null, pluginVersion: '0.2.1' }), false).some(item => item.text.includes('is installed'))).toBe(false)
+  })
+
+  test('the version notice waits behind the meetings: one within two hours keeps the quiet seat and its keys', () => {
+    const now = new Date(2026, 9, 7, 13, 0).getTime()
+    const soon: NfMeeting = { level: 'project', slug: 'lab-2026-10-07', title: 'Lab meeting', date: '2026-10-07T14:00:00', startsIn: 60, closed: false, openActions: 0 }
+    const open: NfMeeting = { level: 'project', slug: 'pi-2026-10-06', title: 'PI check-in', date: '2026-10-06T10:00:00', startsIn: -27 * 60, closed: false, openActions: 2 }
+    const quiet = bandItems(snapshot({ pluginVersion: '0.2.21', meetings: [open, soon], loadedAt: now }), true)
+    expect(quiet.map(item => item.text)).toEqual([
+      'meeting "Lab meeting" in 60 min',
+      'meeting "PI check-in" not closed — 2 open action item(s)',
+      'neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date',
+    ])
+    // The quiet band shows the first item and its keys only.
+    expect(quiet[0].actions?.map(action => action.key)).toEqual(['nf-meet-prepare', 'nf-meet-notes'])
+    // A meeting later in the day is information: the notice takes the seat again.
+    const later = bandItems(snapshot({ pluginVersion: '0.2.21', meetings: [{ ...soon, startsIn: 180 }], loadedAt: now }), true)
+    expect(later.map(item => item.actions?.[0]?.key)).toEqual(['nf-migrate'])
   })
 })
 
@@ -163,6 +180,38 @@ describe('engine', () => {
     expect(JSON.stringify(await ui.drawn())).toContain('neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate')
     await ui.press({ key: 'nf-migrate' })
     expect(ran).toEqual(['neuroflow:migrate'])
+    await ui.unmount()
+  })
+
+  test('a meeting within two hours keeps the quiet band and its keys; the version notice waits', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const project = '/work/proj'
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\nplugin_version: 0.2.21\n---\n',
+      [`${project}/.neuroflow/meetings/lab-2026-10-07.md`]: '---\ntitle: Lab meeting\ndate: 2026-10-07T10:00\n---\n',
+      '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    const ran: string[] = []
+    on('command.run', ($, e) => {
+      ran.push(`${e.command} ${e.args}`)
+      return { text: '' }
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const ui = await $.ui.mount({
+      plugin: 'neuroflow',
+      surface: 'terminal',
+      component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 120, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    const drawn = JSON.stringify(await ui.drawn())
+    expect(drawn).toContain('Lab meeting')
+    expect(drawn).toContain('in 60 min')
+    expect(drawn).not.toContain('is installed')
+    await ui.press({ key: 'nf-meet-prepare' })
+    expect(ran).toEqual(['neuroflow:meeting --prepare lab-2026-10-07'])
     await ui.unmount()
   })
 })
