@@ -251,24 +251,32 @@ export const registerContext = (on: On, _opts: NfOptions): void => {
     return result
   }).catch(($, e, next) => next(e))
 
-  // M004: the command-start digest follows a markdown command in a project; before it, every markdown
-  // command (a new project's /neuroflow:neuroflow too) learns the folder neuroflow runs from.
-  // Code-answered and quiet commands get neither.
-  on('command.run', { command: /^neuroflow:/ }, async ($, e, next) => {
+  // /neuroflow:wiki refreshes the wiki pages the lookup below names. The run is returned as it came.
+  on('command.run', { command: 'neuroflow:wiki' }, async ($, e, next) => {
     const result = await next(e)
-    if (result.ref === undefined) return result
+    const scope = await read($, scopeAtom)
+    if (scope?.isActive && scope.root !== null) await loadAmbient($, scope.root, await read($, snapshotAtom)).catch(() => undefined)
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // M004: the command-start notes — the folder neuroflow runs from (every markdown command, a new project's
+  // /neuroflow:neuroflow too) and, in a project, the digest. A command that opens a prompt drops an answer a hook
+  // gives after next(), so the notes ride on that prompt: prompt.submit follows command.run for the same run, with
+  // the slash command as its text. Code-answered and quiet commands get neither.
+  on('prompt.submit', async ($, e, next) => {
+    const typed = /^\s*\/neuroflow:([a-z0-9-]+)/i.exec(e.text)
+    if (typed === null) return next(e)
     const command = await read($, activeCommandAtom)
-    if (command === null || command.lifecycle === 'quiet') return result
+    if (command === null || command.name !== typed[1].toLowerCase() || command.lifecycle === 'quiet') return next(e)
     const io = ioOf($)
     const notes = [pluginNote($.plugin.root, manifestVersion(await io.read(join($.plugin.root, '.claude-plugin/plugin.json'))))]
     const scope = await read($, scopeAtom)
     const snap = await read($, snapshotAtom)
     if (scope?.isActive && scope.root !== null && snap !== null) {
-      if (command.name === 'wiki') await loadAmbient($, scope.root, snap).catch(() => undefined)
       const flow = command.phase === 'utility' ? null : await io.read(join(scope.root, '.neuroflow', command.phase, 'flow.md'))
       notes.push(commandDigest(command.name, command.phase, snap, flow, await latestProblem($, scope.root)))
     }
-    return { ...result, context: [...(result.context ?? []), ...notes] }
+    return next({ ...e, context: [...(e.context ?? []), ...notes] })
   }).catch(($, e, next) => next(e))
 
   // M133: wiki pages a typed prompt names are attached as data (never for slash commands).

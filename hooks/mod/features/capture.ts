@@ -226,18 +226,23 @@ export const registerCapture = (on: On, _opts: NfOptions): void => {
     }
   }).catch(($, e, next) => next(e))
 
-  // M001: name missing `requires:` — to the model as a note after the command's prompt, to the person as a toast.
-  on('command.run', { command: /^neuroflow:/ }, async ($, e, next) => {
-    const result = await next(e)
+  // M001: name missing `requires:` — to the model as a note on the command's prompt, to the person as a toast. A
+  // command that opens a prompt drops an answer a hook gives after next(), so the note rides on prompt.submit, which
+  // follows command.run for the same run with the slash command as its text. Only commands a person typed or a
+  // headless run gave (the context notes in context.ts take every origin).
+  on('prompt.submit', { origin: { kind: ['composer', 'bridge', 'sdk'] } }, async ($, e, next) => {
+    const typed = /^\s*\/neuroflow:([a-z0-9-]+)/i.exec(e.text)
+    if (typed === null) return next(e)
     const scope = await read($, scopeAtom)
-    if (!scope?.isActive || scope.root === null || result.ref === undefined) return result
-    const { requires } = await keysOf($, e.command.slice('neuroflow:'.length))
+    const command = await read($, activeCommandAtom)
+    if (!scope?.isActive || scope.root === null || command === null || command.name !== typed[1].toLowerCase()) return next(e)
+    const { requires } = await keysOf($, command.name)
     const missing: string[] = []
     for (const path of requires) if (!(await ioOf($).exists(join(scope.root, path.replace(/\{[^}]+\}/g, ''))))) missing.push(path)
-    if (missing.length === 0) return result
-    if (!scope.isHeadless) $.ui.toast(`neuroflow: /${e.command} usually starts from ${missing.join(', ')} — not found`)
+    if (missing.length === 0) return next(e)
+    if (!scope.isHeadless) $.ui.toast(`neuroflow: /neuroflow:${command.name} usually starts from ${missing.join(', ')} — not found`)
     const note = `neuroflow: this command expects ${missing.join(', ')}, which does not exist yet. Say so, offer the command that produces it, and continue only if the person wants to (requires: is advisory, never a block).`
-    return { ...result, context: [...(result.context ?? []), note] }
+    return next({ ...e, context: [...(e.context ?? []), note] })
   }).catch(($, e, next) => next(e))
 
   // M157: propose the command's first `next:` as the next prompt, after its turn completed normally.
