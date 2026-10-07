@@ -38,21 +38,21 @@ Nineteen phases, each a slash command with its own folder in project memory. Sta
 - **The project** — `.neuroflow/` inside the project's repository: its configuration, objectives, timeline, task board, meetings, every decision with its reason, and its wiki.
 - **The team** — a hive repository for the lab: members, research directions, a team board and a shared wiki.
 
-Nothing personal leaves your machine or your profile without your explicit yes. → [Three levels](concepts/memory.md)
+Nothing personal leaves your machine or your profile without your explicit yes — except syncing your own private flowie repository, which you set up once. → [Three levels](concepts/memory.md)
 
 ## Rules that hold
 
 - A frozen preregistration is never edited; every change goes to `deviations.md`.
 - Raw data stays as it was recorded.
 - No data collection before the ethics approval is recorded, and participant data reaches the model only when the approval allows it.
-- Uploads, pushes and exports happen only after you confirm them.
+- Uploads, pushes and exports happen only after you confirm them — except syncing your own private flowie repository, which you set up once.
 - Every decision is logged with its reason, in the phase it was made.
 
 The rules are written in the commands themselves and hold in every session. → [Project memory](concepts/project-memory.md)
 
 ## The harness
 
-The neuroflow mod is an optional Claude Code hooks module that ships with the plugin. With it, the project shows itself: a dashboard and a task board as live panes, a status line for what needs attention, a band above the prompt, and guards that hold the rules above. Everything also works without it. → [The neuroflow mod](concepts/mods.md)
+The neuroflow mod is an optional Claude Code hooks module that ships with the plugin. With it, the project shows itself: a dashboard and a task board as live panes, a status line for what needs attention, a band above the prompt, and guards that warn about — or, with `runtime: on` and `guards: enforce`, block — breaks of the rules above. Everything also works without it. → [The neuroflow mod](concepts/mods.md)
 
 ## Install
 
