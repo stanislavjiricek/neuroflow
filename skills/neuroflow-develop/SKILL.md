@@ -13,7 +13,9 @@ neuroflow/
 │   └── marketplace.json   ← marketplace catalog (lists neuroflow as installable plugin)
 ├── .github/
 │   └── workflows/
-│       ├── validate.yml             ← every PR: validate_pr.py, unit tests, strict docs build
+│       ├── validate.yml             ← every PR and push to main: validate_pr.py, unit tests, strict docs build;
+│       │                              mod job: claude plugin validate / test on 2.1.292, mod_policy.py
+│       ├── mod-canary.yml           ← weekly: the same mod checks on the newest Claude Code; opens an issue on failure
 │       ├── deploy-docs.yml          ← builds and deploys MkDocs site on push to main
 │       ├── daily-maintenance.yml    ← posts daily maintainer report (Discussion #167)
 │       ├── research-radar.yml       ← posts weekly research radar (Discussion #169)
@@ -189,20 +191,19 @@ The ids come from the rule table in neuroflow-core. A guard cites the id it enfo
 1. Make your changes
    - If you added, renamed, or removed a **command, skill, or agent**: place it in the docs index (`mkdocs.yml` nav, each page once) — `validate_pr.py` V10 fails the PR otherwise. A new phase also belongs on the landing page's ring (`overrides/home.html`) and in the Phases list of `docs/overview.md`.
 2. **Update `README.md`** — two places:
-   - Replace the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight.
+   - Add a `## What's new in X.Y.Z` section above the previous one, with up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight. Move the `<a id="whats-new"></a>` line so it stays right above the newest heading: the header's What's new link points at it.
    - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.
 3. Add an entry to **`docs/changelog.md`** — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries.
-4. **`mkdocs.yml` `extra.version`** must match the new version — `bump_version.py` writes it in step 8.
-5. If it's a new item, **add it to the Roadmap** as completed or remove it from the planned list.
-6. If the release changes a format that existing projects keep (`project_config.md`, task files, reasoning logs, git files), make sure `/neuroflow:migrate` converts it — the first command after the update points every person there (`docs/upgrading.md`).
-7. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
-8. Bump the patch version in **all four places** (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is) with `python scripts/automation/bump_version.py` (`--dry-run` shows the change first; `--sync` repairs drift without bumping). It rewrites only the version strings:
+4. **`mkdocs.yml` `extra.version`** must match the new version — `bump_version.py` writes it in step 7.
+5. If the release changes a format that existing projects keep (`project_config.md`, task files, reasoning logs, git files), make sure `/neuroflow:migrate` converts it — the first command after the update points every person there (`docs/upgrading.md`).
+6. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
+7. Bump the patch version in **all four places** (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is) with `python scripts/automation/bump_version.py` (`--dry-run` shows the change first; `--sync` repairs drift without bumping). It rewrites only the version strings:
    - `.claude-plugin/plugin.json` → `version` field
    - `.claude-plugin/marketplace.json` → `plugins[].version` field
    - `.neuroflow/project_config.md` → `plugin_version` (the plugin's own project memory; the `Plugin version:` line in the legacy dialect)
    - `mkdocs.yml` → `extra.version` field
-9. Run `python scripts/automation/validate_pr.py --base origin/main` and `python -m unittest discover -s tests -p "test_*.py"` — CI runs both on the PR (`validate.yml`). Run sentinel-dev for the checks that need judgement.
-10. Commit and push to GitHub:
+8. Run `python scripts/automation/validate_pr.py --base origin/main` and `python -m unittest discover -s tests -p "test_*.py"` — CI runs both on the PR (`validate.yml`). Run sentinel-dev for the checks that need judgement.
+9. Commit and push to GitHub:
 
 ```bash
 git add -A
@@ -210,11 +211,14 @@ git commit -m "feat: describe what changed"
 git push
 ```
 
-11. Users update their local install:
+10. Users update their local install. From a shell:
 
+```bash
+claude plugin marketplace update neuroflow
+claude plugin update neuroflow@neuroflow
 ```
-/plugin marketplace update neuroflow
-```
+
+In a session, `/plugin` → **Installed** → neuroflow → **Update now** does the same (so does **Marketplaces** → neuroflow → **Update marketplace**, which refreshes the listing and updates its plugins). `/plugin marketplace update neuroflow` on its own only refreshes the listing; the installed plugin stays at its version. A running session keeps the version it loaded: run `/reload-plugins` or restart Claude Code, then `/neuroflow:migrate` in each project. Auto-update is off by default for third-party marketplaces like this one; each person can switch it on in `/plugin` → **Marketplaces** → neuroflow → **Enable auto-update**.
 
 > Claude Code detects updates by comparing version numbers. If the version is not bumped, the update will not be pulled even if files changed.
 
