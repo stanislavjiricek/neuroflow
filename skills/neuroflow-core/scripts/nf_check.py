@@ -611,15 +611,15 @@ def check_nf2(ctx: Context) -> list[Finding]:
                                fix="remove it here; whoever wants wiki capture runs /wiki --auto ask"))
     if not recorded:
         out.append(Finding("NF2", WARN, shown, "no plugin_version recorded",
-                           fix="run /neuroflow:migrate - it brings the project, your flowie and the hive up to date "
-                               "and then records the version"))
+                           fix="run /neuroflow:migrate - it brings the project up to date and records the version, "
+                               "and checks your flowie and the hive in the same run"))
     elif current and _vtuple(recorded) and _vtuple(current):
         if _vtuple(recorded) < _vtuple(current):
             out.append(Finding("NF2", WARN, shown,
                                f"plugin_version {recorded} is older than the installed plugin {current} - "
                                "structure changes may apply",
-                               fix="run /neuroflow:migrate - it brings the project, your flowie and the hive up to date "
-                                   "and then records the version"))
+                               fix="run /neuroflow:migrate - it brings the project up to date and records the version, "
+                                   "and checks your flowie and the hive in the same run"))
         elif _vtuple(recorded) > _vtuple(current):
             out.append(Finding("NF2", WARN, shown,
                                f"plugin_version {recorded} is newer than the installed plugin {current}",

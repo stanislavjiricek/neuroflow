@@ -89,8 +89,8 @@ Issues found:
 
 2. [NF2] project_config.md has plugin_version 0.2.18; the installed
    plugin is 0.2.22.
-   → Run /neuroflow:migrate: it brings the project, your flowie and
-     the team hive up to date and records the version.
+   → Run /neuroflow:migrate: it brings the project up to date, records
+     the version, and checks your flowie and the team hive.
 
 3. [NF7] .claude/CLAUDE.md holds an "Active phase" line — it goes stale.
    → Fix: remove the line? (y/n)

@@ -20,7 +20,7 @@ Run from the project root (the folder that contains `.neuroflow/`):
 python <neuroflow-core skill base dir>/scripts/nf_check.py --json
 ```
 
-Claude Code shows the base directory when the `neuroflow:neuroflow-core` skill loads; use that path and never look for the script under `~/.claude/plugins`, where other versions may be cached (`neuroflow:neuroflow-core` → **The plugin's own files**). The script never writes anything.
+Use the neuroflow-core base directory that `/sentinel` passed you (Claude Code shows it when the `neuroflow:neuroflow-core` skill loads in the main session); if none was passed, say so in the report and do the checks in the table below by reading the files. Never look for the script under `~/.claude/plugins`, where other versions may be cached (`neuroflow:neuroflow-core` → **The plugin's own files**). The script never writes anything.
 
 | Exit code | Meaning | What to do |
 |---|---|---|
@@ -166,7 +166,7 @@ Only after the user agrees, issue by issue:
 - Add a missing `wiki/` row to `.neuroflow/flow.md` (NF1, S7b); delete an obsolete hive `directions.md` (S8)
 
 Never automatic:
-- An older or missing `plugin_version` (NF2): suggest `/neuroflow:migrate`, which records the version after bringing the project, the flowie and the hive up to date. Never set the version by hand — that silences the update notice while the formats stay old
+- An older or missing `plugin_version` (NF2): suggest `/neuroflow:migrate`, which records the version when it brings the project up to date, and checks the flowie and the hive in the same run. Never set the version by hand — that silences the update notice while the formats stay old
 - Frozen preregistration files and `preregistration/status.md` (NF3, S3) — freezing and unfreezing are a person's actions; changes go to `deviations.md`. Never write `set_by: person`.
 - Sensitive information (NF8, S5) — sentinel only surfaces findings. The user decides whether to redact, remove, or confirm each item.
 
