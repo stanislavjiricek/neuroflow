@@ -19,7 +19,7 @@ reads:
   - ~/.neuroflow/flowie/wiki/pages/**
   - ~/.neuroflow/local-projects.json
   - ~/.neuroflow/flowie-sync.log
-  - skills/wiki/SKILL.md
+  - skills/wiki-protocol/SKILL.md
 writes:
   - ~/.neuroflow/flowie/profile.md
   - ~/.neuroflow/flowie/ideas.md
@@ -50,7 +50,7 @@ Personal research OS for neuroflow. Links the current project to a private GitHu
 
 The `flowie` directory at `~/.neuroflow/flowie/` **is the git repo itself** — cloned from GitHub. GitHub is canonical. Pull before every read, push after every write.
 
-Read the `neuroflow:phase-flowie` skill first. For any `--wiki-*` mode, also read the `neuroflow:wiki` skill. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-flowie` skill first. For any `--wiki-*` mode, also read the `neuroflow:wiki-protocol` skill. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
 Flowie is fully optional. Nothing breaks if it is not set up.
 
@@ -412,7 +412,7 @@ flowie — what would you like to do?
   --assess      Log today's wellbeing (anxiety, energy, happiness 1–10)
   --credentials Show custom LLM settings as ready-to-paste export commands
 
-  Personal wiki (powered by neuroflow:wiki skill):
+  Personal wiki (powered by neuroflow:wiki-protocol skill):
   --wiki        Show wiki overview — page count, recent activity, index summary
   --wiki-ingest Ingest a new source into your wiki
   --wiki-query  Ask a question answered from your wiki
@@ -551,7 +551,7 @@ If push fails (e.g. auth error, network), report the error clearly and do not up
 
 Display the custom LLM settings from `flowie/integrations.json` as ready-to-run export commands, so the user can paste them into their terminal before starting Claude Code.
 
-Read only from `~/.neuroflow/flowie/integrations.json` (non-secret settings only). No `integrations.json` holds the gateway key: the person's launch command reads it from their key file (`skills/setup/references/custom-gateway.md` → Storing the key).
+Read only from `~/.neuroflow/flowie/integrations.json` (non-secret settings only). No `integrations.json` holds the gateway key: the person's launch command reads it from their key file (`skills/setup-guide/references/custom-gateway.md` → Storing the key).
 
 **If `~/.neuroflow/flowie/integrations.json` does not exist or has no `custom_llm` section:**
 
@@ -583,7 +583,7 @@ To use the proxy instead (for model selection):
 
 Note: neuroflow never stores your gateway key — integrations.json holds non-secret
 settings only. Full launch command, Windows PowerShell version and model mapping:
-skills/setup/references/custom-gateway.md.
+skills/setup-guide/references/custom-gateway.md.
 ```
 
 Do not write anything during `--credentials`. This is a read-only display mode.
@@ -867,7 +867,7 @@ Confirm: `Wellbeing logged for {today}.`
 
 ## Wiki modes — `--wiki-*`
 
-All wiki modes load the `neuroflow:wiki` skill and follow its full operation workflows. The wiki lives at `~/.neuroflow/flowie/wiki/`. The skill file defines all page formats, index/log conventions, ingest/query/lint/add workflows, and the neuroflow-specific integrations (project tagging, ideas.md sync, profile evolution, fails integration).
+All wiki modes load the `neuroflow:wiki-protocol` skill and follow its full operation workflows. The wiki lives at `~/.neuroflow/flowie/wiki/`. The skill file defines all page formats, index/log conventions, ingest/query/lint/add workflows, and the neuroflow-specific integrations (project tagging, ideas.md sync, profile evolution, fails integration).
 
 Pull before every wiki read operation (Git operations pattern).
 
@@ -898,7 +898,7 @@ If `wiki/` does not exist: tell the user and offer to initialize via `--wiki-sch
 
 ### Mode: --wiki-ingest [path|text]
 
-Load `neuroflow:wiki` skill. Follow the **Ingest workflow** defined there. Key steps:
+Load `neuroflow:wiki-protocol` skill. Follow the **Ingest workflow** defined there. Key steps:
 
 1. Read `schema.md` (create starter via interview if missing — this initializes the wiki)
 2. Read the source file or accept pasted text from the user
@@ -912,7 +912,7 @@ If no path or text provided, ask: "What would you like to ingest? (paste text, o
 
 ### Mode: --wiki-query [question]
 
-Load `neuroflow:wiki` skill. Follow the **Query workflow** defined there. Key steps:
+Load `neuroflow:wiki-protocol` skill. Follow the **Query workflow** defined there. Key steps:
 
 1. Read `schema.md` + `index.md`
 2. Identify and read relevant pages
@@ -924,15 +924,15 @@ If no question provided, ask: "What would you like to know from your wiki?"
 
 ### Mode: --wiki-lint
 
-Load `neuroflow:wiki` skill. Follow the **Lint workflow** defined there. Check for: orphan pages, stale pages, missing concept pages, missing project tags, log/page mismatches, cross-reference gaps, methods without fails check. Report findings and offer iterative fixes.
+Load `neuroflow:wiki-protocol` skill. Follow the **Lint workflow** defined there. Check for: orphan pages, stale pages, missing concept pages, missing project tags, log/page mismatches, cross-reference gaps, methods without fails check. Report findings and offer iterative fixes.
 
 ### Mode: --wiki-add [title]
 
-Load `neuroflow:wiki` skill. Follow the **Add workflow** defined there. Guides the user through creating or updating a specific page with type, tags, project links, and body content.
+Load `neuroflow:wiki-protocol` skill. Follow the **Add workflow** defined there. Guides the user through creating or updating a specific page with type, tags, project links, and body content.
 
 ### Mode: --wiki-schema
 
-Load `neuroflow:wiki` skill. Follow the **Schema workflow** defined there. If `wiki/` does not exist, run **Initialization** to scaffold the full structure and generate a starter `schema.md` through a brief interview.
+Load `neuroflow:wiki-protocol` skill. Follow the **Schema workflow** defined there. If `wiki/` does not exist, run **Initialization** to scaffold the full structure and generate a starter `schema.md` through a brief interview.
 
 ---
 

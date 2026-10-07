@@ -3,7 +3,7 @@ Anthropic ↔ OpenAI proxy for Claude Code → any OpenAI-compatible API (legacy
 Handles text, tool_use, tool_result, streaming, and thinking blocks.
 
 Only needed for providers without an Anthropic-compatible endpoint; see
-skills/setup/references/custom-gateway.md (legacy appendix).
+skills/setup-guide/references/custom-gateway.md (legacy appendix).
 
 Usage:
   uv run --python 3.12 --with fastapi --with httpx --with uvicorn \\
@@ -36,7 +36,7 @@ SMALL_MODEL = os.environ.get("SMALL_MODEL", "") or BIG_MODEL
 
 _missing = [n for n, v in (("OPENAI_BASE_URL", OPENAI_BASE), ("OPENAI_API_KEY", OPENAI_KEY), ("BIG_MODEL", BIG_MODEL)) if not v]
 if _missing:
-    sys.exit(f"proxy: set {', '.join(_missing)} first (see skills/setup/references/custom-gateway.md)")
+    sys.exit(f"proxy: set {', '.join(_missing)} first (see skills/setup-guide/references/custom-gateway.md)")
 
 MODEL_MAP = {
     "claude-sonnet-4-6": BIG_MODEL,

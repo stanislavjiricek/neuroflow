@@ -1,17 +1,17 @@
 ---
-name: setup
+name: setup-guide
 description: Configure neuroflow integrations — Miro, Google Workspace, and custom LLM gateways. Use when setting up credentials, checking integration status, or guiding a user through connecting external services, including running Claude Code against an Anthropic-compatible gateway.
 reads:
   - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
-  - skills/setup/references/custom-gateway.md
-  - skills/setup/scripts/gateway/
+  - skills/setup-guide/references/custom-gateway.md
+  - skills/setup-guide/scripts/gateway/
 writes:
   - ~/.neuroflow/integrations.json
   - .neuroflow/integrations.json
 ---
 
-# neuroflow:setup
+# neuroflow:setup-guide
 
 Agent-facing knowledge for all neuroflow integrations. Use this skill when a user asks about credentials, integration status, or setting up an external service — without necessarily running the full `/setup` wizard.
 
@@ -136,7 +136,7 @@ On native Windows, if the server later fails to connect, use `-- cmd /c npx -y @
 
 ## Custom LLM gateway support
 
-`/setup` Step 4 records an Anthropic-compatible gateway — an endpoint, typically from an institution or another provider, that Claude Code talks to instead of Anthropic's API. Full guide: `skills/setup/references/custom-gateway.md` (native connection, isolated config folder, model aliases, context window, rate limits, key storage, legacy proxy).
+`/setup` Step 4 records an Anthropic-compatible gateway — an endpoint, typically from an institution or another provider, that Claude Code talks to instead of Anthropic's API. Full guide: `skills/setup-guide/references/custom-gateway.md` (native connection, isolated config folder, model aliases, context window, rate limits, key storage, legacy proxy).
 
 Say once, before configuring: with a gateway, every prompt, file the model reads and tool result goes to the gateway operator — the project's ethics approval and data agreements must allow that route.
 

@@ -117,7 +117,7 @@ Gateways often cap parallel requests per key. Interactive use — the main model
 
 ## Legacy appendix — proxy for OpenAI-compatible-only providers
 
-Only needed when your provider exposes an OpenAI-compatible API (`/v1/chat/completions`) and **no** Anthropic-compatible endpoint. The FastAPI proxy `skills/setup/scripts/gateway/proxy.py` translates Anthropic ↔ OpenAI formats, including streaming, multi-turn tool use and thinking blocks. It exists because generic translation layers failed on two cases with some models: thinking blocks (`Content block is not a text block`) and multi-turn tool pairing (`No tool calls but found tool output`).
+Only needed when your provider exposes an OpenAI-compatible API (`/v1/chat/completions`) and **no** Anthropic-compatible endpoint. The FastAPI proxy `skills/setup-guide/scripts/gateway/proxy.py` translates Anthropic ↔ OpenAI formats, including streaming, multi-turn tool use and thinking blocks. It exists because generic translation layers failed on two cases with some models: thinking blocks (`Content block is not a text block`) and multi-turn tool pairing (`No tool calls but found tool output`).
 
 **Terminal 1 — start the proxy** (it listens on this computer only):
 ```bash

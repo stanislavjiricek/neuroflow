@@ -1,9 +1,9 @@
 ---
-name: wiki
+name: wiki-protocol
 description: Knowledge base skill — Karpathy-style LLM-maintained wiki at three levels (personal/flowie, project, team/hive). Handles ingest, query, lint, schema, and project-tagging workflows. Invoked by /flowie --wiki-* (personal), /wiki (project), /hive --wiki-* (team).
 ---
 
-# wiki
+# wiki-protocol
 
 A compounding knowledge base maintained by the LLM. Knowledge accumulates across sessions — cross-references are already there, contradictions already flagged, synthesis reflects everything ingested.
 

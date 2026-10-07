@@ -4,7 +4,7 @@
  * For gateways that speak the Anthropic protocol but reject Claude Code's claude-* model
  * names when the ANTHROPIC_DEFAULT_*_MODEL mapping is not enough. Every request is sent with
  * the target model; the original claude-* name is restored in the response.
- * See skills/setup/references/custom-gateway.md.
+ * See skills/setup-guide/references/custom-gateway.md.
  *
  * Usage (the key comes from the environment — never type it into a chat or this file):
  *   GATEWAY_URL=https://llm.example.org GATEWAY_KEY="$(cat ~/.claude-gateway/gateway-key)" \

@@ -1,6 +1,6 @@
 // Loop — the autoresearch driver (M103): one iteration per turn, caps enforced between turns.
 // `/neuroflow:autoresearch drive <name>` starts it; every turn runs exactly one iteration, and after
-// each answered turn the mod asks the loop's own bookkeeping script (skills/autoresearch/scripts/ar.py
+// each answered turn the mod asks the loop's own bookkeeping script (skills/autoresearch-protocol/scripts/ar.py
 // status — the single executable home of caps, plateau and snapshot logic) whether the next iteration
 // may start. It stops at a cap, after max_consecutive_errors errored turns, when the person interrupts a
 // turn (Esc), refuses, or presses stop (band key s, or `/neuroflow:autoresearch stop`). Charter: no
@@ -19,7 +19,7 @@ const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
 const driveAtom = atom({ plugin: 'neuroflow', key: 'drive' } as const, null)
 
-const AR = 'skills/autoresearch/scripts/ar.py'
+const AR = 'skills/autoresearch-protocol/scripts/ar.py'
 
 /** The prompt each driven turn starts with. */
 export const iterationPrompt = (drive: Pick<NfDrive, 'name' | 'location'>, turn: number): string =>

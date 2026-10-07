@@ -178,7 +178,7 @@ nav:
               - "humanizer": skills/humanizer/SKILL.md
               - "review-neuro": skills/review-neuro/SKILL.md
               - "worker-critic": skills/worker-critic/SKILL.md
-              - "autoresearch": skills/autoresearch/SKILL.md
+              - "autoresearch-protocol": skills/autoresearch-protocol/SKILL.md
           - Phases:
               - "phase-git": skills/phase-git/SKILL.md
               - "phase-ideation": skills/phase-ideation/SKILL.md
@@ -208,13 +208,13 @@ nav:
               - "phase-hive": skills/phase-hive/SKILL.md
               - "phase-meeting": skills/phase-meeting/SKILL.md
               - "phase-search": skills/phase-search/SKILL.md
-              - "wiki": skills/wiki/SKILL.md
+              - "wiki-protocol": skills/wiki-protocol/SKILL.md
           - Utils:
               - "neuroflow-core": skills/neuroflow-core/SKILL.md
               - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
               - "notebooklm": skills/notebooklm/SKILL.md
               - "pupil-labs-neon-realtime": skills/pupil-labs-neon-realtime/SKILL.md
-              - "setup": skills/setup/SKILL.md
+              - "setup-guide": skills/setup-guide/SKILL.md
               - "skill-creator": skills/skill-creator/SKILL.md
       - Agents:
           - "paper-writer": agents/paper-writer.md

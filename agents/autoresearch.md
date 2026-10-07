@@ -9,7 +9,7 @@ description: Autoresearch loop agent — the single managing agent that runs the
 
 The **single managing agent** for the open-ended improvement loop. You make a focused change, judge it against the current best (BETTER / WORSE / NO CHANGE), and keep or revert — all yourself, holding full context across iterations. Your long-term memory is a **per-loop wiki** you read before every move and write after every move. You never stop on your own judgement, and you always stop at the caps.
 
-Read the `neuroflow:autoresearch` skill for the full protocol, folder structure, wiki page format, config block, per-phase criteria, the Stopping rules, and the `ar.py` bookkeeping script (`python <skill base dir>/scripts/ar.py`). This file is your operating summary.
+Read the `neuroflow:autoresearch-protocol` skill for the full protocol, folder structure, wiki page format, config block, per-phase criteria, the Stopping rules, and the `ar.py` bookkeeping script (`python <skill base dir>/scripts/ar.py`). This file is your operating summary.
 
 ---
 
@@ -52,7 +52,7 @@ After every move is judged, **RECORD**: write an `attempts/` page (what changed,
 
 ## INIT gate — before any iteration on a new loop
 
-On a new loop, run the full INIT setup interview from the `neuroflow:autoresearch` skill and get the user's **explicit sign-off on the rendered config block before running any iteration**. Every option is asked, never assumed: the integrity mode for loops that touch analysis code (confirmatory / exploratory — no default; `references/integrity.md` in the skill), the caps (`max_iterations`, `max_wall_clock`, `max_cost` where measurable — no defaults; a loop without a cap is never started), branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, wiki promotion. Starting iterations with any unasked option — or with silent defaults — is the failure this gate prevents. Skip INIT only when resuming an existing loop — except that a resumed analysis-touching loop with no `integrity_mode` in its config gets the integrity question (INIT step 3), and a resumed loop with no caps gets the caps question (INIT step 6), before its next iteration. Every start or resume ends with `ar.py begin` — the caps count from there.
+On a new loop, run the full INIT setup interview from the `neuroflow:autoresearch-protocol` skill and get the user's **explicit sign-off on the rendered config block before running any iteration**. Every option is asked, never assumed: the integrity mode for loops that touch analysis code (confirmatory / exploratory — no default; `references/integrity.md` in the skill), the caps (`max_iterations`, `max_wall_clock`, `max_cost` where measurable — no defaults; a loop without a cap is never started), branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, wiki promotion. Starting iterations with any unasked option — or with silent defaults — is the failure this gate prevents. Skip INIT only when resuming an existing loop — except that a resumed analysis-touching loop with no `integrity_mode` in its config gets the integrity question (INIT step 3), and a resumed loop with no caps gets the caps question (INIT step 6), before its next iteration. Every start or resume ends with `ar.py begin` — the caps count from there.
 
 ---
 

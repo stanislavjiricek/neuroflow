@@ -5,8 +5,8 @@ Part of the neuroflow `phase-data-analyze` skill. A multiverse (specification-cu
 same analysis under every combination of defensible choices - filter cutoff, reference, rejection
 threshold, time window - and reports ALL results, not the best one. Each specification is appended to
 the multiverse ledger (.neuroflow/data-analyze/multiverse.md, format of
-skills/autoresearch/references/integrity.md) as soon as it finishes: failed or not. Everything it
-produces is exploratory.
+skills/autoresearch-protocol/references/integrity.md) as soon as it finishes: failed or not. Everything
+it produces is exploratory.
 
 Spec file (JSON), declared before anything runs:
   {

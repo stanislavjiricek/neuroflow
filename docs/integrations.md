@@ -106,7 +106,7 @@ claude
 - **Rate limits:** gateways often cap parallel requests per key — heavy parallel subagent fan-out can hit 429s.
 - **Your data:** every prompt and file the model reads goes to the gateway operator; check that your ethics approval and data agreements allow that route.
 
-For the full guide — Windows PowerShell launch, variable reference, context-window handling, and the legacy proxy for OpenAI-compatible-only providers — see the `neuroflow:setup` skill → [`references/custom-gateway.md`](skills/setup/references/custom-gateway.md).
+For the full guide — Windows PowerShell launch, variable reference, context-window handling, and the legacy proxy for OpenAI-compatible-only providers — see the `neuroflow:setup-guide` skill → [`references/custom-gateway.md`](skills/setup-guide/references/custom-gateway.md).
 
 ---
 

@@ -8,7 +8,7 @@
 #   $env:ANTHROPIC_BASE_URL = "http://localhost:4001"
 #   $env:ANTHROPIC_AUTH_TOKEN = "dummy"
 #   claude
-# See skills/setup/references/custom-gateway.md (legacy appendix).
+# See skills/setup-guide/references/custom-gateway.md (legacy appendix).
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir

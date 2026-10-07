@@ -140,7 +140,7 @@ Each surface has one job; all are optional except `report.md`.
 
 ## Related
 
-- [`neuroflow:autoresearch` skill](../skills/autoresearch/SKILL.md) — full protocol, wiki format, criteria, dashboard template
-- [`neuroflow:wiki`](../skills/wiki/SKILL.md) — the page format the loop wiki uses; durable findings are promoted here
+- [`neuroflow:autoresearch-protocol` skill](../skills/autoresearch-protocol/SKILL.md) — full protocol, wiki format, criteria, dashboard template
+- [`neuroflow:wiki-protocol`](../skills/wiki-protocol/SKILL.md) — the page format the loop wiki uses; durable findings are promoted here
 - [`/paper`](paper.md) — uses the worker-critic loop (bounded, 3 iterations) for section drafting
 - [`/pipeline`](pipeline.md) — multi-step orchestration across phases

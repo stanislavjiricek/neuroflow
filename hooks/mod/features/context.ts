@@ -95,7 +95,7 @@ export const commandDigest = (
   return clip(lines.join('\n'), DIGEST_MAX)
 }
 
-/** The rows of a wiki index.md (wiki skill → index.md format): `| [Title](path) | Summary | … |`. */
+/** The rows of a wiki index.md (wiki-protocol skill → index.md format): `| [Title](path) | Summary | … |`. */
 export const parseWikiIndex = (text: string, level: string, base: string): NfWikiPage[] => {
   const out: NfWikiPage[] = []
   for (const line of text.split(/\r?\n/)) {

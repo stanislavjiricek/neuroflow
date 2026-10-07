@@ -97,7 +97,7 @@ export type NfSnapshot = {
 /** One row of a wiki's index.md: which wiki, the page title, its file and one-line summary. */
 export type NfWikiPage = { level: string; title: string; path: string; summary: string }
 
-/** One auto-wiki card waiting for review (wiki skill → Auto capture). */
+/** One auto-wiki card waiting for review (wiki-protocol skill → Auto capture). */
 export type NfWikiCard = { file: string; title: string; type: string; evidence: string; body: string; by: string }
 
 /** The living paper pane (phase-paper → Living paper skeleton). */

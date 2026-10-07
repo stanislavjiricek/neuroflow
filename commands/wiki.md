@@ -30,7 +30,7 @@ Project-level shared knowledge base. Lives at `.neuroflow/wiki/`, git-tracked in
 - `/flowie --wiki-*` — personal wiki (private, in flowie repo)
 - `/hive --wiki-*` — team wiki (lab-wide, in hive repo)
 
-Read the `neuroflow:wiki` skill first with `level: project`. Then follow the neuroflow-core lifecycle.
+Read the `neuroflow:wiki-protocol` skill first with `level: project`. Then follow the neuroflow-core lifecycle.
 
 ---
 
@@ -58,18 +58,18 @@ If no flag given: default to `--view` if wiki exists, `--schema` if it does not.
 | `--schema` | View or update wiki conventions (also initializes wiki) |
 
 Wiki root for all operations: `.neuroflow/wiki/`
-Git pattern: standard `git` in project root (not `-C` flowie pattern), branch-safe — fast-forward-only pull of the current branch, commits limited to `.neuroflow/wiki/`, and a push only after the person confirms (the wiki skill's **Git sync**).
+Git pattern: standard `git` in project root (not `-C` flowie pattern), branch-safe — fast-forward-only pull of the current branch, commits limited to `.neuroflow/wiki/`, and a push only after the person confirms (the wiki-protocol skill's **Git sync**).
 
 ---
 
 ## Step 2 — Execute mode
 
-Follow the `neuroflow:wiki` skill at `level: project`.
+Follow the `neuroflow:wiki-protocol` skill at `level: project`.
 
 **Project-specific context for `projects:` tagging:**
 The current project IS the context — read `project_config.md` for project name, phase, and modality. Ask if the page also relates to other projects the user is aware of.
 
-**Review queue** — switches, card format and rubric: the `neuroflow:wiki` skill → **Auto capture (review queue)**.
+**Review queue** — switches, card format and rubric: the `neuroflow:wiki-protocol` skill → **Auto capture (review queue)**.
 
 - `--review` — take the cards in `.neuroflow/wiki/.pending/` with `status: pending`, newest first, and walk them one at a time in text: show the title, type, evidence and text, then ask accept, skip or stop. Accept → `--add --from-pending` below; skip → set the card's `status: skipped`; stop → leave the rest pending. No pending card: say so. With the neuroflow mod active, `--review` opens the review pane instead.
 - `--add --from-pending <card file>` — the card (its file name or path in `.neuroflow/wiki/.pending/`) is the source text of the normal `--add` flow; after the page is written, set the card's `status: accepted`. A card that is no longer `pending` is not written again — say so.

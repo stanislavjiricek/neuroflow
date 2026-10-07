@@ -25,7 +25,7 @@ Exit codes: 0 = done / nothing to report, 1 = findings (status: a cap is reached
 or the loop state needs attention), 2 = usage or runtime error (the call was
 refused; nothing was half-written).
 
-Stdlib only, Python 3.10+. Part of the neuroflow autoresearch skill.
+Stdlib only, Python 3.10+. Part of the neuroflow autoresearch-protocol skill.
 """
 
 from __future__ import annotations

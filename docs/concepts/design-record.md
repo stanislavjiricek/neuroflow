@@ -141,7 +141,7 @@ warning, kept as a rule of the mod's charter.
 | M035 | Worker-critic referee in code | X | Built differently | Section: and Round: lines added to the worker-critic and paper-writer prompt formats, so rounds can be counted. |
 | M036 | Publication tail integrity (--revise, --submit, --abstract) | T2 | Built | New skills/phase-paper/scripts/revise_audit.py diffs the original against the -r1 copy sentence by sentence; every change must be quoted under a comment-id heading in the response, and claimed changes missing from the… |
 | M037 | Structured critic verdicts | X | Built differently | paper-critic 'six review areas' changed to eight in both places. |
-| M038 | Blind pairwise judge | X | Not built | Niche autoresearch judge: fresh-eval already covers self-grading bias, the autoresearch skill is outside this package, and resuming the same critic (M087) is what its convergence rule needs. |
+| M038 | Blind pairwise judge | X | Not built | Niche autoresearch judge: fresh-eval already covers self-grading bias, the autoresearch-protocol skill is outside this package, and resuming the same critic (M087) is what its convergence rule needs. |
 | M039 | Human-only overrides, guard registry and override ledger | X | Not built | Unfreezing is simply a person's key press, logged in `deviations.md`. |
 | M040 | MCP policy: Sci-Hub blocked, rules in tool descriptions | T0 | Built differently | Prose: never Sci-Hub on any path (search_scihub, check_scihub_mirrors, platform 'scihub' on the 5 tools that accept it, even when asked); get_paper_markdown replaces the nonexistent get_full_text_article in the… |
 | M041 | Code-run sentinel with one-click fixes | T2 | Built | New skills/neuroflow-core/scripts/nf_check.py runs checks NF1-NF8. |

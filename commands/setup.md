@@ -212,10 +212,10 @@ Say once before collecting anything: with a gateway, every prompt, file the mode
 
 1. "A short name for the provider (e.g. my-gateway):"
 2. "The base URL your provider documents for Anthropic-compatible clients (e.g. https://llm.example.org):"
-3. "Preferred model name (or press Enter to choose later):" — help choose with the model-selection steps in the `neuroflow:setup` skill
+3. "Preferred model name (or press Enter to choose later):" — help choose with the model-selection steps in the `neuroflow:setup-guide` skill
 4. "Legacy proxy only (providers with an OpenAI-compatible API and no Anthropic endpoint): proxy port, or Enter to skip:"
 
-**Never ask for the API key.** Tell the user where it goes instead: a file only they can read inside the gateway's isolated config folder (e.g. `~/.claude-gateway/gateway-key`), or the OS credential store, read by the launch command — outside this conversation. For the launch command, model aliases, context window, rate limits and the legacy proxy, surface the `neuroflow:setup` skill and its guide `skills/setup/references/custom-gateway.md`.
+**Never ask for the API key.** Tell the user where it goes instead: a file only they can read inside the gateway's isolated config folder (e.g. `~/.claude-gateway/gateway-key`), or the OS credential store, read by the launch command — outside this conversation. For the launch command, model aliases, context window, rate limits and the legacy proxy, surface the `neuroflow:setup-guide` skill and its guide `skills/setup-guide/references/custom-gateway.md`.
 
 **Save** the non-secret fields to the `integrations.json` of the scope chosen in Step 0 (global `~/.neuroflow/integrations.json` or per-project `.neuroflow/integrations.json`) under `custom_llm`:
 

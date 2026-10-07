@@ -431,7 +431,7 @@ At the end of every command session (never in a `quiet` one), scan what emerged 
 - A synthesis spanned multiple projects or time horizons
 - A significant phase decision was logged
 
-**Review queue instead of the offer:** if `wiki_auto: ask` is set in `~/.neuroflow/user.yaml` and the project allows capture (`wiki_capture` in the `project_config.md` frontmatter is not `forbid`), do not show the offer below. Judge what crystallized with the capture rubric and write at most two cards to `.neuroflow/wiki/.pending/` — usually none (`neuroflow:wiki` → **Auto capture (review queue)**: card format and rubric). If you queued any, say so in one line: `2 wiki cards queued — /wiki --review`. With `wiki_auto` off or absent, or `wiki_capture: forbid`, the offer below applies.
+**Review queue instead of the offer:** if `wiki_auto: ask` is set in `~/.neuroflow/user.yaml` and the project allows capture (`wiki_capture` in the `project_config.md` frontmatter is not `forbid`), do not show the offer below. Judge what crystallized with the capture rubric and write at most two cards to `.neuroflow/wiki/.pending/` — usually none (`neuroflow:wiki-protocol` → **Auto capture (review queue)**: card format and rubric). If you queued any, say so in one line: `2 wiki cards queued — /wiki --review`. With `wiki_auto` off or absent, or `wiki_capture: forbid`, the offer below applies.
 
 If a crystallization is detected, offer ingest **once** at the end of the command — not mid-session. Use this format:
 
@@ -441,7 +441,7 @@ If a crystallization is detected, offer ingest **once** at the end of the comman
 > Suggested: **[level(s)]** — [one-line reason why]
 > `Y` for all suggested · `p` project only · `f` flowie only · `h` hive only · `n` skip
 
-Then invoke `neuroflow:wiki` at the confirmed level(s) with the crystallized content.
+Then invoke `neuroflow:wiki-protocol` at the confirmed level(s) with the crystallized content.
 
 If nothing crystallized, do not mention the wiki at all.
 
@@ -657,7 +657,7 @@ Follow neuroflow-core. Follow the active command. Do not extend, modify, or add 
 
 If any phase command is invoked with the keyword `autoresearch` anywhere in the prompt (e.g. `/ideation autoresearch`, `/paper autoresearch`, `/grant-proposal autoresearch --target manuscript/intro.md`), do not follow the normal phase flow. Instead:
 
-1. Read the `neuroflow:autoresearch` skill
+1. Read the `neuroflow:autoresearch-protocol` skill
 2. Follow its initialization protocol, using that command's phase as the target phase
 3. Pass any file paths mentioned in the invocation as the initial tracked-files list
 

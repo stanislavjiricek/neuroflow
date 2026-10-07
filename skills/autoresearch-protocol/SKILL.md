@@ -1,11 +1,11 @@
 ---
-name: autoresearch
+name: autoresearch-protocol
 description: Open-ended improvement loop for any research artifact in any phase — a single managing agent makes one focused change per iteration, judges it against the previous best, keeps or reverts. Its memory is a per-loop wiki it reads before every move and writes after every move. The loop never stops on its own judgement — only at the caps set at setup (iterations, wall-clock time, cost where measurable), when the human stops it, or after repeated tool errors. Inspired by Andrej Karpathy's autoresearch (MIT).
 ---
 
 <!-- Inspired by Andrej Karpathy's autoresearch (MIT) — https://github.com/karpathy/autoresearch -->
 
-# autoresearch
+# autoresearch-protocol
 
 An open-ended, multi-session improvement loop for any research artifact. **One managing agent** runs the whole loop — it makes a focused change, judges it against the current best, keeps the winner and reverts the rest. Its long-term memory is a **per-loop wiki** that it consults before every move and updates after every move. The loop never stops on its own judgement, and it always stops at the caps the human set.
 
@@ -86,7 +86,7 @@ The loop folder is named `{name}_autoresearch/` and lives **next to the artifact
 
 ## The wiki — the agent's brain
 
-The loop wiki follows the `neuroflow:wiki` page format (frontmatter, `index.md`, `log.md`, wikilinks) but is **scoped to this one loop** and lives inside the loop folder. It is the fourth wiki level — local and disposable, with durable findings promoted up to the project wiki at loop end.
+The loop wiki follows the `neuroflow:wiki-protocol` page format (frontmatter, `index.md`, `log.md`, wikilinks) but is **scoped to this one loop** and lives inside the loop folder. It is the fourth wiki level — local and disposable, with durable findings promoted up to the project wiki at loop end.
 
 ### Page format
 
@@ -141,7 +141,7 @@ Per `promote_to_project_wiki` in the config:
 - `on` — promote durable findings automatically
 - `off` — keep everything local
 
-A "durable finding" is a `synthesis/` page or a confirmed `concept` that generalizes beyond this artifact (e.g. "averaging EEG reference before ICA consistently improves component separability"). Promote via `neuroflow:wiki` ingest into `.neuroflow/wiki/`. Micro-experiment `attempts/` pages stay local — they would only clutter the project wiki.
+A "durable finding" is a `synthesis/` page or a confirmed `concept` that generalizes beyond this artifact (e.g. "averaging EEG reference before ICA consistently improves component separability"). Promote via the `neuroflow:wiki-protocol` ingest workflow into `.neuroflow/wiki/`. Micro-experiment `attempts/` pages stay local — they would only clutter the project wiki.
 
 ---
 
@@ -197,7 +197,7 @@ notify_on_plateau: true
 ## Iteration checklist — DO ALL, EVERY TIME, NEVER SKIP
 <!-- This block is the contract. It is re-read at the start of every iteration so it
      can never drift out of context. Skipping ANY item is a loop failure. -->
-1. RECALL — first run `ar.py status` (the autoresearch skill's scripts/ar.py; exit 1 → a cap is reached or the loop state needs attention: Stopping in the skill); read this program.md (incl. this checklist), __thetask__.md, the wiki (index → synthesis → relevant attempts), and check answers.md + session for new answers and for a stop request
+1. RECALL — first run `ar.py status` (the autoresearch-protocol skill's scripts/ar.py; exit 1 → a cap is reached or the loop state needs attention: Stopping in the skill); read this program.md (incl. this checklist), __thetask__.md, the wiki (index → synthesis → relevant attempts), and check answers.md + session for new answers and for a stop request
 2. DECIDE — pick the weakest criterion and ONE move, informed by the wiki (never re-try a move the wiki shows failed)
 3. SWEEP — if the move tunes a scannable parameter and parameter_sweep is on, scan several values this iteration and pick the best
 4. ACT — make the change
@@ -206,7 +206,7 @@ notify_on_plateau: true
 7. WIKI — write an attempts/ page (what, why, verdict, delta, reasoning — especially failures); update synthesis/ on a pattern; update index.md + log.md
 8. REPORT — rewrite report.md (open questions on top); update the pointer registry; regenerate PDF/dashboard per cadence
 9. Items 7 and 8 are NOT optional and are NOT once-at-baseline — they run every single iteration. If you ever notice you skipped one, do it now before the next move.
-10. INTEGRITY — whenever integrity_mode is not n/a, this binds steps 3–6 (rules: references/integrity.md in the neuroflow:autoresearch skill):
+10. INTEGRITY — whenever integrity_mode is not n/a, this binds steps 3–6 (rules: references/integrity.md in the neuroflow:autoresearch-protocol skill):
     confirmatory → run tracked code only on blind inputs; never touch an item frozen in Out of scope; judge outcome-blind criteria only — a larger effect, smaller p-value, or more significant tests is never BETTER
     exploratory → every specification run on the study data — each sweep value included — goes into .neuroflow/data-analyze/multiverse.md with its result before JUDGE; ledger rows are never edited or deleted
 11. STOP — at a cap, on a human stop, or after max_consecutive_errors tool errors in a row: stop (Stopping in the skill). Never stop for any other reason — a plateau means change approach.

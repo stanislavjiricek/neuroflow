@@ -7,7 +7,7 @@
 #   export ANTHROPIC_BASE_URL=http://localhost:4001
 #   export ANTHROPIC_AUTH_TOKEN=dummy
 #   claude
-# See skills/setup/references/custom-gateway.md (legacy appendix).
+# See skills/setup-guide/references/custom-gateway.md (legacy appendix).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit 2

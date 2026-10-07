@@ -18,7 +18,7 @@
       id: "c-wiki",     label: "Personal Wiki",         category: "personal-profile",
       desc: "Karpathy-style second brain — ingest sources, synthesize knowledge across sessions, query your accumulated understanding, lint for orphans and contradictions.",
       commands: ["/flowie --wiki-ingest", "/flowie --wiki-query", "/flowie --wiki-lint", "/flowie --wiki-add"],
-      url: "skills/wiki/SKILL/"
+      url: "skills/wiki-protocol/SKILL/"
     },
     {
       id: "c-tasks",    label: "Task Board",            category: "personal-profile",

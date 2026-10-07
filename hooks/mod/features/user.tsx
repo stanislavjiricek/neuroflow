@@ -7,7 +7,7 @@
 //    ticked) or rejected with a reason on a key press, in both X-ray files. `--xray check <file>` runs the two
 //    deterministic checks (statcheck.py, cite_check.py) and reports them with no model turn.
 //  - U2 auto wiki: after a command turn that logged a new decision, one model call judges whether it is
-//    reusable knowledge (the wiki skill's rubric: nothing is the normal answer, evidence mandatory, never
+//    reusable knowledge (the wiki-protocol skill's rubric: nothing is the normal answer, evidence mandatory, never
 //    results); at most two cards go to .neuroflow/wiki/.pending/. Only with `wiki_auto: ask` in the person's
 //    user.yaml, a project that does not forbid it, and runtime on. `/neuroflow:wiki --review` opens the cards
 //    as a pane: accept runs the normal `/neuroflow:wiki --add --from-pending`; skip marks the card skipped.

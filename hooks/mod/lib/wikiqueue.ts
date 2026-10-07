@@ -1,4 +1,4 @@
-// The auto-wiki review queue (wiki skill → Auto capture): cards in .neuroflow/wiki/.pending/, written when a
+// The auto-wiki review queue (wiki-protocol skill → Auto capture): cards in .neuroflow/wiki/.pending/, written when a
 // command logs a decision worth keeping, accepted or skipped by the person, turned into pages only by the
 // normal /wiki --add flow. Pure functions over text; the mod and the prose share the format and the rubric.
 import { asString, parseYamlSubset, splitFrontmatter } from './frontmatter'
@@ -38,7 +38,7 @@ export const parseCard = (text: string): WikiCard | null => {
 
 const yamlValue = (text: string): string => (/[:#'"\n]|^\s|\s$/.test(text) ? JSON.stringify(text) : text)
 
-/** The card file text (wiki skill → card format). */
+/** The card file text (wiki-protocol skill → card format). */
 export const cardText = (card: WikiCard): string =>
   [
     '---',
@@ -68,7 +68,7 @@ export const slugify = (title: string): string =>
     .slice(0, 60)
     .replace(/-+$/, '') || 'card'
 
-/** The judge's instructions: the rubric of the wiki skill's Auto capture section. */
+/** The judge's instructions: the rubric of the wiki-protocol skill's Auto capture section. */
 export const WIKI_JUDGE_SYSTEM = [
   'You decide whether research decisions just logged by a research assistant deserve a page in the project wiki.',
   'Rules: nothing is the normal answer. A card needs evidence: name the log entry it comes from. Never a result, never a number from an analysis, never participant data.',

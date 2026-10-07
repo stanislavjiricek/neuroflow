@@ -1,4 +1,4 @@
-"""Tests for the autoresearch bookkeeping script (skills/autoresearch/scripts/ar.py).
+"""Tests for the autoresearch bookkeeping script (skills/autoresearch-protocol/scripts/ar.py).
 
 Stdlib unittest only, no network: every test builds its own loop folder in a temp dir.
 """
@@ -18,10 +18,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-# The skill folder may be renamed (autoresearch -> autoresearch-protocol); find the script either way.
-SCRIPT = next(iter(sorted(ROOT.glob("skills/autoresearch*/scripts/ar.py"))), None)
-if SCRIPT is None:
-    raise RuntimeError("skills/autoresearch*/scripts/ar.py not found")
+SCRIPT = ROOT / "skills" / "autoresearch-protocol" / "scripts" / "ar.py"
 _spec = importlib.util.spec_from_file_location("autoresearch_ar", SCRIPT)
 ar = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(ar)

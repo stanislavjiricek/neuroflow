@@ -97,7 +97,7 @@ These rules apply whenever the `/flowie` command or any other command writes to 
 2. **Always read before writing.** Load the current file content before computing the new version.
 3. **Do not truncate.** When updating a section, preserve all other sections exactly as they are.
 4. **Log every write.** Every file write to `~/.neuroflow/flowie/` must be followed by a session log entry.
-5. **Only documented writers.** Only `/flowie` writes `profile.md`, `ideas.md`, `sync.json` and `projects/` (including the phase sync `/phase` triggers). Other commands write only their own documented flowie paths: `/tasks` and `/meeting` at `--level flowie` (`tasks/`, `meetings/`), `/notes` (`notes/`, and raw ideas to `ideas-inbox.md` via `--idea`), and wiki ingests through `neuroflow:wiki` (`wiki/`). Every other phase command may read the profile but never writes here.
+5. **Only documented writers.** Only `/flowie` writes `profile.md`, `ideas.md`, `sync.json` and `projects/` (including the phase sync `/phase` triggers). Other commands write only their own documented flowie paths: `/tasks` and `/meeting` at `--level flowie` (`tasks/`, `meetings/`), `/notes` (`notes/`, and raw ideas to `ideas-inbox.md` via `--idea`), and wiki ingests through `neuroflow:wiki-protocol` (`wiki/`). Every other phase command may read the profile but never writes here.
 6. **No machine-local paths.** Never write absolute local paths (`C:/Users/…`, `/home/…`) into a flowie file — the repo syncs to every machine. Where each project lives on this machine is kept in `~/.neuroflow/local-projects.json`, outside the repo and never synced (written by `/flowie --link`).
 
 ## GitHub sync protocol
@@ -147,7 +147,7 @@ After every `/notes` session, the command offers to copy the formatted note to `
 
 ## Personal wiki
 
-The flowie repo also contains a `wiki/` folder — a Karpathy-style personal knowledge base maintained by the LLM. All wiki operations are handled by the `neuroflow:wiki` skill, which defines page formats, ingest/query/lint/add workflows, and neuroflow-specific integrations.
+The flowie repo also contains a `wiki/` folder — a Karpathy-style personal knowledge base maintained by the LLM. All wiki operations are handled by the `neuroflow:wiki-protocol` skill, which defines page formats, ingest/query/lint/add workflows, and neuroflow-specific integrations.
 
 **When to surface the wiki:** wiki ingest offers and ambient wiki lookups are handled automatically by `neuroflow-core`'s `## Wiki ambient behavior` rules — crystallization detection fires at the end of every command, and pre-query lookup runs silently on domain questions. Do not duplicate those prompts here. The flowie-level wiki is a target for any crystallization that matches the **flowie** routing preconditions (personal insight, cross-project method, insight spanning multiple projects).
 
@@ -167,7 +167,7 @@ The flowie repo also contains a `wiki/` folder — a Karpathy-style personal kno
     └── methods/   ← protocols, pipelines, analysis methods
 ```
 
-For full wiki behavior, always load `neuroflow:wiki` when handling `--wiki-*` modes.
+For full wiki behavior, always load `neuroflow:wiki-protocol` when handling `--wiki-*` modes.
 
 ## Slash command
 
@@ -176,5 +176,5 @@ When this skill is invoked directly (without `/flowie`), run the full `/flowie` 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
-- `neuroflow:wiki` — full wiki behavior for all `--wiki-*` modes
+- `neuroflow:wiki-protocol` — full wiki behavior for all `--wiki-*` modes
 - `neuroflow:phase-output` — flowie directory is excluded from exports by default

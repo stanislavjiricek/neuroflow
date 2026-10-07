@@ -103,7 +103,7 @@ title: Changelog
 ## 0.2.14
 
 - **Personal wiki** ([`/flowie --wiki-*`](commands/flowie.md)) — Karpathy-style LLM-maintained knowledge base inside your flowie repo; ingest sources, query accumulated knowledge, lint for orphans/contradictions/stale pages; every page is tagged to flowie projects; closing prompts in `/notes`, `/ideation`, `/data-analyze`, and `/paper`
-- **New [`neuroflow:wiki`](skills/wiki/SKILL.md) skill** — page types/frontmatter schema, ingest/query/lint/add/schema workflows, project tagging (always prompted), ideas.md and profile.md sync, fails integration for method pages, sentinel Check 12 for wiki health
+- **New [`neuroflow:wiki`](skills/wiki-protocol/SKILL.md) skill** — page types/frontmatter schema, ingest/query/lint/add/schema workflows, project tagging (always prompted), ideas.md and profile.md sync, fails integration for method pages, sentinel Check 12 for wiki health
 
 ---
 
@@ -130,16 +130,16 @@ title: Changelog
 ## 0.2.10
 
 - **Global device config** ([`/setup`](commands/setup.md)) — credentials can now be saved once to `~/.neuroflow/integrations.json` (global, all projects) or per-project; per-project takes precedence; Step 0 of the wizard asks which scope to use; per-project config still gitignored as before
-- **Windows support** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup/SKILL.md), and the [custom gateway guide](skills/setup/references/custom-gateway.md) now cover Windows paths (`%USERPROFILE%`), PowerShell env var syntax, and `where gws` detection throughout
-- **Proxy model-name fix** ([`proxy.mjs`](skills/setup/scripts/gateway/proxy.mjs)) — proxy now patches `model` field in every response chunk back to the original `claude-*` name, preventing Claude Code's *"unexpected model"* error when using custom LLM providers via Mode B
+- **Windows support** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup-guide/SKILL.md), and the [custom gateway guide](skills/setup-guide/references/custom-gateway.md) now cover Windows paths (`%USERPROFILE%`), PowerShell env var syntax, and `where gws` detection throughout
+- **Proxy model-name fix** ([`proxy.mjs`](skills/setup-guide/scripts/gateway/proxy.mjs)) — proxy now patches `model` field in every response chunk back to the original `claude-*` name, preventing Claude Code's *"unexpected model"* error when using custom LLM providers via Mode B
 - **`integrations.json` gitignore in flowie** — [`flowie`](agents/flowie.md) agent now requires `integrations.json` to be gitignored in the flowie sync repo; warns before any push if it is missing; added to plugin `.gitignore` as well
 
 ---
 
 ## 0.2.9
 
-- **New [`neuroflow:setup`](skills/setup/SKILL.md) skill** — agent-facing knowledge for all neuroflow integrations (PubMed, Miro, Google Workspace, custom LLM providers); mirrors the `/setup` wizard logic so agents can guide credential setup without running the command
-- **Custom LLM gateway integration** — a [gateway guide](skills/setup/references/custom-gateway.md) documents connecting Claude Code to an Anthropic-compatible gateway; covers direct mode, proxy mode (with the `proxy.mjs` script), model aliases, and the full terminal workflow
+- **New [`neuroflow:setup`](skills/setup-guide/SKILL.md) skill** — agent-facing knowledge for all neuroflow integrations (PubMed, Miro, Google Workspace, custom LLM providers); mirrors the `/setup` wizard logic so agents can guide credential setup without running the command
+- **Custom LLM gateway integration** — a [gateway guide](skills/setup-guide/references/custom-gateway.md) documents connecting Claude Code to an Anthropic-compatible gateway; covers direct mode, proxy mode (with the `proxy.mjs` script), model aliases, and the full terminal workflow
 - **`/setup` Step 5** — new optional custom LLM provider wizard; saves non-secret settings to `integrations.json` and optionally to the linked flowie profile for cross-machine sync; an Anthropic-compatible gateway is documented as the example
 - **Sequential search pipeline** — the `scholar` agent now searches PubMed first, then bioRxiv, then fallbacks one at a time; was previously firing all sources simultaneously; reduces API contention and makes individual source failures easier to diagnose
 - **Batch-2 downloads** — paper downloads are now processed in batches of 2 rather than all at once; limits concurrent network requests and improves reliability on slow or rate-limited connections

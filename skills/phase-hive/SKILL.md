@@ -264,7 +264,7 @@ Get team-aware recommendations for the current project phase.
 5. Present as compact digest: *"Your team has N relevant items for your current phase"*
 
 ### `--wiki`, `--wiki-ingest`, `--wiki-query`, `--wiki-lint`, `--wiki-add`, `--wiki-schema`
-Operate on the hive-level team wiki at `{hive-repo}/wiki/`. Load `neuroflow:wiki` skill with `level: hive`. Same modes as `/flowie --wiki-*` but all git operations target the hive repo. This replaces the old `shared/` folder — use `--wiki-ingest` to contribute findings, methods, and literature to the team knowledge base.
+Operate on the hive-level team wiki at `{hive-repo}/wiki/`. Load `neuroflow:wiki-protocol` skill with `level: hive`. Same modes as `/flowie --wiki-*` but all git operations target the hive repo. This replaces the old `shared/` folder — use `--wiki-ingest` to contribute findings, methods, and literature to the team knowledge base.
 
 ---
 

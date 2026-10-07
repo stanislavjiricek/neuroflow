@@ -21,18 +21,18 @@
 ## What's new in 0.2.22
 
 - **The neuroflow mod** — an optional [Claude Code hooks module](docs/concepts/mods.md) layered on the plugin: a [dashboard](commands/dashboard.md) pane (with freeze and unfreeze of the preregistration on a key press), a phase picker, a task board, living-paper, X-ray and wiki-review panes, a quiet one-line band and status line, an instant [`/doctor`](commands/doctor.md), note and idea capture without model turns, citation and hidden-text checks triggered by what the model just did, an autoresearch driver that runs one iteration per turn under its caps, a decision drafter you approve with one key, and guards for the rules the skills state (frozen preregistrations, read-only raw data, local-only files, participant-data routes, login nodes, git alias scope). Everything still works without it; a 30-rule charter keeps it quiet, honest and removable, and a [design record](docs/concepts/design-record.md) says what became of all 270 ideas behind it
-- **Research integrity and machine-readable project memory** — an [autoresearch](skills/autoresearch/SKILL.md) integrity gate (confirmatory vs exploratory, multiverse ledger), caps and a tested `ar.py`; preregistration freezing with hashes; an ethics gate and AI data-route field; AI-use disclosure at submission; citation, statistics, revision and hidden-text checks; config, status and reasoning-log contracts with [`/migrate`](commands/migrate.md); sharing tiers with confirmed egress
+- **Research integrity and machine-readable project memory** — an [autoresearch](skills/autoresearch-protocol/SKILL.md) integrity gate (confirmatory vs exploratory, multiverse ledger), caps and a tested `ar.py`; preregistration freezing with hashes; an ethics gate and AI data-route field; AI-use disclosure at submission; citation, statistics, revision and hidden-text checks; config, status and reasoning-log contracts with [`/migrate`](commands/migrate.md); sharing tiers with confirmed egress
 - **Claude Code only, provider-neutral, tested** — one static project instruction block (never in your global CLAUDE.md); 40+ portable Python checks with unit tests (provenance, QC tables, clean-room reruns, PsychoPy audit, timing and stream checks, exporters and audits); pinned MCP servers with Sci-Hub blocked; a provider-neutral gateway guide; one implementation per repository check, enforced in CI
 
 ## What's new in 0.2.21
 
-- **Consistency overhaul from a full plugin review** — both [hooks](hooks/hooks.json) rewritten against the real stdin-JSON contract (they were silently dead), one canonical credentials scheme (`~/.neuroflow/integrations.json` global + per-project override; flowie carries non-secrets only), one canonical [phase taxonomy](skills/neuroflow-core/SKILL.md) replacing four divergent copies, eight-area review everywhere, `/setup` renumbered, dead references purged, [custom gateway setup](skills/setup/references/custom-gateway.md) rewritten for native Anthropic-compatible gateways (no proxy)
+- **Consistency overhaul from a full plugin review** — both [hooks](hooks/hooks.json) rewritten against the real stdin-JSON contract (they were silently dead), one canonical credentials scheme (`~/.neuroflow/integrations.json` global + per-project override; flowie carries non-secrets only), one canonical [phase taxonomy](skills/neuroflow-core/SKILL.md) replacing four divergent copies, eight-area review everywhere, `/setup` renumbered, dead references purged, [custom gateway setup](skills/setup-guide/references/custom-gateway.md) rewritten for native Anthropic-compatible gateways (no proxy)
 - **Lifecycle enforcement** — [`neuroflow-core`](skills/neuroflow-core/SKILL.md) gains the missing-`.neuroflow/` rule and one canonical session-log format; new PR-time CI ([`validate.yml`](.github/workflows/validate.yml) + [`validate_pr.py`](scripts/automation/validate_pr.py)); five previously prose-only sentinel-dev checks now run in CI; audit agents get `tools:` allowlists
 - **Science-PM surface** — new [`/ethics`](commands/ethics.md) (protocol, versioned consent, approval expiry) and [`/tasks`](commands/tasks.md) (canonical 3-tier Kanban owner); [`/paper`](commands/paper.md) grows `--submit`, `--revise` (strict minimal-change rebuttal discipline), and `--abstract`; [`/output --archive`](commands/output.md) (OpenNeuro/OSF/Zenodo + DOI); DMP drafting in [`/grant-proposal`](commands/grant-proposal.md); `objectives.md`/`timeline.md` ownership; reproducibility manifests in the data phases; wikis are valid Obsidian vaults; optional Zotero-first literature search in [`/ideation`](commands/ideation.md)
 
 ## What's new in 0.2.20
 
-- **autoresearch rebuilt around a per-loop wiki** — [`neuroflow:autoresearch`](skills/autoresearch/SKILL.md) is now a single managing agent (no worker/evaluator fan-out) whose brain is a scoped `wiki/`: it reads the wiki before every move and records every attempt — wins *and* failures — after. That's what lets an infinite single-agent loop compound instead of going in circles.
+- **autoresearch rebuilt around a per-loop wiki** — [`neuroflow:autoresearch`](skills/autoresearch-protocol/SKILL.md) is now a single managing agent (no worker/evaluator fan-out) whose brain is a scoped `wiki/`: it reads the wiki before every move and records every attempt — wins *and* failures — after. That's what lets an infinite single-agent loop compound instead of going in circles.
 - **Loop lives next to the artifact** — folder named `{name}_autoresearch/` beside the tracked files (overridable), with a pointer registry in `.neuroflow/{phase}/autoresearch-loops.md`. Multiple loops per phase now work.
 - **Configurable depth + human steering** — agent-decided branching, literature search when stuck, self vs fresh-eval, and a `report.md` with a non-blocking Q&A channel (answer in-session or via `answers.md`); the dashboard renders the report and open questions next to the trend charts.
 
@@ -65,7 +65,7 @@
 ## What's new in 0.2.14
 
 - **Personal wiki** ([`/flowie --wiki-*`](commands/flowie.md)) — Karpathy-style LLM-maintained knowledge base inside your flowie repo; ingest sources, query your accumulated knowledge, lint for orphan/stale pages, and build a compounding synthesis; every page is tagged to flowie projects; integrates with `/notes`, `/ideation`, `/data-analyze`, and `/paper` via closing prompts
-- **New [`neuroflow:wiki`](skills/wiki/SKILL.md) skill** — full wiki behavior: page types and frontmatter schema, ingest/query/lint/add/schema workflows, project tagging (always prompted), ideas.md sync, profile.md evolution, fails integration for method pages, and sentinel health checks
+- **New [`neuroflow:wiki`](skills/wiki-protocol/SKILL.md) skill** — full wiki behavior: page types and frontmatter schema, ingest/query/lint/add/schema workflows, project tagging (always prompted), ideas.md sync, profile.md evolution, fails integration for method pages, and sentinel health checks
 
 ## What's new in 0.2.13
 
@@ -84,8 +84,8 @@
 ## What's new in 0.2.10
 
 - **Global device config** ([`/setup`](commands/setup.md)) — credentials can now be saved to `~/.neuroflow/integrations.json` (global, shared by all projects on the machine) instead of per-project; per-project still takes precedence and overrides global; Step 0 of the wizard asks which scope to use
-- **Windows support in setup** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup/SKILL.md), and the [custom gateway guide](skills/setup/references/custom-gateway.md) now include Windows-specific paths and PowerShell env var syntax throughout
-- **Proxy model-name fix** ([`proxy.mjs`](skills/setup/scripts/proxy.mjs)) — the proxy now restores the original `claude-*` model name in every response chunk, preventing Claude Code's *"unexpected model"* error when using custom LLM providers; [`flowie`](agents/flowie.md) now enforces that `integrations.json` is gitignored in the flowie sync repo
+- **Windows support in setup** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup-guide/SKILL.md), and the [custom gateway guide](skills/setup-guide/references/custom-gateway.md) now include Windows-specific paths and PowerShell env var syntax throughout
+- **Proxy model-name fix** ([`proxy.mjs`](skills/setup-guide/scripts/gateway/proxy.mjs)) — the proxy now restores the original `claude-*` model name in every response chunk, preventing Claude Code's *"unexpected model"* error when using custom LLM providers; [`flowie`](agents/flowie.md) now enforces that `integrations.json` is gitignored in the flowie sync repo
 
 ## What's new in 0.2.8
 
@@ -304,10 +304,10 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` spec and contracts (config frontmatter, integrity status files, JSONL reasoning logs, sharing tiers, command lifecycle keys, rule markers), and behavioral modes (`teacher`, `executor`, `critic`) |
 | [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript, with a hidden-instruction scan |
 | [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) | Worker-critic agentic loop protocol — orchestrator coordinates a worker agent and a critic agent across up to 3 revision cycles, resuming the same agents for revisions |
-| [`neuroflow:autoresearch`](skills/autoresearch/SKILL.md) | Improvement-loop protocol — the single-agent loop, per-loop wiki, program.md config with caps, the integrity gate and multiverse ledger, `ar.py` bookkeeping, Q&A channel, and dashboard |
+| [`neuroflow:autoresearch-protocol`](skills/autoresearch-protocol/SKILL.md) | Improvement-loop protocol — the single-agent loop, per-loop wiki, program.md config with caps, the integrity gate and multiverse ledger, `ar.py` bookkeeping, Q&A channel, and dashboard |
 | [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin, including the mod |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
-| [`neuroflow:setup`](skills/setup/SKILL.md) | Configure integrations — Google Workspace, optional Miro, and Anthropic-compatible LLM gateways — without ever asking for a secret in chat |
+| [`neuroflow:setup-guide`](skills/setup-guide/SKILL.md) | Configure integrations — Google Workspace, optional Miro, and Anthropic-compatible LLM gateways — without ever asking for a secret in chat |
 | [`neuroflow:phase-git`](skills/phase-git/SKILL.md) | Phase guidance for /git — shorthand rules, alias scope, local-only files, smart push/pull, commit messages, branches, PRs |
 | [`neuroflow:phase-ideation`](skills/phase-ideation/SKILL.md) | Phase guidance for /ideation — search protocol against the bundled literature server, open-access downloads, standing queries |
 | [`neuroflow:phase-preregistration`](skills/phase-preregistration/SKILL.md) | Phase guidance for /preregistration — registry templates, completeness checks, freezing with hashes, deviation logging |
@@ -335,7 +335,7 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 | [`neuroflow:phase-pipeline`](skills/phase-pipeline/SKILL.md) | Phase guidance for /pipeline — one step per invocation, interactive vs executor mode, pipeline plan format, resume logic |
 | [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) | Phase guidance for /flowie — profile read and apply rules, write rules for `~/.neuroflow/flowie/`, one git pattern for sync |
 | [`neuroflow:phase-meeting`](skills/phase-meeting/SKILL.md) | Phase guidance for /meeting — meeting file format, recurring templates, attendee resolution, calendar integration, and `meeting_close.py` |
-| [`neuroflow:wiki`](skills/wiki/SKILL.md) | Knowledge base protocol — LLM-maintained wiki at three levels (personal/flowie, project, team/hive); ingest/query/lint/add workflows, branch-safe sync |
+| [`neuroflow:wiki-protocol`](skills/wiki-protocol/SKILL.md) | Knowledge base protocol — LLM-maintained wiki at three levels (personal/flowie, project, team/hive); ingest/query/lint/add workflows, branch-safe sync |
 | [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) | LaTeX poster generation — five templates (A0/A1/A2, portrait/landscape, US size), QR code integration, compile-and-preview between critic rounds |
 | [`neuroflow:notebooklm`](skills/notebooklm/SKILL.md) | Google NotebookLM — notebooks, sources (each upload confirmed), artifacts (podcast, video, slides, infographic, report, quiz, flashcards, mind map) and downloads |
 | [`neuroflow:phase-hive`](skills/phase-hive/SKILL.md) | Team-level knowledge layer — a shared GitHub org repo for team directions, cross-project findings, dataset errata and recommended methods; all sharing is explicit |
@@ -475,7 +475,7 @@ Optional integrations you add yourself — `/neuroflow:setup` walks you through 
 |---|---|
 | Miro | `claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<token> -- npx -y @k-jarzyna/mcp-miro@1.0.11`, typed in your own terminal (or with the `!` prefix) |
 | Google Workspace CLI (`gws`) | `npm install -g @googleworkspace/cli` (Node.js 18+), then `gws auth login` with an OAuth `client_secret.json` from Google Cloud Console |
-| Anthropic-compatible LLM gateway | base URL and model aliases in `~/.neuroflow/integrations.json`; the key stays in a file you control — see the [custom gateway guide](skills/setup/references/custom-gateway.md) |
+| Anthropic-compatible LLM gateway | base URL and model aliases in `~/.neuroflow/integrations.json`; the key stays in a file you control — see the [custom gateway guide](skills/setup-guide/references/custom-gateway.md) |
 | Zotero | an MCP server of your choice; `/ideation` searches your library first when it is there, and writes notes only when you opt in |
 
 Non-secret settings live in **`~/.neuroflow/integrations.json`** (global) or **`.neuroflow/integrations.json`** (per-project override, gitignored). Re-run `/neuroflow:setup` any time; `/neuroflow:doctor` checks the rest of the setup.
