@@ -473,7 +473,7 @@ Optional integrations you add yourself — `/neuroflow:setup` walks you through 
 
 | Integration | How |
 |---|---|
-| Miro | `claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<token> -- npx -y @k-jarzyna/mcp-miro@1.0.11`, typed in your own terminal (or with the `!` prefix) |
+| Miro | `claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<token> -- npx -y @k-jarzyna/mcp-miro`, typed in your own terminal — never with the `!` prefix, whose commands and output are recorded in the conversation |
 | Google Workspace CLI (`gws`) | `npm install -g @googleworkspace/cli` (Node.js 18+), then `gws auth login` with an OAuth `client_secret.json` from Google Cloud Console |
 | Anthropic-compatible LLM gateway | base URL and model aliases in `~/.neuroflow/integrations.json`; the key stays in a file you control — see the [custom gateway guide](skills/setup-guide/references/custom-gateway.md) |
 | Zotero | an MCP server of your choice; `/ideation` searches your library first when it is there, and writes notes only when you opt in |
