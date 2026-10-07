@@ -45,7 +45,7 @@ nfc = _load_nf_check()
 
 VERSION_FLOOR = (2, 1, 292)
 KNOWN_SCHEMA = nfc.SUPPORTED_NF_SCHEMA
-LOCAL_ONLY = [".neuroflow/sessions/", ".neuroflow/review/", ".neuroflow/integrations.json", ".neuroflow/flowie/", ".neuroflow/paper/xray-"]
+LOCAL_ONLY = [".neuroflow/sessions/", ".neuroflow/review/", ".neuroflow/integrations.json", ".neuroflow/flowie/", ".neuroflow/paper/xray-", ".neuroflow/wiki/.pending/"]
 UNION_FILES = [".neuroflow/reasoning/*.jsonl", ".neuroflow/sessions/*.md"]
 SYNCED_MARKERS = ("onedrive", "dropbox", "icloud", "google drive", "googledrive", "my drive", "box sync", "nextcloud", "owncloud")
 

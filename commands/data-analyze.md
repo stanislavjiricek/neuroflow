@@ -16,6 +16,7 @@ writes:
   - .neuroflow/data-analyze/flow.md
   - .neuroflow/data-analyze/multiverse.md
   - .neuroflow/data-analyze/runs.md
+  - .neuroflow/data-analyze/figure-notes.md
   - .neuroflow/reasoning/data-analyze.jsonl
   - .neuroflow/preregistration/deviations.md
   - .neuroflow/sessions/YYYY-MM-DD.md
@@ -61,9 +62,10 @@ Apply the appropriate analysis approach for the goal:
 1. Write an `analysis-plan.md` — what will be computed, which comparisons, which statistical tests, what the expected output is; label each analysis confirmatory (preregistered) or exploratory
 2. Write and run the analysis scripts — each records its provenance with `nf_provenance` (skill → *Provenance*); runs longer than ~10 minutes follow the long-run convention the skill points to; notebooks follow the skill's *Notebooks*
 3. Collect results — figures, tables, statistical outputs, taken from the files the scripts wrote
-4. Audit the statistical approach — verify test assumptions, multiple comparison correction, effect size reporting
-5. Optional, exploratory: test robustness across defensible analysis choices with `multiverse.py` (skill → *Multiverse*); every specification lands in `multiverse.md`
-6. Optional, before `/paper --submit` or `/output --archive`: reproduce the confirmatory results from a fresh clone with `cleanroom.py` (skill → *Clean-room reproduction*)
+4. Figure check (skill → *Figure check*) — the final figures only: those `analysis-summary.md` lists (on a first run, the ones it will list), never per-subject dumps; at most 8 per pass, ask before more. `Read` each PNG or PDF page, check it against the `neuroflow:review-neuro` Agent 8 checklist and append each finding — yours, or a region the person points at — as a row to `.neuroflow/data-analyze/figure-notes.md`. Fix cosmetic findings in the plotting code and regenerate the figure; re-read it, say what visibly changed and set `claimed-fixed` — only the person sets `verified`. Never fix an analytic finding yourself: raise it as a question
+5. Audit the statistical approach — verify test assumptions, multiple comparison correction, effect size reporting
+6. Optional, exploratory: test robustness across defensible analysis choices with `multiverse.py` (skill → *Multiverse*); every specification lands in `multiverse.md`
+7. Optional, before `/paper --submit` or `/output --archive`: reproduce the confirmatory results from a fresh clone with `cleanroom.py` (skill → *Clean-room reproduction*)
 
 Save the analysis plan and results summary in `.neuroflow/data-analyze/`. Write analysis scripts, computed results, and figures to `output_path` (from `.neuroflow/data-analyze/flow.md`, default: `scripts/analysis/` for code, `results/` for outputs, `figures/` for plots) — not inside `.neuroflow/`.
 

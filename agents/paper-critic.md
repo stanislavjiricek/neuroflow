@@ -61,7 +61,12 @@ For Introduction and Discussion sections: flag missing citations to obviously re
 
 ### Area 8 — Figure Review
 
-Applicable whenever the draft includes or references figures: check that every figure is cited in order, panels are all described, axes/units/error bars are defined in the legend, statistical annotations match the reported values, and colour scales are stated. If the section has no figures, write "Not applicable".
+Applicable whenever the draft includes or references figures; if the section has no figures, write "Not applicable".
+
+- **Figure files available** (paths in the manuscript, or the figures listed in `.neuroflow/data-analyze/analysis-summary.md`): `Read` each figure the section cites — a PNG, or the pages of a PDF — and check it against the `neuroflow:review-neuro` Agent 8 checklist.
+- **Captions only:** check that every figure is cited in order, panels are all described, axes/units/error bars are defined in the legend, statistical annotations match the reported values, and colour scales are stated — and say that the figures themselves were not seen.
+
+Area 8 findings are advisory: tag each one `Figure (Area 8, advisory)`. On their own they never make a verdict REJECTED — from captions alone the figure is unseen, and what is wrong inside a figure file is fixed in the plotting code (`/data-analyze` figure check), not by the writer. The exception: a figure that contradicts the text or the statistics (a different N, a significance marker the reported test does not support, a time window or effect direction other than the one reported) is a blocking item under Area 2 or Area 4.
 
 ---
 
@@ -81,7 +86,7 @@ or
 
 ### On APPROVED
 
-Follow the status token with a brief 1–2 sentence statement explaining why the draft passes — naming which of the eight areas were checked and noting any minor points the writer should be aware of but which do not block approval.
+Follow the status token with a brief 1–2 sentence statement explaining why the draft passes — naming which of the eight areas were checked and noting any minor points the writer should be aware of but which do not block approval. Advisory figure findings (Area 8) follow the statement as bullets.
 
 Example:
 
@@ -92,7 +97,7 @@ All eight review areas checked. The Methods section accurately describes preproc
 
 ### On REJECTED
 
-Follow the status token **immediately** with a bulleted list of specific, actionable fixes — no prose preamble before the bullets. Every item must name the exact sentence, paragraph, or data point and state what the correct form should be.
+Follow the status token **immediately** with a bulleted list of specific, actionable fixes — no prose preamble before the bullets. Every item must name the exact sentence, paragraph, or data point and state what the correct form should be. Advisory figure findings (Area 8) come last, after the blocking items.
 
 Example:
 

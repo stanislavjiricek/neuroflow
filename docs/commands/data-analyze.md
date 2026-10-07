@@ -106,6 +106,24 @@ Claude selects the appropriate tooling based on your goal:
 
 ---
 
+## Figure check
+
+After collecting results, Claude looks at the final figures — the ones listed in `analysis-summary.md`, never per-subject dumps, at most 8 at a time (it asks before more). It reads each PNG or PDF page and checks it against the figure checklist of the review-neuro skill: colour map, font size at print size, axis labels and units, error bars, statistical annotations, caption completeness.
+
+Every finding becomes a row in `.neuroflow/data-analyze/figure-notes.md`, anchored in the data rather than in pixels:
+
+| Figure | Panel | Element | Data anchor | Class | Note | Author | Status |
+|---|---|---|---|---|---|---|---|
+| `figures/erp_pz.png` | B | y-axis label | Pz, 300–600 ms, target vs standard | cosmetic | Unit missing (µV) | model | claimed-fixed |
+
+- **Cosmetic** findings (labels, units, fonts, overlap, colour map choice, layout) are fixed in the plotting code and the figure is regenerated. Claude re-reads it, tells you what visibly changed and marks the row `claimed-fixed`; only you mark it `verified` (or `wontfix`).
+- **Analytic** findings (time or frequency windows, thresholds, baselines, cluster parameters, exclusions, colour limits, smoothing) are never fixed automatically. Claude asks; a change you approve goes through `analysis-plan.md`, the preregistration deviations log when the preregistration is frozen, and the decision log.
+- Figures are never edited as images: every change is made in the plotting code and the figure regenerated. Compared conditions share colour limits and axes, and the caption states colour limits, thresholds and masks.
+
+**Pointing at a spot yourself:** take a screenshot, circle the region with your screenshot tool's markup and paste it into the conversation — or name the panel and the data coordinates ("panel B, around 350 ms at Pz"). Claude records it as a row, like its own findings.
+
+---
+
 ## Statistical auditing
 
 After running analysis, Claude audits the statistical approach:
@@ -169,6 +187,7 @@ Claude: Analysis plan:
 | `analysis.py` | `scripts/analysis/` | Analysis code |
 | `environment.md`, `provenance/*.json` | `scripts/analysis/` | Versions, seeds and git commit; one run record per run (written by `nf_provenance`) |
 | `analysis-summary.md` | `.neuroflow/data-analyze/` | Key findings, figures produced, open questions |
+| `figure-notes.md` | `.neuroflow/data-analyze/` | Figure check findings: one row per finding, with its data anchor, class and status |
 | `multiverse.md` | `.neuroflow/data-analyze/` | Append-only ledger of every exploratory specification and its result |
 | `cleanroom-YYYY-MM-DD.md` | `.neuroflow/data-analyze/` | Clean-room reproduction report (when run) |
 | `runs.md` | `.neuroflow/data-analyze/` | Registry of long or detached runs |

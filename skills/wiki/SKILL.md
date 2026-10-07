@@ -65,6 +65,7 @@ The wiki structure is identical at all three levels. The root path is resolved f
 ├── index.md          ← catalog: every page, one-line summary, date, type (LLM maintains)
 ├── log.md            ← append-only chronological log (## [date] op | title)
 ├── schema.md         ← wiki conventions and LLM operating guide (auto-loaded on every operation)
+├── .pending/         ← project level only: capture cards awaiting review, local — never committed (Auto capture)
 ├── raw/              ← immutable source documents (human drops files here, LLM never modifies)
 │   └── assets/       ← locally downloaded images
 └── pages/
@@ -268,6 +269,44 @@ Show current `schema.md`. Then ask:
 - Walk through each section collaboratively
 
 After updating, show diff, confirm, write, commit; push as in Git sync.
+
+---
+
+## Auto capture (review queue)
+
+Project level only; hive wikis are never auto-captured. The background notices, the person decides, and the normal `--add` flow writes: capture never writes, updates or commits a wiki page — it only queues cards for review.
+
+**Switches** — capture runs only when both allow it:
+- `wiki_auto: ask | off` in `~/.neuroflow/user.yaml` — the person's own opt-in, because capture reads their sessions. Absent means `off`; set it with `/wiki --auto`.
+- `wiki_capture: allow | forbid` in the `project_config.md` frontmatter — the project's policy. Absent means `allow`; `forbid` stops all capture in the project (e.g. confidential work).
+
+**Who writes cards:** the neuroflow mod, after a command turn that logged a new decision; the model at the end of a command (neuroflow-core → **Crystallization detection**); `/wiki --catchup` on request. Never during a `quiet` command.
+
+**Queue:** `.neuroflow/wiki/.pending/`, one card per file named `YYYY-MM-DD-{slug}.md`. The folder holds a `.gitignore` with the single line `*` — create it with the first card — so cards stay local: never committed, never exported, never synced (neuroflow-core → **Sharing tiers**).
+
+```markdown
+---
+title: Use FDR across electrodes
+type: decision          # decision | method | concept | question — never a result
+evidence: reasoning/data-analyze.jsonl (2026-10-07 14:03 entry)
+captured: 2026-10-07T14:05
+by: mod                 # mod | model
+status: pending         # pending | accepted | skipped
+---
+One to three sentences, quoting the evidence.
+```
+
+**Rubric** — the same for the mod and the model:
+- Evidence is mandatory: a card names the file and the entry it comes from (paths relative to `.neuroflow/`). No evidence, no card.
+- Nothing is the normal answer: most commands queue no card.
+- Never results, never numbers from an analysis, never participant data.
+- At most two cards per command, counting the cards the mod already queued during it.
+- Skip anything already in the wiki index or already in the queue (pending, accepted or skipped).
+- A decision becomes a card only when it is reusable knowledge — why a method or parameter was chosen — not a routine step.
+
+**Review** (`/wiki --review`, or the mod's review pane):
+- **Accept** runs the normal Add workflow with the card as its source text (`/wiki --add --from-pending <card file>`): the title and draft come from the card; the flow still asks for page type, `projects:` tags and related pages, updates `index.md` and `log.md`, and commits — pushing only after the person confirms (**Git sync**). **Privacy rules** apply as to any page: a card may quote a session line, the page never does. After the page is written, set the card's `status: accepted`.
+- **Skip** sets `status: skipped`. A skipped card is never raised again.
 
 ---
 

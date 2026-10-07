@@ -168,6 +168,29 @@ class PlanAndExportTests(unittest.TestCase):
         self.assertIn("share/.neuroflow/paper/draft.md", names)
         self.assertFalse(any("xray" in n for n in names))
 
+    def test_wiki_pending_cards_never_exported(self):
+        wiki = self.root / ".neuroflow" / "wiki"
+        write(wiki / "index.md", "# Wiki Index\n")
+        write(wiki / "pages" / "methods" / "fdr.md", "page\n")
+        cards = (".gitignore", "2026-10-07-use-fdr-across-electrodes.md")
+        write(wiki / ".pending" / cards[0], "*\n")
+        write(wiki / ".pending" / cards[1], "---\ntitle: Use FDR across electrodes\nstatus: pending\n---\ncard\n")
+        for scope, phase in (("memory", None), ("phase", "wiki")):
+            plan = ex.build_plan(self.root, scope, phase)
+            held = dict(plan.held_back)
+            files = {rel for rel, _ in plan.files}
+            self.assertIn(".neuroflow/wiki/index.md", files)
+            self.assertIn(".neuroflow/wiki/pages/methods/fdr.md", files)
+            for name in cards:
+                self.assertEqual(held.get(f".neuroflow/wiki/.pending/{name}"), ex.LOCAL_REASON, (scope, name))
+        dest = self.base / "share.zip"
+        code, out = run_main(["--root", str(self.root), "--scope", "memory", "--dest", str(dest), "--json"])
+        self.assertEqual(code, 0, out)
+        with zipfile.ZipFile(dest) as z:
+            names = z.namelist()
+        self.assertIn("share/.neuroflow/wiki/pages/methods/fdr.md", names)
+        self.assertFalse(any("/.pending/" in n for n in names))
+
     def test_phase_plan(self):
         plan = ex.build_plan(self.root, "phase", "data-analyze")
         self.assertEqual({rel for rel, _ in plan.files},

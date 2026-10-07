@@ -83,6 +83,7 @@ raw_roots: [sourcedata/]          # optional: read-only raw-data folders (relati
 paper_auto: off                   # optional: on | off (/paper --auto)
 hive_repo: owner/repo             # optional: GitHub org/repo of the team hive
 ethics: not-applicable            # optional: no approval tracked here (public de-identified data, simulations); silences the ETHICS-GATE and sentinel S4 — see /ethics
+wiki_capture: allow               # optional: allow | forbid — forbid stops all wiki capture in this project (e.g. confidential work); absent means allow — see /wiki
 plugin_version: 0.2.22            # the neuroflow version that last wrote this file
 ---
 ```
@@ -109,6 +110,7 @@ writing_style: plain, active voice
 auto_issue_reporting: no          # consent: yes | no — absent means no
 default_mode: critic              # optional: overrides the project's team default for this person
 zotero: no                        # optional: yes | no — whether the person uses Zotero, asked once by /ideation
+wiki_auto: off                    # optional: ask | off — queue wiki cards from this person's sessions for review (/wiki --auto); absent means off
 ```
 
 - Consent is read **only** from this file. An `auto_issue_reporting` value in a project file is a legacy leftover: ignore it and offer `/neuroflow:migrate`, which moves personal fields here after asking.
@@ -129,7 +131,7 @@ zotero: no                        # optional: yes | no — whether the person us
 | `output/` | Output log — one `.md` per export run recording scope, format, destination, and excluded files. Created on first `/output` run. |
 | `tasks/` | Project-level Kanban task board — one file per task at `tasks/{column}/{slug}.md` (format: `/tasks`; git-tracked, shared with collaborators). Owned by `/tasks` — `/flowie --tasks --level project`, `/meeting` action items, and `/hive` delegate to its spec. Created by the scaffold. |
 | `meetings/` | Meeting files — agendas, notes, action items. Written by `/meeting`. Created on first meeting. |
-| `wiki/` | Project-level shared knowledge base (git-tracked). Owned by `/wiki` at `level: project`. The scaffold creates the skeleton; `/wiki --schema` or the first ingest initialises it. |
+| `wiki/` | Project-level shared knowledge base (git-tracked; its `.pending/` review queue is local tier). Owned by `/wiki` at `level: project`. The scaffold creates the skeleton; `/wiki --schema` or the first ingest initialises it. |
 | `{phase}/` | One subfolder per pipeline command (e.g. `ideation/`, `experiment/`, `data/`). Each has its own `flow.md` and at least one `.md` memory file written by the command. |
 
 **Rule: only command names may be used as phase subfolder names.** Skills must never create their own named subfolders inside `.neuroflow/`. All skill memory must be written to the active command's phase subfolder (`.neuroflow/{phase}/`). Creating a subfolder named after a skill (e.g. `.neuroflow/review-neuro/`) is a structural error.
@@ -275,7 +277,7 @@ set_at: 2026-09-12T09:00:00Z
 
 | Tier | What | Rule |
 |---|---|---|
-| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json`, `~/.neuroflow/flowie-sync.log`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
+| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json`, `~/.neuroflow/flowie-sync.log`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/wiki/.pending/` (wiki capture cards awaiting review), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
 | `team` | everything else under `.neuroflow/` | Committed to the project repo; visible to collaborators. |
 | `public` | what `/output`, `/hive` share, NotebookLM, slides, posters and papers send outside | Only after the person confirms what leaves. Never includes `local` paths, `fails/`, `finance/`, or participant-identifying `ethics/` content. |
 
@@ -287,6 +289,7 @@ The scaffold (and `/neuroflow:migrate`) adds these lines to the project's `.giti
 .neuroflow/integrations.json
 .neuroflow/flowie/
 .neuroflow/paper/xray-*
+.neuroflow/wiki/.pending/
 ```
 
 <!-- nf-rule: EGRESS-CONFIRM -->
@@ -423,6 +426,8 @@ At the end of every command session (never in a `quiet` one), scan what emerged 
 - The user said something like "interesting", "that's important", "good to know", "remember this", "we should keep this"
 - A synthesis spanned multiple projects or time horizons
 - A significant phase decision was logged
+
+**Review queue instead of the offer:** if `wiki_auto: ask` is set in `~/.neuroflow/user.yaml` and the project allows capture (`wiki_capture` in the `project_config.md` frontmatter is not `forbid`), do not show the offer below. Judge what crystallized with the capture rubric and write at most two cards to `.neuroflow/wiki/.pending/` — usually none (`neuroflow:wiki` → **Auto capture (review queue)**: card format and rubric). If you queued any, say so in one line: `2 wiki cards queued — /wiki --review`. With `wiki_auto` off or absent, or `wiki_capture: forbid`, the offer below applies.
 
 If a crystallization is detected, offer ingest **once** at the end of the command — not mid-session. Use this format:
 
