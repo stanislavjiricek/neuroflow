@@ -16,11 +16,11 @@ The write-report phase generates a structured report from `.neuroflow/` contents
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
-- `neuroflow:humanizer` — apply to drafted report text to strip AI signatures, fix rhythm, and calibrate register
+- `neuroflow:humanizer` — optional style edit of the report text, only when the person asks for it; never automatic and never used to disguise AI involvement
 
 ## Workflow hints
 
-- Save the report to `results/` or the phase folder specified by the user — confirm `output_path` before writing
+- Save the report to `report/` (the default `output_path`) or the folder the user names — confirm `output_path` before writing; keep only a short summary note in `.neuroflow/write-report/`
 - Keep the report concise; a summary of key decisions and outputs is more useful than exhaustive detail
 
 ## Slash command

@@ -1,6 +1,6 @@
 ---
 name: grant-proposal
-description: Write a full grant application. Starts with an interactive interview, discovers ideation outputs, accepts funding call documents or URLs, adapts to any funder (NIH, ERC, Wellcome, GAČR, etc.), and drafts section by section with word-count tracking.
+description: Write a full grant application. Starts with an interactive interview, discovers ideation outputs, accepts funding call documents or URLs, adapts to any funder (NIH, ERC, Wellcome, national research councils, etc.), and drafts section by section with word-count tracking.
 phase: grant-proposal
 reads:
   - .neuroflow/project_config.md
@@ -8,18 +8,28 @@ reads:
   - .neuroflow/objectives.md         # read if exists — project objectives cornerstones
   - .neuroflow/ideation/             # all .md files discovered in Step 0
   - .neuroflow/grant-proposal/flow.md
+  - .neuroflow/sessions/             # Step 6b: evidence for the AI-use declaration
 writes:
   - .neuroflow/grant-proposal/
   - .neuroflow/grant-proposal/flow.md
   - .neuroflow/objectives.md         # written/updated after interview confirms objectives
+  - .neuroflow/reasoning/grant-proposal.jsonl
+  - .neuroflow/timeline.md           # the deadline
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: full
+produces:
+  - .neuroflow/grant-proposal/grant-[funder]-[date].md
+  - .neuroflow/objectives.md
+next:
+  - finance
+  - preregistration
 ---
 
 # /grant-proposal
 
 Read the `neuroflow:phase-grant-proposal` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `objectives.md` (if it exists) before starting.
 
-Apply `neuroflow:humanizer` to every drafted section before saving — strip AI signatures, fix rhythm, and calibrate register so the prose reads as genuinely human-authored.
+**Style editing is opt-in.** Run `neuroflow:humanizer` on a section only when the person asks for it — a style edit (filler, rhythm, register), never a way to hide that AI helped write the text. AI assistance is declared in Step 6b.
 
 Use `mcp__plugin_neuroflow_sequentialthinking__sequentialthinking` when structuring the logical argument for Innovation and Approach sections — invoke it before drafting those sections, not after.
 
@@ -101,9 +111,10 @@ Ask the user (or infer from pasted text / URL):
 
 | Item | Examples |
 |---|---|
-| Funding body | NIH, ERC, Wellcome Trust, MRC, GAČR, DFG, ANR, NWO, SNSF, ARC, institutional |
-| Scheme / mechanism | R01, Starting Grant, Senior Investigator Award, Standard Project |
-| Total budget ceiling | e.g. $500 K direct costs, €1.5 M total, 5M CZK |
+| Funding body | NIH, ERC, Wellcome Trust, Horizon Europe, a national research council or science foundation, a foundation, institutional |
+| Scheme / mechanism | R01, Starting Grant, Discovery Award, standard project grant |
+| Total budget ceiling | e.g. $500 K direct costs, €1.5 M total |
+| Language and format | Required language(s) of each part, template, font and page rules — national funders often want parts in the national language and others in English |
 | Duration | 3 years, 5 years |
 | Page / word limits per section | Often varies significantly |
 | Deadline | Exact date |
@@ -180,11 +191,11 @@ Work through sections in order. **Before each major section, re-read `objectives
 1. State the section name, page limit, and review criteria that apply to it
 2. If an inspiration map exists: note which inspiration section corresponds to this one
 3. Draft the section content
-4. Show word count: `Word count: NNN / NNN limit`
+4. Show word count: `Word count: NNN / NNN limit` — counted with a tool (`wc -w` on the section file, or the text piped to `wc -w`), never estimated. Where the limit is in pages, say so: the word count is only a guide, and the page count is checked in the funder's template.
 5. After drafting, ask:
    - `"revise"` — iterate
    - `"next"` — proceed
-   - `"save"` — write to file
+   - `"save"` — write to `.neuroflow/grant-proposal/draft-[funder]-[date]-[section].md`
    - `"expand [topic]"` — add more depth
 
 ### Section-specific guidance
@@ -221,6 +232,7 @@ Work through sections in order. **Before each major section, re-read `objectives
 **Team and Environment**
 - PI and co-investigators with role descriptions
 - Institutional resources: scanners, clusters, core facilities
+- Shared infrastructure the project will rely on (compute allocations, core facilities, data repositories, hosted model gateways): how access is secured, and the acknowledgement each one requires in later papers — take the wording from the provider, never invent it
 
 **Data Management Plan (DMP) — required by every supported funder**
 - Draft as a standalone document, not a proposal section: `dmp-{funder}-{YYYY-MM-DD}.md` in `.neuroflow/grant-proposal/`
@@ -247,10 +259,18 @@ Before saving, verify:
 - [ ] Funder review criteria explicitly addressed in text
 - [ ] Panel terminology reflected in framing (if panel research was done)
 - [ ] Preliminary data supports feasibility
-- [ ] References formatted in funder-required style
+- [ ] References formatted in funder-required style, cited only from the project library (`.neuroflow/ideation/papers/` or the person's reference manager)
+- [ ] Reference DOIs checked: `python <phase-grant-proposal skill base dir>/../phase-paper/scripts/cite_check.py <the draft-*.md section files> --library .neuroflow/ideation/papers --cache .neuroflow/grant-proposal/doi-cache.json`. Exit 0: "DOI resolves; no retraction notice found in Crossref as of {date}". Exit 1: settle each flagged DOI with the person. Exit 2: no network, mark it unchecked. Never "verified".
 - [ ] Budget arithmetic is correct
+- [ ] AI-use declaration drafted (Step 6b), if the funder asks for one
 
 Report the checklist to the user and fix any issues before saving.
+
+---
+
+## Step 6b — AI-use declaration
+
+Many funders ask applicants to declare generative-AI use, and some limit it. Read the call text for the policy and the required wording. Draft the declaration from evidence, never from memory: `[grant-proposal]` lines in `.neuroflow/sessions/` (this machine only — ask co-applicants about their own sessions), which sections were drafted or edited with the model, whether the humanizer ran, and what the applicants did themselves (the ideas, the decisions, checking every claim, the final text). Name the tool ("Claude, via Claude Code with the neuroflow plugin"). Never under-state or over-state, and never quote session lines. Ask the person to confirm it, then save it as `.neuroflow/grant-proposal/ai-use-statement-[funder]-[date].md`.
 
 ---
 
@@ -258,7 +278,7 @@ Report the checklist to the user and fix any issues before saving.
 
 Save the completed grant document to `.neuroflow/grant-proposal/grant-[funder]-[date].md`.
 
-Update `.neuroflow/grant-proposal/flow.md`. Append `##` milestone to `.neuroflow/sessions/YYYY-MM-DD.md`. Update `project_config.md` with funder, scheme, and deadline if not already present — confirm with the user first.
+Update `.neuroflow/grant-proposal/flow.md`. Append a session line `## HH:MM — [grant-proposal] Draft saved: {funder} {scheme}`. Add the deadline to `timeline.md`, and note funder and scheme in the free-text part of `project_config.md` (below the frontmatter — they are not frontmatter keys) if not already there — confirm with the user first. The choice of funder and scheme is a reasoning entry in `.neuroflow/reasoning/grant-proposal.jsonl`.
 
 ---
 
@@ -274,7 +294,5 @@ Update `.neuroflow/grant-proposal/flow.md`. Append `##` milestone to `.neuroflow
 | ERC | Consolidator | €2M, 5 yr | Same as StG | Same as StG |
 | ERC | Advanced Grant | €2.5M, 5 yr | Same as StG | Same as StG |
 | Wellcome | Discovery | £3–5M, 5 yr | Flexible structure | Scientific opportunity, Team, Delivery |
-| MRC | Programme Grant | £2–4M, 5 yr | Case for Support (20p) | Importance, Quality, Team |
-| GAČR | Standard Project | 5M CZK/yr, 3 yr | Project summary, State of art, Objectives, Methodology | Originality, Feasibility, Team |
-| DFG | Research Grants | 250K–1M €, 3 yr | Work programme (10–15p) | Scientific quality, Feasibility, Training |
 | Horizon Europe | EIC Pathfinder | €3M, 4 yr | Concept, Methodology, Impact | Novelty, Scientific approach, Impact |
+| National research council / science foundation | Standard project grant | Varies — read the call | Summary, state of the art, objectives, methodology, feasibility, budget | Originality, feasibility, team, budget — read the call |

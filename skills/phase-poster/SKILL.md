@@ -15,8 +15,8 @@ The poster phase generates a publication-ready academic conference poster as a L
 2. Read `.neuroflow/project_config.md` and relevant phase `flow.md` files to extract title, authors, affiliations, key findings, methods, and figures
 3. Select the appropriate LaTeX template (see below)
 4. Generate the full `.tex` source with a QR code block if a URL is provided
-5. Run the poster through the `poster-critic` agent for iterative review (worker-critic loop, max 3 cycles)
-6. Save approved `.tex` and compiled PDF instructions to `.neuroflow/poster/`
+5. Run the poster through the `poster-critic` agent for iterative review (worker-critic loop, max 3 cycles) — compile it and render a preview image before every round (see **Compilation**), so the critic judges the printed result, not only the source
+6. The approved `.tex` stays in `output_path` (default `poster/`); the critic log goes to `.neuroflow/poster/`
 
 ---
 
@@ -419,7 +419,7 @@ The poster phase generates a publication-ready academic conference poster as a L
 
 | Size | Orientation | Use when |
 |---|---|---|
-| A0 (841×1189 mm) | Portrait | Most European conferences; SfN, Bernstein, OHBM |
+| A0 (841×1189 mm) | Portrait | Most European conferences; SfN, OHBM, FENS |
 | A0 (1189×841 mm) | Landscape | Wide-format boards; when you have many side-by-side figures |
 | A1 (594×841 mm) | Portrait | Lab retreats, seminars, smaller venues |
 | 90×120 cm | Portrait | Common European conference custom size |
@@ -471,6 +471,18 @@ latexmk -pdf poster.tex
 
 **Figure formats:** Use `.pdf` or `.eps` for vector figures, `.png`/`.jpg` for bitmaps. Avoid `.svg` directly (convert to `.pdf` first via Inkscape: `inkscape figure.svg --export-pdf=figure.pdf`).
 
+**Inside the critic loop** (`/poster` Step 5), compile non-interactively into a `build/` folder next to the `.tex`, then render page 1 as a small PNG for the critic:
+
+```bash
+latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=build poster.tex
+pdftoppm -png -r 40 -f 1 -l 1 -singlefile build/poster.pdf build/preview-round-1
+```
+
+- latexmk needs Perl; without it run `pdflatex -interaction=nonstopmode -halt-on-error -output-directory=build poster.tex` twice. MiKTeX can stall on its package-install prompt in a non-interactive run — install missing packages first.
+- pdftoppm comes with poppler, which is not installed everywhere. Alternatives: `mutool draw -r 40 -o build/preview-round-1.png build/poster.pdf 1` (MuPDF) or `magick -density 40 "build/poster.pdf[0]" build/preview-round-1.png` (ImageMagick with Ghostscript).
+- 40 dpi keeps an A0 page near 1300 × 1900 px: enough to judge layout, balance and figure placement, too coarse for small text — legibility is judged from font sizes in the source.
+- Pass the critic the log lines with `!`, `Overfull`, `not found` and `Missing`, and the PNG path; it reads the image itself.
+
 ---
 
 ## Content extraction from `.neuroflow/`
@@ -489,12 +501,16 @@ If figures are referenced in flow.md files, list them for the user — do not at
 
 ## Output paths
 
-Save poster files to `.neuroflow/poster/`:
+The poster is a deliverable: it lives in the poster `output_path` (default `poster/`), never inside `.neuroflow/`. Only memory goes to `.neuroflow/poster/`:
 
 ```
-.neuroflow/poster/
+poster/                            ← output_path (deliverables)
 ├── poster-YYYY-MM-DD.tex          ← LaTeX source
-├── figures/                       ← symlinks or stubs for figures
+├── figures/                       ← figure files or stubs
+└── build/                         ← compiled PDF, previews (by-products)
+
+.neuroflow/poster/                 ← memory
+├── flow.md
 └── critic-log.md                  ← iterative review log
 ```
 
@@ -505,7 +521,7 @@ If a same-date `.tex` file exists, append `-v2`, `-v3`, etc.
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
-- `neuroflow:humanizer` — apply to all text blocks (Introduction, Methods, Results, Discussion, Conclusions) to strip AI signatures, fix rhythm, and calibrate register before saving the `.tex` file
+- `neuroflow:humanizer` — optional style edit of the text blocks, only when the person asks for it; never automatic and never used to disguise AI involvement
 
 ## Slash command
 

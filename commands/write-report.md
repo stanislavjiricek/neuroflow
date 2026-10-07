@@ -13,13 +13,16 @@ writes:
   - .neuroflow/write-report/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
   - report/
+lifecycle: full
+produces:
+  - report/report-[date].md
 ---
 
 # /write-report
 
 Read the `neuroflow:phase-write-report` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
 
-Apply `neuroflow:humanizer` before saving the report — strip AI signatures, fix rhythm, and calibrate register so the prose reads as genuinely human-authored.
+**Style editing is opt-in.** Run `neuroflow:humanizer` on the report only when the person asks for it — a style edit, never a way to hide that AI helped write the text.
 
 ## What this command does
 
@@ -48,4 +51,4 @@ Generates a structured report from `.neuroflow/` contents. Useful for progress u
 ## At end
 
 - Update `.neuroflow/write-report/flow.md`
-- Append to `.neuroflow/sessions/YYYY-MM-DD.md`
+- Append a session line `## HH:MM — [write-report] Report saved: report/report-[date].md ({phases covered})`

@@ -70,12 +70,15 @@ Before saving, Claude runs a quality checklist:
 - Every aim is measurable
 - Power analysis is present
 - Limitations and alternatives are addressed
-- All sections are within word/page limits
+- All sections are within word/page limits (word counts come from a tool, not an estimate)
 - Review criteria are explicitly addressed in the text
+- References come from your project library, and their DOIs resolve (the `cite_check.py` script, which also looks for retraction notices in Crossref)
+
+If the funder asks applicants to declare generative-AI use, Claude drafts the declaration from the session logs (what the model did, what you did) and you confirm it. The humanizer is a style edit that runs only when you ask for it — never a way to hide AI involvement.
 
 ### Step 5: Saves to memory
 
-The completed draft is saved as `grant-[funder]-[date].md` in `.neuroflow/grant-proposal/`. Funder, scheme, and deadline are logged to `project_config.md` with your confirmation.
+The completed draft is saved as `grant-[funder]-[date].md` in `.neuroflow/grant-proposal/`. With your confirmation, the deadline goes to `timeline.md` and funder and scheme are noted in `project_config.md`.
 
 ---
 
@@ -89,13 +92,11 @@ The completed draft is saved as `grant-[funder]-[date].md` in `.neuroflow/grant-
 | ERC | Consolidator Grant | €2M | 5 years |
 | ERC | Advanced Grant | €2.5M | 5 years |
 | Wellcome Trust | Discovery Award | £3–5M | 5 years |
-| MRC | Programme Grant | £2–4M | 5 years |
-| GAČR | Standard Project | ~5M CZK/yr | 3 years |
-| DFG | Research Grants | €250K–1M | 3 years |
 | Horizon Europe | EIC Pathfinder | €3M | 4 years |
+| National research council or science foundation | Standard project grant | Varies by call | Often 3 years |
 
 !!! tip "Any funder works"
-    If your funder is not in the table above, Claude will ask you for the requirements directly, or read a URL or PDF you provide.
+    If your funder is not in the table above, Claude will ask you for the requirements directly, or read a URL or PDF you provide. For national funders it checks the call text for language and format rules — some parts may have to be in the national language and others in English.
 
 ---
 
@@ -125,27 +126,28 @@ A **formal power analysis** is always included — using your pilot data or publ
 ```
 Claude: I found your ideation output. Here's what I'll build the grant from:
         • Research question: Does white noise reduce P300 amplitude in a visual oddball task?
-        • Modality: EEG (64-channel, BrainProducts actiCHamp)
+        • Modality: EEG (64-channel)
         • Population: Healthy adults 18–35, N=40
         • Preliminary data: Pilot N=8, d=0.61
         • Key refs: Polich (2007), Näätänen et al. (2018)
 
         Is this the right idea to build the grant around?
 
-You: Yes. Applying to GAČR Standard Project.
+You: Yes. Applying to my national research council's standard project grant.
 
-Claude: Do you have a URL to the current GAČR call for proposals?
+Claude: Do you have a URL to the current call for proposals?
 
-You: https://gacr.cz/en/calls/2025-standard/
+You: https://research-council.example.org/calls/2026-standard/
 
 Claude: [reads URL]
-        GAČR Standard Project 2025:
-        • Budget: up to 5M CZK/year, 3 years
-        • Sections: Project summary (600w CZ+EN), State of the art, Objectives,
-          Methodology, Feasibility, Budget justification, Timeline
+        Standard Project Grant 2026:
+        • Budget: up to €200K/year, 3 years
+        • Sections: Project summary (600 words, national language + English),
+          State of the art, Objectives, Methodology, Feasibility,
+          Budget justification, Timeline
         • Review criteria: Scientific originality, Feasibility, Team qualifications, Budget
-        • Deadline: October 15, 2025
-        • Submission: GRIS portal
+        • Deadline: October 15, 2026
+        • Submission: the funder's online portal
 
         Confirmed — shall I build the outline?
 
@@ -172,6 +174,7 @@ Claude: [drafts Project Summary]
 |---|---|---|
 | Grant draft | `.neuroflow/grant-proposal/grant-[funder]-[date].md` | Full application |
 | Section drafts | `.neuroflow/grant-proposal/draft-[funder]-[date]-[section].md` | Per-section files during drafting |
+| AI-use declaration | `.neuroflow/grant-proposal/ai-use-statement-[funder]-[date].md` | Drafted from the session logs, confirmed by you |
 | Flow index | `.neuroflow/grant-proposal/flow.md` | Funder, scheme, deadline, section status |
 | Session log | `.neuroflow/sessions/YYYY-MM-DD.md` | Appended automatically |
 
@@ -181,8 +184,8 @@ Claude: [drafts Project Summary]
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/grant-proposal/flow.md` |
-| Writes | `.neuroflow/grant-proposal/`, `.neuroflow/grant-proposal/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/objectives.md`, `.neuroflow/ideation/`, `.neuroflow/grant-proposal/flow.md`, `.neuroflow/sessions/` (AI-use declaration) |
+| Writes | `.neuroflow/grant-proposal/`, `.neuroflow/grant-proposal/flow.md`, `.neuroflow/objectives.md`, `.neuroflow/reasoning/grant-proposal.jsonl`, `.neuroflow/timeline.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
 
 ---
 

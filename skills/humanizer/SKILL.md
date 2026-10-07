@@ -1,31 +1,39 @@
 ---
 name: humanizer
-description: Remove AI writing signatures from prose. Makes text sound genuinely human-authored — varied rhythm, natural register, no AI tells. Use when drafting, editing, or reviewing any text that needs to read as if a person wrote it.
+description: Style editing for prose, on request. Cuts filler and inflated vocabulary, varies sentence rhythm, and matches the register, while keeping the author's voice and every fact, number, citation and hedge. Use only when the person asks to tighten, edit or restyle a text. Never used to hide AI involvement or evade AI-detection or disclosure rules.
 metadata:
-  trigger: Writing prose, editing drafts, reviewing content for AI patterns
+  trigger: The person asks for a style edit of prose (tighten, edit for style, humanize)
   replaces: stop-slop
 ---
 
 # Humanizer
 
-Transform AI-generated prose into text that reads as if a human wrote it. This goes beyond cutting filler — it addresses rhythm, register, word choice, and the structural patterns that mark AI output as synthetic.
+Edit prose for style: cut filler, deflate inflated wording, vary rhythm, and match the register, so the text reads like the author on a good day. This goes beyond deleting words — it addresses rhythm, register, word choice, and the stock structural patterns that make drafts generic.
 
 ---
 
-## Step 1 — Strip AI signatures
+## When to use — and what it is not
 
-Remove every word and phrase that signals machine authorship. No exceptions.
+- **Only when the person asks** ("tighten this", "edit for style", "humanize this"). No command runs it automatically, and it is never a default step before a critic, a save or a submission.
+- **A style edit, not a disguise.** It improves readability. It does not make AI-assisted text undetectable and must never be used or described as a way to evade AI detection or disclosure rules. AI assistance is declared: the AI-use statement in `/paper --submit` and the AI-use declaration in `/grant-proposal`.
+- **Content is fixed.** Facts, numbers, statistics, citations, hedges and technical terms stay exactly as they are. If a sentence cannot be improved without changing what it claims, leave it.
 
-**Word blacklist** — replace or cut entirely:
+---
 
-| Banned word / phrase | Why it's a tell |
+## Step 1 — Cut filler and inflated wording
+
+Cut or replace the words and patterns below. Exception: technical senses (next paragraph).
+
+**Word blacklist** — replace or cut:
+
+| Word / phrase | Why cut it |
 |---|---|
-| delve, delving | No human writes "delve" unless they're writing a fantasy novel |
+| delve, delving | Rare outside fantasy novels; say "examine" or "look at" |
 | comprehensive, robust, nuanced | Vague intensifiers that pad without adding meaning |
-| crucial, pivotal, vital, essential | Overused AI emphasis words |
+| crucial, pivotal, vital, essential | Overused emphasis words |
 | seamlessly, effortlessly | Fake smoothness |
-| leverage (as a verb) | Corporate-AI hybrid; use "use" or "apply" |
-| notably, importantly, significantly | AI throat-clearing before a point |
+| leverage (as a verb) | Corporate jargon; use "use" or "apply" |
+| notably, importantly, significantly | Throat-clearing before a point |
 | transformative, groundbreaking, revolutionary | Unjustified superlatives |
 | in the realm of, in the landscape of | Pompous filler |
 | it is worth noting, it is important to note | Cut entirely; just state the note |
@@ -33,7 +41,9 @@ Remove every word and phrase that signals machine authorship. No exceptions.
 | the [noun] landscape | Cliché geography metaphor |
 | moving forward, going forward | Corporate filler |
 | at the end of the day | Cliché |
-| em dash (—) | Overused by AI; replace with comma, colon, or period |
+| em dash (—) | Overused; replace with comma, colon, or period |
+
+**Technical senses are exempt.** Keep a listed word when it is the technical term, not emphasis: "significant" or "significantly" for a reported statistical test (name the test, or write "statistically significant" — the paper-critic and review-neuro require exactly that), "robust regression", "robust to outliers", "essential tremor", "critical period". Cut the word only where it is an intensifier.
 
 **Structural blacklist:**
 
@@ -42,16 +52,18 @@ Remove every word and phrase that signals machine authorship. No exceptions.
 | `X not only A but also B` | `X does A and B` — or split into two sentences |
 | `While X, Y` (contrast opener) | Rewrite without "while" — state X and Y as separate facts |
 | `Not X — it's Y` contrasts | State Y directly; cut the negation |
-| Three-part lists with parallel structure | Two items or prose; three identical grammatical units sound robotic |
+| Three-part lists with parallel structure | Two items or prose; three identical grammatical units sound mechanical |
 | Sentences starting with "It is" / "There is" / "There are" | Rewrite with a concrete subject |
 | Paragraph ending with punchy one-liner summary | Vary the ending; not every paragraph needs a mic-drop |
 | Wh- sentence openers ("What this means is…") | Restructure |
+
+A temporal "while" ("while recording, we…") and a real three-item list (alpha, beta and gamma bands) are content, not patterns: keep them.
 
 ---
 
 ## Step 2 — Fix rhythm
 
-AI prose is metronomic. Every sentence is roughly the same length. Every paragraph has the same arc. Break it.
+Prose in which every sentence has the same length and every paragraph the same arc is tiring to read. Break it.
 
 **Rules:**
 - No three consecutive sentences of the same length (count syllables roughly)
@@ -81,17 +93,17 @@ Match the register to the context — but always push toward natural.
 **General prose:**
 - "You" beats "the reader" or "people"
 - Contractions are fine when the prose is not highly formal
-- A mild colloquialism once or twice signals a human wrote this
+- A mild colloquialism is fine where the register allows it
 
 ---
 
 ## Step 4 — Preserve voice
 
-The goal is not to homogenize. It is to remove machine patterns while keeping what makes the writing individual.
+The goal is not to homogenize. Cut the patterns above while keeping what makes the author's writing individual.
 
-- If the author has characteristic phrases or constructions that are not AI tells, keep them
-- Do not make every sentence identical in structure (that's just a different kind of robotic)
-- Ask: does this sentence sound like a specific person wrote it, or like a language model approximating a person?
+- If the author has characteristic phrases or constructions that are not on the lists above, keep them
+- Do not make every sentence identical in structure (that's just a different kind of monotony)
+- Ask: does this sentence sound like the author, or like generic filler?
 
 ---
 
@@ -99,14 +111,14 @@ The goal is not to homogenize. It is to remove machine patterns while keeping wh
 
 Run through each line:
 
-- Any word from the blacklist? Replace or cut.
+- Any word from the blacklist used as emphasis? Replace or cut (technical senses stay).
 - Em dash anywhere? Remove.
 - Three sentences same length in a row? Break one.
 - Passive construction where there's a real actor? Name them.
 - Sentence starts with "It is" / "There is"? Rewrite.
 - "Not X, it's Y" contrast? State Y.
 - Paragraph ends with punchy summary? Vary it.
-- Does it still sound like a language model's idea of a human? Rewrite until it doesn't.
+- Any fact, number, citation or hedge changed? Put it back.
 
 ---
 
@@ -116,8 +128,8 @@ Rate 1–10 on each dimension. Below 35/50: revise.
 
 | Dimension | Question |
 |---|---|
-| Naturalness | Does this read like a specific person's prose? |
+| Naturalness | Does this read like the author's own prose? |
 | Rhythm | Varied, or metronomic? |
-| Humanity | Free of AI tells? |
+| Plainness | Free of the listed filler words and patterns? |
 | Voice | Distinct, or generic? |
 | Density | Any word that could be cut? |

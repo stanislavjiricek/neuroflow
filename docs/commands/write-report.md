@@ -76,7 +76,7 @@ Next step: Complete time-frequency analysis, then /paper
 
 ## Output
 
-The report is saved as `report-[date].md` in `.neuroflow/write-report/`.
+The report is saved as `report/report-[date].md` in the project root — it is a deliverable. A one-paragraph summary note pointing to it stays in `.neuroflow/write-report/`.
 
 ---
 
@@ -85,7 +85,7 @@ The report is saved as `report-[date].md` in `.neuroflow/write-report/`.
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/sessions/`, `.neuroflow/{phase}/flow.md` (for each covered phase) |
-| Writes | `.neuroflow/write-report/`, `.neuroflow/write-report/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Writes | `report/`, `.neuroflow/write-report/`, `.neuroflow/write-report/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
 
 ---
 
