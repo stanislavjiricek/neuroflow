@@ -20,7 +20,7 @@ Drawn from `skills/phase-grant-proposal/SKILL.md`:
 1. **Scope** — all aims achievable within the stated timeline; no aim requires success of another unless stated
 2. **Power analysis** — formal power analysis per aim with effect size cited from published literature
 3. **Hypothesis in Approach** — every aim has a testable prediction, not just a description of methods
-4. **Funder alignment** — Significance framed for funder priority (NIH: disease burden / mechanism; ERC: frontier science; Wellcome: scientific opportunity)
+4. **Funder alignment** — Significance framed for the funder's stated priority (e.g. disease burden and mechanism for a health-research agency; frontier science for a basic-research council; scientific opportunity for a charitable foundation)
 5. **Preliminary data** — at least one result figure per aim with statistics visible
 6. **Budget justification** — every budget line has a rationale; FTE fractions stated; equipment identified by model
 

@@ -5,7 +5,7 @@ description: Phase guidance for the neuroflow /pipeline command. Loaded automati
 
 # phase-pipeline
 
-The `/pipeline` command orchestrates a sequence of neuroflow commands in order — either interactively (pause and confirm at each step) or in brutal mode (`--executor`, run straight through without stops).
+The `/pipeline` command orchestrates a sequence of neuroflow commands in order, one step per invocation — either interactively (ask before each step) or in brutal mode (`--executor`, no questions).
 
 ## Approach
 
@@ -13,18 +13,20 @@ The `/pipeline` command orchestrates a sequence of neuroflow commands in order �
 - **Be conservative when inferring what is "done".** A phase subfolder exists if any work happened there — but "done" in a pipeline context means the user intentionally finished that phase. When in doubt, mark it `[pending]` and let the user decide.
 - **Never skip a step silently.** Every skip must be user-initiated and logged.
 - **In brutal mode, speed is the goal — but accuracy is non-negotiable.** Each step must still follow its command's instructions fully. Brutal mode removes pauses, not thoroughness.
-- **Resume gracefully.** When re-invoked on a project with an existing `pipeline-plan.md`, read it first, show the current status, and continue from where execution stopped.
+- **One step per invocation.** Run the next pending step, update the plan, name the next command, and end — never chain a second step into the same turn. Phase commands stop to ask questions, so a turn ending is not a step ending — a step is done when the files its command lists under `produces:` exist. The plan file is the state. Suggest `/compact` after a long step.
+- **Resume gracefully.** Every invocation after the first is a resume: read `pipeline-plan.md` first, show one status line, and continue from where execution stopped.
 - **Always ask where to stop.** After presenting the plan (in interactive mode), ask the user to choose their stop point before executing anything. This lets them run the pipeline in stages without having to manually stop mid-run.
 
 ## Interactive vs brutal mode
 
 | Behaviour | Interactive | Brutal (`--executor`) |
 |---|---|---|
-| Pause between steps | ✅ Always | ❌ Never |
+| Steps per invocation | One | One (chain unattended runs with `/loop /neuroflow:pipeline --executor`) |
+| Ask before each step | ✅ Always | ❌ Never — the plan is confirmed once |
 | Ask where to stop | ✅ Yes (Step 3b) | ❌ No — all pending steps run |
 | User can skip individual steps | ✅ Yes | ❌ No — all pending steps run |
-| User can stop mid-pipeline | ✅ Yes | ❌ Errors logged; pipeline continues |
-| Error handling | Stop and ask | Log and continue; report at end |
+| User can stop mid-pipeline | ✅ Yes | ✅ By not invoking it again (or ending the `/loop`) |
+| Error handling | Stop and ask | Log, mark `error`, move on at the next invocation; stop (`Stopped:` line in the plan — the next invocation asks first) when the next step needs the failed step's outputs, or after two errors in a row |
 | Summary at end | ✅ Yes | ✅ Yes (more detailed) |
 
 ## Stop-point selection
@@ -83,7 +85,7 @@ Stop after: /data-analyze | all the way through
 | 4 | /paper | deferred | Beyond stop point — resume to continue |
 ```
 
-Valid status values: `pending`, `done`, `skipped`, `error`, `deferred`
+Valid status values: `pending`, `done`, `skipped`, `error`, `deferred`. A brutal run halted on an error gets a `Stopped: Step N error — [reason]` line under the header; the next invocation asks before running anything.
 
 ## Relevant skills
 
@@ -92,9 +94,10 @@ Valid status values: `pending`, `done`, `skipped`, `error`, `deferred`
 
 ## Workflow hints
 
-- Log the pipeline plan to `reasoning/pipeline.json` at the start and update it at the end — this pipeline definition is a significant project-level decision
-- Log the chosen stop point in `reasoning/pipeline.json` — it is a deliberate scope decision
+- Log the pipeline plan to `reasoning/pipeline.jsonl` (one JSON object per line, appended) at the start and again at the end — this pipeline definition is a significant project-level decision
+- Log the chosen stop point in `reasoning/pipeline.jsonl` — it is a deliberate scope decision
 - Update `pipeline-plan.md` after every step, not just at the end
-- If the user adjusts the plan mid-run (adds a step, changes order, changes stop point), write a new `reasoning/pipeline.json` entry recording the change and why
+- If the user adjusts the plan mid-run (adds a step, changes order, changes stop point), append a new `reasoning/pipeline.jsonl` entry recording the change and why
+- After the last step, suggest that step's natural follow-up (after `/paper`: `/paper --submit`) — never `/review`, which referees a colleague's paper
 - In brutal mode, print a brief progress line after each step so the user can follow along even without interactive prompts
 - Never create a phase subfolder just for the pipeline — all memory goes in `.neuroflow/pipeline/`

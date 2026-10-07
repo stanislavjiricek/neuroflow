@@ -1,16 +1,23 @@
 ---
 name: pipeline
-description: Define and run a multi-step research pipeline across any sequence of neuroflow phases. Interactive by default — pauses between steps for approval. Pass --executor to run in brutal mode with no stops.
+description: Define and run a multi-step research pipeline across any sequence of neuroflow phases — one step per invocation, picked up from the saved plan. Interactive by default (asks before each step); pass --executor for brutal mode (no questions).
 phase: utility
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
+  - .neuroflow/pipeline/pipeline-plan.md
 writes:
   - .neuroflow/pipeline/
   - .neuroflow/pipeline/flow.md
   - .neuroflow/pipeline/pipeline-plan.md
   - .neuroflow/sessions/YYYY-MM-DD.md
-  - .neuroflow/reasoning/pipeline.json
+  - .neuroflow/reasoning/pipeline.jsonl
+lifecycle: full
+produces:
+  - .neuroflow/pipeline/pipeline-plan.md
+next:
+  - pipeline
+  - sentinel
 ---
 
 # /pipeline
@@ -19,10 +26,10 @@ Read the `neuroflow:phase-pipeline` skill first. Then follow the neuroflow-core 
 
 ## What this command does
 
-Defines a multi-step pipeline across any sequence of neuroflow commands — then runs them in order. Two modes:
+Defines a multi-step pipeline across any sequence of neuroflow commands — then runs them in order, **one step per invocation**. Each `/pipeline` run executes the next pending step, saves the plan, and ends by naming the command for the step after it. Phase commands are conversations that stop to ask questions, so chaining several in one turn blurs where a step ended and floods the context; the saved `pipeline-plan.md` carries the state between steps instead. Two modes:
 
-- **Interactive mode** (default) — pauses after each step, shows what was done, and asks for approval before moving to the next. The user can adjust, skip, or stop at any point.
-- **Brutal mode** (`--executor`) — runs the full pipeline from start to finish without pausing. Designed for experienced users who trust the plan and want maximum throughput.
+- **Interactive mode** (default) — asks before each step, shows what was done after it. The user can adjust, skip, or stop at any point.
+- **Brutal mode** (`--executor`) — no questions: the plan is confirmed once, then every invocation runs the next pending step straight away. Designed for experienced users who trust the plan and want maximum throughput.
 
 The pipeline can be built from:
 1. **What already exists** — reads `.neuroflow/` to infer which phases are done and what remains
@@ -35,8 +42,10 @@ The pipeline can be built from:
 
 Check whether the user invoked with `--executor`:
 
-- If `--executor` is present → **brutal mode**. No pauses between steps. Confirm once at the start before executing.
-- Otherwise → **interactive mode**. Pause and confirm after each step.
+- If `--executor` is present → **brutal mode**. No question before a step; the plan is confirmed once, when it is first saved.
+- Otherwise → **interactive mode**. Ask before each step.
+
+Either way, this invocation runs at most one step (Step 5).
 
 ---
 
@@ -45,11 +54,13 @@ Check whether the user invoked with `--executor`:
 Read `.neuroflow/project_config.md` and `.neuroflow/flow.md`.
 
 Extract:
-- Active phase
+- Active phase (`active_phase` in the `project_config.md` frontmatter)
 - Phases already worked on (subfolders listed in `flow.md`)
 - Research question, modality, tools (from `project_config.md`)
 
 If `.neuroflow/` does not exist: ask the user to run `/neuroflow:neuroflow` first to initialize the project, then stop.
+
+If `.neuroflow/pipeline/pipeline-plan.md` already exists, go to **Continuing a pipeline** (below) instead of building a new plan.
 
 ---
 
@@ -131,7 +142,7 @@ How far would you like to run the pipeline?
 
 - If the user picks **a specific phase**: set that phase as the `stop_after` boundary. Execute only steps up to and including that phase. Phases after the boundary are shown as `[deferred]` in the plan and are not executed this run.
 - If the user picks **all the way through** (or there are only 1–2 steps in the plan): proceed with the full plan unchanged.
-- In **brutal mode** (`--executor`): skip this question and run all pending steps (the mode already implies full execution).
+- In **brutal mode** (`--executor`): skip this question — every pending step runs, one per invocation (the mode already implies full execution).
 
 ### Full-journey joke
 
@@ -173,24 +184,18 @@ Create `.neuroflow/pipeline/flow.md` referencing this file.
 
 Update root `.neuroflow/flow.md` to add the `pipeline/` subfolder if it is new.
 
-Log a decision to `.neuroflow/reasoning/pipeline.json`:
+Log the decision as one line appended to `.neuroflow/reasoning/pipeline.jsonl` (one JSON object per line — neuroflow-core):
 ```json
-{
-  "statement": "Pipeline defined with N steps: [list]",
-  "source": "command:pipeline | YYYY-MM-DD",
-  "reasoning": "Steps inferred from project state / supplied by user. Mode: interactive|brutal. Stop after: [phase or 'all']."
-}
+{"statement": "Pipeline defined with N steps: [list]", "source": "command:pipeline | YYYY-MM-DD", "reasoning": "Steps inferred from project state / supplied by user. Mode: interactive|brutal. Stop after: [phase or 'all'].", "at": "YYYY-MM-DDTHH:MM:SSZ"}
 ```
 
 ---
 
-## Step 5 — Execute the pipeline
+## Step 5 — Run the next step (one per invocation)
 
-Work through the pipeline steps in order, skipping any already marked `[done]` or `[deferred]` (steps beyond the chosen stop point).
+Run **exactly one** step per invocation: the first `pending` step within the stop point. Steps marked `done`, `skipped`, `error` or `deferred` (beyond the chosen stop point) are not run.
 
 ### Interactive mode (default)
-
-For each pending step:
 
 1. Announce the step:
    > **Step N of M: /[command]**
@@ -198,26 +203,27 @@ For each pending step:
    >
    > Ready to proceed? (Y / skip / stop)
 
-2. If the user says **Y** or just hits enter: run the command inline. Follow every instruction in the corresponding command file exactly as if the user had invoked it directly.
-3. If the user says **skip**: mark that step as `[skipped]` in `pipeline-plan.md`, log the skip in the session file, and move to the next step.
+2. If the user says **Y** or just hits enter: run the command inline. Follow every instruction in the corresponding command file exactly as if the user had invoked it directly — including its own questions. The step is done when the command's work is done, not when a turn ends.
+3. If the user says **skip**: mark that step as `skipped` in `pipeline-plan.md`, log the skip in the session file, and end this invocation — the next one runs the step after it.
 4. If the user says **stop** or **pause**: stop the pipeline. Print a summary of completed steps so far. Tell the user they can resume by running `/neuroflow:pipeline` again — the plan in `pipeline-plan.md` will be picked up and completed steps will be skipped.
-
-After each step completes:
-- Update the step status to `[done]` in `pipeline-plan.md` with the completion date
-- Append to `.neuroflow/sessions/YYYY-MM-DD.md`
-- Announce completion and confirm before moving to the next step:
-  > ✅ `/[command]` complete. Moving to Step N+1: /[next-command]
 
 ### Brutal mode (`--executor`)
 
-1. Print the full pipeline plan once, then confirm with the user:
-   > "Running in brutal mode — no stops. I will execute all N steps in sequence. Last chance to cancel. Continue? (Y/n)"
+1. On the invocation that saves the plan, print it once and confirm with the user:
+   > "Brutal mode — no questions before each step. Every `/neuroflow:pipeline --executor` runs the next of N steps. Last chance to cancel. Continue? (Y/n)"
 
-2. If the user confirms: execute each step in sequence without pausing. Run each command inline exactly as written in the corresponding command file.
+2. On every brutal invocation, run the next pending step inline straight away, exactly as written in its command file — no "Ready to proceed?" question.
 
-3. After each step: update `pipeline-plan.md`, append to sessions, then immediately move to the next without asking.
+3. For an unattended run, let Claude Code's built-in `/loop` re-invoke it (`/loop /neuroflow:pipeline --executor`) and end the loop once no pending step is left. A step that needs the user's answer still waits for it.
 
-4. On completion: print a full summary of all steps executed, any outputs produced, and any notable decisions made.
+### After the step — both modes
+
+- Check the step's outputs: the files listed under `produces:` in its command's frontmatter should now exist (match templated names such as dates loosely). If one is missing, the step is not done — interactive mode: say so and offer retry / skip / stop; brutal mode: treat it as an error (Error handling)
+- Update the step status to `done` in `pipeline-plan.md` with the completion date
+- Append `## HH:MM — [pipeline] Step N /[command] done — [main output]` to `.neuroflow/sessions/YYYY-MM-DD.md`
+- Print the result and the next command, then end the invocation — never start the next step in the same invocation:
+  > ✅ `/[command]` complete (Step N of M). Next: `/neuroflow:pipeline` → Step N+1: /[next-command]. Long step? Run `/compact` first.
+- If no pending step is left within the stop point, go to Step 6 instead.
 
 ---
 
@@ -240,41 +246,37 @@ Deferred (beyond stop point):
   ⏸ paper          — run /neuroflow:pipeline again to continue
 
 Skipped:
-  — review (not part of this pipeline)
+  — experiment (skipped at your request)
 
 Files written: [list of key outputs]
-Next suggested step: /neuroflow:pipeline  (to continue from /paper) or /neuroflow:review
+Next suggested step: /neuroflow:pipeline  (to continue from /paper)
 ```
 
-If all steps including deferred ones are done, omit the "Deferred" section and suggest `/neuroflow:review` as the next step.
+If all steps including deferred ones are done, omit the "Deferred" section and suggest the natural follow-up of the last step that ran — after `/paper`, that is `/neuroflow:paper --submit` (journal submission package). Never suggest `/neuroflow:review` as a pipeline follow-up: `/review` referees a colleague's paper, not the user's own.
 
 Update `pipeline-plan.md` with final statuses.
 
-Append a final entry to `.neuroflow/sessions/YYYY-MM-DD.md` summarising the full pipeline run.
+Append a final entry to `.neuroflow/sessions/YYYY-MM-DD.md` summarising the full pipeline run (`## HH:MM — [pipeline] complete — N/M steps executed`).
 
-Log a final decision to `.neuroflow/reasoning/pipeline.json`:
+Log the final decision as one line appended to `.neuroflow/reasoning/pipeline.jsonl`:
 ```json
-{
-  "statement": "Pipeline run complete: N/M steps executed.",
-  "source": "command:pipeline | YYYY-MM-DD",
-  "reasoning": "All pending pipeline steps completed. Skipped steps: [list or none]."
-}
+{"statement": "Pipeline run complete: N/M steps executed.", "source": "command:pipeline | YYYY-MM-DD", "reasoning": "All pending pipeline steps completed. Skipped steps: [list or none].", "at": "YYYY-MM-DDTHH:MM:SSZ"}
 ```
 
 ---
 
-## Resuming a paused pipeline
+## Continuing a pipeline
 
-When the user runs `/neuroflow:pipeline` again on a project that already has a `pipeline-plan.md`:
+Every invocation after the first finds `pipeline-plan.md` and continues it:
 
-1. Read the existing plan
-2. Show status:
-   > "Resuming pipeline. 2 of 5 steps complete. Next step: /[next-pending-command]."
-   > If there are `[deferred]` steps: "You previously stopped after /[stop-phase]. The following steps were deferred: /[deferred-phases]."
-3. Ask: "Continue from where we left off? (Y / restart from scratch / extend stop point)"
-4. If **Y**: skip `[done]` and `[skipped]` steps, promote any `[deferred]` steps to `[pending]` and re-run Step 3b to ask the new stop point, then continue from the first `pending` step
-5. If **restart**: prompt the user to build a new plan from Step 3
-6. If **extend stop point**: re-run Step 3b only, keeping completed steps intact
+1. Read the existing plan and show one status line:
+   > "Pipeline: 2 of 5 steps done. Next: Step 3 — /[next-pending-command]."
+   If the plan header has a `Stopped:` line, show it and ask how to proceed (retry the failed step / skip it / stop) before running anything — in brutal mode too; remove the line once the user has decided.
+2. If pending steps remain within the stop point → go to Step 5 and run the next one. In interactive mode its "Ready to proceed?" question also offers **restart** (build a new plan from Step 3) and **change stop point** (re-run Step 3b, keeping completed steps intact).
+3. If none remain but `deferred` steps exist:
+   > "You stopped after /[stop-phase]. Deferred: /[deferred-phases]. Continue?"
+   On yes, promote the `deferred` steps to `pending`, re-run Step 3b for the new stop point, then go to Step 5.
+4. If every step is done → print the Step 6 summary again and suggest the follow-up.
 
 ---
 
@@ -284,6 +286,6 @@ If a step fails or produces an unexpected result:
 
 - **Interactive mode:** stop, report the error clearly, and ask the user how to proceed:
   > "⚠️ Step N (/[command]) encountered a problem: [description]. Options: retry / skip / stop"
-- **Brutal mode:** log the error to `pipeline-plan.md` and the session file, mark the step as `[error]`, and continue to the next step. Print a full error summary at the end.
+- **Brutal mode:** log the error to `pipeline-plan.md` and the session file, mark the step as `error`, and end the invocation — the next one moves on to the next pending step. When that next step needs the failed step's outputs (they are listed in its `requires:` frontmatter, or it plainly consumes them — `/data-analyze` after a failed `/data-preprocess`), or after two `error` steps in a row, stop the run instead: add `Stopped: Step N error — [reason]` under the plan header, and end the `/loop` if one drives the run. List every error in the Step 6 summary.
 
 Never silently swallow errors. Always surface them — in brutal mode at the summary, in interactive mode immediately.

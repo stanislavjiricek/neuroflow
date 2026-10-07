@@ -11,11 +11,12 @@ Guides the `/git` command to read repository state accurately and apply context-
 
 **Never act blindly.** Always read repo state first. The value of `/git` is that it understands context — so every alias resolves to the right action given the current branch, staged files, commit history, and remote sync status.
 
-**Alias scope is final.** Each alias has a defined endpoint — never go beyond it, even if more work seems logical:
+<!-- nf-rule: GIT-ALIAS-SCOPE -->
+**Alias scope is final.** Each alias has a defined endpoint — never go beyond it, even if more work seems logical — and acts only on what the person named: the current repository and the paths they gave, if any.
 
 | Alias | Endpoint | Never do after |
 |-------|----------|----------------|
-| `a` | stage | commit, push |
+| `a` | stage (never local-only files — Safety rules) | commit, push |
 | `c` | commit | push, fetch, merge |
 | `ac` | commit | fetch, pull, merge, push |
 | `acp` | push | PR creation, branch ops |
@@ -101,6 +102,8 @@ Branch naming guidance to offer if creating a new branch:
 
 ## Safety rules
 
+<!-- nf-rule: GIT-NO-SECRETS -->
+- **Local-only files are never staged, and `git clean -x` never runs.** `integrations.json`, `.neuroflow/sessions/`, `.neuroflow/review/`, `.neuroflow/flowie/` and `user.yaml` stay out of every commit — after every `git add`, check `git diff --cached --name-only` and take any of them back out (`git reset -q -- <path>`). `git clean -x` / `-X` deletes ignored files — raw recordings, derivatives, credentials — so it is never run; any other command that discards work (`git clean`, `git reset --hard`, `git checkout -- <path>`, `git push --force`) is previewed and asked about first.
 - **On main/master:** before any `add`, `commit`, or `push`, show a yellow warning:
   > "⚠️ You are on the `main` branch. Did you mean to work on a feature branch?"
   Ask before proceeding.

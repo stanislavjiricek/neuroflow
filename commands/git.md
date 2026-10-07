@@ -7,6 +7,7 @@ reads:
   - .neuroflow/flow.md
 writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: light
 ---
 
 # /git
@@ -27,7 +28,7 @@ A context-aware git utility that reads the current repo state — branch name, s
 | `/git p` | **Smart push/pull** — context decides (see rules below) |
 | `/git pl` | Pull from remote |
 | `/git ps` | Push to remote |
-| `/git a` | Stage all changes (`git add .`) |
+| `/git a` | Stage all changes except local-only files (`git add .`, then any local-only path taken back out — Hard rules) |
 | `/git c` | Commit staged changes with a suggested message |
 | `/git ac` | Stage + commit |
 | `/git acp` | Stage + commit + push |
@@ -76,19 +77,27 @@ Always pull from remote. Warn if there are uncommitted changes first and ask whe
 Push to remote. If no upstream is set, run `git push --set-upstream origin <branch>`.
 
 **`/git a` — add:**
-Run `git add .` and confirm what was staged.
+Stage all changes — or only the paths the person named, in place of `.` — then check what was staged and take every local-only path back out (Hard rules) before confirming:
+
+```bash
+git add .
+git diff --cached --name-only
+git reset -q -- <each staged local-only path>
+```
+
+If one had to be taken out, say so and suggest the missing `.gitignore` line.
 
 **`/git c` — commit:**
-1. Show what is staged.
+1. Show what is staged. If a local-only path is staged (Hard rules), unstage it first (`git reset -q -- <path>`) and say so.
 2. Suggest a concise commit message based on the diff (use `git diff --cached --stat` and `git diff --cached` to understand changes).
 3. Confirm with the user or let them edit the message.
 4. Run `git commit -m "<message>"`.
 
 **`/git ac` — add + commit:**
-Run `git add .` then follow the commit flow above. **Stop after commit. Do not fetch, pull, merge, or push — even if unpushed commits exist. Alias scope is final.**
+Stage as in `/git a`, then follow the commit flow above. **Stop after commit. Do not fetch, pull, merge, or push — even if unpushed commits exist. Alias scope is final.**
 
 **`/git acp` — add + commit + push:**
-Run `git add .`, commit (with suggested message), then push. **Stop after push. Do not open a PR or do anything else unless asked.**
+Stage as in `/git a`, commit (with suggested message), then push. **Stop after push. Do not open a PR or do anything else unless asked.**
 
 **`/git b` — branch:**
 1. Show current branch.
@@ -121,6 +130,16 @@ Then offer the shorthand aliases table and ask what the user wants to do.
 
 ---
 
+## Hard rules
+
+<!-- nf-rule: GIT-ALIAS-SCOPE -->
+**Alias scope is final.** An alias does only what its row says and stops at its endpoint: `a` stages, `c` commits, `ac` stages and commits, `acp` pushes, `p` pushes or pulls, `pl` pulls, `ps` pushes, `b` does one branch operation, `pr` pushes and opens the PR. It acts only on what the person named — the current repository and the paths they gave, if any. No alias fetches, pulls, merges, pushes or opens a PR beyond its endpoint, not even when unpushed commits are waiting — this rule exists because `ac` once went on to push. Anything more needs a new instruction from the person.
+
+<!-- nf-rule: GIT-NO-SECRETS -->
+**Never stage local-only files; never `git clean -x`.** `integrations.json` (credentials), `.neuroflow/sessions/`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/flowie/` and `user.yaml` (personal settings) are local-only (neuroflow-core → Sharing tiers): no alias commits them, in any repository, whether or not `.gitignore` covers them — after every `git add`, check the staged list and take each of them back out (`git reset -q -- <path>`), as shown under `/git a`, and suggest the missing `.gitignore` line. Never run `git clean` with `-x` or `-X`: it deletes ignored files, which in a research repository means raw recordings (`*.eeg`, `*.fif`, `*.nii`…), derivatives and credentials. Before any other command that throws work away (`git clean`, `git reset --hard`, `git checkout -- <path>`, `git push --force`), show its dry run or exactly what would be lost, and ask.
+
+---
+
 ## Context rules
 
 - **On `main` or `master`**: before staging or committing, warn the user they are on the default branch and ask if they meant to be on a feature branch.
@@ -132,6 +151,6 @@ Then offer the shorthand aliases table and ask what the user wants to do.
 
 ## At end
 
-- If `.neuroflow/` exists in the working directory, append a one-line entry to `.neuroflow/sessions/YYYY-MM-DD.md`: timestamp + what git action was taken.
+- If `.neuroflow/` exists in the working directory, append a one-line entry to `.neuroflow/sessions/YYYY-MM-DD.md`: `## HH:MM — [git] {what git action was taken}`.
 - Do **not** write to any phase subfolder.
 - Do **not** log a reasoning entry unless the user made a significant branching or merge decision.

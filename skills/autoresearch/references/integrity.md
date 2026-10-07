@@ -12,7 +12,7 @@ A loop is **analysis-touching** if any of these holds:
 
 1. Its phase is `data-analyze` or `data-preprocess`
 2. A tracked file loads, preprocesses, or analyses the study's data — typically under `scripts/analysis/` or `scripts/preprocessing/`, or the `output_path` in `.neuroflow/data-analyze/flow.md` / `.neuroflow/data-preprocess/flow.md`
-3. A preregistration exists (`.neuroflow/preregistration/prereg-*.md` or `registered-report.md`) and a tracked file implements a preregistered analysis
+3. A preregistration exists (`.neuroflow/preregistration/prereg-*.md` or `registered-report.md`, frozen or not — `.neuroflow/preregistration/status.md` says which) and a tracked file implements a preregistered analysis
 
 When the files don't make it clear, ask: *"Does any tracked file compute results from your study data?"*
 
@@ -28,7 +28,7 @@ Its own step, one question, no default — "use defaults" does not answer it:
 > *(a) **Confirmatory** — improve the correctness, robustness, and reproducibility of a fixed analysis. I run it only on blinded inputs and never score results, so the loop cannot drift toward a better p-value.*
 > *(b) **Exploratory** — search over analysis choices. Everything is labelled exploratory, every specification I try is logged with its result, and confirmatory scripts are forked, never edited."*
 
-Record the answer as `integrity_mode: confirmatory | exploratory` in the config block, and log it as a decision in `.neuroflow/reasoning/{phase}.json`.
+Record the answer as `integrity_mode: confirmatory | exploratory` in the config block, and log it as a decision in `.neuroflow/reasoning/{phase}.jsonl`.
 
 **Outcome-blind**, as used below: a value that would not change if the labels linking the data to the hypothesis — conditions, groups, or the outcome variable — were shuffled. Rejection rates, SNR pooled across conditions, runtime, tests passing, and ground-truth recovery on simulated data are outcome-blind. Effect sizes, p-values, decoding accuracy, and condition contrasts are not.
 
@@ -65,7 +65,6 @@ The loop searches over analysis choices — legitimate, as long as the search is
 
 ```markdown
 # Analysis multiverse — EXPLORATORY
-Specifications tried: 37 · Loops: connectivity, erp-window
 
 > Every analysis specification an autoresearch loop ran on the study data, with its result — kept and discarded.
 > Nothing here is confirmatory. A result that came from this search is reported together with this ledger or its summary.
@@ -76,7 +75,7 @@ Specifications tried: 37 · Loops: connectivity, erp-window
 | 2026-10-07 | connectivity | 012 | band-pass low cutoff | 0.5 Hz | d = 0.52, p = .01 | yes |
 ```
 
-Update the `Specifications tried` count with every append.
+The ledger is append-only — rows only, no running totals — so two people's appends merge cleanly (`merge=union`). The number of specifications tried is the number of rows.
 
 ---
 
