@@ -5,7 +5,7 @@ The file list is built first, and the sharing-tier rules are applied to it befor
 anything is copied (neuroflow-core -> Sharing tiers):
 
 - local tier, never exported: .neuroflow/sessions/, .neuroflow/review/,
-  .neuroflow/integrations.json, .neuroflow/flowie/
+  .neuroflow/integrations.json, .neuroflow/flowie/, .neuroflow/paper/xray-*
 - never exported: .neuroflow/fails/, .neuroflow/finance/
 - .neuroflow/ethics/: only documents on the non-identifying allowlist (status.md,
   flow.md, consent-vN.md form versions, protocol*.md, amendment*.md). Every other
@@ -59,8 +59,8 @@ from pathlib import Path
 # phase-output scripts import these.
 # ---------------------------------------------------------------------------
 
-# Relative to a .neuroflow/ folder.
-LOCAL_TIER = ("sessions/", "review/", "integrations.json", "flowie/")
+# Relative to a .neuroflow/ folder, matched as prefixes ("paper/xray-" covers paper/xray-*).
+LOCAL_TIER = ("sessions/", "review/", "integrations.json", "flowie/", "paper/xray-")
 NEVER_EXPORTED = ("fails/", "finance/")
 ETHICS_ALLOWLIST = (
     re.compile(r"status\.md"),

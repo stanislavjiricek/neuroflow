@@ -258,14 +258,14 @@ Before asking any interview questions, ask the user this as the **first question
 
 Since flowie repositories are always private, use the following fetch order:
 
-1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch `profile.md`. Also fetch `integrations.json` with `gh api /repos/{username}/flowie/contents/integrations.json --jq '.content' | base64 -d 2>/dev/null` (ignore if missing). If `profile.md` succeeds, proceed to the field mapping table.
-2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` and `integrations.json` (if it exists) from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
+1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch `profile.md`. If `profile.md` succeeds, proceed to the field mapping table.
+2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
 3. **If both of the above fail**, never ask for a token in chat. Suggest that the person signs in with `gh auth login` in their own terminal (or stores a GitHub credential for git themselves, e.g. with `git credential approve`), then retry steps 1–2 once.
 4. **If none of the above works**: fall back to the full interview (Step 2).
 
 Do not attempt additional `gh` commands (config file paths, env var checks, etc.) between steps 1 and 2. One `gh auth status` check is sufficient — if it fails, move directly to the git clone attempt.
 
-**After reading the flowie repo:** if flowie was fetched remotely (not already cloned locally), clone it into `~/.neuroflow/flowie/` so it's available globally. Copy `integrations.json` into `~/.neuroflow/flowie/integrations.json`. This makes flowie's integrations available across all projects so Step 5 does not need to repeat the setup.
+**After reading the flowie repo:** if flowie was fetched remotely (not already cloned locally), clone it into `~/.neuroflow/flowie/` so it's available globally.
 
 If the profile is found, extract the following fields and map them to interview answers:
 

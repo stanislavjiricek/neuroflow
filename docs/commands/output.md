@@ -49,7 +49,7 @@ The exporter script (`skills/phase-output/scripts/export.py`) builds the file li
 
 | Excluded | Reason |
 |---|---|
-| `.neuroflow/sessions/`, `.neuroflow/review/`, `.neuroflow/integrations.json`, `.neuroflow/flowie/` | Local tier — personal logs, colleagues' confidential manuscripts, credentials |
+| `.neuroflow/sessions/`, `.neuroflow/review/`, `.neuroflow/integrations.json`, `.neuroflow/flowie/`, `.neuroflow/paper/xray-*` | Local tier — personal logs, colleagues' confidential manuscripts, credentials, sentence-level critiques of your unpublished manuscript |
 | `.neuroflow/fails/`, `.neuroflow/finance/` | Never leave the team |
 | `.neuroflow/ethics/` files other than `status.md`, `flow.md`, `consent-vN.md`, `protocol*.md`, `amendment*.md` | May identify participants (a file you checked can be added explicitly) |
 | `.env`, `*.pem`, private SSH keys, `client_secret*.json` and similar, anywhere | Credentials |

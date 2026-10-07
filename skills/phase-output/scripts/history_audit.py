@@ -9,9 +9,10 @@ pushing history to any new shared remote.
 
 Classes:
     sensitive-path   a path that must not become public: local-tier memory
-                     (sessions/, review/, integrations.json, flowie/), fails/,
-                     finance/, ethics/ files outside the non-identifying
-                     allowlist, credential files (rules from export.py)
+                     (sessions/, review/, integrations.json, flowie/,
+                     paper/xray-*), fails/, finance/, ethics/ files outside the
+                     non-identifying allowlist, credential files (rules from
+                     export.py)
     data-file        raw recordings or images (participant data)
     paper-pdf        PDFs under a papers/ folder (full texts may not be redistributable)
     large-file       blobs larger than --large-mb (default 50)

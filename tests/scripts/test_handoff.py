@@ -121,6 +121,13 @@ class HandoffTests(unittest.TestCase):
         self.assertIn("## Open tasks by assignee", md)
         self.assertIn("OVERDUE", md)
 
+    def test_xray_files_stay_with_leaver(self):
+        paper = self.root / ".neuroflow" / "paper"
+        write(paper / "draft.md", "draft\n")
+        write(paper / "xray-draft-2026-10-07.md", "critique\n")
+        write(paper / "xray-draft-2026-10-07.jsonl", "{}\n")
+        self.assertIn({"path": ".neuroflow/paper/xray-*", "files": 2}, ho.section_personal(self.root))
+
     def test_model_set_approval_and_frozen_prereg(self):
         self.init_pushed_repo()
         nf = self.root / ".neuroflow"

@@ -145,9 +145,10 @@ Cross-project context lives at the personal and team levels rather than in per-p
 .neuroflow/review/
 .neuroflow/integrations.json
 .neuroflow/flowie/
+.neuroflow/paper/xray-*
 ```
 
-`.neuroflow/review/` holds manuscripts you referee in confidence; `integrations.json` holds credentials.
+`.neuroflow/review/` holds manuscripts you referee in confidence; `integrations.json` holds credentials; `paper/xray-*` files are the sentence-level critique of your unpublished manuscript (`/paper --xray`).
 
 It also adds union-merge rules to `.gitattributes`, so append-only logs (decision logs, session logs, `fails/`, preregistration deviations) merge cleanly when two collaborators add entries on the same day:
 

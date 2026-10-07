@@ -44,7 +44,7 @@ Everything about the manuscript lives in `.neuroflow/review/` — the local tier
 1. In a git repository, check that git ignores the folder: `git check-ignore -q .neuroflow/review/probe` (exit 0 = ignored). If not, offer to add `.neuroflow/review/` to the project's `.gitignore`. If `git ls-files .neuroflow/review` lists files, they were committed before — offer `git rm -r --cached .neuroflow/review` (the local files stay) and say that old commits still hold them.
 2. Keep the manuscript copy, notes and report in `.neuroflow/review/` and nowhere else in the project. Save pasted text there as a file.
 <!-- nf-rule: GIT-NO-SECRETS -->
-3. Never stage or commit anything under `.neuroflow/review/`. The manuscript, its title and its findings go into no reasoning log, wiki page, task, NotebookLM notebook, Miro board, Zotero library or other file or service — only the one-line milestone in the (local) session log.
+3. Never stage or commit anything under `.neuroflow/review/`. The manuscript, its title and its findings go into no reasoning log, wiki page, task, NotebookLM notebook, Miro board or other file or service — only the one-line milestone in the (local) session log. A Zotero library gets the report only through the opt-in archival of Step 5: never by default, only when the reviewer asks and confirms in that turn, and never a library that syncs to a cloud service.
 
 ---
 
@@ -73,7 +73,7 @@ python <review-neuro skill base dir>/scripts/hidden_text_scan.py "<manuscript fi
 
 ## Step 5 — Run the review
 
-Pass the inputs and the scan result to the `neuroflow:review-neuro` skill and let it drive the review procedure from start to finish. Skip its Zotero archival step unless the reviewer explicitly opts in — Zotero syncs to the cloud.
+Pass the inputs and the scan result to the `neuroflow:review-neuro` skill and let it drive the review procedure from start to finish. Its Zotero archival step is opt-in, never a default: run it only when the reviewer asks for it and confirms in that turn, and never into a library that syncs to a cloud service (Zotero syncs notes to its servers by default) — otherwise the report stays in `.neuroflow/review/` only.
 
 ---
 

@@ -110,7 +110,7 @@ Gateways often cap parallel requests per key. Interactive use — the main model
 ```
 
 - There is no `api_key` field: the key lives only where your launch command reads it. An older file that still has one — remove that key.
-- The non-secret settings may be synced to your flowie profile, only after you confirm the push.
+- With flowie linked, the non-secret settings can also be copied to `~/.neuroflow/flowie/integrations.json` (for `/flowie --credentials`). That file is gitignored in the flowie repo and never committed: the settings stay on this machine.
 - `proxy_port` appears only with the legacy proxy below.
 
 ---

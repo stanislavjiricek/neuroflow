@@ -31,7 +31,7 @@ All data lives in `~/.neuroflow/flowie/` locally (this folder IS a git clone). G
 - A GitHub account
 - One of the following for authentication:
   - **GitHub CLI (`gh`)** — recommended; run `gh auth login` before using `/flowie`
-  - **Personal Access Token (PAT)** — create one at [github.com/settings/tokens](https://github.com/settings/tokens) with the `repo` scope
+  - **git with a stored GitHub credential** — store it yourself, in your own terminal (your git credential manager, or `git credential approve`); without `gh`, you create the private `flowie` repository on GitHub yourself
 
 ---
 
@@ -39,7 +39,7 @@ All data lives in `~/.neuroflow/flowie/` locally (this folder IS a git clone). G
 
 Run `/flowie` in any neuroflow project. On first run, you will be guided through:
 
-1. GitHub authentication (CLI or PAT)
+1. GitHub authentication (`gh`, or git with a credential you stored yourself — never a token in the chat)
 2. Checking for an existing `flowie` repository on your account — or creating one
 3. Cloning it to `~/.neuroflow/flowie/` and scaffolding the full structure
 
@@ -118,8 +118,8 @@ The profile informs suggestions — it does not override your explicit instructi
 
 - The `flowie` GitHub repository is always private
 - Profile data never appears in outputs intended for external readers (papers, grant proposals, reports)
-- `~/.neuroflow/flowie/` is excluded from `/export` by default
-- The PAT (if used) is held in memory only — never written to disk
+- `~/.neuroflow/flowie/` is never included in an `/output` export
+- neuroflow never asks for a GitHub token in the chat: you sign in with `gh auth login` or store a git credential in your own terminal
 - `integrations.json` is gitignored in the flowie repo and never committed
 - Wellbeing entries are only what you type in `--assess` — nothing is inferred from your messages or working patterns
 
@@ -153,4 +153,4 @@ Every other write (task add/move/done, project add, wellbeing, phase sync) is sy
 - [`/neuroflow`](neuroflow.md) — project setup and status; run before `/flowie`
 - [`flowie` agent](../concepts/agents.md) — apply the profile autonomously and surface active tasks at session start
 - [`/phase`](phase.md) — phase switching; auto-syncs to the flowie project registry when linked
-- [`/output`](output.md) — flowie data is excluded from project exports by default
+- [`/output`](output.md) — flowie data is never included in project exports

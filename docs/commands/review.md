@@ -9,7 +9,7 @@ The `/review` command checks the journal's AI-use policy, gathers the paper, the
 ## What it does
 
 1. **Asks about the AI-use policy first** — before the manuscript is requested or read: does the journal (or funder) allow AI tools in peer review? If not, or if you are unsure, the manuscript is not read; you get only help that needs no manuscript text. Your answer is stamped at the top of the report.
-2. **Keeps everything local** — the manuscript, notes and report stay in `.neuroflow/review/`, which is gitignored, never exported by `/output`, and never sent to NotebookLM, Miro or Zotero (Zotero archival only if you opt in)
+2. **Keeps everything local** — the manuscript, notes and report stay in `.neuroflow/review/`, which is gitignored, never exported by `/output`, and never sent to NotebookLM, Miro or Zotero (Zotero archival only if you opt in, and never into a cloud-synced library)
 3. **Asks for the paper** — provide a file path, upload a PDF, or paste the text
 4. **Asks for the target journal** — used to calibrate the referee persona and standards (optional; defaults to high general standards if not provided)
 5. **Asks for review type** — full review across all eight areas, or focused on specific areas (methods, statistics, writing, figures)

@@ -288,6 +288,10 @@ def section_personal(root: Path) -> list[dict]:
         if path.exists():
             count = sum(1 for p in path.rglob("*") if p.is_file()) if path.is_dir() else 1
             out.append({"path": f".neuroflow/{sub}", "files": count})
+        elif not sub.endswith("/") and path.parent.is_dir():  # a name prefix such as paper/xray-
+            count = sum(1 for p in path.parent.iterdir() if p.is_file() and p.name.startswith(path.name))
+            if count:
+                out.append({"path": f".neuroflow/{sub}*", "files": count})
     return out
 
 

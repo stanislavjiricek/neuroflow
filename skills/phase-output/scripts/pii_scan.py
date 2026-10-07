@@ -29,7 +29,8 @@ Usage:
 
 Without PATH and without --staged it scans .neuroflow/ under --root. In any
 folder it walks, local-tier memory (sessions/, review/, integrations.json,
-flowie/) is skipped - it never leaves the machine - unless --include-local.
+flowie/, paper/xray-*) is skipped - it never leaves the machine - unless
+--include-local.
 As a pre-commit check, run it with --staged from the repository root; exit 1
 blocks the commit.
 

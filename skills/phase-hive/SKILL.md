@@ -310,7 +310,7 @@ The Hive is **pull-first**: the researcher benefits from team knowledge without 
 
 ## Authentication
 
-Hive uses the same GitHub credentials as the user's local git config. The `gh` CLI (GitHub CLI) is preferred for push operations — check with `gh auth status`. If not available, fall back to constructing GitHub API calls with a PAT (personal access token) that the user provides.
+Hive uses the same GitHub credentials as the user's local git config. The `gh` CLI (GitHub CLI) is preferred for push operations — check with `gh auth status`. If it is not available, use git with the credentials the person configured. Never ask for a token in chat: the person signs in with `gh auth login` or stores a git credential in their own terminal, then the step is retried.
 
 Authentication instructions:
 ```bash

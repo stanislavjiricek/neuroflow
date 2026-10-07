@@ -22,7 +22,7 @@ title: /migrate
 
 1. **Dry run** — runs `migrate.py` from the `neuroflow-core` skill, which writes nothing and prints the plan, including a diff of `project_config.md`
 2. **Decisions** — asks about anything it cannot decide alone, for example which phase a legacy value such as `active development` means
-3. **Personal fields** — offers to move your issue-report consent, name and writing style out of the shared project file into `~/.neuroflow/user.yaml`
+3. **Personal fields** — offers to move your issue-report consent, name, writing style and Zotero preference out of the shared project file into `~/.neuroflow/user.yaml`
 4. **Apply** — writes the plan only after you confirm
 
 | What | Before | After |

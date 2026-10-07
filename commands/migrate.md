@@ -68,7 +68,7 @@ Use `python3` where `python` is not on the PATH. The script walks up to the proj
 Show the plan in short form — the config diff as printed, then one line per other change. Then settle what the script cannot decide, each with `AskUserQuestion`:
 
 1. **Needs a decision** — e.g. a phase value that is not a phase id (`active development`, `writing / review`). Offer the likeliest canonical phases (`neuroflow:neuroflow-core` → **Phase taxonomy**) as options; "Other" takes any phase id. Each answer becomes a `--set` argument: `--set active_phase=paper`, `--set recommended_phases=ideation,data,paper`.
-2. **Personal fields** (`auto_issue_reporting`, researcher name, `writing_style`, notification or wellbeing settings) — they belong in `~/.neuroflow/user.yaml`, not in the shared project file. Ask: **Move them to my user.yaml** / **Leave them**. Moving never overwrites a value already in `user.yaml`; the plan says which values are kept.
+2. **Personal fields** (`auto_issue_reporting`, researcher name, `writing_style`, `zotero`, notification or wellbeing settings) — they belong in `~/.neuroflow/user.yaml`, not in the shared project file. Ask: **Move them to my user.yaml** / **Leave them**. Moving never overwrites a value already in `user.yaml`; the plan says which values are kept.
 3. **Apply?** — **Apply these changes** / **Cancel**.
 
 ---

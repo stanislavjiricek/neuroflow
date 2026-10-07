@@ -137,17 +137,19 @@ To use flowie, you need a GitHub account and one of:
     Run: gh auth login
     Then come back and re-run /flowie.
 
-  Option B — Personal Access Token (PAT):
-    1. Go to: https://github.com/settings/tokens
-    2. Create a new token with the "repo" scope.
-    3. Store it somewhere safe — you will need it below.
+  Option B — git with a stored GitHub credential:
+    Store a GitHub credential for git yourself, in your own terminal
+    (your git credential manager, or: git credential approve).
+    Then come back and re-run /flowie.
+
+Never paste a token into this chat — neuroflow never asks for one.
 
 Which option are you using? [A / B]
 ```
 
 If Option A: check whether `gh auth status` succeeds. If it fails, ask the user to run `gh auth login` first and stop.
 
-If Option B: ask for the PAT (stored only in memory, never written to disk). Store the token in a variable for use in subsequent git operations during this session.
+If Option B: never ask for a token in chat — git uses the credential the person stored in their own terminal. Step 2b's `git ls-remote` shows whether it works; if it does not, ask the person to store the credential in their own terminal (`git credential approve`, or their credential manager), then retry Step 2b once.
 
 Ask for the user's GitHub username (needed to construct the repo URL).
 
@@ -155,7 +157,7 @@ Ask for the user's GitHub username (needed to construct the repo URL).
 
 ## Step 2b — Check for existing flowie repo
 
-Using `gh` CLI or the GitHub API (with the PAT), check whether a private repository named `flowie` exists on the user's account.
+Check whether a private repository named `flowie` exists on the user's account: `gh repo view {username}/flowie` (Option A) or `GIT_TERMINAL_PROMPT=0 git ls-remote https://github.com/{username}/flowie.git` (Option B). With Option B a failure can also mean the stored credential is missing, so ask the person whether the repository exists before treating it as missing.
 
 If it exists:
 ```
@@ -173,7 +175,7 @@ Create a new private repository named "flowie"? [Y/n]
 
 If confirmed, create the repository:
 - Using `gh repo create flowie --private` (if `gh` CLI is available)
-- Or via the GitHub API: `POST /user/repos` with `{ "name": "flowie", "private": true }`
+- Otherwise (Option B), ask the person to create it on GitHub themselves — a new **private** repository named `flowie`, empty (no README, `.gitignore` or license) — and to say when it is done
 
 Confirm creation succeeded, then continue to Step 2c (init path).
 
@@ -956,7 +958,7 @@ If any step fails (file not found, JSON parse error), fail silently and log the 
 
 ## Privacy rules
 
-- Never print the PAT to the terminal or write it to any file.
+- Never ask for a GitHub token in chat, print one to the terminal or write one to any file.
 - The `flowie` repo must be private. Do not confirm or suggest making it public.
 - Do not log task content, project details, or profile contents to `.neuroflow/sessions/` beyond the one-line summary.
 - Never write machine-local absolute paths (`C:/Users/…`, `/home/…`) into any flowie file — they sync to every machine. Local folders live only in `~/.neuroflow/local-projects.json`.

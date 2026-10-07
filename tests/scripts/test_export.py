@@ -148,6 +148,26 @@ class PlanAndExportTests(unittest.TestCase):
             self.assertNotIn(rel, files)
             self.assertIn(rel, held)
 
+    def test_paper_xray_files_never_exported(self):
+        paper = self.root / ".neuroflow" / "paper"
+        write(paper / "draft.md", "draft\n")
+        xray = ("xray-draft-2026-10-07.md", "xray-draft-2026-10-07.jsonl", "xray-changes-2026-10-07.md")
+        for name in xray:
+            write(paper / name, "critique of an unpublished manuscript\n")
+        for scope, phase in (("memory", None), ("phase", "paper")):
+            plan = ex.build_plan(self.root, scope, phase)
+            held = dict(plan.held_back)
+            self.assertIn(".neuroflow/paper/draft.md", {rel for rel, _ in plan.files})
+            for name in xray:
+                self.assertEqual(held.get(f".neuroflow/paper/{name}"), ex.LOCAL_REASON, (scope, name))
+        dest = self.base / "share.zip"
+        code, out = run_main(["--root", str(self.root), "--scope", "memory", "--dest", str(dest), "--json"])
+        self.assertEqual(code, 0, out)
+        with zipfile.ZipFile(dest) as z:
+            names = z.namelist()
+        self.assertIn("share/.neuroflow/paper/draft.md", names)
+        self.assertFalse(any("xray" in n for n in names))
+
     def test_phase_plan(self):
         plan = ex.build_plan(self.root, "phase", "data-analyze")
         self.assertEqual({rel for rel, _ in plan.files},

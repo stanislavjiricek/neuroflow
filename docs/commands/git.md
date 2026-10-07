@@ -70,7 +70,7 @@ Requires `gh` CLI to be installed and authenticated.
 ## Safety
 
 - **An alias stops at its endpoint.** `ac` stages and commits — it never pushes, even when unpushed commits are waiting; `a` never commits; `acp` never opens a PR. Each alias acts only on the current repository and the paths you named.
-- **Local-only files are never committed:** `integrations.json` (credentials), `.neuroflow/sessions/`, `.neuroflow/review/` (confidential manuscripts you are refereeing), `.neuroflow/flowie/` and `user.yaml` (personal settings) — if one gets staged because your `.gitignore` misses it, Claude takes it back out and suggests the line to add.
+- **Local-only files are never committed:** `integrations.json` (credentials), `.neuroflow/sessions/`, `.neuroflow/review/` (confidential manuscripts you are refereeing), `.neuroflow/paper/xray-*` (sentence-level critique of your unpublished manuscript), `.neuroflow/flowie/` and `user.yaml` (personal settings) — if one gets staged because your `.gitignore` misses it, Claude takes it back out and suggests the line to add.
 - **`git clean -x` is never run** — it would delete ignored files such as raw recordings and credentials. Any other command that throws work away (`git reset --hard`, `git push --force`, …) is previewed and needs your confirmation.
 
 ---
