@@ -103,11 +103,9 @@ FILES = {
     ),
     "commands/alpha.md": COMMAND,
     "agents/helper.md": "---\nname: helper\ndescription: A helper agent\n---\n\n# helper\n",
-    "docs/index.md": '<span class="sa-bar-version">v1.2.3</span>\n',
+    "docs/index.md": "---\ntemplate: home.html\n---\n\n# neuroflow\n",
     "docs/changelog.md": "# Changelog\n\n## 1.2.3\n\n- x\n",
     "docs/commands/alpha.md": "# /alpha\n",
-    "docs/javascripts/mind.js": 'const NODES = [\n  { id: "c-alpha", commands: ["/alpha"], desc: "the helper agent", '
-                                'url: "commands/alpha/" },\n]\n',
     "README.md": textwrap.dedent("""\
         # neuroflow
 

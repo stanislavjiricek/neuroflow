@@ -1,7 +1,7 @@
 ---
 name: sentinel-dev
 tools: Read, Glob, Grep, Write, Edit, Bash
-description: "Plugin development coherence guard. Runs the repo's mechanical checks (scripts/automation/validate_pr.py — the same registry CI runs on every PR: manifests, version sync, frontmatter, docs pages, names, hooks.json, rule markers, name collisions, README/nav/mind-map propagation, dead references, release notes, sensitive info, path hygiene) and adds the judgement checks a script cannot make: README hooks documentation, real names and institutions, concept-map placement, guards versus prose. Writes its report to .neuroflow/sentinel-dev.md."
+description: "Plugin development coherence guard. Runs the repo's mechanical checks (scripts/automation/validate_pr.py — the same registry CI runs on every PR: manifests, version sync, frontmatter, docs pages, names, hooks.json, rule markers, name collisions, README/nav propagation, dead references, release notes, sensitive info, path hygiene) and adds the judgement checks a script cannot make: README hooks documentation, real names and institutions, guards versus prose. Writes its report to .neuroflow/sentinel-dev.md."
 ---
 
 # sentinel-dev
@@ -37,9 +37,9 @@ Drop `--base` when there is no `origin/main` (V7 then does not run). For a group
 | V7 | fail | With `--base`: substantive changes bump the `plugin.json` version (the exempt list is shared with `.githooks/pre-push`) |
 | V8 | fail / warn | Rule markers: every `<!-- nf-rule: ID -->` uses an id from neuroflow-core's rule table, and every id a guard in `hooks/mod/` cites (`nf-rule: ID`) has a marker in `skills/` or `commands/`. Warns about rules that have no marker yet |
 | V9 | fail / warn | No skill folder shares a command's name (the command shadows the skill); warns when an agent and a skill share one |
-| V10 | fail | Propagation: every command, skill and agent has a README row and a mkdocs nav entry; every command and agent is mentioned in `docs/javascripts/mind.js`; no dead README, nav or mind.js links |
+| V10 | fail | Propagation: every command, skill and agent has a README row and a mkdocs nav entry; no dead README or nav links; the nav lists each page once |
 | V11 | fail | No dead `neuroflow:<name>` references inside SKILL.md files |
-| V12 | warn | Release notes: README `## What's new in X.Y.Z`, `docs/changelog.md` `## X.Y.Z` and the `docs/index.md` sa-bar-version match `plugin.json` |
+| V12 | warn | Release notes: README `## What's new in X.Y.Z` and `docs/changelog.md` `## X.Y.Z` match `plugin.json` |
 | V13 | warn | The repo's own `.neuroflow/` holds only `reasoning/` and `sessions/` folders |
 | V14 | fail / warn | Sensitive info: PEM private-key material fails; emails and hardcoded secrets warn `[needs human review]` |
 | V15 | warn | Path hygiene: the old dotted `.neuroflow/.flowie/` path, paths into a project-level `.neuroflow/flowie/` or `.neuroflow/hive/`, and the legacy `flowie_profile:` / `flowie_project:` / `hive_member:` fields |
@@ -86,6 +86,6 @@ Last run: YYYY-MM-DD
 
 Then ask the user: for each issue, fix automatically or leave for manual review?
 
-Fixes sentinel-dev may apply after the user agrees: version drift (`python scripts/automation/bump_version.py --sync`), missing README rows, nav entries and mind.js mentions (the user reviews the wording), and stale paths flagged by V15. Never automatic: sensitive information (V14, J2) and anything under `hooks/mod/` (J4).
+Fixes sentinel-dev may apply after the user agrees: version drift (`python scripts/automation/bump_version.py --sync`), missing README rows and nav entries (the user reviews the wording), and stale paths flagged by V15. Never automatic: sensitive information (V14, J2) and anything under `hooks/mod/` (J4).
 
 After applying any fixes, run `validate_pr.py` again and rewrite `.neuroflow/sentinel-dev.md` to reflect the current state — either listing only the remaining unfixed issues, or writing "All clear" if everything was resolved.

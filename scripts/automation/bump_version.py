@@ -14,8 +14,8 @@ Sites (repo_checks.VERSION_SITES, also checked by validate_pr.py V2):
   .neuroflow/project_config.md    plugin_version (skipped when the file is absent)
 
 Only the version strings change; formatting and line endings stay as they are. The release
-notes (README What's new, docs/changelog.md) and the docs/index.md self-assessment bar are
-written by hand - this script prints them as next steps.
+notes (README What's new, docs/changelog.md) are written by hand - this script prints them as
+next steps.
 
 Exit codes: 0 = done (or in sync), 1 = --check found drift, 2 = usage or runtime error.
 """
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"bump_version: {len(written)} site(s) now at {target}")
     if not args.sync:
         print("Next (by hand): README.md `## What's new in " + target + "`, docs/changelog.md `## " + target + "`, "
-              "docs/index.md sa-bar-version (re-run the self-assessment), then "
+              "then "
               "python scripts/automation/validate_pr.py --base origin/main")
     return 0
 

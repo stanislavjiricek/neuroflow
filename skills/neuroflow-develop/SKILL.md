@@ -125,7 +125,7 @@ Every command must also follow the lifecycle defined in `neuroflow:neuroflow-cor
 A new command is finished only when every propagation site exists:
 
 - `docs/commands/<name>.md` (V4)
-- a `mkdocs.yml` nav entry, a row in the README Commands table, and a `/<name>` mention in `docs/javascripts/mind.js` (V10)
+- a `mkdocs.yml` nav entry in its section of the docs index (Phases, Memory & team or Commands) and a row in the README Commands table (V10)
 - for a phase command: the phase skill `skills/phase-<name>/SKILL.md` with its `## Slash command` section, and the phase in neuroflow-core's taxonomy
 
 Run `python scripts/automation/validate_pr.py` — V3, V4 and V10 name any site still missing.
@@ -145,7 +145,7 @@ There is no config folder in the plugin — project state is always per-project,
 
 ## Adding a new agent
 
-Create a `.md` file in `agents/`. Define the agent's role, focus, and any tool restrictions in the body. The frontmatter `name:` equals the filename (V5). Add a row to the README Agents table, a `mkdocs.yml` nav entry, and the agent's name somewhere in `docs/javascripts/mind.js` (V10).
+Create a `.md` file in `agents/`. Define the agent's role, focus, and any tool restrictions in the body. The frontmatter `name:` equals the filename (V5). Add a row to the README Agents table and a `mkdocs.yml` nav entry under Agents (V10).
 
 ## Adding or modifying hooks
 
@@ -187,15 +187,14 @@ The ids come from the rule table in neuroflow-core. A guard cites the id it enfo
 ## Release workflow
 
 1. Make your changes
-   - If you added, renamed, or removed a **command, skill, or agent**: update `docs/javascripts/mind.js`. The mind map is a **curated concept map** (~24 concept nodes in `NODES` + `LINKS`), not a 1:1 mirror — extend the most relevant concept node so the new item is referenced: every command must appear as `/name` in some node's `commands:` array (or a `commands/name/` url), and every agent's name must appear somewhere in the map (a label or desc). New skills are covered by their concept cluster; add a dedicated `sk-*` node only when the skill introduces a genuinely new concept.
-   - **Blocking step — do not skip.** A command or agent absent from `mind.js` is a consistency error: `validate_pr.py` V10 fails the PR.
+   - If you added, renamed, or removed a **command, skill, or agent**: place it in the docs index (`mkdocs.yml` nav, each page once) — `validate_pr.py` V10 fails the PR otherwise. A new phase also belongs on the landing page's ring (`overrides/home.html`) and in the Phases list of `docs/overview.md`.
 2. **Update `README.md`** — two places:
    - Replace the `## What's new in X.Y.Z` section with the new version number and up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight.
    - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.
 3. Add an entry to **`docs/changelog.md`** — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries.
 4. **`mkdocs.yml` `extra.version`** must match the new version — `bump_version.py` writes it in step 8.
 5. If it's a new item, **add it to the Roadmap** as completed or remove it from the planned list.
-6. Update the **self-assessment bar** in `docs/index.md` — change `sa-bar-version` to the new version, and re-run the probe honestly for this version of Claude (answers may change as the model evolves).
+6. If the release changes a format that existing projects keep (`project_config.md`, task files, reasoning logs, git files), make sure `/neuroflow:migrate` converts it — the first command after the update points every person there (`docs/upgrading.md`).
 7. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
 8. Bump the patch version in **all four places** (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is) with `python scripts/automation/bump_version.py` (`--dry-run` shows the change first; `--sync` repairs drift without bumping). It rewrites only the version strings:
    - `.claude-plugin/plugin.json` → `version` field

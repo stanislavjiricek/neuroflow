@@ -22,10 +22,10 @@ Ids are stable: never renumber or reuse one - retire it instead.
   V8   rule markers: every <!-- nf-rule: ID --> uses an id from neuroflow-core's rule table,
        and every id a mod guard cites (hooks/mod/) has a marker in skills/ or commands/
   V9   name collisions: no skill folder shares a command's name (the command shadows it)
-  V10  propagation: every command, skill and agent appears in README.md, the mkdocs nav and
-       mind.js; README tables, nav and mind.js have no dead links; the nav lists each page once
+  V10  propagation: every command, skill and agent appears in README.md and the mkdocs nav;
+       README tables and nav have no dead links; the nav lists each page once
   V11  dead neuroflow:<name> references inside SKILL.md files
-  V12  release notes (warn): README What's new, docs/changelog.md, docs/index.md sa-bar version
+  V12  release notes (warn): README What's new and docs/changelog.md match the version
   V13  plugin-repo memory (warn): the repo's own .neuroflow/ holds only reasoning/ and sessions/
   V14  sensitive info: PEM private keys (fail); emails and hardcoded secrets (warn, human review)
   V15  path hygiene (warn): stale flowie/hive paths and legacy field names
@@ -620,26 +620,6 @@ def v10_propagation(ctx: Context) -> list[Finding]:
         full = root / path if path.startswith(("skills/", "agents/")) else root / "docs" / path
         if not full.exists():
             out.append(Finding("V10", f"mkdocs.yml nav references non-existent file `{path}`"))
-
-    # mind.js is a curated concept map, not a 1:1 mirror: every command must be reachable
-    # (`/name` or a commands/name/ url), every agent named, every url must resolve.
-    mind = root / "docs" / "javascripts" / "mind.js"
-    if mind.is_file():
-        text = _read(mind)
-        for name in commands:
-            if f"/{name}" not in text and f"commands/{name}/" not in text:
-                out.append(Finding("V10", f"commands/{name}.md is not referenced in docs/javascripts/mind.js "
-                                          f"(no `/{name}` and no `commands/{name}/` url)"))
-        for name in agents:
-            if name not in text:
-                out.append(Finding("V10", f"agents/{name}.md is not referenced in docs/javascripts/mind.js"))
-        for url in re.findall(r'url:\s*"((?:commands|skills|agents)/[^"]+)"', text):
-            path = url.rstrip("/")
-            candidates = [root / f"{path}.md", root / path / "SKILL.md"]
-            if path.endswith("/SKILL"):
-                candidates.append(root / (path[:-6] + "/SKILL.md"))
-            if not any(c.exists() for c in candidates):
-                out.append(Finding("V10", f"docs/javascripts/mind.js url `{url}` does not resolve to a source file"))
     return out
 
 
@@ -679,12 +659,6 @@ def v12_release_notes(ctx: Context) -> list[Finding]:
     changelog = ctx.root / "docs" / "changelog.md"
     if changelog.is_file() and not re.search(rf"(?m)^##\s+v?{re.escape(v)}\b", _read(changelog)):
         out.append(Finding("V12", f"docs/changelog.md has no `## {v}` entry", WARN))
-    index = ctx.root / "docs" / "index.md"
-    if index.is_file():
-        m = re.search(r'class="sa-bar-version">\s*v?([^<\s]+)\s*<', _read(index))
-        if m and m.group(1) != v:
-            out.append(Finding("V12", f"docs/index.md sa-bar-version is v{m.group(1)}, plugin is {v} - re-run the "
-                                      "self-assessment for this version", WARN))
     return out
 
 
@@ -830,7 +804,7 @@ CHECKS: tuple[Check, ...] = (
     Check("V7", "Version bump vs base", v7_version_bump, needs_base=True),
     Check("V8", "Rule markers", v8_rule_markers),
     Check("V9", "Name collisions", v9_collisions),
-    Check("V10", "Propagation (README, nav, mind map)", v10_propagation),
+    Check("V10", "Propagation (README, nav)", v10_propagation),
     Check("V11", "Dead skill/command references", v11_dead_refs),
     Check("V12", "Release notes sync", v12_release_notes),
     Check("V13", "Plugin-repo memory", v13_repo_memory),

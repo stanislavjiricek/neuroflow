@@ -266,7 +266,7 @@ warning, kept as a rule of the mod's charter.
 | M176 | Test suite with a virtual .neuroflow filesystem | T0 | Built | Mod tests run with an in-memory `.neuroflow/` filesystem and Windows path fixtures (`claude plugin test`). |
 | M177 | Staged rollout with userConfig runtime off\|observe\|on | T0 | Built | Settings `runtime: off \| observe \| on` (default observe) and `guards: warn \| enforce`. |
 | M178 | Repo-local neuroflow-dev mod | T0 | Built | The mod is developed in the repository and loaded with `--plugin-dir`. |
-| M179 | Propagation nudges for new commands, skills and agents | X | Built differently | New check V10, run on every PR: every command, skill and agent needs a README row and a mkdocs nav entry, commands and agents must appear in mind.js, and README, nav and mind.js links must resolve. |
+| M179 | Propagation nudges for new commands, skills and agents | X | Built differently | New check V10, run on every PR: every command, skill and agent needs a README row and a mkdocs nav entry, and README and nav links must resolve (the mind map it also checked was retired with the redesigned site in 0.2.22). |
 | M180 | /nf-new scaffolder with overlap audit | X | Built differently | neuroflow-develop now has propagation checklists for new commands, skills and agents, and its command template includes the C6 keys. |
 | M181 | Hot-reload dev loop and dormancy for duplicate copies | X | Built differently | neuroflow-develop Local development now says to run /reload-plugins instead of restarting, offers installing from the working copy (marketplace source './'), and warns against loading two copies at once. |
 | M182 | Hook trace pane and one-turn event spy | X | Not built | Not built: premature, since no live module exists to debug. |

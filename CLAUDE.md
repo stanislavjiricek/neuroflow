@@ -38,7 +38,7 @@ neuroflow/
 
 ## Conventions
 
-- **Commands** — frontmatter `name` (= filename), `description`, `phase` (canonical list: neuroflow-core → Phase taxonomy), `reads`, `writes`, `lifecycle` (`full` / `light` / `quiet`), and optional `requires` / `produces` / `next`. Every command has a page at `docs/commands/<name>.md`; a new command also needs a `mkdocs.yml` nav entry, a node in `docs/javascripts/mind.js` and a row in the README commands table.
+- **Commands** — frontmatter `name` (= filename), `description`, `phase` (canonical list: neuroflow-core → Phase taxonomy), `reads`, `writes`, `lifecycle` (`full` / `light` / `quiet`), and optional `requires` / `produces` / `next`. Every command has a page at `docs/commands/<name>.md`; a new command also needs a `mkdocs.yml` nav entry (in its section of the docs index) and a row in the README commands table.
 - **Skills** — `skills/<folder>/SKILL.md`, frontmatter `name` equal to the folder name. Installed skills are namespaced `neuroflow:<folder>`. A skill writes only into the active command's phase folder, never into a folder named after itself.
 - **Session lines** — one format everywhere: `## HH:MM — [phase] what was accomplished`.
 - **Fixed-choice questions** — `AskUserQuestion` (2–4 options, recommended first; the tool adds "Other").

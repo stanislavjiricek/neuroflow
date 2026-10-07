@@ -171,7 +171,6 @@ class CollisionAndPropagationTests(RepoCase):
         text = self.text("V10")
         self.assertIn("commands/beta.md has no link in README.md", text)
         self.assertIn("commands/beta.md is not in the mkdocs.yml nav", text)
-        self.assertIn("not referenced in docs/javascripts/mind.js", text)
 
     def test_dead_links(self):
         write(self.root, {"README.md": FILES["README.md"] + "| [`gone`](agents/gone.md) | x |\n",
@@ -193,7 +192,7 @@ class CollisionAndPropagationTests(RepoCase):
 
 class HygieneTests(RepoCase):
     def test_release_notes_are_warnings(self):
-        write(self.root, {"docs/index.md": '<span class="sa-bar-version">v1.2.0</span>\n'})
+        write(self.root, {"docs/changelog.md": "# Changelog\n\n## 1.2.2\n\n- x\n"})
         found = self.run_checks("V12")
         self.assertEqual([f.severity for f in found], [rc.WARN])
 
