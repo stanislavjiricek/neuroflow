@@ -84,7 +84,7 @@ export type NfLoopView = {
 export type NfDashboardTab = 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
 
 /** The neuroflow command running in this turn, if any. */
-export type NfActiveCommand = { name: string; lifecycle: string; startedAt: number }
+export type NfActiveCommand = { name: string; phase: string; lifecycle: string; startedAt: number }
 
 declare module 'claude-code' {
   interface PluginState {

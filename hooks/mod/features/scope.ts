@@ -14,6 +14,7 @@ import type { NfIo } from '../lib/io'
 import type { NfOptions } from '../lib/options'
 import { isInside, join, resolveFrom } from '../lib/paths'
 import { computeScope, loadSnapshot } from '../lib/project'
+import { statusLine } from './status'
 
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit'])
 
@@ -23,6 +24,7 @@ const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
 const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
 const turnWritesAtom = atom({ plugin: 'neuroflow', key: 'turnWrites' } as const, [])
+const degradedAtom = atom({ plugin: 'neuroflow', key: 'degraded' } as const, [])
 
 const ioOf = ($: EngineInterface): NfIo => ({
   read: path => $.fs.read(path).then(text => (typeof text === 'string' ? text : null), () => null),
@@ -43,11 +45,20 @@ export const refreshSnapshot = async ($: EngineInterface): Promise<void> => {
   await update($, snapshotAtom, () => snapshot)
 }
 
-/** The lifecycle a neuroflow command declares in its frontmatter (C6); 'full' when unreadable. */
-const commandLifecycle = async ($: EngineInterface, name: string): Promise<string> => {
+/** The phase and lifecycle a neuroflow command declares in its frontmatter (C6); defaults when unreadable. */
+const commandFacts = async ($: EngineInterface, name: string): Promise<{ phase: string; lifecycle: string }> => {
   const text = await ioOf($).read(join($.plugin.root, 'commands', `${name}.md`))
   const { block } = splitFrontmatter(text ?? '')
-  return asString(block === null ? null : parseYamlSubset(block).lifecycle) ?? 'full'
+  const fm = block === null ? {} : parseYamlSubset(block)
+  return { phase: asString(fm.phase) ?? 'utility', lifecycle: asString(fm.lifecycle) ?? 'full' }
+}
+
+/** Shows the exception-only status line for the current snapshot (empty when nothing needs attention). */
+const showStatus = async ($: EngineInterface): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  const snapshot = await read($, snapshotAtom)
+  const degraded = await read($, degradedAtom)
+  $.ui.status(scope?.isActive && snapshot !== null ? statusLine(snapshot, degraded) : undefined)
 }
 
 export const registerScope = (on: On, _opts: NfOptions): void => {
@@ -60,15 +71,16 @@ export const registerScope = (on: On, _opts: NfOptions): void => {
     await update($, turnWritesAtom, () => [])
     await update($, activeCommandAtom, () => null)
     if (scope.isActive) await refreshSnapshot($)
+    await showStatus($)
     return next(e)
   }).catch(($, e, next) => next(e))
 
   on('command.run', async ($, e, next) => {
     if (!e.command.startsWith('neuroflow:')) return next(e)
     const name = e.command.slice('neuroflow:'.length)
-    const lifecycle = await commandLifecycle($, name)
+    const { phase, lifecycle } = await commandFacts($, name)
     const startedAt = await $.clock.now()
-    await update($, activeCommandAtom, () => ({ name, lifecycle, startedAt }))
+    await update($, activeCommandAtom, () => ({ name, phase, lifecycle, startedAt }))
     const result = await next(e)
     // Answered by a hook (no engine run behind it): no model turn follows, so the command is over.
     if (result.ref === undefined) await update($, activeCommandAtom, () => null)
@@ -91,6 +103,7 @@ export const registerScope = (on: On, _opts: NfOptions): void => {
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
     await refreshSnapshot($)
+    await showStatus($)
     await update($, turnWritesAtom, () => [])
     await update($, activeCommandAtom, () => null)
     return result
