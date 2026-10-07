@@ -53,7 +53,7 @@ export type Violation = { rule: RuleId; level: 'deny' | 'ask' | 'warn'; message:
 export type Structure = { rootFiles: string[]; rootFolders: string[] }
 
 /** Local-only paths (neuroflow-core → sharing tiers) that must never be staged. */
-export const LOCAL_ONLY = ['.neuroflow/sessions/', '.neuroflow/review/', '.neuroflow/integrations.json', '.neuroflow/flowie/']
+export const LOCAL_ONLY = ['.neuroflow/sessions/', '.neuroflow/review/', '.neuroflow/integrations.json', '.neuroflow/flowie/', '.neuroflow/paper/xray-']
 
 /** Used until nf_check.py --structure has answered (or when no Python is installed). */
 export const DEFAULT_STRUCTURE: Structure = {
@@ -231,9 +231,9 @@ export const shellViolations = (
       out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} does not open pull requests — ask the person for a new instruction` })
     }
     if (verb === 'add') {
-      const named = /(integrations\.json|\.neuroflow[\\/](sessions|review|flowie)\b|user\.yaml)/i.exec(segment)
+      const named = /(integrations\.json|\.neuroflow[\\/](sessions|review|flowie)\b|\.neuroflow[\\/]paper[\\/]xray-\S*|user\.yaml)/i.exec(segment)
       if (named !== null) {
-        out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `${named[1]} is local-only (sessions, confidential reviews, credentials) and must never be committed` })
+        out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `${named[1]} is local-only (sessions, confidential reviews, paper X-rays, personal settings) and must never be committed` })
       } else if (/\sadd\s+(-A\b|--all\b|\.(\s|$)|-u\b)/.test(segment)) {
         const ignored = context.gitignore ?? ''
         const missing = LOCAL_ONLY.filter(path => !ignored.includes(path))

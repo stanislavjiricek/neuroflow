@@ -195,6 +195,10 @@ declare module 'claude-code' {
       /** Live note capture in progress (the flag .neuroflow/notes/.capturing names the target). */
       capture: { target: string; count: number } | null
       // </feature:capture>
+      // <feature:checks>
+      /** Citable files written in this turn (any agent), checked by cite_check.py when the turn ends. */
+      citeQueue: string[]
+      // </feature:checks>
       // <feature:user>
       // </feature:user>
     }

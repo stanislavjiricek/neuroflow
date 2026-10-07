@@ -195,6 +195,31 @@ class CliTests(unittest.TestCase):
         self.assertEqual(run_main([str(clean), "--library", str(export), "--delay", "0"])[0], 0,
                          "a .bib export works as the library; DOIs match case-insensitively")
 
+    def test_max_age_looks_up_only_new_or_stale_dois(self):
+        cache = self.dir / "cache.json"
+        self.assertEqual(run_main([str(self.paper), "--cache", str(cache), "--delay", "0"])[0], 1)
+        # Fresh entries are reused: no lookup at all (a lookup would fail with no network).
+        code, out, _ = run_main([str(self.paper), "--cache", str(cache), "--max-age", "7", "--json"], fetch=offline_fetch)
+        self.assertEqual(code, 1)
+        data = json.loads(out)
+        self.assertEqual(data["reused_from_cache"], 2)
+        self.assertEqual(data["summary"]["do_not_resolve"], 1)
+        # An entry older than the limit is looked up again; the fresh one is not.
+        stored = json.loads(cache.read_text(encoding="utf-8"))
+        stored["entries"][GOOD.lower()]["checked_at"] = "2000-01-01"
+        cache.write_text(json.dumps(stored), encoding="utf-8")
+        asked = []
+
+        def counting_fetch(url, timeout, user_agent=None):
+            asked.append(url)
+            return fake_fetch(url, timeout, user_agent)
+
+        code, out, _ = run_main([str(self.paper), "--cache", str(cache), "--max-age", "7", "--json"], fetch=counting_fetch)
+        self.assertEqual(json.loads(out)["reused_from_cache"], 1)
+        self.assertTrue(asked and all("nature14539" in url for url in asked))
+        self.assertNotEqual(json.loads(cache.read_text(encoding="utf-8"))["entries"][GOOD.lower()]["checked_at"], "2000-01-01")
+        self.assertEqual(run_main([str(self.paper), "--max-age", "7"])[0], 2, "--max-age needs --cache")
+
     def test_offline_without_cache_and_no_network(self):
         self.assertEqual(run_main([str(self.paper), "--offline"])[0], 2)
         code, _, err = run_main([str(self.paper), "--delay", "0"], fetch=offline_fetch)

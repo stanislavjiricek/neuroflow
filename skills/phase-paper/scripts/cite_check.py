@@ -25,6 +25,8 @@ Usage:
     python cite_check.py manuscript/references.bib
     python cite_check.py manuscript/ --library .neuroflow/ideation/papers --cache .neuroflow/paper/doi-cache.json
     python cite_check.py manuscript/main.docx --offline --cache .neuroflow/paper/doi-cache.json --json
+    python cite_check.py manuscript/ --cache .neuroflow/paper/doi-cache.json --max-age 7 --json
+        (looks up only DOIs that are new or were last checked more than 7 days ago)
 
 Exit codes: 0 = every DOI resolves and no retraction, withdrawal, removal or
 expression-of-concern notice was found (and, with --library, every cited DOI is
@@ -298,6 +300,17 @@ def _load_cache(path: Path | None) -> dict:
     return data.get("entries", {}) if isinstance(data, dict) else {}
 
 
+def _is_fresh(entry: dict | None, today: str, max_age: int) -> bool:
+    """A cached lookup that answered (resolves or not) no more than max_age days before today."""
+    if not entry or entry.get("resolves") is None or entry.get("error"):
+        return False
+    try:
+        age = (_dt.date.fromisoformat(today) - _dt.date.fromisoformat(str(entry.get("checked_at")))).days
+    except ValueError:
+        return False
+    return 0 <= age <= max_age
+
+
 def _save_cache(path: Path, entries: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -320,11 +333,17 @@ def main(argv=None) -> int:
     ap.add_argument("--no-notices", action="store_true", help="only check that DOIs resolve")
     ap.add_argument("--timeout", type=float, default=15.0, help="seconds per request (default 15)")
     ap.add_argument("--delay", type=float, default=0.2, help="pause between DOIs in seconds (default 0.2)")
+    ap.add_argument("--max-age", type=int, metavar="DAYS",
+                    help="with --cache: look up only DOIs that are not cached or were checked more than DAYS days "
+                         "ago (or failed); reuse the rest. A weekly --max-age 7 run re-checks every notice")
     args = ap.parse_args(argv)
     configure_utf8_stdio()
 
     if args.offline and not args.cache:
         print("cite_check: --offline needs --cache FILE", file=sys.stderr)
+        return 2
+    if args.max_age is not None and (not args.cache or args.max_age < 0):
+        print("cite_check: --max-age needs --cache FILE and a number of days >= 0", file=sys.stderr)
         return 2
 
     locations: dict[str, list] = {}
@@ -356,11 +375,13 @@ def main(argv=None) -> int:
     user_agent = USER_AGENT + (f" mailto:{args.mailto}" if args.mailto else "")
     today = _dt.date.today().isoformat()
     findings: list[Finding] = []
-    attempted = failed_network = 0
-    for i, key in enumerate(sorted(locations)):
+    attempted = failed_network = reused = 0
+    for key in sorted(locations):
         entry = cache.get(key)
-        if not args.offline:
-            if i:
+        if not args.offline and args.max_age is not None and _is_fresh(entry, today, args.max_age):
+            reused += 1
+        elif not args.offline:
+            if attempted:
                 _sleep(args.delay)
             attempted += 1
             try:
@@ -396,6 +417,7 @@ def main(argv=None) -> int:
     if args.json:
         print(json.dumps({
             "checked_at": today, "mode": "offline" if args.offline else "online",
+            "max_age_days": args.max_age, "reused_from_cache": reused,
             "summary": counts, "bib_entries_without_doi": no_doi,
             "dois": [asdict(f) for f in findings],
         }, ensure_ascii=False, indent=1))

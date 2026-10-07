@@ -13,6 +13,7 @@ import type { Register } from 'claude-code'
 import { readOptions } from './lib/options'
 import { registerBookkeeping } from './features/bookkeeping'
 import { registerCapture } from './features/capture'
+import { registerChecks } from './features/checks'
 import { registerContext } from './features/context'
 import { registerGuards } from './features/guards'
 import { registerLoop } from './features/loop'
@@ -33,5 +34,6 @@ export const register: Register = (on, options) => {
   registerViews(on, opts)
   registerLoop(on, opts)
   registerCapture(on, opts)
+  registerChecks(on, opts)
   registerUser(on, opts)
 }

@@ -18,6 +18,20 @@ bookkeeping — because the prose in `skills/` and `commands/` stays the source 
 
 ---
 
+## What it does
+
+| Feature | What you see | Needs |
+|---|---|---|
+| Views | `/neuroflow:dashboard` opens a pane (phase map, deadlines, integrity, tasks, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` a board | — |
+| Band, status line, footer | One line above the prompt when something needs attention (a deadline, a meeting, a drafted decision, a loop being driven); a status line that speaks only about exceptions; `neuroflow · phase · mode` in the footer | `band` |
+| Instant answers | `/neuroflow:doctor`, `/neuroflow:phase <name>`, `idea: …` and live note capture answered in code, with no model turn | — |
+| Bookkeeping | Missing session lines and `flow.md` rows filled after a command's turn and marked `(auto)`; a decision drafted when a command logged none, kept only on your key press | `runtime: on` |
+| Integrity | The guards below; freezing, verifying and unfreezing the preregistration from the dashboard; frozen files re-hashed at start | `guards: enforce` to deny |
+| Checks | Text hidden from human readers in documents from outside, reported after the model reads them; DOIs checked after manuscript writes and weekly for notices | `citations` and `runtime: on` for DOIs |
+| Autoresearch driver | `/neuroflow:autoresearch drive <name>`: one iteration per turn, caps checked between turns, a stop key | `runtime: on` |
+
+---
+
 ## Settings
 
 Set them in Claude Code's plugin configuration (`/plugin` → neuroflow → configure) or in settings under
@@ -28,7 +42,7 @@ Set them in Claude Code's plugin configuration (`/plugin` → neuroflow → conf
 | `runtime` | `off` · `observe` · `on` | `observe` | `off`: the mod does nothing. `observe`: views, status and warnings — it never writes into project memory on its own (only when you press a key or type a command that asks it to) and never blocks. `on`: it also fills bookkeeping gaps and may enforce guards. |
 | `guards` | `warn` · `enforce` | `warn` | `enforce` lets guards deny a tool call (only with `runtime: on`). `warn` says what a guard would have blocked. |
 | `band` | `off` · `quiet` · `normal` | `quiet` | The one-line band above the prompt. `quiet` shows only what needs attention. |
-| `citations` | on · off | off | Check that DOIs in manuscripts resolve after writes. |
+| `citations` | on · off | off | After a turn that wrote a manuscript, grant, poster or report citing DOIs, look up the new DOIs with `cite_check.py`; once a week, re-check the manuscript's DOIs for retraction and correction notices. Needs `runtime: on` (it keeps a DOI cache in `.neuroflow/paper/`). |
 
 ## When the mod is not running
 

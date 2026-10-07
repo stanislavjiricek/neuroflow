@@ -62,7 +62,7 @@
     "citations": {
       "type": "boolean",
       "title": "Citation checks",
-      "description": "Check that DOIs in manuscripts resolve after the model edits them.",
+      "description": "After the model writes a manuscript, grant, poster or report, check that its new DOIs resolve; re-check notices weekly. Needs runtime on.",
       "default": false
     }
   },

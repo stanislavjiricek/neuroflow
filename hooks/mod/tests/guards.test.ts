@@ -151,6 +151,8 @@ describe('shell rules', () => {
     expect(shellViolations('git clean -fdx', snap(), ctx)[0].rule).toBe('GIT-NO-SECRETS')
     expect(shellViolations('git clean -n', snap(), ctx)).toEqual([])
     expect(shellViolations('git add .neuroflow/sessions/2026-10-07.md', snap(), ctx)[0].rule).toBe('GIT-NO-SECRETS')
+    expect(shellViolations('git add .neuroflow/paper/xray-results.jsonl', snap(), ctx)[0].rule).toBe('GIT-NO-SECRETS')
+    expect(shellViolations('git add -A', snap(), { gitignore: LOCAL_ONLY.slice(0, 4).join('\n'), isLoginNode: false })[0].message).toContain('xray')
     expect(shellViolations('git add -A && git commit -m x', snap(), ctx)).toEqual([])
     expect(shellViolations('git add -A', snap(), { gitignore: '', isLoginNode: false })[0].message).toContain('.gitignore does not exclude')
   })

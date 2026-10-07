@@ -107,7 +107,7 @@ Deterministic checks live in `scripts/` next to this skill (Python 3.10+, standa
 
 | Script | What it checks | Used by |
 |---|---|---|
-| `cite_check.py` | DOIs in .bib/.md/.tex/.docx resolve (Crossref, then doi.org); retraction, withdrawal, expression-of-concern and correction notices recorded in Crossref; preprints with a published version; with `--library`, cited DOIs missing from the project library. `--offline --cache FILE` works without network. | `--submit`, `--xray`, `/grant-proposal`, `/poster` |
+| `cite_check.py` | DOIs in .bib/.md/.tex/.docx resolve (Crossref, then doi.org); retraction, withdrawal, expression-of-concern and correction notices recorded in Crossref; preprints with a published version; with `--library`, cited DOIs missing from the project library. `--offline --cache FILE` works without network; `--cache FILE --max-age DAYS` looks up only DOIs that are new or older than DAYS in the cache. | `--submit`, `--xray`, `/grant-proposal`, `/poster`; the neuroflow mod after manuscript writes and weekly (setting `citations`) |
 | `statcheck.py` | recomputes p from reported t, F, r, χ² and z with their df; skips p-values marked as corrected | drafting loop (before the critic), `--submit`, `--xray` |
 | `revise_audit.py` | every changed sentence between an original and its `-r1` copy is quoted under a comment id in the response document, and every quoted change is in the manuscript | `--revise`, `--coauthor`, applied X-ray fixes |
 | `docx_comments.py` | a .docx's comments (anchor text, threads, resolved flag) and tracked changes as a work table | `--coauthor` |
