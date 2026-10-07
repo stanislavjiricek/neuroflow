@@ -33,6 +33,7 @@ The `/output` command packages and moves project data out of the workspace. Its 
 | `.neuroflow/sessions/` | Local tier — personal operation log |
 | `.neuroflow/review/` | Local tier — colleagues' manuscripts under confidential peer review |
 | `.neuroflow/paper/xray-*` | Local tier — sentence-level critique of an unpublished manuscript |
+| `.neuroflow/wiki/.pending/` | Local tier — wiki capture cards awaiting the person's review |
 | `.neuroflow/integrations.json`, `.neuroflow/flowie/` | Local tier — credentials and personal settings |
 | `.neuroflow/fails/`, `.neuroflow/finance/` | Never leave the team |
 | `.neuroflow/ethics/` files off the allowlist | May identify participants; only `status.md`, `flow.md`, `consent-vN.md` form versions, `protocol*.md`, `amendment*.md` pass. A checked file can be added with `--include-ethics` |

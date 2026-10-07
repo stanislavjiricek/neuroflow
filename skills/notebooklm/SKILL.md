@@ -91,7 +91,7 @@ Before starting any workflow, verify the CLI is ready:
 Adding a source sends it to Google. Before any `notebooklm source add` (files, pasted text, URLs) or `source add-research`, show the exact list — file paths with sizes, URLs, the research query — with `AskUserQuestion` (the list goes in the option preview), and run only what the person confirms in that turn. Nothing is uploaded on your own initiative, from a background subagent, or "automatically".
 
 Never upload (neuroflow-core → Sharing tiers):
-- local-tier files: `.neuroflow/sessions/`, `.neuroflow/review/` (manuscripts under confidential review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `integrations.json`, `.neuroflow/flowie/`
+- local-tier files: `.neuroflow/sessions/`, `.neuroflow/review/` (manuscripts under confidential review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/wiki/.pending/` (wiki capture cards awaiting review), `integrations.json`, `.neuroflow/flowie/`
 - `.neuroflow/fails/`, `.neuroflow/finance/`, participant-identifying `ethics/` content
 - raw recordings or other participant data, or anything the ethics approval or a data-use agreement keeps inside the institution
 

@@ -21,7 +21,7 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 ├── sessions/               ← one .md per day — local only, gitignored
 ├── reasoning/              ← per-phase decision logs (JSON Lines)
 ├── tasks/                  ← project task board, one file per task
-├── wiki/                   ← project wiki
+├── wiki/                   ← project wiki (its .pending/ review queue is local only)
 ├── ethics/                 ← IRB documents, consent forms
 ├── preregistration/        ← OSF / AsPredicted documents
 ├── finance/                ← grant documents, expense tracking
@@ -146,9 +146,10 @@ Cross-project context lives at the personal and team levels rather than in per-p
 .neuroflow/integrations.json
 .neuroflow/flowie/
 .neuroflow/paper/xray-*
+.neuroflow/wiki/.pending/
 ```
 
-`.neuroflow/review/` holds manuscripts you referee in confidence; `integrations.json` holds credentials; `paper/xray-*` files are the sentence-level critique of your unpublished manuscript (`/paper --xray`).
+`.neuroflow/review/` holds manuscripts you referee in confidence; `integrations.json` holds credentials; `paper/xray-*` files are the sentence-level critique of your unpublished manuscript (`/paper --xray`); `wiki/.pending/` holds wiki cards waiting for your review (`/wiki --review`). These local-only paths are never exported either: `/output` drops them before anything is copied.
 
 It also adds union-merge rules to `.gitattributes`, so append-only logs (decision logs, session logs, `fails/`, preregistration deviations) merge cleanly when two collaborators add entries on the same day:
 

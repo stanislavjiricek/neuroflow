@@ -60,7 +60,7 @@ Ask the user which scope to export:
 
 If the user is unsure, recommend **A** for sharing project context and **B** for full archiving or handoff.
 
-Whatever the scope, these never leave through `/output` (neuroflow-core → Sharing tiers): the local tier (`sessions/`, `review/`, `integrations.json`, `flowie/`, `paper/xray-*`), `fails/`, `finance/`, ethics files that are not on the non-identifying allowlist (`status.md`, `flow.md`, `consent-vN.md` form versions, `protocol*.md`, `amendment*.md`), and credential files anywhere in the tree (`.env`, `*.pem`, private SSH keys, `client_secret*.json`, …). The exporter drops them from the file list before anything is copied.
+Whatever the scope, these never leave through `/output` (neuroflow-core → Sharing tiers): the local tier (`sessions/`, `review/`, `integrations.json`, `flowie/`, `paper/xray-*`, `wiki/.pending/`), `fails/`, `finance/`, ethics files that are not on the non-identifying allowlist (`status.md`, `flow.md`, `consent-vN.md` form versions, `protocol*.md`, `amendment*.md`), and credential files anywhere in the tree (`.env`, `*.pem`, private SSH keys, `client_secret*.json`, …). The exporter drops them from the file list before anything is copied.
 
 ---
 
@@ -214,6 +214,6 @@ Walk through the attention items, then what the script cannot know:
 
 ### Step H3 — Write the dossier
 
-Write `.neuroflow/output/handoff-YYYY-MM-DD.md` (team tier — the successor reads it from the repository). It holds key names and paths only: never credentials, tokens or participant data. List separately what stays with the person leaving and is never handed over: `~/.neuroflow/` (flowie profile, wellbeing data, private notes, personal ideas, `user.yaml`, `integrations.json`), Claude Code's own MCP configuration, `.neuroflow/sessions/`, `.neuroflow/review/`.
+Write `.neuroflow/output/handoff-YYYY-MM-DD.md` (team tier — the successor reads it from the repository). It holds key names and paths only: never credentials, tokens or participant data. List separately what stays with the person leaving and is never handed over: `~/.neuroflow/` (flowie profile, wellbeing data, private notes, personal ideas, `user.yaml`, `integrations.json`), Claude Code's own MCP configuration, `.neuroflow/sessions/`, `.neuroflow/review/`, `.neuroflow/paper/xray-*`, `.neuroflow/wiki/.pending/`.
 
 Do not write `ONBOARDING.md` or any other file in the project root, and do not upload the dossier anywhere: it reaches the successor through a commit the person pushes, or an `/output` export. Update `output/flow.md`; session milestone: `## HH:MM — [output] Handoff dossier written: {N} attention items`.
