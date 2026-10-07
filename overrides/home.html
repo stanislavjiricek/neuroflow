@@ -201,7 +201,7 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
 </svg>
 
 <div class="nfo-center">
-<div class="nfo-stack nfo-c">
+<div class="nfo-stack nfo-c" aria-live="polite">
 <div data-at="p0"><div class="nfo-ck"><span class="nfo-k-first">PHASE 01 / 19</span><span class="nfo-k-again">NEXT STUDY · 01 / 19</span></div><div class="nfo-ct">ideation</div><div class="nfo-cd">A question, its literature and the gap — searched, downloaded, summarised.</div><div class="nfo-cc">/neuroflow:ideation</div></div>
 <div data-at="p1"><div class="nfo-ck">PHASE 02 / 19</div><div class="nfo-ct">preregistration</div><div class="nfo-cd">Hypotheses and analyses written down, then frozen by a person's key press.</div><div class="nfo-cc">/neuroflow:preregistration</div></div>
 <div data-at="p2"><div class="nfo-ck">PHASE 03 / 19</div><div class="nfo-ct">grant-proposal</div><div class="nfo-cd">Aims and methods that say the same thing as the plan.</div><div class="nfo-cc">/neuroflow:grant-proposal</div></div>
@@ -305,7 +305,12 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
       const keys = step < PHASES
         ? ['p' + step, again ? 'sagain' : 's' + STAGE_OF[step]]
         : ['t' + (step - PHASES), 'l' + (step - PHASES)];
-      items.forEach((item) => item.el.toggleAttribute('data-on', item.at.some((key) => keys.includes(key))));
+      items.forEach((item) => {
+        const on = item.at.some((key) => keys.includes(key));
+        item.el.toggleAttribute('data-on', on);
+        // Screen readers get the current step only; the centre stack announces it (aria-live).
+        item.el.setAttribute('aria-hidden', on ? 'false' : 'true');
+      });
       root.toggleAttribute('data-again', again);
     };
     const paint = () => {
