@@ -32,7 +32,8 @@ describe('context', () => {
 })
 
 const full = {
-  root: '/work/proj', nfSchema: 1, dialect: 'frontmatter', projectName: 'Oddball', phase: 'data-analyze', mode: 'critic',
+  root: '/work/proj', nfSchema: 1, dialect: 'frontmatter', pluginVersion: '0.2.22', runningVersion: '0.2.22',
+  projectName: 'Oddball', phase: 'data-analyze', mode: 'critic',
   recommendedPhases: ['data-analyze', 'paper'], rawRoots: ['sourcedata/'], paperAuto: false,
   ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: 'X-1', expires: '2027-06-30', aiProcessing: 'pseudonymised' },
   prereg: { status: 'frozen', setBy: 'person', setAt: null, frozenAt: '2026-10-01T10:00:00Z', files: { 'a.md': 'h' }, plannedN: 48 },
@@ -68,6 +69,13 @@ describe('command digest', () => {
     expect(digest).toContain('(not confirmed by a person)')
     expect(digest).toContain('participant data the model may read: none')
     expect(digest).toContain('marker not set by a person')
+  })
+
+  test('after a plugin update the digest carries the version notice, except for /migrate itself', () => {
+    const behind = { ...full, pluginVersion: '0.2.21' } as NfSnapshot
+    expect(commandDigest('paper', 'paper', behind, null, null)).toContain('\n- neuroflow 0.2.22 is installed — this project is on 0.2.21 · /neuroflow:migrate\n')
+    expect(commandDigest('migrate', 'utility', behind, null, null)).not.toContain('is installed')
+    expect(commandDigest('paper', 'paper', full, null, null)).not.toContain('is installed')
   })
 })
 

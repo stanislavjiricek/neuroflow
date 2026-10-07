@@ -327,7 +327,7 @@ Every command declares `lifecycle:` in its frontmatter (**Command frontmatter st
 
 Every `full` command follows this order; `light` and `quiet` commands follow the parts their profile allows.
 
-With the neuroflow mod active, a `neuroflow digest` note follows the command as it starts: the project, phase and mode, the ethics and preregistration state (markers a model set are shown as unconfirmed), the raw-data folders, the next dates, the phase's `flow.md` and the latest problem note — read from the files at that moment. Use it for those facts instead of re-reading the same files; read the files for anything more.
+With the neuroflow mod active, a `neuroflow digest` note follows the command as it starts: the project, phase and mode, the ethics and preregistration state (markers a model set are shown as unconfirmed), the raw-data folders, the next dates, the version notice when the project is behind, the phase's `flow.md` and the latest problem note — read from the files at that moment. Use it for those facts instead of re-reading the same files; read the files for anything more.
 
 **At start:**
 1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hives/*/` caches if they exist. This ensures every session starts with fresh knowledge from GitHub. It never blocks: a repository with a rebase in progress is skipped, a pull that stops on a conflict has its rebase aborted at once, and a failed flowie pull adds one line to `~/.neuroflow/flowie-sync.log` (`/flowie` reports it).
@@ -341,11 +341,12 @@ With the neuroflow mod active, a `neuroflow digest` note follows the command as 
    done; true
    ```
 2. Read `.neuroflow/project_config.md` — facts from its frontmatter (**project_config.md — the config contract**). A legacy dialect: read it as it is and offer `/neuroflow:migrate` once. `nf_schema` above 1: do not write the file; say so.
-3. Read `.neuroflow/flow.md`
-4. **If `.neuroflow/objectives.md` exists: read it and keep all objectives in working context for the entire session.** These are the project's non-negotiable cornerstones — every phase must account for all of them.
-5. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
-6. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
-7. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
+3. **Version notice:** compare `plugin_version` in that frontmatter — the neuroflow version that last wrote the project — with the running plugin's version (**The plugin's own files**: the `neuroflow-core` skill's base directory → `../../.claude-plugin/plugin.json`), number by number (`0.2.10` is newer than `0.2.9`). When the project's is older or missing, say once per session, before the command's own work, in one line: *"neuroflow {running} is installed; this project was last written by {plugin_version, or "an older version"}. Run /neuroflow:migrate to bring the project, your flowie and the team hive up to date."* Never block the command for it and never write anything for it; `quiet` commands and `/migrate` itself skip it.
+4. Read `.neuroflow/flow.md`
+5. **If `.neuroflow/objectives.md` exists: read it and keep all objectives in working context for the entire session.** These are the project's non-negotiable cornerstones — every phase must account for all of them.
+6. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
+7. If the phase has an `output_path` in its `flow.md`: note it — external outputs go there
+8. **If `.neuroflow/fails/` exists: read `core.md`, `science.md`, and `ux.md`.** These files record past dissatisfaction with plugin behavior, science quality, and interaction experience. Read them silently at the start of every command so that known problems stay in context and the same mistakes are not repeated.
 
 **After a compaction:** when the conversation has been summarised, re-read `project_config.md`, `flow.md` and the active phase's `flow.md` before the next action — never take project state from the summary.
 

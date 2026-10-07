@@ -25,7 +25,7 @@ What became of each idea in the review behind the mod is in the [design record](
 | Feature | What you see | Needs |
 |---|---|---|
 | Views | `/neuroflow:dashboard` opens a pane (phase map, deadlines, integrity, tasks, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` a board | — |
-| Band, status line, footer | One line above the prompt when something needs attention (a deadline, a meeting, a drafted decision, a loop being driven); a status line that speaks only about exceptions; `neuroflow · phase · mode` in the footer | `band` |
+| Band, status line, footer | One line above the prompt when something needs attention (a deadline, a meeting, a drafted decision, a loop being driven, a plugin update the project has not been [migrated](../upgrading.md) to); a status line that speaks only about exceptions; `neuroflow · phase · mode` in the footer | `band` |
 | Instant answers | `/neuroflow:doctor`, `/neuroflow:phase <name>`, `idea: …` and live note capture answered in code, with no model turn | — |
 | Bookkeeping | Missing session lines and `flow.md` rows filled after a command's turn and marked `(auto)`; a decision drafted when a command logged none, kept only on your key press | `runtime: on` |
 | Integrity | The guards below; freezing, verifying and unfreezing the preregistration from the dashboard; frozen files re-hashed at start | `guards: enforce` to deny |

@@ -11,6 +11,8 @@ const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   root: '/work/proj',
   nfSchema: 1,
   dialect: 'frontmatter',
+  pluginVersion: '0.2.22',
+  runningVersion: '0.2.22',
   projectName: 'Oddball',
   phase: 'data-analyze',
   mode: 'critic',
@@ -54,6 +56,15 @@ describe('band items', () => {
 
   test('nothing to say means no band', () => {
     expect(bandItems(snapshot(), true)).toEqual([])
+  })
+
+  test('after a plugin update the band names /neuroflow:migrate until the project is migrated', () => {
+    const items = bandItems(snapshot({ pluginVersion: '0.2.9', runningVersion: '0.2.10' }), true)
+    expect(items.map(item => item.text)).toEqual(['neuroflow 0.2.10 is installed — this project is on 0.2.9 · /neuroflow:migrate'])
+    expect(items[0].actions?.map(action => [action.command, action.args, action.hotkey])).toEqual([['neuroflow:migrate', '', 'm']])
+    expect(bandItems(snapshot({ pluginVersion: null }), true)[0].text).toContain('this project is on an older version')
+    expect(bandItems(snapshot({ pluginVersion: '0.2.23' }), false).some(item => item.text.includes('is installed'))).toBe(false)
+    expect(bandItems(snapshot({ runningVersion: null, pluginVersion: '0.2.1' }), false).some(item => item.text.includes('is installed'))).toBe(false)
   })
 })
 
@@ -123,6 +134,35 @@ describe('engine', () => {
       expect(text).toContain('Abstract deadline — tomorrow')
       await ui.unmount()
     }
+  })
+
+  test('the version notice stays in the band; its key runs /neuroflow:migrate', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const project = '/work/proj'
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\nplugin_version: 0.2.21\n---\n',
+      // Not named "neuroflow": the pattern also matches the project, which would then read as the plugin's own repo.
+      '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    const ran: string[] = []
+    on('command.run', ($, e) => {
+      ran.push(e.command)
+      return { text: '' }
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const ui = await $.ui.mount({
+      plugin: 'neuroflow',
+      surface: 'terminal',
+      component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 120, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    expect(JSON.stringify(await ui.drawn())).toContain('neuroflow 0.2.22 is installed — this project is on 0.2.21 · /neuroflow:migrate')
+    await ui.press({ key: 'nf-migrate' })
+    expect(ran).toEqual(['neuroflow:migrate'])
+    await ui.unmount()
   })
 })
 
