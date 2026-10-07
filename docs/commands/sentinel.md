@@ -68,7 +68,7 @@ Exit `0` = clean, `1` = findings, `2` = the script could not run (the agent then
 
 ## Plugin repo (`sentinel-dev`)
 
-In the plugin repo the `sentinel-dev` agent runs `python scripts/automation/validate_pr.py` — the same checks CI runs on every pull request (V1–V15: manifests, version sync, command frontmatter, docs pages, names, `hooks.json`, rule markers, name collisions, README / nav / mind-map propagation, dead references, release notes, sensitive info, path hygiene) — and adds the checks that need judgement. See [Maintenance Automation](../maintenance/automation.md).
+In the plugin repo the `sentinel-dev` agent runs `python scripts/automation/validate_pr.py` — the same checks CI runs on every pull request (V1–V15: manifests, version sync, command frontmatter, docs pages, names, `hooks.json`, rule markers, name collisions, README / nav propagation, dead references, release notes, sensitive info, path hygiene) — and adds the checks that need judgement. See [Maintenance Automation](../maintenance/automation.md).
 
 ---
 

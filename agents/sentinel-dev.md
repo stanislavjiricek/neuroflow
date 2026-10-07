@@ -61,9 +61,9 @@ Scan the plugin tree (`agents/`, `commands/`, `skills/`, `docs/`, `hooks/`, `scr
 
 Do not print a sensitive value verbatim; mask it (e.g. `email: j***@exam***.com`, `private key at line 14 of scripts/setup.py`). sentinel-dev never removes or redacts on its own: the maintainer decides for each finding.
 
-### J3 — Concept-map placement
+### J3 — retired
 
-`docs/javascripts/mind.js` is a **curated concept map** (~24 concept nodes in `NODES` + `LINKS`), not a 1:1 mirror of the repo. For each V10 mind.js finding, propose the concept node whose `commands:` array or `desc` should mention the missing command or agent. Propose a dedicated node only when a skill introduces a genuinely new concept with no covering cluster. The user reviews the wording before anything is written.
+Concept-map placement went with the mind map in 0.2.22; like a retired V id, J3 stays unused.
 
 ### J4 — Guards and prose agree (only if `hooks/mod/` exists)
 

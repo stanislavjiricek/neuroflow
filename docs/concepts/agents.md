@@ -83,7 +83,7 @@ Audits `.neuroflow/` for internal consistency and drift. Called by the `/neurofl
 - Reasoning logs (`reasoning/*.jsonl`)
 - Phase consistency — active phase vs session logs vs folder activity
 - Preregistration drift — planned analyses vs what was actually done
-- Plugin version sync — `project_config.md` vs current `plugin.json`
+- Plugin version — an older or missing `plugin_version` in `project_config.md` is reported with a pointer to `/neuroflow:migrate`; sentinel never edits the field
 - Subfolder name validation — no unrecognized or skill-named folders
 - `CLAUDE.md` neuroflow reference check
 
@@ -99,7 +99,7 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 
 **Invoked by:** `/neuroflow:sentinel` (when `.claude-plugin/plugin.json` exists)
 
-**What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (README hooks documentation, real names and institutions, concept-map placement, guards versus prose):
+**What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (README hooks documentation, real names and institutions, guards versus prose):
 
 - Command folder names vs frontmatter `name:` fields
 - Skill folder names vs `SKILL.md` frontmatter

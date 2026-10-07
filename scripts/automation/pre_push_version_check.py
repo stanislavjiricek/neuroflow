@@ -113,7 +113,7 @@ def main(stdin=None, cwd: str | None = None) -> int:
                     + "".join(f"    · {f}\n" for f in sample)
                     + (f"    … and {overflow} more\n" if overflow > 0 else "")
                     + "\n  Bump with: python scripts/automation/bump_version.py\n"
-                    "  then update README.md, docs/changelog.md and docs/index.md, and re-push.\n"
+                    "  then update README.md and docs/changelog.md, and re-push.\n"
                     "  See: skills/neuroflow-develop/SKILL.md § Release workflow\n"
                     "  (Compared with origin's default branch — run git fetch if it is stale.)\n"
                     "  To skip (use sparingly): git push --no-verify\n",
