@@ -92,17 +92,31 @@ Current: data-analyze — analysis
 
 ## Settings
 
-Set them in Claude Code's plugin configuration (`/plugin` → neuroflow → configure, or `/config`) or in your user
-settings (`~/.claude/settings.json`) under `pluginConfigs` → `neuroflow` → `options`; a settings file passed with
-`--settings` works too. Claude Code does not read plugin options from a project's settings. Values are per user;
-per-project facts stay in `.neuroflow/`.
+Set them in Claude Code itself: `/plugin` → **Installed** → neuroflow → **Configure options**, or the neuroflow rows
+in `/config`. Claude Code saves them in your user settings (`~/.claude/settings.json`). To write them by hand, put
+them there under the plugin's marketplace key:
+
+```json
+{
+  "pluginConfigs": {
+    "neuroflow@neuroflow": {
+      "options": { "runtime": "on", "guards": "enforce", "band": "quiet", "citations": true }
+    }
+  }
+}
+```
+
+A copy loaded with `--plugin-dir` (local development) is keyed `neuroflow` (or `neuroflow@inline`) instead. Claude
+Code reads plugin options only from your user settings, a file passed with `--settings` and managed settings — never
+from a project's `.claude/settings.json` or `.claude/settings.local.json`, so a repository you clone cannot change
+them. Values are per user; per-project facts stay in `.neuroflow/`.
 
 | Setting | Values | Default | What it does |
 |---|---|---|---|
 | `runtime` | `off` · `observe` · `on` | `observe` | `off`: the mod does nothing. `observe`: views, status and warnings — it never writes into project memory on its own (only when you press a key or type a command that asks it to) and never blocks. `on`: it also fills bookkeeping gaps and may enforce guards. |
 | `guards` | `warn` · `enforce` | `warn` | `enforce` lets guards deny a tool call (only with `runtime: on`). `warn` says what a guard would have blocked. |
 | `band` | `off` · `quiet` · `normal` | `quiet` | The one-line band above the prompt. `quiet` shows only what needs attention. |
-| `citations` | on · off | off | After a turn that wrote a manuscript, grant, poster or report citing DOIs, look up the new DOIs with `cite_check.py`; once a week, re-check the manuscript's DOIs for retraction and correction notices. Needs `runtime: on` (it keeps a DOI cache in `.neuroflow/paper/`). |
+| `citations` | `true` · `false` | `false` | After a turn that wrote a manuscript, grant, poster or report citing DOIs, look up the new DOIs with `cite_check.py`; once a week, re-check the manuscript's DOIs for retraction and correction notices. Needs `runtime: on` (it keeps a DOI cache in `.neuroflow/paper/`). |
 
 ## When the mod is not running
 
