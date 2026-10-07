@@ -23,7 +23,7 @@ Ids are stable: never renumber or reuse one - retire it instead.
        and every id a mod guard cites (hooks/mod/) has a marker in skills/ or commands/
   V9   name collisions: no skill folder shares a command's name (the command shadows it)
   V10  propagation: every command, skill and agent appears in README.md, the mkdocs nav and
-       mind.js; README tables, nav and mind.js have no dead links
+       mind.js; README tables, nav and mind.js have no dead links; the nav lists each page once
   V11  dead neuroflow:<name> references inside SKILL.md files
   V12  release notes (warn): README What's new, docs/changelog.md, docs/index.md sa-bar version
   V13  plugin-repo memory (warn): the repo's own .neuroflow/ holds only reasoning/ and sessions/
@@ -611,6 +611,10 @@ def v10_propagation(ctx: Context) -> list[Finding]:
     for name in agents:
         if f"agents/{name}.md" not in navset:
             out.append(Finding("V10", f"agents/{name}.md is not in the mkdocs.yml nav"))
+    for path in sorted(navset):
+        if nav.count(path) > 1:
+            out.append(Finding("V10", f"mkdocs.yml nav lists `{path}` {nav.count(path)} times - the sidebar repeats "
+                                      f"its contents under every entry (toc.integrate); list each page once"))
     for path in sorted(navset):
         # skills/ and agents/ are copied into docs/ at build time (docs/hooks.py)
         full = root / path if path.startswith(("skills/", "agents/")) else root / "docs" / path

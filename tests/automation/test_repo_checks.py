@@ -181,6 +181,11 @@ class CollisionAndPropagationTests(RepoCase):
         self.assertIn("non-existent file `old-page.md`", text)
         self.assertNotIn("removed-long-ago", text)  # the What's new history is not checked
 
+    def test_a_page_listed_twice_in_the_nav(self):
+        self.assertNotIn("times - the sidebar repeats", self.text("V10"))
+        write(self.root, {"mkdocs.yml": FILES["mkdocs.yml"] + "  - Again: commands/alpha.md\n"})
+        self.assertIn("mkdocs.yml nav lists `commands/alpha.md` 2 times", self.text("V10"))
+
     def test_dead_skill_reference(self):
         write(self.root, {"skills/phase-alpha/SKILL.md": FILES["skills/phase-alpha/SKILL.md"] + "Read neuroflow:ghost.\n"})
         self.assertIn("`neuroflow:ghost`", self.text("V11"))
