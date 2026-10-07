@@ -20,7 +20,7 @@
 
 ## What's new in 0.2.22
 
-- **The neuroflow mod** — an optional [Claude Code hooks module](docs/concepts/mods.md) layered on the plugin: a [dashboard](commands/dashboard.md) pane, a phase picker, a task board, a quiet one-line band and status line, an instant [`/doctor`](commands/doctor.md), note and idea capture without model turns, an autoresearch driver that runs one iteration per turn under its caps, a decision drafter you approve with one key, and guards for the rules the skills state (frozen preregistrations, read-only raw data, local-only files, participant-data routes, login nodes, git alias scope). Everything still works without it; a 30-rule charter keeps it quiet, honest and removable
+- **The neuroflow mod** — an optional [Claude Code hooks module](docs/concepts/mods.md) layered on the plugin: a [dashboard](commands/dashboard.md) pane (with freeze and unfreeze of the preregistration on a key press), a phase picker, a task board, living-paper, X-ray and wiki-review panes, a quiet one-line band and status line, an instant [`/doctor`](commands/doctor.md), note and idea capture without model turns, citation and hidden-text checks triggered by what the model just did, an autoresearch driver that runs one iteration per turn under its caps, a decision drafter you approve with one key, and guards for the rules the skills state (frozen preregistrations, read-only raw data, local-only files, participant-data routes, login nodes, git alias scope). Everything still works without it; a 30-rule charter keeps it quiet, honest and removable, and a [design record](docs/concepts/design-record.md) says what became of all 270 ideas behind it
 - **Research integrity and machine-readable project memory** — an [autoresearch](skills/autoresearch/SKILL.md) integrity gate (confirmatory vs exploratory, multiverse ledger), caps and a tested `ar.py`; preregistration freezing with hashes; an ethics gate and AI data-route field; AI-use disclosure at submission; citation, statistics, revision and hidden-text checks; config, status and reasoning-log contracts with [`/migrate`](commands/migrate.md); sharing tiers with confirmed egress
 - **Claude Code only, provider-neutral, tested** — one static project instruction block (never in your global CLAUDE.md); 40+ portable Python checks with unit tests (provenance, QC tables, clean-room reruns, PsychoPy audit, timing and stream checks, exporters and audits); pinned MCP servers with Sci-Hub blocked; a provider-neutral gateway guide; one implementation per repository check, enforced in CI
 
@@ -380,16 +380,19 @@ Hooks fire automatically on tool use events, for every Claude Code user.
 ## The neuroflow mod
 
 neuroflow also ships an optional **mod** — a Claude Code hooks module that runs inside Claude Code. It draws the project at
-zero tokens (a dashboard pane, a phase picker, a task board, a one-line band above the prompt that only speaks when
-something needs attention, a status line, a footer label), answers `/neuroflow:doctor` and `/neuroflow:dashboard`
-instantly, captures notes and ideas without model turns, drives an autoresearch loop one iteration per turn under its
-caps, drafts a missing decision for you to keep or drop, and enforces the rules the skills state — frozen
+zero tokens (a dashboard pane, a phase picker, a task board, panes for the living paper, the paper X-ray and the wiki
+review queue, a one-line band above the prompt that only speaks when something needs attention, a status line, a
+footer label), answers `/neuroflow:doctor`, `/neuroflow:dashboard` and the status views instantly, captures notes and
+ideas without model turns, gives each command a digest of the facts it reads first, checks new citations after
+manuscript writes and scans documents from outside for hidden text, drives an autoresearch loop one iteration per turn
+under its caps, drafts a missing decision for you to keep or drop, and enforces the rules the skills state — frozen
 preregistrations, read-only raw data, local-only files, participant-data routes, HPC login nodes, git alias scope.
 
 It is a layer, not the product: everything works without it. Settings (`runtime: off | observe | on`, default
 `observe`; `guards: warn | enforce`; `band`; `citations`) live in Claude Code's plugin configuration. Read
 [docs/concepts/mods.md](docs/concepts/mods.md) for what it does, when it does not load, its 30-rule charter, and the
-doors guards cannot close.
+doors guards cannot close; [docs/concepts/design-record.md](docs/concepts/design-record.md) for what became of every
+idea behind it.
 
 ---
 
