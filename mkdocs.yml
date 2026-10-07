@@ -115,6 +115,7 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quickstart: quickstart.md
+  - Upgrading: upgrading.md
   - Mind Map: mind.md
   - Concepts:
       - Agents: concepts/agents.md

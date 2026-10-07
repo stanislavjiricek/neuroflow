@@ -32,6 +32,7 @@ title: Changelog
 
 - `project_config.md` frontmatter with `nf_schema`; integrity status files with `set_by`; reasoning logs as JSON Lines; union-merge lines and a conflict tripwire; sharing tiers with confirmed egress; command `lifecycle` / `requires` / `produces` / `next` keys; rule markers
 - New `/neuroflow:migrate` (with `migrate.py`) for older projects, an idempotent `scaffold.py`, personal preferences and consents in `~/.neuroflow/user.yaml`, and a read-only project checker `nf_check.py` used by `/sentinel`
+- After a plugin update, a one-line notice (and the mod's band) names `/neuroflow:migrate`, which brings the project, your flowie and the team hive up to date: legacy task files move to the current format with `git mv`, machine-local files stay out of git, and a hive is pushed only after your yes ([Upgrading](upgrading.md))
 
 **Science scripts** (portable Python, each with unit tests)
 
