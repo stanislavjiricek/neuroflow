@@ -15,7 +15,11 @@ title: Changelog
 - Zero-turn capture: `idea: …` and `/notes --idea` go straight to the inbox; live note capture writes each message verbatim without reaching the model
 - An autoresearch driver: `/autoresearch drive {name}` runs one iteration per turn and checks the caps with `ar.py status` between turns, with a visible stop control
 - Guards with an observe → warn → ask → deny ladder: frozen preregistrations, read-only raw data, local-only files and `git clean -x`, git alias scope, participant data the ethics record keeps from the model, heavy compute on HPC login nodes, model-forged integrity markers, uploads to outside services
-- A 30-rule charter, settings (`runtime`, `guards`, `band`, `citations`), and the list of doors guards cannot close
+- Integrity in the dashboard: freeze, verify and unfreeze the preregistration on a key press and an explicit yes (the same `freeze.py` calls, recorded as the person's action); frozen files re-hashed at start, with a change on the status line
+- Checks triggered by what the model did: new DOIs in a manuscript, grant, poster or report looked up after the turn (`cite_check.py --max-age`), the manuscript's notices re-checked weekly, and documents from outside scanned for hidden text when read
+- Context without bloat: a capped digest of a command's integrity facts as it starts, wiki pages a prompt names attached as data, a capped digest of a linked flowie profile, the current and next phase marked in the slash menu; a `quiet` command such as `/idk` silences the mod's own UI
+- Panes for the person's ideas: the living paper (`/paper --auto status`, `y` to sync), the paper X-ray (`/paper --xray view`: accept or reject findings by key; `--xray check` runs the scripts only) and the auto-wiki review queue (cards drafted after a logged decision, accepted into the normal `/wiki --add` flow or skipped)
+- A 30-rule charter, settings (`runtime`, `guards`, `band`, `citations`), the list of doors guards cannot close, a capability allowlist checked in CI (`hooks/mod/policy.json`), a weekly canary on the newest Claude Code release, and a [design record](concepts/design-record.md) of all 270 ideas behind the mod
 
 **Research integrity**
 
