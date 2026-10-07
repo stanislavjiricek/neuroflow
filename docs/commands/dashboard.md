@@ -1,0 +1,46 @@
+---
+title: /dashboard
+---
+
+# `/neuroflow:dashboard`
+
+**The project at a glance: phase map, upcoming deadlines, integrity state, task board and the running autoresearch
+loop.**
+
+---
+
+## With the neuroflow mod
+
+The dashboard opens as a pane drawn by code — no model turn, no tokens — docked beside the conversation in a wide
+terminal, or inline above the prompt otherwise. It stays current as files change.
+
+| Key | Tab |
+|---|---|
+| `p` | **Phase** — the phase map (`●` current, `✔` visited, `○` recommended) and the next step; `s` opens the phase picker |
+| `d` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
+| `i` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems |
+| `t` | **Tasks** — task files per board column |
+| `l` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions; `r` refreshes |
+
+`/neuroflow:dashboard loop` opens it on a tab. The one-line band above the prompt opens it with `d`.
+
+Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader.
+
+## Without the mod
+
+The same overview is printed once as a compact text block, read from the same files. Nothing is written.
+
+---
+
+## Files read
+
+| Direction | Files |
+|---|---|
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/timeline.md`, `.neuroflow/ethics/status.md`, `.neuroflow/preregistration/status.md`, `.neuroflow/tasks/`, `.neuroflow/{phase}/autoresearch-loops.md` and the loops' `results.md` / `report.md` |
+| Writes | nothing |
+
+## Related
+
+- [`/phase`](phase.md) — the phase map and phase switching (a picker with the mod)
+- [`/tasks`](tasks.md) — work the task board
+- [The neuroflow mod](../concepts/mods.md) — what the mod adds and how to turn it on or off
