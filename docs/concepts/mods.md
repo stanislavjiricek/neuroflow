@@ -199,5 +199,9 @@ frozen files for collaborators without the mod, and records that state what they
   `NfIo` of closures (`ioOf($)` in each feature file). State references (`atom(...)`) are declared in the file that
   uses them. `$.env.get` takes literal names only.
 - Every gating hook has a `.catch`: guards deny when they fail; observers pass the call through.
-- Check with `claude plugin validate .` and `claude plugin test .` from the repo root; CI runs both and diffs the
-  validator's inventory against `policy.json`.
+- Check with `claude plugin validate .` and `claude plugin test .` from the repo root. CI runs both on the Claude Code
+  version the mod is tested from, then `python scripts/automation/mod_policy.py`, which compares the events the module
+  hooks and the calls, environment variables and state the validator reports with `hooks/mod/policy.json`: anything
+  new fails until a reviewer adds it (`--write` regenerates the file; commit it with the change it allows).
+- A weekly canary (`.github/workflows/mod-canary.yml`) runs the same checks on the newest Claude Code release and
+  opens an issue when the mod breaks there.
