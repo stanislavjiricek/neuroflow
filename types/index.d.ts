@@ -104,6 +104,8 @@ declare module 'claude-code' {
       // <feature:status>
       // </feature:status>
       // <feature:guards>
+      /** Whether this machine is an HPC login node (null until the first shell call checks). */
+      loginNode: boolean | null
       // </feature:guards>
       // <feature:views>
       dashboardTab: NfDashboardTab
