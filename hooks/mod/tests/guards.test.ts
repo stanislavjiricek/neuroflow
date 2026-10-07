@@ -2,6 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import type { NfSnapshot } from '../../../types'
 import {
+  ALIAS_ALLOWS,
   DEFAULT_STRUCTURE,
   LOCAL_ONLY,
   afterEdit,
@@ -177,6 +178,62 @@ describe('shell rules', () => {
     expect(shellViolations('git push origin main', snap(), ctx)).toEqual([])
   })
 
+  // commands/git.md → Steps: every alias reads the repo state (step 1), then runs its own steps up to its endpoint.
+  const readState = ['git status --short', 'git log --oneline -5', 'git branch --show-current', 'git remote -v', 'git rev-list --count --left-right @{upstream}...HEAD 2>/dev/null || echo "no upstream"']
+  const stage = ['git config --get filter.nbstripout.clean', 'git add .', 'git diff --cached --name-only', 'git reset -q -- .neuroflow/sessions/2026-10-07.md']
+  const commit = ['git diff --cached --name-only', 'git reset -q -- .neuroflow/integrations.json', 'git diff --cached --stat', 'git diff --cached', 'git commit -m "feat: add the ERP figure"']
+  const prescribed: Record<string, string[]> = {
+    a: stage,
+    c: commit,
+    ac: [...stage, ...commit],
+    acp: [...stage, ...commit, 'git push --set-upstream origin feat/erp'],
+    p: ['git push', 'git stash', 'git pull --rebase', 'git stash pop'],
+    pl: ['git stash', 'git pull', 'git stash pop'],
+    ps: ['git push', 'git push --set-upstream origin feat/erp'],
+    b: ['git branch', 'git checkout -b feat/erp', 'git checkout main', 'git branch -d feat/old'],
+    pr: ['git push --set-upstream origin feat/erp', 'git log main..HEAD --oneline', 'which gh', 'gh pr create --title "feat: erp" --body "Adds the ERP figure."'],
+  }
+
+  test('each /git alias runs what commands/git.md prescribes without a violation', () => {
+    expect(Object.keys(prescribed).sort()).toEqual(Object.keys(ALIAS_ALLOWS).sort())
+    for (const [alias, steps] of Object.entries(prescribed)) {
+      for (const command of [...readState, ...steps]) {
+        expect([alias, command, shellViolations(command, snap(), { ...ctx, gitAlias: alias })]).toEqual([alias, command, []])
+      }
+    }
+  })
+
+  test('listings pass every alias; creating, deleting or renaming a ref outside its alias does not', () => {
+    const scope = (command: string, alias: string): string[] => shellViolations(command, snap(), { ...ctx, gitAlias: alias }).map(v => v.rule)
+    const listings = [
+      'git branch',
+      'git branch -a -vv',
+      "git branch --list 'feat/*'",
+      'git branch -l feat*',
+      'git branch --merged main',
+      'git branch --contains HEAD~3',
+      "git branch --format '%(refname:short)'",
+      'git branch --sort=-committerdate',
+      'echo "on $(git branch --show-current)"',
+      'git tag',
+      "git tag -l 'v1.*'",
+      'git stash list',
+      'git stash show -p stash@{0}',
+    ]
+    for (const listing of listings) expect([listing, scope(listing, 'a')]).toEqual([listing, []])
+    expect(scope('git branch feature-x', 'a')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git branch -D feat/old', 'ac')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git branch -m feat/new', 'c')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git branch -r -d origin/feat/old', 'pl')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git branch --unset-upstream', 'ps')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git branch -u origin/main', 'p')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git tag v1.0', 'acp')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git stash', 'a')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git stash pop', 'ps')).toEqual(['GIT-ALIAS-SCOPE'])
+    // unstaging is part of /git c; throwing work away is still asked about, whatever the alias
+    expect(shellViolations('git reset --hard HEAD~1', snap(), { ...ctx, gitAlias: 'c' }).map(v => [v.rule, v.level])).toEqual([['GIT-NO-SECRETS', 'ask']])
+  })
+
   test('raw data, frozen files, uploads', () => {
     expect(shellViolations('rm -rf sourcedata/sub-03', snap(), ctx)[0].rule).toBe('RAW-READONLY')
     expect(shellViolations('Remove-Item .\\sourcedata\\sub-03 -Recurse', snap(), ctx)[0].rule).toBe('RAW-READONLY')
@@ -289,6 +346,30 @@ describe('guards in a session', () => {
     await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
     await $.tool.call(write as never)
     expect(ran).toBe(true)
+    expect(said.join(' ')).toContain('would block')
+  })
+
+  test('a /git alias reading the repo state draws no warning; a step past its endpoint does', { options: { runtime: 'observe' } }, async ($, on) => {
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: 0 })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('command.run', () => ({ text: '', ref: 1 }))
+    on('tool.call', () => ({ result: 'ok', text: 'ok' }))
+    const said: string[] = []
+    on('ui.toast', ($, e) => {
+      said.push(JSON.stringify(e))
+      return { value: undefined }
+    })
+    on('ui.notice', ($, e) => {
+      said.push(JSON.stringify(e))
+      return { value: undefined }
+    })
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:git', args: 'ac' })
+    await $.tool.call({ tool: 'Bash', command: 'git branch --show-current', tool_use_id: 'state' } as never)
+    expect(said).toEqual([])
+    await $.tool.call({ tool: 'Bash', command: 'git push', tool_use_id: 'push' } as never)
     expect(said.join(' ')).toContain('would block')
   })
 })

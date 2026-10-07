@@ -9,7 +9,7 @@
 //   nf-rule: PREREG-FROZEN      writes to a preregistration a person froze; deviations.md stays append-only
 //   nf-rule: RAW-READONLY       changes to existing files under raw_roots (new recordings may be added)
 //   nf-rule: GIT-NO-SECRETS     `git clean -x`, staging local-only files, `git add -A` without the .gitignore lines
-//   nf-rule: GIT-ALIAS-SCOPE    git verbs beyond the running /git alias's endpoint
+//   nf-rule: GIT-ALIAS-SCOPE    git verbs beyond the running /git alias's endpoint (listings such as `git branch --show-current` are fine)
 //   nf-rule: PARTICIPANT-ROUTE  the model reading participant data the ethics record keeps from it
 //   nf-rule: LOGIN-NODE         heavy compute on an HPC login node (asks)
 //   nf-rule: INTEGRITY-MARKER   the model writing `set_by: person` into an integrity status file (asks)
@@ -171,25 +171,98 @@ const HEAVY = [
 /** Whether a shell command looks like heavy compute (LOGIN-NODE). */
 export const isHeavy = (command: string): boolean => HEAVY.some(pattern => pattern.test(command))
 
-/** The git subcommand of a shell segment (`git -C dir add …` → add), or null when it runs no git. */
-export const gitVerb = (segment: string): string | null =>
-  /\bgit(?:\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+))*\s+([a-z][a-z-]*)\b/.exec(segment)?.[1] ?? null
+/** A shell segment's git subcommand, after git's own options. */
+const GIT_COMMAND = /\bgit(?:\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+))*\s+([a-z][a-z-]*)\b/
 
-/** Git verbs a /git alias may run (commands/git.md → Shorthand aliases; alias scope is final). */
+/** The git subcommand of a shell segment (`git -C dir add …` → add), or null when it runs no git. */
+export const gitVerb = (segment: string): string | null => GIT_COMMAND.exec(segment)?.[1] ?? null
+
+/**
+ * Git verbs a /git alias may run (commands/git.md → Steps; alias scope is final): its endpoint and the
+ * steps its prose takes on the way — unstaging local-only paths (`reset`), the stash offered before a pull.
+ */
 export const ALIAS_ALLOWS: Readonly<Record<string, readonly string[]>> = {
   a: ['add', 'reset', 'status', 'diff'],
-  c: ['commit', 'status', 'diff'],
+  c: ['commit', 'reset', 'status', 'diff'],
   ac: ['add', 'reset', 'commit', 'status', 'diff'],
   acp: ['add', 'reset', 'commit', 'push', 'status', 'diff'],
-  p: ['push', 'pull', 'fetch', 'status'],
-  pl: ['pull', 'fetch', 'status'],
+  p: ['push', 'pull', 'fetch', 'stash', 'status'],
+  pl: ['pull', 'fetch', 'stash', 'status'],
   ps: ['push', 'status'],
   b: ['branch', 'checkout', 'switch', 'status'],
   pr: ['push', 'status', 'diff', 'log'],
 }
 
-/** The verbs alias scope watches: everything that changes the index, history or a remote. */
+/** The verbs alias scope watches: everything that changes the index, history, refs or a remote — not their listings (isGitListing). */
 const GUARDED_VERBS = ['add', 'commit', 'push', 'pull', 'fetch', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'branch', 'tag', 'stash', 'cherry-pick', 'revert']
+
+/** The words of a shell segment (best effort, nothing expanded): quotes removed, output redirections and their targets left out. */
+const shellWords = (segment: string): string[] => {
+  const tokens = segment.match(/(?:"[^"]*"|'[^']*'|[^\s"'])+/g) ?? []
+  const words: string[] = []
+  for (let i = 0; i < tokens.length; i += 1) {
+    const redirect = /^(?:\d*|&|\*)>>?(&?)(.*)$/.exec(tokens[i])
+    if (redirect === null) words.push(tokens[i].replace(/"([^"]*)"|'([^']*)'/g, '$1$2'))
+    else if (redirect[1] === '' && redirect[2] === '') i += 1 // `> file`: the target is the next word
+  }
+  return words
+}
+
+/** The words after a segment's git subcommand. */
+const gitArgs = (segment: string): string[] => {
+  const match = GIT_COMMAND.exec(segment)
+  return match === null ? [] : shellWords(segment.slice(match.index + match[0].length))
+}
+
+/**
+ * The flags of `git branch` and `git tag` that only list or filter. Anything else (-d, -m, -u, -f,
+ * --unset-upstream, -a for a tag…) creates, moves or deletes a ref. `listMode` flags turn the remaining
+ * words into patterns; `valued` flags take the next word as their value.
+ */
+const LISTINGS: Readonly<Record<string, { flags: RegExp; listMode: RegExp; valued: RegExp }>> = {
+  branch: {
+    flags: /^(-[arvlqi]+|--(show-current|list|all|remotes|verbose|quiet|ignore-case|color|no-color|column|no-column|abbrev|no-abbrev|omit-empty|sort|format|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    listMode: /^(-[a-z]*l[a-z]*|--(list|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    valued: /^--(sort|format|points-at)$/,
+  },
+  tag: {
+    flags: /^(-(?=[iln])[il]*(n\d*)?|--(list|ignore-case|color|no-color|column|no-column|omit-empty|sort|format|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    listMode: /^(-[a-z\d]*[ln][a-z\d]*|--(list|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    valued: /^--(sort|format|points-at)$/,
+  },
+}
+
+/**
+ * Whether a guarded git verb only lists or shows (`args`: the words after it), which is no step beyond any
+ * alias's endpoint: `git branch` and `git tag` with no name to create (bare, or in list mode, where the
+ * words are patterns), `git stash list` and `git stash show`.
+ */
+export const isGitListing = (verb: string, args: readonly string[]): boolean => {
+  // a trailing `)` or backtick closes a command substitution: $(git branch --show-current)
+  const words = args.map(arg => arg.replace(/[)`]+$/, '')).filter(arg => arg !== '')
+  if (verb === 'stash') return words[0] === 'list' || words[0] === 'show'
+  const form = LISTINGS[verb]
+  if (form === undefined) return false
+  let listMode = false
+  let named = false
+  for (let i = 0; i < words.length; i += 1) {
+    const word = words[i]
+    if (word === '--') {
+      named = named || i + 1 < words.length
+      break
+    }
+    if (!word.startsWith('-')) {
+      named = true
+      continue
+    }
+    const cut = word.indexOf('=')
+    const flag = cut < 0 ? word : word.slice(0, cut)
+    if (!form.flags.test(flag)) return false
+    if (form.listMode.test(flag)) listMode = true
+    if (cut < 0 && form.valued.test(flag)) i += 1
+  }
+  return listMode || !named
+}
 
 const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -223,7 +296,7 @@ export const shellViolations = (
     }
     if (gitAlias !== null && verb !== null) {
       const allowed = ALIAS_ALLOWS[gitAlias]
-      if (allowed !== undefined && GUARDED_VERBS.includes(verb) && !allowed.includes(verb)) {
+      if (allowed !== undefined && GUARDED_VERBS.includes(verb) && !allowed.includes(verb) && !isGitListing(verb, gitArgs(segment))) {
         out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} stops at its endpoint — \`git ${verb}\` is beyond it; ask the person for a new instruction` })
       }
     }
