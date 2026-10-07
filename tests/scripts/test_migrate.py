@@ -6,8 +6,10 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from datetime import date
@@ -377,6 +379,24 @@ class MigrateTest(unittest.TestCase):
         self.assertIn("setup", phases)
         self.assertNotIn("utility", phases)
 
+    def test_output_survives_a_legacy_code_page(self) -> None:
+        # A Windows pipe defaults to the ANSI code page; the plan and its paths must reach the model whole.
+        project = self.home / "studies" / "ü-日本"
+        (project / ".git").mkdir(parents=True)
+        self.write(".neuroflow/project_config.md",
+                   "# Project config\n\n**Project:** Oddball\n**Active phase:** ideation\n"
+                   "**Recommended phases:** ideation → data → paper\n", base=project)
+        env = dict(os.environ, PYTHONIOENCODING="cp1250")
+        for extra in ([], ["--json"]):
+            proc = subprocess.run(
+                [sys.executable, str(SCRIPT), "--root", str(project), "--home", str(self.home),
+                 "--plugin-version", "9.9.9", *extra],
+                capture_output=True, env=env, timeout=60)
+            self.assertEqual(proc.stderr.decode("utf-8", "replace"), "", "a traceback's exit 1 is not a finding")
+            self.assertEqual(proc.returncode, 1)
+            out = proc.stdout.decode("utf-8")
+            self.assertIn("日本", json.loads(out)["root"] if extra else out)
+
 
 class FlowieHiveTest(unittest.TestCase):
     """--flowie, --hive NAME and --hives: task files, local-only files, git staging (never a commit)."""
@@ -713,6 +733,21 @@ class FlowieHiveTest(unittest.TestCase):
         self.assertTrue(any("no flowie" in note for note in result["notes"]))
         self.assertEqual(self.levels("--flowie", "--set", "active_phase=paper")[0], 2)
         self.assertEqual(self.levels("--hives", "--move-personal")[0], 2)
+
+    def test_task_paths_survive_a_legacy_code_page(self) -> None:
+        # The prose commits the paths it reads from --json: a name outside the ANSI code page must reach it.
+        self.write(self.flowie / "tasks" / "t-2-日本語.md", "---\nid: t-2\ntitle: 日本語\nstatus: active\n---\n")
+        env = dict(os.environ, PYTHONIOENCODING="cp1250")
+        for extra in ([], ["--json"]):
+            proc = subprocess.run([sys.executable, str(SCRIPT), "--home", str(self.home), "--flowie", *extra],
+                                  capture_output=True, env=env, timeout=60)
+            self.assertEqual(proc.stderr.decode("utf-8", "replace"), "", "a traceback's exit 1 is not a finding")
+            self.assertEqual(proc.returncode, 1)
+            out = proc.stdout.decode("utf-8")
+            if extra:
+                self.assertIn("tasks/t-2-日本語.md", [c["path"] for c in json.loads(out)["levels"][0]["changes"]])
+            else:
+                self.assertIn("t-2-日本語.md", out)
 
 
 if __name__ == "__main__":
