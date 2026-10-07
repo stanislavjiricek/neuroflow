@@ -105,29 +105,29 @@ For each one, show the exact block (the script prints it) and ask with `AskUserQ
 
 ## Step 5 — Your flowie and the team hive
 
-The same plan-then-apply flow for the folders outside the project: your flowie (`~/.neuroflow/flowie/`) and each cached hive (`~/.neuroflow/hives/{org-repo}/`). Skip a folder that does not exist and say so in one line; skip the step when neither exists.
+The same plan-then-apply flow for the folders outside the project: your flowie (`~/.neuroflow/flowie/`) and each cached hive (`~/.neuroflow/hives/{org-repo}/`). Skip a folder that does not exist and say so in one line; skip the step when neither exists. A cached hive without a `.git/` folder is the read-only cache of copied files that `/hive --init` replaces with a clone (`neuroflow:phase-hive` → **Local hive cache**): skip it as well, and say so in one line that names `/hive --init` — the script reports such a folder the same way and never writes to it.
 
-1. **Pull each level first**, so the plan is made against the current state:
+1. **Pull each level first**, so the plan is made against the current state. Only a level whose pull succeeded is in this run:
    - flowie: `git -C ~/.neuroflow/flowie pull --rebase`. If it stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort`, tell the person, point at `/flowie --sync`, and leave the flowie out of this run.
-   - each hive: `git -C ~/.neuroflow/hives/{org-repo} pull --rebase`; on a conflict, `git -C ~/.neuroflow/hives/{org-repo} rebase --abort`, tell the person, and leave that hive out (`neuroflow:phase-hive` → **`--sync`**).
-   - A pull that fails for network reasons: say so once and plan against the local copy.
-2. **Dry run:**
+   - each hive clone: `git -C ~/.neuroflow/hives/{org-repo} pull --rebase`; on a conflict, `git -C ~/.neuroflow/hives/{org-repo} rebase --abort`, tell the person, and leave that hive out (`neuroflow:phase-hive` → **`--sync`**).
+   - A pull that fails for another reason (no network, no access): say so once and leave that level out too; the next `/neuroflow:migrate` checks it again.
+2. **Dry run** — name each level that pulled cleanly, and only those:
    ```bash
-   python <neuroflow-core base dir>/scripts/migrate.py --flowie --hives
+   python <neuroflow-core base dir>/scripts/migrate.py --flowie --hive {org-repo}
    ```
-   `--flowie` or `--hive {org-repo}` alone checks one level. The script plans task files written in a legacy form — flat in `tasks/`, or with `id` / `assignee` / `responsible` / `level` keys — into `tasks/{column}/{slug}.md` with the keys `/tasks` defines (**Task file format**, **Legacy files**), adds `integrations.json` (flowie) or `sync.json` (hive) to that folder's `.gitignore`, and only reports such a file when git already tracks it. Exit codes as in Step 1; `2` also names an unknown `--hive` folder.
+   `--flowie` only when the flowie pulled cleanly, and one `--hive {org-repo}` per hive that did; skip the dry run when no level is left. Never `--hives` here: it checks every cached hive, also one whose pull failed. The script plans task files written in a legacy form — flat in `tasks/`, or with `id` / `assignee` / `responsible` / `level` keys — into `tasks/{column}/{slug}.md` with the keys `/tasks` defines (**Task file format**, **Legacy files**): a slug `/tasks` accepts stays as it is, and when a name has to change, the `blocked_by` entries that name the task follow it. It adds `integrations.json` (flowie) or `sync.json` (hive) to that folder's `.gitignore`, and only reports such a file when git already tracks it. It also only reports a task file that is not UTF-8, one that names more than one person as its owner, and a `blocked_by` entry that could now mean two tasks. Exit codes as in Step 1; `2` also names an unknown `--hive` folder.
 3. **Show the plan** per level in short form, one line per moved or rewritten file, and ask with `AskUserQuestion`: **Apply these changes** / **Cancel**. A hive change rewrites the team's shared board: say so.
-4. **Apply:** the same command with `--apply`. In a git repository the script moves tracked task files with `git mv`, so their history follows them, stages every path it changed and lists those paths per level (`commit_paths` with `--json`). It never commits or pushes.
-5. **Commit by path** — exactly the listed paths of each level, never `git add -A`:
+4. **Apply:** the same command with `--apply --json`. In a git repository the script moves tracked task files with `git mv`, so their history follows them, stages every path it changed and lists those paths per level in `commit_paths`. It never commits or pushes. Take the paths from that JSON, never from the human output: a path may contain spaces.
+5. **Commit by path** — exactly the `commit_paths` of each level, each one quoted, never `git add -A`:
    ```bash
-   git -C ~/.neuroflow/flowie commit -m "migrate: current task format" -- {paths}
+   git -C ~/.neuroflow/flowie commit -m "migrate: current task format" -- "{path}" "{path}" …
    ```
    For a hive, the same inside `~/.neuroflow/hives/{org-repo}`.
 6. **Push:**
    - flowie — the person's own private repository, a sync target they set up (`neuroflow:neuroflow-core` → **Sharing tiers**): `git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push`. If the pull stops on a conflict, abort the rebase and leave the push for `/flowie --sync`.
    <!-- nf-rule: EGRESS-CONFIRM -->
-   - hive — show the person the commit (its files and message) that would go to the shared hive repository, and push only after their explicit yes in this turn, pulling with rebase first (`neuroflow:phase-hive` → **Pushing to the hive**, which also covers a protected branch). Without a yes the commit stays local: say so.
-7. **Report-only findings:** show the script's message for each. A tracked `integrations.json` stays the person's call: `git rm --cached` stops tracking it, older commits keep their copies. A tracked `sync.json` in a hive is the team's call.
+   - hive — show the person the commit (its files and message) that would go to the shared hive repository, and tell them that teammates on an older neuroflow should update the plugin before they use the migrated board. Push only after their explicit yes in this turn, pulling with rebase first (`neuroflow:phase-hive` → **Pushing to the hive**, which also covers a protected branch). Without a yes the commit stays local: say so.
+7. **Report-only findings:** show the script's message for each. A tracked `integrations.json` stays the person's call: `git rm --cached` stops tracking it, older commits keep their copies. A tracked `sync.json` in a hive is the team's call. A task file that is not UTF-8: offer to convert it (ask which encoding it was written in when that is unclear), then run the dry run again. A task that names several people: ask who owns it — the others can go into its notes — and never drop one unasked. A `blocked_by` entry that could mean two tasks: ask which one, and edit the entry.
 
 ---
 
