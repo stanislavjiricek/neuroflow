@@ -8,7 +8,7 @@
 // Rules this file enforces (validate_pr V8 matches each to its prose marker):
 //   nf-rule: PREREG-FROZEN      writes to a preregistration a person froze; deviations.md stays append-only
 //   nf-rule: RAW-READONLY       changes to existing files under raw_roots (new recordings may be added)
-//   nf-rule: GIT-NO-SECRETS     `git clean -x`, staging local-only files, `git add -A` without the .gitignore lines
+//   nf-rule: GIT-NO-SECRETS     `git clean -x`, staging local-only files; asks before `git add -A` without the .gitignore lines
 //   nf-rule: GIT-ALIAS-SCOPE    git verbs beyond the running /git alias's endpoint (listings such as `git branch --show-current` are fine)
 //   nf-rule: PARTICIPANT-ROUTE  the model reading participant data the ethics record keeps from it
 //   nf-rule: LOGIN-NODE         heavy compute on an HPC login node (asks)
@@ -52,8 +52,8 @@ export type Violation = { rule: RuleId; level: 'deny' | 'ask' | 'warn'; message:
 
 export type Structure = { rootFiles: string[]; rootFolders: string[] }
 
-/** Local-only paths (neuroflow-core → sharing tiers) that must never be staged. */
-export const LOCAL_ONLY = ['.neuroflow/sessions/', '.neuroflow/review/', '.neuroflow/integrations.json', '.neuroflow/flowie/', '.neuroflow/paper/xray-', '.neuroflow/wiki/.pending/']
+/** Local-only paths (neuroflow-core → Sharing tiers) that must never be staged, as the scaffold's .gitignore lines. */
+export const LOCAL_ONLY = ['.neuroflow/sessions/', '.neuroflow/review/', '.neuroflow/integrations.json', '.neuroflow/flowie/', '.neuroflow/paper/xray-*', '.neuroflow/wiki/.pending/']
 
 /** Used until nf_check.py --structure has answered (or when no Python is installed). */
 export const DEFAULT_STRUCTURE: Structure = {
@@ -269,6 +269,74 @@ const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '
 /** A pattern for a project-relative folder that matches either slash. */
 const pathPattern = (root: string): string => escapeRe(trimRoot(root)).replace(/\//g, '[\\\\/]')
 
+type IgnoreRule = { negated: boolean; folderOnly: boolean; pattern: RegExp }
+
+/** A gitignore glob as a regular expression: `*` and `?` stay inside one folder, `**` spans folders, `[…]` is a class. */
+const globSource = (glob: string): string => {
+  let out = ''
+  for (let i = 0; i < glob.length; i += 1) {
+    const char = glob[i]
+    const close = char === '[' ? glob.indexOf(']', i + 2) : -1
+    if (char === '*' && glob[i + 1] === '*' && (i === 0 || glob[i - 1] === '/') && (i + 2 === glob.length || glob[i + 2] === '/')) {
+      // `**/` is any number of folders, none too; a trailing `/**` is everything inside
+      out += i + 2 === glob.length ? '.*' : '(?:.*/)?'
+      i += i + 2 === glob.length ? 1 : 2
+    } else if (char === '*') {
+      out += '[^/]*'
+    } else if (char === '?') {
+      out += '[^/]'
+    } else if (close > 0) {
+      out += `[${glob.slice(i + 1, close).replace(/^!/, '^').replace(/\\/g, '\\\\')}]`
+      i = close
+    } else {
+      if (char === '\\' && i + 1 < glob.length) i += 1
+      out += escapeRe(glob[i])
+    }
+  }
+  return out
+}
+
+/**
+ * The rules of the project's .gitignore, in order (gitignore(5)): comments skipped, `!` negates, a trailing
+ * `/` matches folders only, and a slash before the end anchors a pattern to the project root.
+ */
+const ignoreRules = (text: string): IgnoreRule[] =>
+  text.split(/\r?\n/).flatMap(raw => {
+    let line = raw.trimEnd()
+    if (line === '' || line.startsWith('#')) return []
+    const negated = line.startsWith('!')
+    if (negated) line = line.slice(1)
+    const folderOnly = line.endsWith('/')
+    line = line.replace(/\/+$/, '')
+    const anchored = line.includes('/')
+    line = line.replace(/^\//, '')
+    if (line === '') return []
+    const body = globSource(line)
+    return [{ negated, folderOnly, pattern: new RegExp(anchored ? `^${body}$` : `^(?:.*/)?${body}$`) }]
+  })
+
+/** Whether git ignores the file `path` (project-relative): the last matching rule decides, and nothing inside an ignored folder can be brought back. */
+const isIgnored = (rules: readonly IgnoreRule[], path: string): boolean => {
+  const parts = path.split('/')
+  for (let depth = 1; depth <= parts.length; depth += 1) {
+    const sub = parts.slice(0, depth).join('/')
+    const isFolder = depth < parts.length
+    const last = rules.filter(rule => (isFolder || !rule.folderOnly) && rule.pattern.test(sub)).at(-1)
+    if (last !== undefined && !last.negated) return true
+  }
+  return false
+}
+
+/**
+ * The LOCAL_ONLY lines a .gitignore does not cover. Ignoring a folder above one covers it (`.neuroflow/`,
+ * `/.neuroflow`, `.neuroflow/*`, `.neuroflow/**`); a narrower line (`*.md`, one session file) does not.
+ */
+export const uncoveredLocalOnly = (gitignore: string): string[] => {
+  const rules = ignoreRules(gitignore)
+  // a file name no narrower line would match stands for everything the local-only line names
+  return LOCAL_ONLY.filter(line => !isIgnored(rules, line.endsWith('/') ? `${line}nf-any` : line.replace(/\*$/, 'nf-any')))
+}
+
 const READ_VERBS = /^(cat|head|tail|less|more|type|Get-Content|gc|xxd|od|strings|bat|zcat)$/i
 
 /** What a shell command would break (best effort: it cannot see inside the scripts it starts). */
@@ -308,10 +376,14 @@ export const shellViolations = (
       if (named !== null) {
         out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `${named[1]} is local-only (sessions, confidential reviews, paper X-rays, wiki cards awaiting review, personal settings) and must never be committed` })
       } else if (/\sadd\s+(-A\b|--all\b|\.(\s|$)|-u\b)/.test(segment)) {
-        const ignored = context.gitignore ?? ''
-        const missing = LOCAL_ONLY.filter(path => !ignored.includes(path))
+        // An ask, not a denial: /git a stages everything and then takes each local-only path back out.
+        const missing = uncoveredLocalOnly(context.gitignore ?? '')
         if (missing.length > 0) {
-          out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `\`git add -A\` would stage local-only files: .gitignore does not exclude ${missing.join(', ')} — add those lines first (/neuroflow:migrate does it)` })
+          out.push({
+            rule: 'GIT-NO-SECRETS',
+            level: 'ask',
+            message: `\`${segment.slice(0, 80)}\` would stage local-only files: .gitignore does not exclude ${missing.join(', ')} — add those lines (/neuroflow:migrate adds them), or take each one back out after staging (git reset -q -- <path>)`,
+          })
         }
       }
     }

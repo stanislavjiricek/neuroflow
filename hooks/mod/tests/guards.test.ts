@@ -12,6 +12,7 @@ import {
   readViolations,
   shellViolations,
   structureFrom,
+  uncoveredLocalOnly,
   writeViolations,
 } from '../features/guards'
 import { fakeFs } from './fakefs'
@@ -162,6 +163,32 @@ describe('shell rules', () => {
     expect(shellViolations('git add -A', snap(), { gitignore: LOCAL_ONLY.slice(0, 4).join('\n'), isLoginNode: false })[0].message).toContain('xray')
     expect(shellViolations('git add -A && git commit -m x', snap(), ctx)).toEqual([])
     expect(shellViolations('git add -A', snap(), { gitignore: '', isLoginNode: false })[0].message).toContain('.gitignore does not exclude')
+  })
+
+  test('a broad git add asks while .gitignore misses local-only files; an ignored .neuroflow/ covers them all', () => {
+    const covering = [
+      '.neuroflow/',
+      '/.neuroflow/',
+      '.neuroflow',
+      '.neuroflow/*',
+      '.neuroflow/**',
+      '# project memory\n.neuroflow/\n!.neuroflow/sessions/', // nothing comes back out of an ignored folder
+      '.neuroflow/**\n!.neuroflow/**/',
+      LOCAL_ONLY.join('\r\n'),
+    ]
+    for (const gitignore of covering) {
+      expect([gitignore, uncoveredLocalOnly(gitignore)]).toEqual([gitignore, []])
+      expect([gitignore, shellViolations('git add .', snap(), { gitignore, isLoginNode: false })]).toEqual([gitignore, []])
+    }
+    expect(uncoveredLocalOnly('# .neuroflow/')).toEqual(LOCAL_ONLY)
+    expect(uncoveredLocalOnly('.neuroflow/*\n!.neuroflow/sessions/')).toEqual(['.neuroflow/sessions/'])
+    expect(uncoveredLocalOnly('sessions/\nreview/\nintegrations.json\nflowie/\n.neuroflow/paper/xray-results.jsonl\n.pending/')).toEqual(['.neuroflow/paper/xray-*'])
+    const dot = shellViolations('git add .', snap(), { gitignore: '', isLoginNode: false })
+    expect(dot.map(v => [v.rule, v.level])).toEqual([['GIT-NO-SECRETS', 'ask']])
+    for (const part of ['`git add .` would stage', '/neuroflow:migrate', 'git reset -q --']) expect(dot[0].message).toContain(part)
+    expect(shellViolations('git add -u', snap(), { gitignore: '.neuroflow/sessions/', isLoginNode: false })[0].message).toContain('`git add -u` would stage')
+    // naming a local-only path is still denied, whatever .gitignore says
+    expect(shellViolations('git add .neuroflow/sessions/2026-10-07.md', snap(), { gitignore: '.neuroflow/', isLoginNode: false }).map(v => [v.rule, v.level])).toEqual([['GIT-NO-SECRETS', 'deny']])
   })
 
   test('git -C forms, work-discarding commands, and alias scope', () => {
@@ -347,6 +374,34 @@ describe('guards in a session', () => {
     await $.tool.call(write as never)
     expect(ran).toBe(true)
     expect(said.join(' ')).toContain('would block')
+  })
+
+  test('a broad git add without the .gitignore lines asks the person under enforce', { options: { runtime: 'on', guards: 'enforce' } }, async ($, on) => {
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: 0 })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    const asked: string[] = []
+    let answer = 'Block it'
+    let ran = 0
+    on('tool.call', ($, e) => {
+      const input = e as unknown as { questions?: { question: string }[] }
+      if (input.questions === undefined) {
+        ran += 1
+        return { result: 'ok', text: 'ok' }
+      }
+      const question = input.questions[0]?.question ?? ''
+      asked.push(question)
+      return { result: { questions: input.questions, answers: { [question]: answer } }, text: answer }
+    })
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    const blocked = await $.tool.call({ tool: 'Bash', command: 'git add .' } as never)
+    expect(ran).toBe(0)
+    expect(asked[0]).toContain('`git add .` would stage local-only files')
+    expect(JSON.stringify(blocked)).toContain('nf-rule: GIT-NO-SECRETS')
+    answer = 'Allow — I confirm this myself'
+    await $.tool.call({ tool: 'Bash', command: 'git add .' } as never)
+    expect(ran).toBe(1)
   })
 
   test('a /git alias reading the repo state draws no warning; a step past its endpoint does', { options: { runtime: 'observe' } }, async ($, on) => {
