@@ -51,7 +51,7 @@ All in `scripts/`, stdlib Python, `--json` output, exit codes `0` clean / `1` fi
 | `header_scan.py` | `/output --archive` | De-identification scan of EDF/BDF, BrainVision, NIfTI (and FIF with MNE) headers and `participants.tsv` columns |
 | `pii_scan.py` | `/output --archive`, `/sentinel`, pre-commit | Emails, phone numbers, configured ID patterns (none ships for any country), salted-hash participant roster, secrets; `--staged` also flags local-tier and credential files staged for commit |
 | `history_audit.py` | `/output --archive` | Whole git history before a repository goes public: sensitive paths, secrets, personal data, recordings, large files |
-| `handoff.py` | `/output --handoff` | Read-only handoff dossier: git state, data roots, freeze and ethics status, open tasks by assignee, integrations to replace |
+| `handoff.py` | `/output --handoff` | Read-only handoff dossier: git state, data roots, freeze and ethics status, open tasks by owner, integrations to replace |
 
 **Pre-commit use of `pii_scan.py`:** a project can call it from its own git pre-commit hook — `python "<phase-output skill base dir>/scripts/pii_scan.py" --staged` — so exit `1` blocks the commit. The plugin path changes when the plugin updates, so the hook must be refreshed after an update. Keep the participant roster (`--build-roster`) outside the project tree and never commit it; the names file it is built from is read only by the script.
 

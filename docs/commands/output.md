@@ -72,7 +72,7 @@ None of them prints a found value — only the file, the field and the kind of f
 
 ## `--handoff` — project handoff dossier
 
-When a project changes hands, `handoff.py` collects (read-only) git state, data roots, the preregistration freeze, ethics status, open tasks by assignee and the integrations the successor must replace. You complete the checklist together and the dossier is saved as `.neuroflow/output/handoff-YYYY-MM-DD.md` — never uploaded.
+When a project changes hands, `handoff.py` collects (read-only) git state, data roots, the preregistration freeze, ethics status, open tasks by owner and the integrations the successor must replace. You complete the checklist together and the dossier is saved as `.neuroflow/output/handoff-YYYY-MM-DD.md` — never uploaded.
 
 ---
 
