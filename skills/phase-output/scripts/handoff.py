@@ -281,13 +281,21 @@ def section_hpc() -> list[str]:
 
 
 def section_personal(root: Path) -> list[dict]:
+    """Local-tier memory that stays with the person leaving, with file counts. A folder's own
+    .gitignore is housekeeping, not content (the wiki review queue keeps one with `*` so its cards
+    stay local): it is not counted, and a folder with nothing else is not listed."""
     rules = _export()
     out = []
     for sub in rules.LOCAL_TIER:
         path = root / ".neuroflow" / sub.rstrip("/")
         if path.exists():
-            count = sum(1 for p in path.rglob("*") if p.is_file()) if path.is_dir() else 1
-            out.append({"path": f".neuroflow/{sub}", "files": count})
+            if path.is_dir():
+                own_ignore = path / ".gitignore"
+                count = sum(1 for p in path.rglob("*") if p.is_file() and p != own_ignore)
+            else:
+                count = 1
+            if count:
+                out.append({"path": f".neuroflow/{sub}", "files": count})
         elif not sub.endswith("/") and path.parent.is_dir():  # a name prefix such as paper/xray-
             count = sum(1 for p in path.parent.iterdir() if p.is_file() and p.name.startswith(path.name))
             if count:

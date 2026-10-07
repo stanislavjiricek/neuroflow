@@ -128,6 +128,15 @@ class HandoffTests(unittest.TestCase):
         write(paper / "xray-draft-2026-10-07.jsonl", "{}\n")
         self.assertIn({"path": ".neuroflow/paper/xray-*", "files": 2}, ho.section_personal(self.root))
 
+    def test_wiki_queue_counts_cards_not_its_own_gitignore(self):
+        pending = self.root / ".neuroflow" / "wiki" / ".pending"
+        write(pending / ".gitignore", "*\n")
+        queue = [s for s in ho.section_personal(self.root) if s["path"] == ".neuroflow/wiki/.pending/"]
+        self.assertEqual(queue, [])  # only the queue's own .gitignore: nothing stays with the leaver
+        write(pending / "2026-10-07-fdr-across-electrodes.md", "---\ntitle: FDR across electrodes\nstatus: pending\n---\ncard\n")
+        write(pending / "2026-10-01-baseline-window.md", "---\ntitle: Baseline window\nstatus: skipped\n---\ncard\n")
+        self.assertIn({"path": ".neuroflow/wiki/.pending/", "files": 2}, ho.section_personal(self.root))
+
     def test_model_set_approval_and_frozen_prereg(self):
         self.init_pushed_repo()
         nf = self.root / ".neuroflow"
