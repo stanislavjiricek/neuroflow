@@ -1,6 +1,7 @@
 ---
 name: phase-pipeline
 description: Phase guidance for the neuroflow /pipeline command. Loaded automatically when /pipeline is invoked to orient agent behavior for planning and executing multi-step research pipelines.
+user-invocable: false
 ---
 
 # phase-pipeline

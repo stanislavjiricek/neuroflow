@@ -1,6 +1,7 @@
 ---
 name: phase-search
 description: Lightweight search skill for the /search command. Instructs the agent to use flow.md files as a fast index, scope the search by tag (project or memory), and return a concise summary to the main agent.
+user-invocable: false
 ---
 
 # phase-search

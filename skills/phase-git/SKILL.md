@@ -1,6 +1,7 @@
 ---
 name: phase-git
 description: Phase guidance for /git — context-aware git shorthand rules, smart push/pull logic, commit message generation, branch management, and PR creation workflow.
+user-invocable: false
 ---
 
 # phase-git

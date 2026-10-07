@@ -1,6 +1,7 @@
 ---
 name: phase-preregistration
 description: Phase guidance for the neuroflow /preregistration command. Loaded automatically when /preregistration is invoked to orient agent behavior, relevant skills, and workflow hints for creating and managing pre-registration documents.
+user-invocable: false
 ---
 
 # phase-preregistration

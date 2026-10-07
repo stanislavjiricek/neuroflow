@@ -1,6 +1,7 @@
 ---
 name: phase-paper
 description: Phase guidance for the neuroflow /paper command. Loaded automatically when /paper is invoked to orient agent behavior, relevant skills, and workflow for the unified paper phase — covering manuscript drafting and rigorous internal peer review in a single write→critique loop.
+user-invocable: false
 ---
 
 # phase-paper

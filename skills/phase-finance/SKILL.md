@@ -1,6 +1,7 @@
 ---
 name: phase-finance
 description: Phase guidance for the neuroflow /finance command. Loaded automatically when /finance is invoked to orient agent behavior, relevant skills, and workflow hints for grant document management and expense tracking.
+user-invocable: false
 ---
 
 # phase-finance

@@ -1,6 +1,7 @@
 ---
 name: phase-data
 description: Phase guidance for the neuroflow /data command. Loaded automatically when /data is invoked to orient agent behavior, relevant skills, and workflow hints for the data intake phase.
+user-invocable: false
 ---
 
 # phase-data

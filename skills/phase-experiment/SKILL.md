@@ -1,6 +1,7 @@
 ---
 name: phase-experiment
 description: Phase guidance for the neuroflow /experiment command. Loaded automatically when /experiment is invoked to orient agent behavior, relevant skills, and workflow hints for the experiment phase.
+user-invocable: false
 ---
 
 # phase-experiment

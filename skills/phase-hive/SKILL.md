@@ -15,6 +15,7 @@ writes:
   - ~/.neuroflow/hives/{org-repo}/members.md
   - ~/.neuroflow/hives/{org-repo}/sync.json
   - ~/.neuroflow/hives/{org-repo}/errata/
+user-invocable: false
 ---
 
 # phase-hive — Team research layer

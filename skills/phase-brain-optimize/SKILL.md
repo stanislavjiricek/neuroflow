@@ -1,6 +1,7 @@
 ---
 name: phase-brain-optimize
 description: Phase guidance for the neuroflow /brain-optimize command. Loaded automatically when /brain-optimize is invoked to orient agent behavior, relevant skills, and workflow hints for parameter search and model fitting.
+user-invocable: false
 ---
 
 # phase-brain-optimize

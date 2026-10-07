@@ -1,6 +1,7 @@
 ---
 name: worker-critic
 description: Worker-critic agentic loop protocol — orchestrator coordinates a worker agent and a critic agent across up to 3 revision cycles to produce a vetted output for any phase.
+user-invocable: false
 ---
 
 # worker-critic

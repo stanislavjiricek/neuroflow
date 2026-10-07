@@ -1,6 +1,7 @@
 ---
 name: phase-review
 description: Phase guidance for the neuroflow /review command. Loaded automatically when /review is invoked. Orients Claude for acting as a formal peer reviewer of a colleague's neuroscience paper.
+user-invocable: false
 ---
 
 # phase-review

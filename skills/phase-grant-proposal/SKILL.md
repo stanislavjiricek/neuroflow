@@ -1,6 +1,7 @@
 ---
 name: phase-grant-proposal
 description: Phase guidance for /grant-proposal with deep funder knowledge, neuroscience-specific grant tactics, review criteria alignment, and workflow orchestration.
+user-invocable: false
 ---
 
 # phase-grant-proposal

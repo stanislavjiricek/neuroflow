@@ -19,6 +19,7 @@ writes:
   - .neuroflow/tasks/**
   - ~/.neuroflow/flowie/tasks/**
   - ~/.neuroflow/hives/{org-repo}/tasks/**
+user-invocable: false
 ---
 
 # phase-meeting

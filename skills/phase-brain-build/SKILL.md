@@ -1,6 +1,7 @@
 ---
 name: phase-brain-build
 description: Phase guidance for the neuroflow /brain-build command. Loaded automatically when /brain-build is invoked to orient agent behavior, relevant skills, and workflow hints for assembling computational brain models.
+user-invocable: false
 ---
 
 # phase-brain-build

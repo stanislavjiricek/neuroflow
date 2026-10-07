@@ -1,6 +1,7 @@
 ---
 name: phase-data-preprocess
 description: Phase guidance for the neuroflow /data-preprocess command. Loaded automatically when /data-preprocess is invoked to orient agent behavior, relevant skills, and workflow hints for the data-preprocess phase.
+user-invocable: false
 ---
 
 # phase-data-preprocess

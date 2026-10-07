@@ -1,6 +1,7 @@
 ---
 name: phase-tool-build
 description: Phase guidance for the neuroflow /tool-build command. Loaded automatically when /tool-build is invoked to orient agent behavior, relevant skills, and workflow hints for the tool-build phase.
+user-invocable: false
 ---
 
 # phase-tool-build

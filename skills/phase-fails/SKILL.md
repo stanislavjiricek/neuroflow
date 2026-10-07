@@ -1,6 +1,7 @@
 ---
 name: phase-fails
 description: Phase guidance for the neuroflow /fails command. Orients agent approach for logging user dissatisfaction, categorising complaints accurately, and preparing GitHub issue reports.
+user-invocable: false
 ---
 
 # phase-fails

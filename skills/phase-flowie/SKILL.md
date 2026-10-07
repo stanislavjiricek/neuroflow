@@ -1,6 +1,7 @@
 ---
 name: phase-flowie
 description: Phase guidance for the neuroflow /flowie command. Covers how to read and use the flowie profile for personalization, write rules for ~/.neuroflow/flowie/, GitHub sync protocol, and profile-aware assistance across all phases.
+user-invocable: false
 ---
 
 # phase-flowie

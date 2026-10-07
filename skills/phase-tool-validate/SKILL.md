@@ -1,6 +1,7 @@
 ---
 name: phase-tool-validate
 description: Phase guidance for the neuroflow /tool-validate command. Loaded automatically when /tool-validate is invoked to orient agent behavior, relevant skills, and workflow hints for the tool-validate phase.
+user-invocable: false
 ---
 
 # phase-tool-validate

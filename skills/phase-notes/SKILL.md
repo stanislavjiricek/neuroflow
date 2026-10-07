@@ -1,6 +1,7 @@
 ---
 name: phase-notes
 description: Phase guidance for the neuroflow /notes command. Loaded automatically when /notes is invoked to orient agent behavior, relevant skills, and workflow hints for the notes phase.
+user-invocable: false
 ---
 
 # phase-notes

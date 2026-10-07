@@ -1,6 +1,7 @@
 ---
 name: phase-write-report
 description: Phase guidance for the neuroflow /write-report command. Loaded automatically when /write-report is invoked to orient agent behavior, relevant skills, and workflow hints for the write-report phase.
+user-invocable: false
 ---
 
 # phase-write-report

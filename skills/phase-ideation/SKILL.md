@@ -1,6 +1,7 @@
 ---
 name: phase-ideation
 description: Phase guidance for the neuroflow /ideation command. Loaded automatically when /ideation is invoked to orient agent behavior, relevant skills, and workflow hints for the ideation phase.
+user-invocable: false
 ---
 
 # phase-ideation

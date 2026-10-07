@@ -1,6 +1,7 @@
 ---
 name: phase-slideshow
 description: Phase guidance for the neuroflow /slideshow command. Loaded automatically when /slideshow is invoked to orient agent behavior, slide structure decisions, format selection, and audience calibration for presentation generation.
+user-invocable: false
 ---
 
 # phase-slideshow

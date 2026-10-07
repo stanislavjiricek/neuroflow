@@ -1,6 +1,7 @@
 ---
 name: phase-brain-run
 description: Phase guidance for the neuroflow /brain-run command. Loaded automatically when /brain-run is invoked to orient agent behavior, relevant skills, and workflow hints for running brain model simulations.
+user-invocable: false
 ---
 
 # phase-brain-run
