@@ -1,5 +1,5 @@
 site_name: "neuroflow"
-site_description: "A plugin for Claude Code and GitHub Copilot CLI — agentic neuroscience research from first hypothesis to manuscript draft."
+site_description: "A complete research system for neuroscience teams, inside Claude Code: nineteen phases from the first question to the published paper, with memory, tasks and deadlines for you, the project and the team."
 site_url: "https://stanislavjiricek.github.io/neuroflow/"
 repo_url: "https://github.com/stanislavjiricek/neuroflow"
 repo_name: "stanislavjiricek/neuroflow"
@@ -15,41 +15,22 @@ exclude_docs: |
 theme:
   name: material
   custom_dir: overrides
-  logo: assets/logo-full.svg
+  logo: assets/logo-brain.svg
   favicon: assets/logo-brain.svg
+  language: en
   features:
-    - navigation.tabs
-    - navigation.tabs.sticky
     - navigation.sections
-    - navigation.expand
-    - navigation.top
-    - navigation.instant
-    - navigation.instant.progress
     - navigation.path
+    - navigation.footer
     - content.code.copy
     - content.code.annotate
     - content.tooltips
-    - search.highlight
-    - search.share
-    - search.suggest
     - toc.follow
-    - toc.integrate
   palette:
-    - scheme: slate
-      primary: deep purple
-      accent: purple
-      toggle:
-        icon: material/brightness-7
-        name: Switch to light mode
-    - scheme: default
-      primary: deep purple
-      accent: purple
-      toggle:
-        icon: material/brightness-4
-        name: Switch to dark mode
-  font:
-    text: Inter
-    code: JetBrains Mono
+    scheme: slate
+    primary: custom
+    accent: custom
+  font: false
   icon:
     repo: fontawesome/brands/github
     admonition:
@@ -101,10 +82,10 @@ extra:
   generator: false
 
 extra_css:
-  - stylesheets/extra.css
+  - stylesheets/nf.css
 
 extra_javascript:
-  - javascripts/mind.js
+  - javascripts/nf.js
 
 plugins:
   - search:
@@ -113,121 +94,121 @@ plugins:
 
 nav:
   - Home: index.md
-  - Installation: installation.md
-  - Quickstart: quickstart.md
-  - Mind Map: mind.md
-  - Concepts:
-      - Agents: concepts/agents.md
-      - Skills: concepts/skills.md
-      - Hooks: concepts/hooks.md
-      - The neuroflow mod: concepts/mods.md
-      - Design record: concepts/design-record.md
-      - Personal Profile:
-          - "👤 Flowie Profile": concepts/flowie.md
-          - "🧑 flowie": commands/flowie.md
-      - Project Memory:
-          - "🗂️ Project Memory": concepts/project-memory.md
-          - "🚀 neuroflow": commands/neuroflow.md
-          - "⚙️ setup": commands/setup.md
-          - "📍 phase": commands/phase.md
-          - "🔄 migrate": commands/migrate.md
-          - "🩺 doctor": commands/doctor.md
-          - "✅ tasks": commands/tasks.md
-          - "🧭 dashboard": commands/dashboard.md
-      - Research Pipeline:
-          - "💡 Discovery": commands/ideation.md
-          - "🔍 Search": commands/search.md
-          - "📋 Formalization": commands/preregistration.md
-          - "🛡️ Ethics": commands/ethics.md
-          - "💰 Funding": commands/grant-proposal.md
-          - "💸 Finance": commands/finance.md
-          - "🧪 Experiment": commands/experiment.md
-          - "🔧 Tool Build": commands/tool-build.md
-          - "✅ Tool Validate": commands/tool-validate.md
-          - "📁 Data": commands/data.md
-          - "🔬 Preprocessing": commands/data-preprocess.md
-          - "📊 Analysis": commands/data-analyze.md
-          - "🧠 Brain Build": commands/brain-build.md
-          - "🔄 Brain Optimize": commands/brain-optimize.md
-          - "▶️ Brain Run": commands/brain-run.md
-          - "📝 Writing": commands/paper.md
-          - "🔍 Review": commands/review.md
-          - "📓 Notes": commands/notes.md
-          - "📋 Write Report": commands/write-report.md
-          - "🖼️ Poster": commands/poster.md
-          - "🎞️ Slideshow": commands/slideshow.md
-          - "📤 Output": commands/output.md
-          - "🧩 Quiz": commands/quiz.md
-      - Team Integration:
-          - "🐝 Hive": commands/hive.md
-          - "📅 Meeting": commands/meeting.md
-          - "📖 Wiki": commands/wiki.md
-      - Utilities & Quality:
-          - "🛡️ Quality & Audit": commands/sentinel.md
-          - "💢 Fails Log": commands/fails.md
-          - "⚡ Automation": commands/autoresearch.md
-          - "🔁 Pipeline": commands/pipeline.md
-          - "🔀 Git": commands/git.md
-          - "🎤 Interview": commands/interview.md
-          - "💭 Idk": commands/idk.md
-  - Reference:
-      - Commands: commands/index.md
-      - Skills:
-          - Expert:
-              - "bids": skills/bids/SKILL.md
-              - "humanizer": skills/humanizer/SKILL.md
-              - "review-neuro": skills/review-neuro/SKILL.md
-              - "worker-critic": skills/worker-critic/SKILL.md
-              - "autoresearch-protocol": skills/autoresearch-protocol/SKILL.md
-          - Phases:
-              - "phase-git": skills/phase-git/SKILL.md
-              - "phase-ideation": skills/phase-ideation/SKILL.md
-              - "phase-preregistration": skills/phase-preregistration/SKILL.md
-              - "phase-grant-proposal": skills/phase-grant-proposal/SKILL.md
-              - "phase-finance": skills/phase-finance/SKILL.md
-              - "phase-experiment": skills/phase-experiment/SKILL.md
-              - "phase-tool-build": skills/phase-tool-build/SKILL.md
-              - "phase-tool-validate": skills/phase-tool-validate/SKILL.md
-              - "phase-data": skills/phase-data/SKILL.md
-              - "phase-data-preprocess": skills/phase-data-preprocess/SKILL.md
-              - "phase-data-analyze": skills/phase-data-analyze/SKILL.md
-              - "phase-paper": skills/phase-paper/SKILL.md
-              - "phase-review": skills/phase-review/SKILL.md
-              - "phase-notes": skills/phase-notes/SKILL.md
-              - "phase-write-report": skills/phase-write-report/SKILL.md
-              - "phase-slideshow": skills/phase-slideshow/SKILL.md
-              - "phase-poster": skills/phase-poster/SKILL.md
-              - "phase-brain-build": skills/phase-brain-build/SKILL.md
-              - "phase-brain-optimize": skills/phase-brain-optimize/SKILL.md
-              - "phase-brain-run": skills/phase-brain-run/SKILL.md
-              - "phase-quiz": skills/phase-quiz/SKILL.md
-              - "phase-fails": skills/phase-fails/SKILL.md
-              - "phase-output": skills/phase-output/SKILL.md
-              - "phase-pipeline": skills/phase-pipeline/SKILL.md
-              - "phase-flowie": skills/phase-flowie/SKILL.md
-              - "phase-hive": skills/phase-hive/SKILL.md
-              - "phase-meeting": skills/phase-meeting/SKILL.md
-              - "phase-search": skills/phase-search/SKILL.md
-              - "wiki-protocol": skills/wiki-protocol/SKILL.md
-          - Utils:
-              - "neuroflow-core": skills/neuroflow-core/SKILL.md
-              - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
-              - "notebooklm": skills/notebooklm/SKILL.md
-              - "pupil-labs-neon-realtime": skills/pupil-labs-neon-realtime/SKILL.md
-              - "setup-guide": skills/setup-guide/SKILL.md
-              - "skill-creator": skills/skill-creator/SKILL.md
-      - Agents:
-          - "paper-writer": agents/paper-writer.md
-          - "paper-critic": agents/paper-critic.md
-          - "poster-critic": agents/poster-critic.md
-          - "literature-review": agents/literature-review.md
-          - "scholar": agents/scholar.md
-          - "sentinel": agents/sentinel.md
-          - "sentinel-dev": agents/sentinel-dev.md
-          - "flowie": agents/flowie.md
-          - "autoresearch": agents/autoresearch.md
-      - Integrations: integrations.md
-      - Maintenance Automation: maintenance/automation.md
+  - Start:
+      - Overview: overview.md
+      - Installation: installation.md
+      - Quickstart: quickstart.md
+      - Upgrading: upgrading.md
       - Troubleshooting: troubleshooting.md
+  - Phases:
+      - "ideation": commands/ideation.md
+      - "preregistration": commands/preregistration.md
+      - "grant-proposal": commands/grant-proposal.md
+      - "finance": commands/finance.md
+      - "experiment": commands/experiment.md
+      - "tool-build": commands/tool-build.md
+      - "tool-validate": commands/tool-validate.md
+      - "data": commands/data.md
+      - "data-preprocess": commands/data-preprocess.md
+      - "data-analyze": commands/data-analyze.md
+      - "brain-build": commands/brain-build.md
+      - "brain-optimize": commands/brain-optimize.md
+      - "brain-run": commands/brain-run.md
+      - "paper": commands/paper.md
+      - "review": commands/review.md
+      - "poster": commands/poster.md
+      - "write-report": commands/write-report.md
+      - "output": commands/output.md
+      - "notes": commands/notes.md
+  - Memory & team:
+      - Three levels: concepts/memory.md
+      - Project memory: concepts/project-memory.md
+      - Your profile: concepts/flowie.md
+      - "flowie": commands/flowie.md
+      - "hive": commands/hive.md
+      - "tasks": commands/tasks.md
+      - "dashboard": commands/dashboard.md
+      - "meeting": commands/meeting.md
+      - "wiki": commands/wiki.md
+  - Commands:
+      - All commands: commands/index.md
+      - "neuroflow": commands/neuroflow.md
+      - "setup": commands/setup.md
+      - "phase": commands/phase.md
+      - "migrate": commands/migrate.md
+      - "doctor": commands/doctor.md
+      - "search": commands/search.md
+      - "ethics": commands/ethics.md
+      - "pipeline": commands/pipeline.md
+      - "autoresearch": commands/autoresearch.md
+      - "sentinel": commands/sentinel.md
+      - "fails": commands/fails.md
+      - "git": commands/git.md
+      - "slideshow": commands/slideshow.md
+      - "quiz": commands/quiz.md
+      - "interview": commands/interview.md
+      - "idk": commands/idk.md
+  - The harness:
+      - The neuroflow mod: concepts/mods.md
+      - Hooks: concepts/hooks.md
+      - Design record: concepts/design-record.md
+  - Agents:
+      - About agents: concepts/agents.md
+      - "paper-writer": agents/paper-writer.md
+      - "paper-critic": agents/paper-critic.md
+      - "poster-critic": agents/poster-critic.md
+      - "literature-review": agents/literature-review.md
+      - "scholar": agents/scholar.md
+      - "sentinel": agents/sentinel.md
+      - "sentinel-dev": agents/sentinel-dev.md
+      - "flowie": agents/flowie.md
+      - "autoresearch": agents/autoresearch.md
+  - Skills:
+      - About skills: concepts/skills.md
+      - Expert:
+          - "bids": skills/bids/SKILL.md
+          - "humanizer": skills/humanizer/SKILL.md
+          - "review-neuro": skills/review-neuro/SKILL.md
+          - "worker-critic": skills/worker-critic/SKILL.md
+          - "autoresearch-protocol": skills/autoresearch-protocol/SKILL.md
+      - Phases:
+          - "phase-git": skills/phase-git/SKILL.md
+          - "phase-ideation": skills/phase-ideation/SKILL.md
+          - "phase-preregistration": skills/phase-preregistration/SKILL.md
+          - "phase-grant-proposal": skills/phase-grant-proposal/SKILL.md
+          - "phase-finance": skills/phase-finance/SKILL.md
+          - "phase-experiment": skills/phase-experiment/SKILL.md
+          - "phase-tool-build": skills/phase-tool-build/SKILL.md
+          - "phase-tool-validate": skills/phase-tool-validate/SKILL.md
+          - "phase-data": skills/phase-data/SKILL.md
+          - "phase-data-preprocess": skills/phase-data-preprocess/SKILL.md
+          - "phase-data-analyze": skills/phase-data-analyze/SKILL.md
+          - "phase-paper": skills/phase-paper/SKILL.md
+          - "phase-review": skills/phase-review/SKILL.md
+          - "phase-notes": skills/phase-notes/SKILL.md
+          - "phase-write-report": skills/phase-write-report/SKILL.md
+          - "phase-slideshow": skills/phase-slideshow/SKILL.md
+          - "phase-poster": skills/phase-poster/SKILL.md
+          - "phase-brain-build": skills/phase-brain-build/SKILL.md
+          - "phase-brain-optimize": skills/phase-brain-optimize/SKILL.md
+          - "phase-brain-run": skills/phase-brain-run/SKILL.md
+          - "phase-quiz": skills/phase-quiz/SKILL.md
+          - "phase-fails": skills/phase-fails/SKILL.md
+          - "phase-output": skills/phase-output/SKILL.md
+          - "phase-pipeline": skills/phase-pipeline/SKILL.md
+          - "phase-flowie": skills/phase-flowie/SKILL.md
+          - "phase-hive": skills/phase-hive/SKILL.md
+          - "phase-meeting": skills/phase-meeting/SKILL.md
+          - "phase-search": skills/phase-search/SKILL.md
+          - "wiki-protocol": skills/wiki-protocol/SKILL.md
+      - Utils:
+          - "neuroflow-core": skills/neuroflow-core/SKILL.md
+          - "neuroflow-develop": skills/neuroflow-develop/SKILL.md
+          - "notebooklm": skills/notebooklm/SKILL.md
+          - "pupil-labs-neon-realtime": skills/pupil-labs-neon-realtime/SKILL.md
+          - "setup-guide": skills/setup-guide/SKILL.md
+          - "skill-creator": skills/skill-creator/SKILL.md
+  - Reference:
+      - Integrations: integrations.md
+      - Maintenance: maintenance/automation.md
       - Changelog: changelog.md
-

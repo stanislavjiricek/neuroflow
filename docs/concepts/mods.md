@@ -20,6 +20,60 @@ What became of each idea in the review behind the mod is in the [design record](
 
 ---
 
+## What it looks like
+
+<figure class="nf-shot">
+<div class="nf-term"><span class="dim">&gt;</span> /neuroflow:dashboard
+<div class="nf-pane"><span class="nf-pane__title">neuroflow</span><span class="b">Oddball EEG study · data-analyze · critic</span>
+<span class="nf-key on">phase <i>p</i></span><span class="nf-key">deadlines <i>d</i></span><span class="nf-key">integrity <i>i</i></span><span class="nf-key">tasks <i>t</i></span><span class="nf-key">loop <i>l</i></span>
+
+<span class="ok">✔</span> ideation  <span class="ok">✔</span> preregistration  <span class="ok">✔</span> data  <span class="ok">✔</span> data-preprocess  <span class="b">● data-analyze</span>  <span class="dim">○ paper</span>
+Current: data-analyze — analysis
+<span class="dim">Next: /neuroflow:paper — manuscript</span>
+<span class="dim">● current  ✔ visited  ○ recommended</span>
+
+<span class="nf-key">switch phase <i>s</i></span><span class="nf-key">close <i>c</i></span></div></div>
+<figcaption>The dashboard opens as a pane drawn in code — no model turn, no tokens. Tabs: phase, deadlines, integrity, tasks and the autoresearch loop.</figcaption>
+</figure>
+
+<figure class="nf-shot">
+<div class="nf-term"><div class="nf-pane"><span class="nf-pane__title">integrity</span><span class="ok">✔</span> ethics approved · expires 2027-06-30
+<span class="dim">  participant data the model may read: pseudonymised</span>
+<span class="ok">■</span> preregistration frozen 2026-10-01 · 2 file(s)
+<span class="dim">  planned N: 24</span>
+<span class="ok">■</span> <span class="dim">read-only raw data: sourcedata/</span>
+
+<span class="nf-key">verify <i>v</i></span><span class="nf-key">unfreeze <i>u</i></span><span class="nf-key">close <i>c</i></span></div></div>
+<figcaption>The integrity tab. A person freezes the preregistration here (<code>f</code>, after an explicit yes), re-checks its hashes (<code>v</code>) or unfreezes it with a reason (<code>u</code>).</figcaption>
+</figure>
+
+<figure class="nf-shot">
+<div class="nf-term"><span class="warn">⚠</span> Abstract deadline — tomorrow
+<span class="dim">▸</span> meeting "Lab meeting" today 14:00  <span class="nf-key">prepare <i>p</i></span><span class="nf-key">notes <i>o</i></span>
+<span class="nf-rule"></span><span class="b">&gt;</span> <span class="nf-caret"></span>
+<span class="nf-rule"></span><span class="dim">neuroflow: ⚠ Abstract deadline tomorrow</span><span class="nf-right dim">neuroflow · data-analyze · critic</span></div>
+<figcaption>The band above the prompt names what needs attention and offers its next step; the status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
+</figure>
+
+<figure class="nf-shot">
+<div class="nf-term"><span class="b">●</span> Edit(.neuroflow/preregistration/analysis-plan.md)
+<span class="dim">  ⎿</span>  <span class="warn">neuroflow: .neuroflow/preregistration/analysis-plan.md belongs to the frozen preregistration — record the change in .neuroflow/preregistration/deviations.md instead (/neuroflow:preregistration → Deviation log) [nf-rule: PREREG-FROZEN]</span></div>
+<figcaption>A guard. With <code>guards: enforce</code> the edit is refused with the rule and the way forward; with <code>warn</code> the same sentence is a warning.</figcaption>
+</figure>
+
+<figure class="nf-shot">
+<div class="nf-term"><span class="dim">&gt;</span> /neuroflow:tasks
+<div class="nf-pane"><span class="nf-pane__title">tasks</span>┌─ inbox ──────────┬─ active ─────────┬─ review ────────┐
+│ fix-marker       │ <span class="warn">⚠ rerun-ica @li</span>  │ qc-report       │
+│                  │   due 08-20      │                 │
+│                  │ spin-tests       │                 │
+└──────────────────┴──────────────────┴─────────────────┘
+<span class="dim">[done: 3 · level: project]</span></div></div>
+<figcaption>The project's task board. Pick a card and a column; the move is one command you send.</figcaption>
+</figure>
+
+---
+
 ## What it does
 
 | Feature | What you see | Needs |
