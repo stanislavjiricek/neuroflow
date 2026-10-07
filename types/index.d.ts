@@ -140,6 +140,8 @@ declare module 'claude-code' {
       // <feature:guards>
       /** Whether this machine is an HPC login node (null until the first shell call checks). */
       loginNode: boolean | null
+      /** The /git alias running in this turn (a, c, ac, acp, p, pl, ps, b, pr), for GIT-ALIAS-SCOPE. */
+      gitAlias: string | null
       // </feature:guards>
       // <feature:views>
       dashboardTab: NfDashboardTab

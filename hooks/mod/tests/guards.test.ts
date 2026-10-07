@@ -77,6 +77,20 @@ describe('shell rules', () => {
     expect(shellViolations('git add -A', snap(), { gitignore: '', isLoginNode: false })[0].message).toContain('.gitignore does not exclude')
   })
 
+  test('git -C forms, work-discarding commands, and alias scope', () => {
+    expect(shellViolations('git -C ../other clean -xdf', snap(), ctx)[0].rule).toBe('GIT-NO-SECRETS')
+    expect(shellViolations('git reset --hard HEAD~1', snap(), ctx)[0].level).toBe('ask')
+    expect(shellViolations('git push --force origin main', snap(), ctx)[0].level).toBe('ask')
+    expect(shellViolations('git reset -q -- .neuroflow/sessions/x.md', snap(), ctx)).toEqual([])
+    const ac = { ...ctx, gitAlias: 'ac' }
+    expect(shellViolations('git add . && git reset -q -- integrations.json && git commit -m "x"', snap(), ac)).toEqual([])
+    expect(shellViolations('git push origin main', snap(), ac)[0].rule).toBe('GIT-ALIAS-SCOPE')
+    expect(shellViolations('git -C . pull --rebase', snap(), ac)[0].rule).toBe('GIT-ALIAS-SCOPE')
+    expect(shellViolations('git push', snap(), { ...ctx, gitAlias: 'acp' })).toEqual([])
+    expect(shellViolations('gh pr create --fill', snap(), { ...ctx, gitAlias: 'acp' })[0].rule).toBe('GIT-ALIAS-SCOPE')
+    expect(shellViolations('git push origin main', snap(), ctx)).toEqual([])
+  })
+
   test('raw data, frozen files, uploads, login nodes', () => {
     expect(shellViolations('rm -rf sourcedata/sub-03', snap(), ctx)[0].rule).toBe('RAW-READONLY')
     expect(shellViolations('Remove-Item .\\sourcedata\\sub-03 -Recurse', snap(), ctx)[0].rule).toBe('RAW-READONLY')

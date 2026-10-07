@@ -26,6 +26,7 @@ import { PHASES } from '../lib/phases'
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
 const loginNodeAtom = atom({ plugin: 'neuroflow', key: 'loginNode' } as const, null)
+const gitAliasAtom = atom({ plugin: 'neuroflow', key: 'gitAlias' } as const, null)
 
 export type RuleId =
   | 'PREREG-FROZEN'
@@ -103,23 +104,62 @@ const HEAVY = [
   /\b(fmriprep|mriqc|qsiprep|recon-all|freesurfer|snakemake|nextflow|neuron|nest)\b/i,
 ]
 
+/** The git subcommand of a shell segment (`git -C dir add …` → add), or null when it runs no git. */
+export const gitVerb = (segment: string): string | null =>
+  /\bgit(?:\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+))*\s+([a-z][a-z-]*)\b/.exec(segment)?.[1] ?? null
+
+/** Git verbs a /git alias may run (commands/git.md → Shorthand aliases; alias scope is final). */
+export const ALIAS_ALLOWS: Readonly<Record<string, readonly string[]>> = {
+  a: ['add', 'reset', 'status', 'diff'],
+  c: ['commit', 'status', 'diff'],
+  ac: ['add', 'reset', 'commit', 'status', 'diff'],
+  acp: ['add', 'reset', 'commit', 'push', 'status', 'diff'],
+  p: ['push', 'pull', 'fetch', 'status'],
+  pl: ['pull', 'fetch', 'status'],
+  ps: ['push', 'status'],
+  b: ['branch', 'checkout', 'switch', 'status'],
+  pr: ['push', 'status', 'diff', 'log'],
+}
+
+/** The verbs alias scope watches: everything that changes the index, history or a remote. */
+const GUARDED_VERBS = ['add', 'commit', 'push', 'pull', 'fetch', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'branch', 'tag', 'stash', 'cherry-pick', 'revert']
+
 /** What a shell command would break (best effort: it cannot see inside the scripts it starts). */
 export const shellViolations = (
   command: string,
   snap: NfSnapshot,
-  context: { gitignore: string | null; isLoginNode: boolean },
+  context: { gitignore: string | null; isLoginNode: boolean; gitAlias?: string | null },
 ): Violation[] => {
+  const gitAlias = context.gitAlias ?? null
   const out: Violation[] = []
   const segments = command.split(/&&|\|\||;|\r?\n/).map(part => part.trim()).filter(Boolean)
   for (const segment of segments) {
-    if (/\bgit\s+clean\b/.test(segment) && /\s-[a-zA-Z]*[xX]/.test(segment)) {
+    const verb = gitVerb(segment)
+    if (verb === 'clean' && /\s-[a-zA-Z]*[xX]/.test(segment)) {
       out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: '`git clean -x` deletes ignored files — recordings, local credentials, caches. Use `git clean -n` to preview, then remove files by name' })
     }
-    if (/\bgit\s+add\b/.test(segment)) {
+    const discards =
+      (verb === 'reset' && /\s--hard\b/.test(segment)) ||
+      (verb === 'checkout' && /\s(--\s|\.(\s|$))/.test(segment)) ||
+      (verb === 'push' && /\s(--force\b|-f\b|--force-with-lease\b)/.test(segment)) ||
+      (verb === 'restore' && !/\s--staged\b/.test(segment))
+    if (discards) {
+      out.push({ rule: 'GIT-NO-SECRETS', level: 'ask', message: `\`${segment.slice(0, 80)}\` throws work away — check its dry run or what would be lost first` })
+    }
+    if (gitAlias !== null && verb !== null) {
+      const allowed = ALIAS_ALLOWS[gitAlias]
+      if (allowed !== undefined && GUARDED_VERBS.includes(verb) && !allowed.includes(verb)) {
+        out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} stops at its endpoint — \`git ${verb}\` is beyond it; ask the person for a new instruction` })
+      }
+    }
+    if (gitAlias !== null && /\bgh\s+pr\s+create\b/.test(segment) && gitAlias !== 'pr') {
+      out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} does not open pull requests — ask the person for a new instruction` })
+    }
+    if (verb === 'add') {
       const named = /(integrations\.json|\.neuroflow[\\/](sessions|review|flowie)\b|user\.yaml)/i.exec(segment)
       if (named !== null) {
         out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `${named[1]} is local-only (sessions, confidential reviews, credentials) and must never be committed` })
-      } else if (/\bgit\s+add\s+(-A\b|--all\b|\.(\s|$)|-u\b)/.test(segment)) {
+      } else if (/\sadd\s+(-A\b|--all\b|\.(\s|$)|-u\b)/.test(segment)) {
         const ignored = context.gitignore ?? ''
         const missing = LOCAL_ONLY.filter(path => !ignored.includes(path))
         if (missing.length > 0) {
@@ -216,6 +256,19 @@ const isLoginNode = async ($: EngineInterface): Promise<boolean> => {
 type WriteInput = { file_path?: string; notebook_path?: string; content?: string; new_string?: string; old_string?: string; edits?: { old_string: string; new_string: string }[] }
 
 export const registerGuards = (on: On, opts: NfOptions): void => {
+  // GIT-ALIAS-SCOPE: remember which /git alias this turn runs; its scope ends with the turn.
+  on('command.run', { command: 'neuroflow:git' }, async ($, e, next) => {
+    const alias = e.args.trim().split(/\s+/)[0] ?? ''
+    await update($, gitAliasAtom, () => (alias in ALIAS_ALLOWS ? alias : null))
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
+  on('turn.complete', { reason: ['answer', 'aborted', 'error', 'refusal'] }, async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId === undefined) await update($, gitAliasAtom, () => null)
+    return result
+  }).catch(($, e, next) => next(e))
+
   on('tool.call', { tool: ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'] }, async ($, e, next) => {
     const scope = await read($, scopeAtom)
     const snap = await read($, snapshotAtom)
@@ -256,7 +309,7 @@ export const registerGuards = (on: On, opts: NfOptions): void => {
     const needsGitignore = /\bgit\s+add\b/.test(command)
     const gitignore = needsGitignore ? await $.fs.read(`${scope.root}/.gitignore`).then(text => (typeof text === 'string' ? text : ''), () => '') : null
     const loginNode = HEAVY.some(pattern => pattern.test(command)) ? await isLoginNode($) : false
-    const violations = shellViolations(command, snap, { gitignore, isLoginNode: loginNode })
+    const violations = shellViolations(command, snap, { gitignore, isLoginNode: loginNode, gitAlias: await read($, gitAliasAtom) })
     return decide($, e.tool_use_id, violations, opts, scope.isHeadless, () => next(e)) as ReturnType<typeof next>
   }).catch(($, e, next) => (next.called ? next(e) : mayEnforce(opts) ? { deny: 'neuroflow: a guard could not check this command — try again, or set the neuroflow mod to observe' } : next(e)))
 }
