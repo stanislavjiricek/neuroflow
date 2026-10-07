@@ -21,8 +21,9 @@ export const VERSION_FLOOR = '2.1.292'
 const when = (days: number): string => (days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`)
 
 /** The status line text, or undefined when nothing needs attention. At most three items. */
-export const statusLine = (snap: NfSnapshot, degraded: readonly string[]): string | undefined => {
-  const items: string[] = []
+export const statusLine = (snap: NfSnapshot, degraded: readonly string[], alerts: readonly string[] = []): string | undefined => {
+  // Alerts features raised this session (a frozen file changed, a citation stopped resolving…) come first.
+  const items: string[] = [...alerts]
   if (snap.ethics !== null && (snap.ethics.status === 'expired' || snap.ethics.status === 'withdrawn')) items.push(`⚠ ethics ${snap.ethics.status}`)
   const urgent = snap.deadlines.filter(deadline => deadline.daysLeft <= 3)
   if (urgent.length > 0) items.push(`⚠ ${urgent[0].what} ${when(urgent[0].daysLeft)}${urgent.length > 1 ? ` (+${urgent.length - 1})` : ''}`)

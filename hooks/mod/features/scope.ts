@@ -25,6 +25,7 @@ const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, nul
 const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
 const turnWritesAtom = atom({ plugin: 'neuroflow', key: 'turnWrites' } as const, [])
 const degradedAtom = atom({ plugin: 'neuroflow', key: 'degraded' } as const, [])
+const alertsAtom = atom({ plugin: 'neuroflow', key: 'statusAlerts' } as const, [])
 
 const ioOf = ($: EngineInterface): NfIo => ({
   read: path => $.fs.read(path).then(text => (typeof text === 'string' ? text : null), () => null),
@@ -58,7 +59,8 @@ const showStatus = async ($: EngineInterface): Promise<void> => {
   const scope = await read($, scopeAtom)
   const snapshot = await read($, snapshotAtom)
   const degraded = await read($, degradedAtom)
-  $.ui.status(scope?.isActive && snapshot !== null ? statusLine(snapshot, degraded) : undefined)
+  const alerts = await read($, alertsAtom)
+  $.ui.status(scope?.isActive && snapshot !== null ? statusLine(snapshot, degraded, alerts) : undefined)
 }
 
 export const registerScope = (on: On, _opts: NfOptions): void => {
@@ -70,6 +72,7 @@ export const registerScope = (on: On, _opts: NfOptions): void => {
     await update($, scopeAtom, () => scope)
     await update($, turnWritesAtom, () => [])
     await update($, activeCommandAtom, () => null)
+    await update($, alertsAtom, () => [])
     if (scope.isActive) await refreshSnapshot($)
     await showStatus($)
     return next(e)

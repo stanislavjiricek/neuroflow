@@ -48,7 +48,10 @@ describe('literature watch', () => {
 describe('requires in a session', () => {
   test('a missing required input becomes a note for the model, never a block', { options: { runtime: 'observe' } }, async ($, on) => {
     const root = '/work/proj'
-    fakeFs(on, { [`${root}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nactive_phase: data-analyze\n---\n' }, root)
+    fakeFs(on, {
+      [`${root}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nactive_phase: data-analyze\n---\n',
+      '*/commands/data-analyze.md': '---\nname: data-analyze\nphase: data-analyze\nlifecycle: full\nrequires:\n  - .neuroflow/data-preprocess/preprocess-report.md\nnext:\n  - paper\n---\n',
+    }, root)
     mock.env(on, { HOME: '/home/me' })
     mock.clock(on, { now: 0 })
     on('session.start', ($, e) => ({ cwd: e.cwd }))

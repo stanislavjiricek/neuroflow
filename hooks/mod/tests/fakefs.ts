@@ -15,13 +15,21 @@ export const fakeFs = (on: On, initial: Record<string, string>, cwd = '/work/pro
   const fs: FakeFs = { files: Object.fromEntries(Object.entries(initial).map(([path, text]) => [fsKey(path), text])), writes: [] }
   const abs = (path: string): string => (fsKey(path).startsWith('/') ? fsKey(path) : fsKey(`${cwd}/${path}`))
   const isDir = (path: string): boolean => Object.keys(fs.files).some(file => file.startsWith(`${abs(path)}/`))
+  // A key starting with `*/` matches any path ending in the rest — for the plugin's own files, whose
+  // root differs per machine (`*/commands/data-analyze.md`).
+  const lookup = (path: string): string | undefined => {
+    const key = abs(path)
+    if (key in fs.files) return fs.files[key]
+    const pattern = Object.keys(fs.files).find(file => file.startsWith('*/') && key.endsWith(file.slice(1)))
+    return pattern === undefined ? undefined : fs.files[pattern]
+  }
 
   on('fs.read', ($, e) => {
-    const text = fs.files[abs(e.path)]
+    const text = lookup(e.path)
     if (text === undefined) throw new Error(`ENOENT: ${e.path}`)
     return { value: text }
   })
-  on('fs.exists', ($, e) => ({ value: abs(e.path) in fs.files || isDir(e.path) }))
+  on('fs.exists', ($, e) => ({ value: lookup(e.path) !== undefined || isDir(e.path) }))
   on('fs.write', ($, e) => {
     fs.files[abs(e.path)] = e.text
     fs.writes.push(abs(e.path))

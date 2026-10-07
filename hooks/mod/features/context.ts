@@ -12,10 +12,11 @@ import type { NfOptions } from '../lib/options'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
+const loginNodeAtom = atom({ plugin: 'neuroflow', key: 'loginNode' } as const, null)
 
-/** The footer label: phase and, when set, the personality mode. */
-export const footerLabel = (snap: NfSnapshot): string =>
-  ['neuroflow', snap.phase ?? 'no phase', snap.mode].filter(Boolean).join(' · ')
+/** The footer label: phase, the personality mode when set, and a reminder on an HPC login node. */
+export const footerLabel = (snap: NfSnapshot, loginNode = false): string =>
+  ['neuroflow', snap.phase ?? 'no phase', snap.mode, loginNode ? 'login node' : null].filter(Boolean).join(' · ')
 
 /** The one system-prompt section. Byte-identical while the config does not change. */
 export const identitySection = (snap: NfSnapshot): string =>
@@ -31,7 +32,7 @@ export const registerContext = (on: On, _opts: NfOptions): void => {
     const scope = await read($, scopeAtom)
     const snap = await read($, snapshotAtom)
     if (!scope?.isActive || snap === null) return next(e)
-    return next({ ...e, props: { ...e.props, modes: [...e.props.modes, footerLabel(snap)] } })
+    return next({ ...e, props: { ...e.props, modes: [...e.props.modes, footerLabel(snap, (await read($, loginNodeAtom)) === true)] } })
   }).catch(($, e, next) => next(e))
 
   on('prompt.compose', async ($, e, next) => {

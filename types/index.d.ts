@@ -81,6 +81,8 @@ export type NfSnapshot = {
   meetings: NfMeeting[]
   /** Self-reported wellbeing is switched on in flowie and today's entry is missing (no scores are ever kept here). */
   wellbeingDue: boolean
+  /** `ethics: not-applicable` in the config: no participants needing a tracked approval. */
+  ethicsNotApplicable: boolean
   /** Things the loader could not read or understand, in plain words. */
   problems: string[]
   loadedAt: number
@@ -153,6 +155,8 @@ declare module 'claude-code' {
       turnWrites: string[]
       /** Features that could not do their job this session, for the status line and doctor. */
       degraded: string[]
+      /** Short alerts features raise for the status line (a frozen file changed, a DOI does not resolve…). */
+      statusAlerts: string[]
       // Feature slices: each feature file owns the keys between its markers.
       // <feature:context>
       // </feature:context>
@@ -169,6 +173,8 @@ declare module 'claude-code' {
       loginNode: boolean | null
       /** The /git alias running in this turn (a, c, ac, acp, p, pl, ps, b, pr), for GIT-ALIAS-SCOPE. */
       gitAlias: string | null
+      /** The documented .neuroflow/ structure from nf_check.py --structure (null until read). */
+      memoryStructure: { rootFiles: string[]; rootFolders: string[] } | null
       // </feature:guards>
       // <feature:views>
       dashboardTab: NfDashboardTab

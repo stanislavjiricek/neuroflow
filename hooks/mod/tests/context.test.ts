@@ -10,6 +10,7 @@ describe('context', () => {
   test('footer label and identity section are short and stable', () => {
     expect(footerLabel(snap)).toBe('neuroflow · data-analyze · critic')
     expect(footerLabel({ ...snap, mode: null })).toBe('neuroflow · data-analyze')
+    expect(footerLabel(snap, true)).toBe('neuroflow · data-analyze · critic · login node')
     expect(identitySection(snap)).toBe(identitySection({ ...snap }))
     expect(identitySection(snap).split('\n')).toHaveLength(4)
     expect(identitySection(snap)).toContain('active phase: data-analyze · mode: critic.')

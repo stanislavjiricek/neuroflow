@@ -25,6 +25,7 @@ const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   loops: [],
   meetings: [],
   wellbeingDue: false,
+  ethicsNotApplicable: false,
   problems: [],
   loadedAt: 0,
   ...over,

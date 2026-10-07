@@ -54,7 +54,8 @@ describe('driving in a session', () => {
       { exitCode: 0, stdout: JSON.stringify({ findings: [] }), stderr: '' },
       { exitCode: 1, stdout: JSON.stringify({ findings: [{ kind: 'cap', detail: 'max_iterations reached' }] }), stderr: '' },
     ]
-    on('process.run', () => ({ value: statuses.shift() ?? { exitCode: 2, stdout: '', stderr: 'x' } }))
+    // Only ar.py answers from the queue; other scripts (the guards' start checks) find no Python.
+    on('process.run', ($, e) => ({ value: (/ar\.py/.test(JSON.stringify(e)) ? statuses.shift() : undefined) ?? { exitCode: 2, stdout: '', stderr: 'x' } }))
     let ranProse = ''
     on('command.run', ($, e) => {
       ranProse = (e as { args: string }).args

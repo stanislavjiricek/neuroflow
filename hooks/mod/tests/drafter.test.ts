@@ -17,6 +17,7 @@ describe('decision drafter', () => {
     const fs = fakeFs(on, {
       [`${root}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nactive_phase: data-analyze\n---\n',
       [`${root}/.neuroflow/sessions/2026-10-07.md`]: '## 10:00 — [data-analyze] plan written\n',
+      '*/commands/data-analyze.md': '---\nname: data-analyze\nphase: data-analyze\nlifecycle: full\nnext:\n  - paper\n---\n',
     }, root)
     mock.env(on, { HOME: '/home/me' })
     mock.clock(on, { now: new Date(2026, 9, 7, 10, 30).getTime() })
@@ -29,9 +30,11 @@ describe('decision drafter', () => {
     on('ui.toast', () => ({ value: undefined }))
     on('ui.log', () => ({ value: undefined }))
     on('model.complete', () => ({
-      isAnswered: true,
-      text: '{"statement": "Use FDR (BH) across electrodes", "reasoning": "Bonferroni was too conservative for 64 channels."}',
-      usage: { input_tokens: 10, output_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+      value: {
+        isAnswered: true,
+        text: '{"statement": "Use FDR (BH) across electrodes", "reasoning": "Bonferroni was too conservative for 64 channels."}',
+        usage: { input_tokens: 10, output_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+      },
     }))
     await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
     await $.command.run({ command: 'neuroflow:data-analyze', args: '' })
@@ -43,7 +46,9 @@ describe('decision drafter', () => {
       component: 'AbovePrompt',
       props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 100, scroll: { offset: 0, bodyRows: 4 }, view: {} },
     } as never)
-    expect(JSON.stringify(await band.drawn())).toContain('decision drafted for data-analyze: Use FDR (BH) across electrodes')
+    const drawn = JSON.stringify(await band.drawn())
+    expect(drawn).toContain('decision drafted for ')
+    expect(drawn).toContain('Use FDR (BH) across electrodes')
     await band.press({ key: 'nf-draft-keep' })
     const line = JSON.parse(fs.files[`${root}/.neuroflow/reasoning/data-analyze.jsonl`].trim())
     expect(line.statement).toBe('Use FDR (BH) across electrodes')

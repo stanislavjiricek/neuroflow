@@ -217,6 +217,7 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     loops,
     meetings,
     wellbeingDue,
+    ethicsNotApplicable: asString(config.ethics) === 'not-applicable',
     problems,
     loadedAt: nowMs,
   }

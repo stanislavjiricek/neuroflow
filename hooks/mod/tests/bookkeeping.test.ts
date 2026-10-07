@@ -29,6 +29,7 @@ describe('status', () => {
   test('silent when nothing needs attention, short when something does', () => {
     const base = { ethics: null, prereg: null, deadlines: [], problems: [] } as unknown as NfSnapshot
     expect(statusLine(base, [])).toBe(undefined)
+    expect(statusLine(base, [], ['⚠ frozen preregistration changed'])).toBe('neuroflow: ⚠ frozen preregistration changed')
     const busy = { ...base, deadlines: [{ date: '2026-10-08', what: 'Abstract', gates: null, daysLeft: 1 }, { date: '2026-10-09', what: 'Poster', gates: null, daysLeft: 2 }], problems: ['legacy'] } as NfSnapshot
     expect(statusLine(busy, ['guards'])).toBe('neuroflow: ⚠ Abstract tomorrow (+1) · ! config needs attention — /neuroflow:doctor · ! mod: 1 feature(s) degraded — /neuroflow:doctor')
   })

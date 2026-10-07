@@ -137,12 +137,34 @@ promise in a research setting.
 
 ---
 
+## The guards
+
+Each guard enforces a rule a skill or command already states next to its `<!-- nf-rule: ID -->` marker. The last
+column is what happens with `runtime: on` and `guards: enforce`; otherwise every guard only says what it would have
+done. A guard that would ask denies instead in a headless run, where nobody is there to confirm.
+
+| Rule | What the guard checks | With `enforce` |
+|---|---|---|
+| `PREREG-FROZEN` | Writes to the files of a preregistration a person froze; changes to earlier entries of `deviations.md` while it is frozen (new entries are appended) | deny |
+| `RAW-READONLY` | Changing, moving or deleting an existing file under `raw_roots` (`sourcedata/` while unset); new recordings may be added | deny |
+| `PARTICIPANT-ROUTE` | The model reading participant data (recordings, `participants.tsv` rows) when `ai_processing` is `none`, missing, or not set by a person; sidecar JSON and a table's header row are fine | deny — a warning when the project has no ethics record yet |
+| `GIT-NO-SECRETS` | `git clean -x`, staging local-only files, `git add -A` while `.gitignore` lacks the local-only lines; commands that throw work away (`reset --hard`, force push) | deny — ask for discards |
+| `GIT-ALIAS-SCOPE` | A git verb beyond the endpoint of the running `/git` alias | deny |
+| `INTEGRITY-MARKER` | The model writing `set_by: person` into an ethics or preregistration status file | ask |
+| `EGRESS-CONFIRM` | Uploads to outside services (NotebookLM sources) | ask |
+| `LOGIN-NODE` | Heavy compute on an HPC login node (a scheduler on `PATH`, no job around the session) | ask |
+| `MEMORY-PURITY` | Files outside the documented `.neuroflow/` structure (read from `nf_check.py --structure`), deliverables inside it | warn |
+
+At session start the mod also re-hashes a frozen preregistration (`freeze.py verify`) and puts a changed file on the
+status line, and the footer says `login node` on a cluster login node.
+
 ## Doors the guards cannot close
 
-Guards see tool calls Claude Code routes through hooks. They cannot see or stop:
+Guards see tool calls Claude Code routes through hooks, and they read shell commands by pattern only. They cannot see
+or stop:
 
 - what a Python, R or MATLAB script writes once it runs, or what a shell command does inside its own process;
-- other shells and tools (PowerShell, Monitor), other plugins, and MCP servers acting on their own;
+- commands started in other ways (Monitor, a terminal of your own), other plugins, and MCP servers acting on their own;
 - `@`-mentions, pasted text and dragged files, which reach the model without a tool call;
 - network shares and synced folders where file identity is unreliable;
 - work done outside Claude Code, or in a session where the module did not load.
