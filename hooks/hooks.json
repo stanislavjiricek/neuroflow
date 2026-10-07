@@ -1,6 +1,28 @@
 {
-  "description": "neuroflow hooks",
+  "description": "neuroflow hooks: shell hooks for every Claude Code user, plus the optional neuroflow mod (hooks module)",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__plugin_neuroflow_biorxiv__(search_scihub|check_scihub_mirrors)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat >/dev/null; printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"neuroflow never uses Sci-Hub. Use an open-access route (download_paper with arxiv, biorxiv, medrxiv or semantic; download_public_paper with platform publisher) or institutional library access.\"}}'; true",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_neuroflow_biorxiv__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "in=$(cat); printf '%s' \"$in\" | grep -Eq '\"platform\"[[:space:]]*:[[:space:]]*\"scihub\"' && printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"neuroflow never uses Sci-Hub (platform scihub). Use an open-access route or institutional library access.\"}}'; true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -12,11 +34,19 @@
           },
           {
             "type": "command",
-            "command": "in=$(cat); f=$(printf '%s' \"$in\" | jq -r '.tool_input.file_path // empty' 2>/dev/null); [ -n \"$f\" ] || f=$(printf '%s' \"$in\" | python -c \"import sys,json;print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))\" 2>/dev/null); f=$(printf '%s' \"$f\" | tr '\\\\' '/'); case \"$f\" in */.neuroflow/flowie/*) d=\"${f%%/.neuroflow/*}/.neuroflow/flowie\"; [ -d \"$d/.git\" ] && { git -C \"$d\" add -A; git -C \"$d\" reset -q -- integrations.json; git -C \"$d\" commit -m \"sync: auto\"; git -C \"$d\" push; } >/dev/null 2>&1;; esac; true",
+            "command": "in=$(cat); f=$(printf '%s' \"$in\" | jq -r '.tool_input.file_path // empty' 2>/dev/null); [ -n \"$f\" ] || f=$(printf '%s' \"$in\" | python -c \"import sys,json;print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))\" 2>/dev/null); f=$(printf '%s' \"$f\" | tr '\\\\' '/'); case \"$f\" in */.neuroflow/flowie/*) h=\"${f%%/.neuroflow/*}/.neuroflow\"; d=\"$h/flowie\"; g=\"$d/.git\"; r=\"${f#\"$d\"/}\"; case \"$r\" in integrations.json|*/integrations.json|.git/*) ;; *) if [ -d \"$g\" ]; then export GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never; e=; if [ -d \"$g/rebase-merge\" ] || [ -d \"$g/rebase-apply\" ] || [ -f \"$g/MERGE_HEAD\" ]; then e=\"skipped (rebase or merge in progress)\"; elif ! git -C \"$d\" check-ignore -q -- \"$r\"; then { git -C \"$d\" add -- \"$r\" && { git -C \"$d\" diff --cached --quiet -- \"$r\" || git -C \"$d\" commit -q -m \"sync: auto $r\" -- \"$r\"; }; } >/dev/null 2>&1 || e=\"commit failed\"; if git -C \"$d\" pull --rebase -q >/dev/null 2>&1; then git -C \"$d\" push -q >/dev/null 2>&1 || e=\"${e:-push failed}\"; else { [ -d \"$g/rebase-merge\" ] || [ -d \"$g/rebase-apply\" ]; } && git -C \"$d\" rebase --abort >/dev/null 2>&1; e=\"${e:-pull failed}\"; fi; fi; [ -z \"$e\" ] || printf '%s %s: %s\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \"$e\" \"$r\" >> \"$h/flowie-sync.log\"; fi;; esac;; esac; true",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "in=$(cat); f=$(printf '%s' \"$in\" | python -c \"import sys,json;print(json.load(sys.stdin).get('tool_input',{}).get('file_path',''))\" 2>/dev/null); f=$(printf '%s' \"$f\" | tr '\\\\' '/'); case \"$f\" in */paradigm/*.py|*.psyexp) python \"${CLAUDE_PLUGIN_ROOT}/skills/phase-experiment/scripts/psychopy_audit.py\" \"$f\" --hook 2>/dev/null;; esac; true",
+            "timeout": 15
           }
         ]
       }
     ]
-  }
+  },
+  "modules": [
+    "./mod/neuroflow.ts"
+  ]
 }

@@ -6,9 +6,51 @@ title: Changelog
 
 ---
 
+## 0.2.22
+
+**The neuroflow mod** (optional Claude Code hooks module — see [The neuroflow mod](concepts/mods.md))
+
+- Views drawn by code at zero tokens: a dashboard pane (phase map, deadlines, integrity, tasks, autoresearch loop with a quality sparkline and open questions), a phase picker for `/neuroflow:phase`, a task board for `/neuroflow:tasks`, a one-line band above the prompt that speaks only when something needs attention (deadlines, expired approvals, meetings with prepare/notes/close keys, an opt-in wellbeing check-in), an exception-only status line, a footer label, and one stable identity section in the system prompt
+- `/neuroflow:doctor` answered instantly when the mod is live; bookkeeping gaps (missing session lines, flow.md rows) filled and marked `(auto)`; a decision drafter that proposes one reasoning entry after a command that logged none, written only after a keep press
+- Zero-turn capture: `idea: …` and `/notes --idea` go straight to the inbox; live note capture writes each message verbatim without reaching the model
+- An autoresearch driver: `/autoresearch drive {name}` runs one iteration per turn and checks the caps with `ar.py status` between turns, with a visible stop control
+- Guards with an observe → warn → ask → deny ladder: frozen preregistrations, read-only raw data, local-only files and `git clean -x`, git alias scope, participant data the ethics record keeps from the model, heavy compute on HPC login nodes, model-forged integrity markers, uploads to outside services
+- A 30-rule charter, settings (`runtime`, `guards`, `band`, `citations`), and the list of doors guards cannot close
+
+**Research integrity**
+
+- Autoresearch: an integrity gate for loops that touch analysis code (confirmatory on blind inputs with outcome-blind criteria, or exploratory with forked scripts and a multiverse ledger); caps and stop conditions (`max_iterations`, `max_wall_clock`, `max_cost`, `max_consecutive_errors`); `ar.py` transaction bookkeeping with tests
+- `/preregistration` Freeze mode (hashes via `freeze.py`, banner, append-only deviations, `planned_n`, a machine-readable parameters block); `/data` and `/experiment` check the ethics status before data collection; `/ethics` records whether the AI model may read participant data and handles erasure requests
+- `/paper --submit` drafts an AI-use statement from evidence plus an acknowledgements line and runs citation (`cite_check.py`: DOI resolves, retraction notices), statistics (`statcheck.py`) and figure checks; `--revise` audits every change against reviewer comments; `--coauthor` round-trips Word comments; `--xray` gives a per-sentence analysis; `--auto` keeps a living paper skeleton
+- `/review` asks about the journal's AI policy first, keeps manuscripts local, and scans for hidden instructions (`hidden_text_scan.py`); the humanizer is style editing on request, never a way to hide AI use
+
+**Project memory contracts**
+
+- `project_config.md` frontmatter with `nf_schema`; integrity status files with `set_by`; reasoning logs as JSON Lines; union-merge lines and a conflict tripwire; sharing tiers with confirmed egress; command `lifecycle` / `requires` / `produces` / `next` keys; rule markers
+- New `/neuroflow:migrate` (with `migrate.py`) for older projects, an idempotent `scaffold.py`, personal preferences and consents in `~/.neuroflow/user.yaml`, and a read-only project checker `nf_check.py` used by `/sentinel`
+
+**Science scripts** (portable Python, each with unit tests)
+
+- Data and analysis: `nf_provenance.py`, `qc_table.py`, `multiverse.py`, `cleanroom.py`, `blind_labels.py`, `bids_digest.py`, `erasure_sweep.py`
+- Experiments and tools: `psychopy_audit.py`, `allocation.py`, `timing_check.py`, `xdf_check.py`, `lsl_check.py`
+- Modelling and HPC: `smoke_test.py`, `sweep_run.py`, `runs.py`, SLURM and PBS job templates, a long-run convention
+- Sharing: `export.py`, `header_scan.py`, `history_audit.py`, `handoff.py`, `pii_scan.py`; collaboration: `meeting_close.py`, `ledger.py`; health: `doctor.py`
+
+**Literature and collaboration**
+
+- Search protocol and scholar rewritten against the bundled server's current tools; open-access downloads only, Sci-Hub blocked by a hook and in the server; DOI labels name the check done; a standing-query watch list
+- One task format at every level; `/meeting --notes` and `--close`; flowie sync by path with pull before push and a failure log; hive dataset errata, review checklist and `--doctor`
+
+**Platform**
+
+- neuroflow targets Claude Code only: one static project instruction block in `.claude/CLAUDE.md` (never the global file); Copilot and other-host files removed
+- Provider-neutral custom gateway guide; Miro moved out of the manifest and added by the user with `claude mcp add`; MCP servers pinned
+- One implementation per repository check (`repo_checks.py`, V1–V15) for CI and sentinel-dev; `bump_version.py`; fixed YAML frontmatter of two critic agents whose fields were silently dropped
+- New commands: `/dashboard`, `/doctor`, `/migrate`
+
 ## 0.2.21
 
-- **Consistency overhaul from a full plugin review** — hooks rewritten against the real stdin-JSON contract (both were silently dead); one canonical credentials scheme (global `~/.neuroflow/integrations.json` + per-project override, flowie non-secrets only); one canonical phase taxonomy in `neuroflow-core` replacing four divergent copies; eight-area review methodology everywhere; `/setup` step numbering fixed; dead references purged (`linked_flows.md`, ghost agents, `/export`, `--share`); e-INFRA guide rewritten for the native Anthropic gateway (no proxy needed)
+- **Consistency overhaul from a full plugin review** — hooks rewritten against the real stdin-JSON contract (both were silently dead); one canonical credentials scheme (global `~/.neuroflow/integrations.json` + per-project override, flowie non-secrets only); one canonical phase taxonomy in `neuroflow-core` replacing four divergent copies; eight-area review methodology everywhere; `/setup` step numbering fixed; dead references purged (`linked_flows.md`, ghost agents, `/export`, `--share`); custom gateway guide rewritten for native Anthropic-compatible gateways (no proxy needed)
 - **Lifecycle enforcement** — missing-`.neuroflow/` global rule + one canonical session-log format in core; new PR-time CI (`validate.yml` + `validate_pr.py`: JSON validity, frontmatter schema, phase values against the canonical taxonomy, docs pages, version-bump gate); sentinel-dev checks 2/5/7/10/12 implemented in `sentinel_check.py`; mind-map check aligned to the concept-map design; audit agents (`paper-critic`, `poster-critic`, `sentinel`, `sentinel-dev`, `literature-review`) get `tools:` allowlists
 - **Science-PM surface** — new `/ethics` and `/tasks` commands; `/paper --submit` / `--revise` (strict minimal-change rebuttal discipline) / `--abstract`; `/output --archive` with de-identification checklist and DOI recording; DMP drafting in `/grant-proposal`; `objectives.md`/`timeline.md` created by `/neuroflow` and rendered by `/phase`; reproducibility manifests in data phases; deliverables moved out of `.neuroflow/` (poster/slides/tests/reports); wikis guaranteed Obsidian-vault-compatible; optional Zotero-first literature search in `/ideation`
 
@@ -84,8 +126,8 @@ title: Changelog
 ## 0.2.10
 
 - **Global device config** ([`/setup`](commands/setup.md)) — credentials can now be saved once to `~/.neuroflow/integrations.json` (global, all projects) or per-project; per-project takes precedence; Step 0 of the wizard asks which scope to use; per-project config still gitignored as before
-- **Windows support** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup/SKILL.md), and the [e-INFRA reference](skills/setup/references/einfra-cc.md) now cover Windows paths (`%USERPROFILE%`), PowerShell env var syntax, and `where gws` detection throughout
-- **Proxy model-name fix** ([`proxy.mjs`](skills/setup/scripts/einfra/proxy.mjs)) — proxy now patches `model` field in every response chunk back to the original `claude-*` name, preventing Claude Code's *"unexpected model"* error when using custom LLM providers via Mode B
+- **Windows support** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup/SKILL.md), and the [custom gateway guide](skills/setup/references/custom-gateway.md) now cover Windows paths (`%USERPROFILE%`), PowerShell env var syntax, and `where gws` detection throughout
+- **Proxy model-name fix** ([`proxy.mjs`](skills/setup/scripts/gateway/proxy.mjs)) — proxy now patches `model` field in every response chunk back to the original `claude-*` name, preventing Claude Code's *"unexpected model"* error when using custom LLM providers via Mode B
 - **`integrations.json` gitignore in flowie** — [`flowie`](agents/flowie.md) agent now requires `integrations.json` to be gitignored in the flowie sync repo; warns before any push if it is missing; added to plugin `.gitignore` as well
 
 ---
@@ -93,8 +135,8 @@ title: Changelog
 ## 0.2.9
 
 - **New [`neuroflow:setup`](skills/setup/SKILL.md) skill** — agent-facing knowledge for all neuroflow integrations (PubMed, Miro, Google Workspace, custom LLM providers); mirrors the `/setup` wizard logic so agents can guide credential setup without running the command
-- **New e-INFRA CC integration** — [`einfra-cc` reference](skills/setup/references/einfra-cc.md) documents the Czech e-INFRA CZ free LLM API for Claude Code; covers direct mode, proxy mode (with `proxy.mjs` script), available models table, and full terminal workflow; available to Czech academic researchers via Metacentrum membership only
-- **`/setup` Step 5** — new optional custom LLM provider wizard; saves non-secret settings to `integrations.json` and optionally to the linked flowie profile for cross-machine sync; e-INFRA is documented as the Czech-specific example
+- **Custom LLM gateway integration** — a [gateway guide](skills/setup/references/custom-gateway.md) documents connecting Claude Code to an Anthropic-compatible gateway; covers direct mode, proxy mode (with the `proxy.mjs` script), model aliases, and the full terminal workflow
+- **`/setup` Step 5** — new optional custom LLM provider wizard; saves non-secret settings to `integrations.json` and optionally to the linked flowie profile for cross-machine sync; an Anthropic-compatible gateway is documented as the example
 - **Sequential search pipeline** — the `scholar` agent now searches PubMed first, then bioRxiv, then fallbacks one at a time; was previously firing all sources simultaneously; reduces API contention and makes individual source failures easier to diagnose
 - **Batch-2 downloads** — paper downloads are now processed in batches of 2 rather than all at once; limits concurrent network requests and improves reliability on slow or rate-limited connections
 - **Ideation workflow note** — `/ideation` command and `neuroflow:phase-ideation` skill now document the sequential search approach in their workflow guidance

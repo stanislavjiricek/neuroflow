@@ -49,7 +49,7 @@
     {
       id: "c-memory",   label: "Project Memory",       category: "project",
       desc: "Per-project knowledge store at .neuroflow/ — sessions, reasoning logs, flow index, phase subfolders, objectives. The persistent brain every command reads and writes.",
-      commands: ["/neuroflow", "/setup", "/phase"],
+      commands: ["/neuroflow", "/setup", "/phase", "/migrate", "/dashboard"],
       url: "concepts/project-memory/"
     },
 
@@ -147,12 +147,12 @@
     {
       id: "c-quality",    label: "Quality & Audit",   category: "utilities",
       desc: "Sentinel (consistency checks on .neuroflow/ structure, preregistration drift, sensitive data) plus sentinel-dev guarding the plugin repo itself, fails log (structured failure reports), and tool validation.",
-      commands: ["/sentinel", "/fails", "/tool-validate"],
+      commands: ["/sentinel", "/doctor", "/fails", "/tool-validate"],
       url: "commands/sentinel/"
     },
     {
       id: "c-automation", label: "Automation",        category: "utilities",
-      desc: "Autoresearch infinite single-agent loop with a per-loop wiki as its memory (any artifact, any phase; branching, literature search, human Q&A, live dashboard), multi-step pipeline orchestration, and hook triggers on tool events.",
+      desc: "Autoresearch single-agent improvement loop with caps and a per-loop wiki as its memory (any artifact, any phase; integrity gate for analysis code, branching, literature search, human Q&A, live dashboard, one iteration per turn with the neuroflow mod), multi-step pipeline orchestration, and hook triggers on tool events.",
       commands: ["/autoresearch", "/pipeline"],
       url: "commands/autoresearch/"
     },

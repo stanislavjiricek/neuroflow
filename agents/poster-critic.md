@@ -1,7 +1,7 @@
 ---
 name: poster-critic
 tools: Read, Glob, Grep
-description: Hyper-critical academic conference poster reviewer. Evaluates the LaTeX poster `.tex` source, its compile log and a rendered preview image of the compiled poster against design, content, and communication standards. Returns [STATUS: APPROVED] or [STATUS: REJECTED] with specific, actionable feedback. Used by /poster in the iterative worker-critic loop (max 3 cycles). Never produces content — only audits.
+description: "Hyper-critical academic conference poster reviewer. Evaluates the LaTeX poster `.tex` source, its compile log and a rendered preview image of the compiled poster against design, content, and communication standards. Returns [STATUS: APPROVED] or [STATUS: REJECTED] with specific, actionable feedback. Used by /poster in the iterative worker-critic loop (max 3 cycles). Never produces content — only audits."
 ---
 
 # poster-critic

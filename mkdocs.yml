@@ -122,6 +122,7 @@ nav:
       - Agents: concepts/agents.md
       - Skills: concepts/skills.md
       - Hooks: concepts/hooks.md
+      - The neuroflow mod: concepts/mods.md
       - Personal Profile:
           - "👤 Research Profile": commands/flowie.md
           - "🧠 Personal Wiki": skills/wiki/SKILL.md
@@ -133,7 +134,10 @@ nav:
           - "🚀 neuroflow": commands/neuroflow.md
           - "⚙️ setup": commands/setup.md
           - "📍 phase": commands/phase.md
+          - "🔄 migrate": commands/migrate.md
+          - "🩺 doctor": commands/doctor.md
           - "✅ tasks": commands/tasks.md
+          - "🧭 dashboard": commands/dashboard.md
       - Research Pipeline:
           - "💡 Discovery": commands/ideation.md
           - "🔍 Search": commands/search.md

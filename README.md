@@ -9,6 +9,7 @@
     <a href="#skills">Skills</a> ·
     <a href="#agents">Agents</a> ·
     <a href="#hooks">Hooks</a> ·
+    <a href="#the-neuroflow-mod">Mod</a> ·
     <a href="#project-memory">Project memory</a> ·
     <a href="#installation">Install</a> ·
     <a href="#contributing">Contribute</a>
@@ -17,9 +18,15 @@
 
 ---
 
+## What's new in 0.2.22
+
+- **The neuroflow mod** — an optional [Claude Code hooks module](docs/concepts/mods.md) layered on the plugin: a [dashboard](commands/dashboard.md) pane, a phase picker, a task board, a quiet one-line band and status line, an instant [`/doctor`](commands/doctor.md), note and idea capture without model turns, an autoresearch driver that runs one iteration per turn under its caps, a decision drafter you approve with one key, and guards for the rules the skills state (frozen preregistrations, read-only raw data, local-only files, participant-data routes, login nodes, git alias scope). Everything still works without it; a 30-rule charter keeps it quiet, honest and removable
+- **Research integrity and machine-readable project memory** — an [autoresearch](skills/autoresearch/SKILL.md) integrity gate (confirmatory vs exploratory, multiverse ledger), caps and a tested `ar.py`; preregistration freezing with hashes; an ethics gate and AI data-route field; AI-use disclosure at submission; citation, statistics, revision and hidden-text checks; config, status and reasoning-log contracts with [`/migrate`](commands/migrate.md); sharing tiers with confirmed egress
+- **Claude Code only, provider-neutral, tested** — one static project instruction block (never in your global CLAUDE.md); 40+ portable Python checks with unit tests (provenance, QC tables, clean-room reruns, PsychoPy audit, timing and stream checks, exporters and audits); pinned MCP servers with Sci-Hub blocked; a provider-neutral gateway guide; one implementation per repository check, enforced in CI
+
 ## What's new in 0.2.21
 
-- **Consistency overhaul from a full plugin review** — both [hooks](hooks/hooks.json) rewritten against the real stdin-JSON contract (they were silently dead), one canonical credentials scheme (`~/.neuroflow/integrations.json` global + per-project override; flowie carries non-secrets only), one canonical [phase taxonomy](skills/neuroflow-core/SKILL.md) replacing four divergent copies, eight-area review everywhere, `/setup` renumbered, dead references purged, [e-INFRA setup](skills/setup/references/einfra-cc.md) rewritten for the native Anthropic gateway (no proxy)
+- **Consistency overhaul from a full plugin review** — both [hooks](hooks/hooks.json) rewritten against the real stdin-JSON contract (they were silently dead), one canonical credentials scheme (`~/.neuroflow/integrations.json` global + per-project override; flowie carries non-secrets only), one canonical [phase taxonomy](skills/neuroflow-core/SKILL.md) replacing four divergent copies, eight-area review everywhere, `/setup` renumbered, dead references purged, [custom gateway setup](skills/setup/references/custom-gateway.md) rewritten for native Anthropic-compatible gateways (no proxy)
 - **Lifecycle enforcement** — [`neuroflow-core`](skills/neuroflow-core/SKILL.md) gains the missing-`.neuroflow/` rule and one canonical session-log format; new PR-time CI ([`validate.yml`](.github/workflows/validate.yml) + [`validate_pr.py`](scripts/automation/validate_pr.py)); five previously prose-only sentinel-dev checks now run in CI; audit agents get `tools:` allowlists
 - **Science-PM surface** — new [`/ethics`](commands/ethics.md) (protocol, versioned consent, approval expiry) and [`/tasks`](commands/tasks.md) (canonical 3-tier Kanban owner); [`/paper`](commands/paper.md) grows `--submit`, `--revise` (strict minimal-change rebuttal discipline), and `--abstract`; [`/output --archive`](commands/output.md) (OpenNeuro/OSF/Zenodo + DOI); DMP drafting in [`/grant-proposal`](commands/grant-proposal.md); `objectives.md`/`timeline.md` ownership; reproducibility manifests in the data phases; wikis are valid Obsidian vaults; optional Zotero-first literature search in [`/ideation`](commands/ideation.md)
 
@@ -77,7 +84,7 @@
 ## What's new in 0.2.10
 
 - **Global device config** ([`/setup`](commands/setup.md)) — credentials can now be saved to `~/.neuroflow/integrations.json` (global, shared by all projects on the machine) instead of per-project; per-project still takes precedence and overrides global; Step 0 of the wizard asks which scope to use
-- **Windows support in setup** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup/SKILL.md), and the [e-INFRA reference](skills/setup/references/einfra-cc.md) now include Windows-specific paths and PowerShell env var syntax throughout
+- **Windows support in setup** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup/SKILL.md), and the [custom gateway guide](skills/setup/references/custom-gateway.md) now include Windows-specific paths and PowerShell env var syntax throughout
 - **Proxy model-name fix** ([`proxy.mjs`](skills/setup/scripts/proxy.mjs)) — the proxy now restores the original `claude-*` model name in every response chunk, preventing Claude Code's *"unexpected model"* error when using custom LLM providers; [`flowie`](agents/flowie.md) now enforces that `integrations.json` is gitignored in the flowie sync repo
 
 ## What's new in 0.2.8
@@ -101,8 +108,8 @@
 ## What's new in 0.2.4
 
 - **Sentinel Check 3b** — sentinel now validates that `.claude-plugin/marketplace.json` version matches `plugin.json`; the marketplace version was silently stuck at `0.1.0` with no existing check to catch it
-- **Hardened release checklist** — both [`neuroflow-developer.md`](.github/agents/neuroflow-developer.md) and [`neuroflow-develop/SKILL.md`](skills/neuroflow-develop/SKILL.md) now require `docs/changelog.md` entry, one-liner review, and `marketplace.json` bump on every release; `SKILL.md` synced to match `neuroflow-developer.md` (was missing `mkdocs.yml` and sentinel-dev steps)
-- **Internal consistency fixes** — dead `neuroflow:scholar` skill ref in [`phase-paper`](skills/phase-paper/SKILL.md) corrected; [`/hive` docs page](docs/commands/hive.md) created; [`neuroflow-developer.md`](.github/agents/neuroflow-developer.md) and [`orchestrator`](agents/orchestrator.md) synced to full repo structure (22 phases, all 4 workflows, `scripts/automation/`)
+- **Hardened release checklist** — both the former `neuroflow-developer` agent and [`neuroflow-develop/SKILL.md`](skills/neuroflow-develop/SKILL.md) now require `docs/changelog.md` entry, one-liner review, and `marketplace.json` bump on every release; `SKILL.md` synced to match `neuroflow-developer.md` (was missing `mkdocs.yml` and sentinel-dev steps)
+- **Internal consistency fixes** — dead `neuroflow:scholar` skill ref in [`phase-paper`](skills/phase-paper/SKILL.md) corrected; [`/hive` docs page](docs/commands/hive.md) created; the former `neuroflow-developer` agent and [`orchestrator`](agents/orchestrator.md) synced to full repo structure (22 phases, all 4 workflows, `scripts/automation/`)
 
 ## What's new in 0.2.3
 
@@ -148,13 +155,13 @@
 - **[`/output`](commands/output.md)** — renamed from `/export` to avoid conflict with Claude's built-in `/export` command (which exports conversations); functionality is identical; skill renamed to [`neuroflow:phase-output`](skills/phase-output/SKILL.md)
 - **New quote** — added "Can you collect some brain data for me?" to the homepage quote carousel in [`overrides/main.html`](overrides/main.html)
 - **[Cognitive Development Probe](docs/probe.html)** — a self-contained interactive diagnostic: 7 neuroscience-inspired yes/no questions (prediction error, model update, uncertainty, decision monitoring, self-model, global integration, subjective experience); Q7 locked until Q1–Q6 are all YES; color-coded status indicators, "Cognitive Level" progress bar, reset button; includes a read-only **Claude's honest self-assessment** section where the model answers each question as of this version — no hedging, no performance
-- **[`/grant-proposal`](commands/grant-proposal.md) dramatically improved** — auto-discovers ideation outputs, fetches funder calls from URLs, supports NIH/ERC/Wellcome/MRC/GAČR/DFG/Horizon Europe with built-in review criteria, and drafts section by section with word-count tracking and quality checklists
+- **[`/grant-proposal`](commands/grant-proposal.md) dramatically improved** — auto-discovers ideation outputs, fetches funder calls from URLs, supports major international and national funders with built-in review criteria, and drafts section by section with word-count tracking and quality checklists
 - **[`grant-proposal` agent](agents/grant-proposal.md) upgraded** — autonomous funder call parsing, neuroscience-aware Approach drafting (EEG/fMRI/iEEG/eye-tracking), and per-section confirmation loop
 - **[`phase-grant-proposal` skill](skills/phase-grant-proposal/SKILL.md) expanded** — deep funder knowledge base, review criteria alignment table, common fatal weaknesses guide, and neuroscience-specific power analysis and preprocessing standards
 
 ## What's new in 0.1.7
 
-- **[`neuroflow-developer`](.github/agents/neuroflow-developer.md)** — superspecialized GitHub agent for developing and maintaining the neuroflow plugin; merges `neuroflow-core` lifecycle rules and `neuroflow-develop` guidance into one repo-aware agent; reads the live state of every skill, command, agent, and hook at the start of each session so it is always operating on what the repo actually contains
+- **`neuroflow-developer`** (since removed; the plugin targets Claude Code only) — superspecialized GitHub agent for developing and maintaining the neuroflow plugin; merges `neuroflow-core` lifecycle rules and `neuroflow-develop` guidance into one repo-aware agent; reads the live state of every skill, command, agent, and hook at the start of each session so it is always operating on what the repo actually contains
 
 ## What's new in 0.1.6
 
@@ -230,58 +237,61 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 | Command | What it does |
 |---|---|
 | [`/neuroflow`](commands/neuroflow.md) | Main entry point — if `.neuroflow/` exists, shows current phase and status; if not, interviews the user and creates the project memory structure |
-| [`/setup`](commands/setup.md) | Interactive credential wizard — configure Miro access token, Google Workspace CLI, and custom LLM providers; saves to `~/.neuroflow/integrations.json` (global) or `.neuroflow/integrations.json` (per-project override) |
+| [`/setup`](commands/setup.md) | Integration wizard — Google Workspace CLI, optional Miro (you add it with `claude mcp add`, so no token ever enters the chat) and an Anthropic-compatible LLM gateway; stores non-secret settings in `~/.neuroflow/integrations.json` (or a per-project override) |
+| [`/migrate`](commands/migrate.md) | Bring an older project's memory up to the current format — shows the plan, writes only after you agree |
 
 ### Research pipeline
 
 | Command | What it does |
 |---|---|
-| [`/ideation`](commands/ideation.md) | Brainstorm a research question, explore literature via scholar, formalize an idea, or produce a project proposal |
-| [`/preregistration`](commands/preregistration.md) | Pre-register study design and analysis plan on OSF or AsPredicted; review for completeness; log deviations; link registered reports |
-| [`/ethics`](commands/ethics.md) | Ethics/IRB workflow — protocol and amendment tracking, versioned consent forms, approval status with expiry surfaced on the timeline |
-| [`/grant-proposal`](commands/grant-proposal.md) | Write a grant application — specific aims, significance, innovation, approach, budget, timeline |
-| [`/finance`](commands/finance.md) | Manage the project budget, log expenses, produce financial reports, and check grant compliance |
-| [`/experiment`](commands/experiment.md) | Paradigm design (PsychoPy), recording setup, instrument and LSL configuration |
+| [`/ideation`](commands/ideation.md) | Brainstorm a research question, explore literature via scholar (open-access only), formalize an idea, keep a standing-query watch list, or produce a project proposal |
+| [`/preregistration`](commands/preregistration.md) | Pre-register study design and analysis plan on OSF or AsPredicted; review for completeness; **freeze** the plan (hashes, banner, append-only deviations); log deviations; link registered reports |
+| [`/ethics`](commands/ethics.md) | Ethics/IRB workflow — protocol and amendments, versioned consent, approval status with expiry, whether the AI model may read participant data, and participant-erasure requests |
+| [`/grant-proposal`](commands/grant-proposal.md) | Write a grant application — specific aims, significance, innovation, approach, budget, timeline, data management plan, and an AI-use statement |
+| [`/finance`](commands/finance.md) | Manage the project budget, log expenses in a fixed ledger, produce financial reports, and check grant compliance |
+| [`/experiment`](commands/experiment.md) | Paradigm design (PsychoPy) with a static audit, recording setup, counterbalancing, instrument and LSL configuration |
 | [`/tool-build`](commands/tool-build.md) | Build a lab tool or software pipeline — real-time systems, acquisition, BCI, paradigm code |
-| [`/tool-validate`](commands/tool-validate.md) | Create a testing pipeline to verify a tool or paradigm works correctly |
-| [`/data`](commands/data.md) | Data intake — locate data, validate BIDS structure, run conversion scripts |
-| [`/data-preprocess`](commands/data-preprocess.md) | Run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, QC |
-| [`/data-analyze`](commands/data-analyze.md) | Run an analysis pipeline — ERPs, time-frequency, connectivity, decoding, GLM |
-| [`/paper`](commands/paper.md) | Unified manuscript writing and review — draft section by section, brutal write→critique loop, nothing saved without approval |
-| [`/review`](commands/review.md) | Peer review a colleague's paper — structured referee report calibrated to the target journal |
-| [`/notes`](commands/notes.md) | Live note-taking — capture freeform input, then reformat into a clean structured document |
+| [`/tool-validate`](commands/tool-validate.md) | Verify a tool or paradigm — marker-to-photodiode timing, XDF and LSL stream checks |
+| [`/data`](commands/data.md) | Data intake — locate data, check the ethics gate, validate BIDS structure, keep raw data read-only |
+| [`/data-preprocess`](commands/data-preprocess.md) | Run a preprocessing pipeline — filtering, ICA, epoching, artifact rejection, a QC matrix |
+| [`/data-analyze`](commands/data-analyze.md) | Run an analysis pipeline — ERPs, time-frequency, connectivity, decoding, GLM — with provenance records, an optional multiverse, and clean-room reruns |
+| [`/paper`](commands/paper.md) | Unified manuscript writing and review — draft section by section in a write→critique loop; `--submit` checks citations, statistics and figures and drafts the AI-use statement; `--revise`, `--coauthor`, `--xray`, `--auto` |
+| [`/review`](commands/review.md) | Peer review a colleague's paper — asks about the journal's AI policy first, keeps the manuscript confidential, scans for hidden instructions |
+| [`/notes`](commands/notes.md) | Live note-taking — capture freeform input verbatim, then reformat it; `--idea` stashes an idea in one step |
 | [`/write-report`](commands/write-report.md) | Generate a structured report from `.neuroflow/` contents for any phase or the whole project |
 
 ### Brain simulation
 
 | Command | What it does |
 |---|---|
-| [`/brain-build`](commands/brain-build.md) | Assemble a computational brain model — neuron models, network topology, connectivity, simulation framework setup |
-| [`/brain-optimize`](commands/brain-optimize.md) | Run a parameter search or fit the model to experimental data |
-| [`/brain-run`](commands/brain-run.md) | Run the model as a simulation — configure run parameters, launch, and collect outputs |
+| [`/brain-build`](commands/brain-build.md) | Assemble a computational brain model — neuron models, network topology, connectivity, simulation framework setup, smoke tests |
+| [`/brain-optimize`](commands/brain-optimize.md) | Run a parameter search behind a smoke gate, or fit the model to experimental data |
+| [`/brain-run`](commands/brain-run.md) | Run the model as a simulation — long runs registered in `runs.md`, SLURM/PBS job templates, never heavy compute on a login node |
 
 ### Utility
 
 | Command | What it does |
 |---|---|
-| [`/git`](commands/git.md) | Context-aware git utility — smart push/pull, commit message generation, branch management, and PR creation with shorthand aliases |
-| [`/pipeline`](commands/pipeline.md) | Define and run a multi-step research pipeline — interactive by default (pauses for approval between steps), or use `--executor` for brutal mode (runs straight through without stops) |
-| [`/interview`](commands/interview.md) | Interview preparation from either side — generate tailored questions grounded in your research context, run practice Q&A, and optionally evaluate readiness |
-| [`/phase`](commands/phase.md) | Show current phase and all phases worked on; optionally switch phase |
+| [`/dashboard`](commands/dashboard.md) | The project at a glance — phase map, deadlines, integrity state, task board counts, the running autoresearch loop (a live pane with the neuroflow mod) |
+| [`/doctor`](commands/doctor.md) | Health check of the setup around a project — tools, backups, storage location, contracts, and whether the neuroflow mod is live |
+| [`/git`](commands/git.md) | Context-aware git utility — smart push/pull, commit messages, branches, PRs with shorthand aliases whose scope is final; never commits local-only files (sessions, reviews, credentials) |
+| [`/pipeline`](commands/pipeline.md) | Define and run a multi-step research pipeline — one step per invocation from a saved plan; interactive by default, or `--executor` for no questions |
+| [`/interview`](commands/interview.md) | Interview preparation from either side — tailored questions, practice Q&A, readiness evaluation; candidate notes stay private |
+| [`/phase`](commands/phase.md) | Show the phase map and switch phase (a picker you drive with the arrow keys or a click when the neuroflow mod is on) |
 | [`/tasks`](commands/tasks.md) | Single entry point for the 3-tier Kanban task board (project / flowie / hive) — view, add, move, complete, archive |
-| [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, preregistration vs progress |
+| [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — deterministic checks (`nf_check.py`) first, then drift, broken references, preregistration vs progress |
 | [`/slideshow`](commands/slideshow.md) | Build a presentation from selected areas of the project — pick phases, figures, and key findings, then get a structured slide deck ready to export |
-| [`/poster`](commands/poster.md) | Generate a LaTeX conference poster from project memory — choose template size, add a QR code, and get an iteratively reviewed `.tex` file ready to compile |
+| [`/poster`](commands/poster.md) | Generate a LaTeX conference poster from project memory — compiled and rendered between critic rounds |
 | [`/quiz`](commands/quiz.md) | Neuroscience quiz — flashcards, pub quiz, or rapid-fire throw questions; covers any subfield or general neuroscience |
-| [`/fails`](commands/fails.md) | Log dissatisfaction — record core behavior, science quality, or UX issues; optionally opens a GitHub issue report |
-| [`/output`](commands/output.md) | Output project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
-| [`/idk`](commands/idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
+| [`/fails`](commands/fails.md) | Log dissatisfaction — record core behavior, science quality, or UX issues; opens a GitHub issue only after you confirm |
+| [`/output`](commands/output.md) | Export or archive the project with a real exporter (local-only and sensitive files excluded), header de-identification and git-history audits, and a `--handoff` dossier |
+| [`/idk`](commands/idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat; nothing is logged |
 | [`/search`](commands/search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase; uses `flow.md` as a fast index |
-| [`/wiki`](commands/wiki.md) | Project-level shared knowledge base — Karpathy-style LLM-maintained wiki at `.neuroflow/wiki/`, git-tracked and shared with all collaborators; ingest, query, lint, and add workflows |
-| [`/autoresearch`](commands/autoresearch.md) | Infinite improvement loop for any research artifact — a single managing agent makes one focused change per iteration and keeps or reverts, using a per-loop wiki as its memory; folder lives next to the artifact; live dashboard at `localhost:8765`; never stops until interrupted |
-| [`/flowie`](commands/flowie.md) | Personal research OS — link a private GitHub repository as identity profile + Kanban task board + project registry with phase tracking; Claude reads the profile to personalize assistance and surfaces active tasks at session start |
-| [`/hive`](commands/hive.md) | Team knowledge layer — connect your project to a shared GitHub org repo to sync team research directions, share findings explicitly, and get team-aware recommendations |
-| [`/meeting`](commands/meeting.md) | First-class meetings — schedule from recurring templates, prepare agendas with active task context, send Google Calendar invites, and auto-create tasks from action items at project/flowie/hive level |
+| [`/wiki`](commands/wiki.md) | Project-level shared knowledge base — LLM-maintained wiki at `.neuroflow/wiki/`, git-tracked and shared with collaborators; ingest, query, lint, and add workflows |
+| [`/autoresearch`](commands/autoresearch.md) | Open-ended improvement loop for any research artifact — one managing agent makes one focused change per iteration and keeps or reverts it, with a per-loop wiki as memory; an integrity gate for analysis code (confirmatory or exploratory); never stops on its own judgement, always stops at the caps you set, when you stop it, or after repeated errors; bookkeeping by the tested `ar.py` script |
+| [`/flowie`](commands/flowie.md) | Personal research OS — link a private GitHub repository as identity profile + Kanban task board + project registry with phase tracking; synced by path with pull-before-push |
+| [`/hive`](commands/hive.md) | Team knowledge layer — connect your project to a shared GitHub org repo to sync team research directions, dataset errata, and a review checklist; every push confirmed |
+| [`/meeting`](commands/meeting.md) | First-class meetings — recurring templates, agendas with task context, calendar invites after you confirm the recipients, live notes, and tasks from action items |
 
 ---
 
@@ -291,44 +301,44 @@ Skills are invoked by Claude automatically when relevant, or triggered explicitl
 
 | Skill | What it does |
 |---|---|
-| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, `flow.md` format, command lifecycle (including auto-write to `reasoning/{phase}.json`), frontmatter standard, and behavioral flags (`teacher`, `executor`, `critic`) |
-| [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript |
-| [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) | Worker-critic agentic loop protocol — orchestrator coordinates a worker agent and a critic agent across up to 3 revision cycles to produce a vetted output for any phase |
-| [`neuroflow:autoresearch`](skills/autoresearch/SKILL.md) | Infinite improvement loop — defines the single-agent protocol, per-loop wiki (the agent's brain), program.md config block, criteria layers, branching, literature search, Q&A channel, and dashboard for the `/autoresearch` command |
-| [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin |
+| [`neuroflow:neuroflow-core`](skills/neuroflow-core/SKILL.md) | Core rules and lifecycle for all commands and agents — `.neuroflow/` spec and contracts (config frontmatter, integrity status files, JSONL reasoning logs, sharing tiers, command lifecycle keys, rule markers), and behavioral modes (`teacher`, `executor`, `critic`) |
+| [`neuroflow:review-neuro`](skills/review-neuro/SKILL.md) | Rigorous pre-submission peer review of a neuroscience manuscript, with a hidden-instruction scan |
+| [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) | Worker-critic agentic loop protocol — orchestrator coordinates a worker agent and a critic agent across up to 3 revision cycles, resuming the same agents for revisions |
+| [`neuroflow:autoresearch`](skills/autoresearch/SKILL.md) | Improvement-loop protocol — the single-agent loop, per-loop wiki, program.md config with caps, the integrity gate and multiverse ledger, `ar.py` bookkeeping, Q&A channel, and dashboard |
+| [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md) | Guide for developing and maintaining the neuroflow plugin, including the mod |
 | [`neuroflow:skill-creator`](skills/skill-creator/SKILL.md) | Guide for creating new neuroflow skills |
-| [`neuroflow:setup`](skills/setup/SKILL.md) | Configure integrations — PubMed, Miro, Google Workspace, and custom LLM providers (including e-INFRA CZ for Czech researchers). |
-| [`neuroflow:phase-git`](skills/phase-git/SKILL.md) | Phase guidance for /git — context-aware git shorthand rules, smart push/pull logic, commit message generation, branch management, and PR creation |
-| [`neuroflow:phase-ideation`](skills/phase-ideation/SKILL.md) | Phase guidance for /ideation — approach, relevant skills, workflow hints |
-| [`neuroflow:phase-preregistration`](skills/phase-preregistration/SKILL.md) | Phase guidance for /preregistration — registry templates, completeness checks, deviation logging |
+| [`neuroflow:setup`](skills/setup/SKILL.md) | Configure integrations — Google Workspace, optional Miro, and Anthropic-compatible LLM gateways — without ever asking for a secret in chat |
+| [`neuroflow:phase-git`](skills/phase-git/SKILL.md) | Phase guidance for /git — shorthand rules, alias scope, local-only files, smart push/pull, commit messages, branches, PRs |
+| [`neuroflow:phase-ideation`](skills/phase-ideation/SKILL.md) | Phase guidance for /ideation — search protocol against the bundled literature server, open-access downloads, standing queries |
+| [`neuroflow:phase-preregistration`](skills/phase-preregistration/SKILL.md) | Phase guidance for /preregistration — registry templates, completeness checks, freezing with hashes, deviation logging |
 | [`neuroflow:phase-grant-proposal`](skills/phase-grant-proposal/SKILL.md) | Phase guidance for /grant-proposal |
-| [`neuroflow:phase-finance`](skills/phase-finance/SKILL.md) | Phase guidance for /finance — budget planning, expense tracking, compliance checks |
-| [`neuroflow:phase-experiment`](skills/phase-experiment/SKILL.md) | Phase guidance for /experiment |
+| [`neuroflow:phase-finance`](skills/phase-finance/SKILL.md) | Phase guidance for /finance — budget planning, a fixed expense ledger (`ledger.py`), compliance checks |
+| [`neuroflow:phase-experiment`](skills/phase-experiment/SKILL.md) | Phase guidance for /experiment — PsychoPy audit, counterbalancing ledger, preflight template |
 | [`neuroflow:phase-tool-build`](skills/phase-tool-build/SKILL.md) | Phase guidance for /tool-build |
-| [`neuroflow:phase-tool-validate`](skills/phase-tool-validate/SKILL.md) | Phase guidance for /tool-validate |
-| [`neuroflow:bids`](skills/bids/SKILL.md) | Brain Imaging Data Structure — folder hierarchy, entity ordering, required files per modality, JSON sidecar fields, derivatives, bids-validator, pybids, MNE-BIDS, fMRIPrep, and conversion examples |
-| [`neuroflow:phase-data`](skills/phase-data/SKILL.md) | Phase guidance for /data |
-| [`neuroflow:phase-data-preprocess`](skills/phase-data-preprocess/SKILL.md) | Phase guidance for /data-preprocess |
-| [`neuroflow:phase-data-analyze`](skills/phase-data-analyze/SKILL.md) | Phase guidance for /data-analyze |
-| [`neuroflow:phase-paper`](skills/phase-paper/SKILL.md) | Phase guidance for /paper — unified write→critique loop, journal recommendation, critic standards |
-| [`neuroflow:phase-review`](skills/phase-review/SKILL.md) | Phase guidance for /review — referee orientation, delegation to review-neuro, output to .neuroflow/review/ |
-| [`neuroflow:humanizer`](skills/humanizer/SKILL.md) | Strip AI writing signatures from prose — word blacklist, rhythm fixes, register calibration; replaces stop-slop |
-| [`neuroflow:phase-notes`](skills/phase-notes/SKILL.md) | Phase guidance for /notes |
+| [`neuroflow:phase-tool-validate`](skills/phase-tool-validate/SKILL.md) | Phase guidance for /tool-validate — timing, XDF and LSL checks |
+| [`neuroflow:bids`](skills/bids/SKILL.md) | Brain Imaging Data Structure — folder hierarchy, entity ordering, required files per modality (checked against BIDS 1.11.2), sidecars, derivatives, bids-validator digests, pybids, MNE-BIDS, DataLad |
+| [`neuroflow:phase-data`](skills/phase-data/SKILL.md) | Phase guidance for /data — ethics gate, read-only raw data, erasure sweep |
+| [`neuroflow:phase-data-preprocess`](skills/phase-data-preprocess/SKILL.md) | Phase guidance for /data-preprocess — QC matrix, label-coded blinding, ICA decision records |
+| [`neuroflow:phase-data-analyze`](skills/phase-data-analyze/SKILL.md) | Phase guidance for /data-analyze — provenance helper, notebooks, multiverse, clean-room reproduction |
+| [`neuroflow:phase-paper`](skills/phase-paper/SKILL.md) | Phase guidance for /paper — write→critique loop, citation/statistics/revision checks, AI-use disclosure, living paper skeleton |
+| [`neuroflow:phase-review`](skills/phase-review/SKILL.md) | Phase guidance for /review — referee orientation, confidentiality, delegation to review-neuro, output to .neuroflow/review/ |
+| [`neuroflow:humanizer`](skills/humanizer/SKILL.md) | Style editing on request — word blacklist, rhythm, register; never a way to hide AI use, which is always disclosed |
+| [`neuroflow:phase-notes`](skills/phase-notes/SKILL.md) | Phase guidance for /notes — live capture format, idea inbox |
 | [`neuroflow:phase-write-report`](skills/phase-write-report/SKILL.md) | Phase guidance for /write-report |
 | [`neuroflow:phase-quiz`](skills/phase-quiz/SKILL.md) | Phase guidance for /quiz — mode behaviour, question quality standards, mode-specific workflow |
-| [`neuroflow:phase-fails`](skills/phase-fails/SKILL.md) | Phase guidance for /fails — categorisation approach, GitHub reporting, and dissatisfaction capture rules |
-| [`neuroflow:phase-output`](skills/phase-output/SKILL.md) | Phase guidance for /output — scope selection, safe exclusions, file naming, and output format guidance |
-| [`neuroflow:phase-brain-build`](skills/phase-brain-build/SKILL.md) | Phase guidance for /brain-build — neuron models, connectivity, simulation framework |
-| [`neuroflow:phase-brain-optimize`](skills/phase-brain-optimize/SKILL.md) | Phase guidance for /brain-optimize — parameter sweeps, data fitting, optimisation algorithms |
-| [`neuroflow:phase-brain-run`](skills/phase-brain-run/SKILL.md) | Phase guidance for /brain-run — run configuration, simulation launch, output sanity checks |
+| [`neuroflow:phase-fails`](skills/phase-fails/SKILL.md) | Phase guidance for /fails — categorisation, confirmed GitHub reporting, dissatisfaction capture rules |
+| [`neuroflow:phase-output`](skills/phase-output/SKILL.md) | Phase guidance for /output — exporter, header and history audits, PII scan, handoff dossier |
+| [`neuroflow:phase-brain-build`](skills/phase-brain-build/SKILL.md) | Phase guidance for /brain-build — neuron models, connectivity, simulation framework, smoke tests |
+| [`neuroflow:phase-brain-optimize`](skills/phase-brain-optimize/SKILL.md) | Phase guidance for /brain-optimize — parameter sweeps with a smoke gate, data fitting, optimisation algorithms |
+| [`neuroflow:phase-brain-run`](skills/phase-brain-run/SKILL.md) | Phase guidance for /brain-run — long runs, HPC job templates, run registry, output sanity checks |
 | [`neuroflow:phase-search`](skills/phase-search/SKILL.md) | Phase guidance for /search — tag-based scoping, flow.md-first indexing strategy, compact summary format |
-| [`neuroflow:phase-pipeline`](skills/phase-pipeline/SKILL.md) | Phase guidance for /pipeline — interactive vs brutal mode behaviour, pipeline plan format, resume logic, error handling |
-| [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) | Phase guidance for /flowie — profile read and apply rules, write rules for `~/.neuroflow/flowie/`, GitHub sync protocol, cross-phase personalization |
-| [`neuroflow:phase-meeting`](skills/phase-meeting/SKILL.md) | Phase guidance for /meeting — meeting file format, recurring templates, attendee resolution, Google Calendar integration, and action-item-to-task conversion at all three levels |
-| [`neuroflow:wiki`](skills/wiki/SKILL.md) | Knowledge base skill — Karpathy-style LLM-maintained wiki at three levels (personal/flowie, project, team/hive); ingest/query/lint/add workflows, project tagging, ideas.md sync, and sentinel integration |
-| [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) | LaTeX poster generation — five templates (A0/A1/A2, portrait/landscape, US size), QR code integration, template selection guide, content extraction logic |
-| [`neuroflow:notebooklm`](skills/notebooklm/SKILL.md) | Complete API for Google NotebookLM — create notebooks, add sources, generate all artifact types (podcast, video, slide deck, infographic, report, quiz, flashcards, mind map), and download results in multiple formats |
-| [`neuroflow:phase-hive`](skills/phase-hive/SKILL.md) | Team-level knowledge layer — connects a researcher's project to a shared GitHub org repo where team directions, cross-project findings, and recommended methods are coordinated; all sharing is explicit |
+| [`neuroflow:phase-pipeline`](skills/phase-pipeline/SKILL.md) | Phase guidance for /pipeline — one step per invocation, interactive vs executor mode, pipeline plan format, resume logic |
+| [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) | Phase guidance for /flowie — profile read and apply rules, write rules for `~/.neuroflow/flowie/`, one git pattern for sync |
+| [`neuroflow:phase-meeting`](skills/phase-meeting/SKILL.md) | Phase guidance for /meeting — meeting file format, recurring templates, attendee resolution, calendar integration, and `meeting_close.py` |
+| [`neuroflow:wiki`](skills/wiki/SKILL.md) | Knowledge base protocol — LLM-maintained wiki at three levels (personal/flowie, project, team/hive); ingest/query/lint/add workflows, branch-safe sync |
+| [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) | LaTeX poster generation — five templates (A0/A1/A2, portrait/landscape, US size), QR code integration, compile-and-preview between critic rounds |
+| [`neuroflow:notebooklm`](skills/notebooklm/SKILL.md) | Google NotebookLM — notebooks, sources (each upload confirmed), artifacts (podcast, video, slides, infographic, report, quiz, flashcards, mind map) and downloads |
+| [`neuroflow:phase-hive`](skills/phase-hive/SKILL.md) | Team-level knowledge layer — a shared GitHub org repo for team directions, cross-project findings, dataset errata and recommended methods; all sharing is explicit |
 | [`neuroflow:phase-slideshow`](skills/phase-slideshow/SKILL.md) | Phase guidance for /slideshow — audience calibration, slide count heuristics, Markdown/reveal.js and structured outline output formats |
 | [`neuroflow:pupil-labs-neon-realtime`](skills/pupil-labs-neon-realtime/SKILL.md) | Connect to Pupil Labs Neon eye-tracking glasses and collect real-time data streams (video, gaze, IMU, events) via the Real-time API |
 
@@ -340,29 +350,46 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 
 | Agent | What it does |
 |---|---|
-| [`scholar`](agents/scholar.md) | Searches PubMed → bioRxiv → fallbacks sequentially, returns a clean paper list with ⚠️ preprint and 🔒 paywall markers, downloads in batches of 2; supports follow-up synthesis and saving |
-| [`sentinel`](agents/sentinel.md) | Project coherence guard — audits `.neuroflow/` for drift, broken references, preregistration deviations, and plugin version sync; clears report after fixes |
-| [`sentinel-dev`](agents/sentinel-dev.md) | Plugin development coherence guard — checks folder names vs frontmatter, README tables, version sync, dead references, command frontmatter completeness |
-| [`paper-writer`](agents/paper-writer.md) | Unified paper phase writer — drafts sections from upstream memory inside the brutal write→critique loop; revises against every critic bullet |
+| [`scholar`](agents/scholar.md) | Searches PubMed and bioRxiv with CrossRef / Semantic Scholar / arXiv fallbacks through the bundled server, downloads open-access copies only (never Sci-Hub), labels each DOI with the check actually done, and ends with a report line the mod can check against the disk |
+| [`sentinel`](agents/sentinel.md) | Project coherence guard — runs `nf_check.py` first, then audits `.neuroflow/` for drift, broken references, preregistration deviations, and personal data |
+| [`sentinel-dev`](agents/sentinel-dev.md) | Plugin development coherence guard — runs the same checks CI runs (`validate_pr.py`), then the judgement checks |
+| [`paper-writer`](agents/paper-writer.md) | Unified paper phase writer — drafts sections from upstream memory, cites only from the project library, returns open questions instead of waiting |
 | [`paper-critic`](agents/paper-critic.md) | Unified paper phase critic — applies full eight-area review-neuro methodology to every draft; returns [STATUS: APPROVED] or [STATUS: REJECTED] with specific actionable feedback |
-| [`neuroflow-developer`](.github/agents/neuroflow-developer.md) | Superspecialized plugin development agent — merges neuroflow-core and neuroflow-develop into one repo-aware agent; reads live repo state at session start; handles skills, commands, agents, hooks, docs, and releases |
-| [`poster-critic`](agents/poster-critic.md) | Conference poster critic — audits every LaTeX poster draft across five areas (content, layout, scientific communication, QR code, LaTeX correctness); returns APPROVED or REJECTED with actionable feedback; operates inside the /poster worker-critic loop |
-| [`flowie`](agents/flowie.md) | Personal identity agent — reads the user's flowie profile, surfaces active tasks for the current project at session start, and applies research stances, writing style, and methodological preferences throughout the session; never exposes profile data in external-facing outputs |
-| [`literature-review`](agents/literature-review.md) | Literature review specialist — runs 12 sequential analytical lenses on a set of downloaded papers (landscape mapping through future research agenda) using the worker-critic loop to ensure rigour |
-| [`autoresearch`](agents/autoresearch.md) | Autoresearch loop agent — the single managing agent that runs the infinite loop for any phase; one focused change per iteration, judged by itself, keeps or reverts, with a per-loop wiki as its memory; never stops until interrupted |
+| [`poster-critic`](agents/poster-critic.md) | Conference poster critic — judges the rendered poster and its LaTeX source across content, layout, communication, QR code and LaTeX correctness; operates inside the /poster worker-critic loop |
+| [`flowie`](agents/flowie.md) | Personal identity agent — reads the user's flowie profile, surfaces active tasks for the current project at session start, and applies research stances, writing style, and methodological preferences; never exposes profile data in external-facing outputs |
+| [`literature-review`](agents/literature-review.md) | Literature review specialist — runs 12 sequential analytical lenses on a set of downloaded papers, checking each lens with a rubric critic pass and saving resumable checkpoints |
+| [`autoresearch`](agents/autoresearch.md) | Autoresearch loop agent — the single managing agent for the improvement loop; one focused change per iteration, judged by itself, kept or reverted, with a per-loop wiki as memory; stops at its caps |
 
 ---
 
 ## Hooks
 
-Hooks fire automatically on tool use events.
+Hooks fire automatically on tool use events, for every Claude Code user.
 
 | Hook | Trigger | What it does |
 |---|---|---|
+| Sci-Hub block | `PreToolUse` — the bundled literature server | Denies the server's Sci-Hub tools and any call with `platform: scihub` |
 | ruff formatter | `PostToolUse` — Edit / Write | Auto-formats any `.py` file written during a session |
-| flowie git-sync | `PostToolUse` — Edit / Write | Auto-commits and pushes any write to `~/.neuroflow/flowie/` to the linked private GitHub repo |
+| flowie git-sync | `PostToolUse` — Edit / Write | Commits the file just written to `~/.neuroflow/flowie/` by path, pulls with rebase, and pushes to your private repo; failures go to `~/.neuroflow/flowie-sync.log` |
+| PsychoPy audit | `PostToolUse` — Edit / Write | After an edit to a paradigm script or `.psyexp`, adds the static audit's warnings for the model to see |
 
-> **Pre-session orientation** is handled via `.claude/CLAUDE.md` injection — `/neuroflow` writes a neuroflow block there so Claude always knows the active phase and where to find project context.
+> **Pre-session orientation:** `/neuroflow` writes one static block into the project's `.claude/CLAUDE.md` that points Claude at `.neuroflow/project_config.md`, where the active phase lives. It is never written to your global `~/.claude/CLAUDE.md`.
+
+---
+
+## The neuroflow mod
+
+neuroflow also ships an optional **mod** — a Claude Code hooks module that runs inside Claude Code. It draws the project at
+zero tokens (a dashboard pane, a phase picker, a task board, a one-line band above the prompt that only speaks when
+something needs attention, a status line, a footer label), answers `/neuroflow:doctor` and `/neuroflow:dashboard`
+instantly, captures notes and ideas without model turns, drives an autoresearch loop one iteration per turn under its
+caps, drafts a missing decision for you to keep or drop, and enforces the rules the skills state — frozen
+preregistrations, read-only raw data, local-only files, participant-data routes, HPC login nodes, git alias scope.
+
+It is a layer, not the product: everything works without it. Settings (`runtime: off | observe | on`, default
+`observe`; `guards: warn | enforce`; `band`; `citations`) live in Claude Code's plugin configuration. Read
+[docs/concepts/mods.md](docs/concepts/mods.md) for what it does, when it does not load, its 30-rule charter, and the
+doors guards cannot close.
 
 ---
 
@@ -372,27 +399,31 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 
 ```
 .neuroflow/
-├── project_config.md       ← current phase, research question, tools, plugin_version — read by every command
+├── project_config.md       ← frontmatter contract: nf_schema, active_phase, recommended_phases, raw_roots… — read by every command
 ├── flow.md                 ← index of all subfolders
-├── sentinel.md             ← sentinel audit report
-├── timeline.md             ← milestones and deadlines (optional)
-├── sessions/               ← one .md per day — add to .gitignore
-├── reasoning/              ← structured per-phase decision logs (JSON: statement, source, reasoning)
-├── ethics/                 ← IRB documents, consent forms
-├── preregistration/        ← OSF / AsPredicted documents
-├── finance/                ← grant documents, expense tracking
-├── ideation/               ← research questions, proposals, literature reviews
+├── objectives.md           ← project objectives
+├── timeline.md             ← milestones and deadlines
+├── sessions/               ← one .md per day (local only)
+├── reasoning/              ← per-phase decision logs, JSON Lines (statement, source, reasoning)
+├── tasks/                  ← Kanban board: tasks/{column}/{slug}.md
+├── wiki/                   ← project wiki (an Obsidian vault)
+├── ethics/                 ← protocols, consent, status.md (approval, expiry, ai_processing)
+├── preregistration/        ← OSF / AsPredicted documents, status.md (frozen + hashes), deviations.md
+├── finance/                ← grant documents, expense ledger
+├── ideation/               ← research questions, proposals, literature, watch list
 ├── grant-proposal/         ← grant application drafts
-├── experiment/             ← paradigm scripts, recording setup docs
+├── experiment/             ← paradigm notes, recording setup docs
 ├── tool-build/             ← tool specs and build notes
 ├── tool-validate/          ← validation plans and results
 ├── data/                   ← data inventory and intake reports
 ├── data-preprocess/        ← preprocessing configs and QC reports
-├── data-analyze/           ← analysis plans and result summaries
-├── paper/                  ← manuscript drafts and critic logs
-├── notes/                  ← structured notes from meetings and talks
-└── write-report/           ← project reports
-└── fails/                  ← dissatisfaction log: core.md, science.md, ux.md
+├── data-analyze/           ← analysis plans, summaries, multiverse ledger, run registry
+├── paper/                  ← manuscript work, critic logs, living paper skeleton
+├── review/                 ← referee work on others' manuscripts (local only)
+├── notes/                  ← structured notes and the ideas inbox
+├── meetings/               ← meeting files
+├── write-report/           ← project reports
+├── fails/                  ← dissatisfaction log: core.md, science.md, ux.md
 └── output/                 ← output log: one .md per export run
 ```
 
@@ -400,7 +431,7 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 
 ## Installation
 
-**Claude Code:**
+neuroflow is a Claude Code plugin.
 
 ```bash
 claude plugin marketplace add stanislavjiricek/neuroflow
@@ -414,84 +445,37 @@ Or from within Claude Code:
 /plugin install neuroflow@neuroflow
 ```
 
-**GitHub Copilot CLI:**
-
-```bash
-copilot plugin install stanislavjiricek/neuroflow
-```
-
-Or from within an interactive Copilot session:
-
-```
-/plugin install stanislavjiricek/neuroflow
-```
-
-For local development (Claude Code):
+For local development:
 
 ```bash
 git clone https://github.com/stanislavjiricek/neuroflow
 claude --plugin-dir ./neuroflow
 ```
 
-Once installed, run `/neuroflow:neuroflow` in any project folder to get started.
+Once installed, run `/neuroflow:neuroflow` in any project folder to get started. Older projects: `/neuroflow:migrate`.
 
 ---
 
-## MCP server credentials
+## Integrations
 
-neuroflow uses four MCP servers that are launched automatically via `npx`. One requires credentials:
+The bundled MCP servers start automatically via `npx`, pinned to tested versions, and need no credentials:
 
-| Server | Package | Credentials needed |
+| Server | Package | What it is for |
 |---|---|---|
-| PubMed / bioRxiv | `paper-search-mcp-nodejs` | none |
-| Miro | `@k-jarzyna/mcp-miro` | `MIRO_ACCESS_TOKEN` — personal access token from Miro |
-| Context7 | `@upstash/context7-mcp` | none |
+| Literature (PubMed, bioRxiv, CrossRef, Semantic Scholar, arXiv…) | `paper-search-mcp-nodejs` | Search and open-access downloads (its Sci-Hub adapter is switched off) |
+| Context7 | `@upstash/context7-mcp` | Current library documentation |
+| Sequential thinking | `@modelcontextprotocol/server-sequential-thinking` | Step-by-step reasoning tool |
 
-neuroflow also supports an optional **Google Workspace CLI** (`gws`) for Gmail, Calendar, Drive, Sheets, and more. It is separate from the MCP servers and must be installed manually:
+Optional integrations you add yourself — `/neuroflow:setup` walks you through each, and never asks for a secret in chat:
 
-| Tool | Install | Credentials needed |
-|---|---|---|
-| Google Workspace CLI | `npm install -g @googleworkspace/cli` (requires Node.js 18+) | OAuth client_secret.json from Google Cloud Console → `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` |
+| Integration | How |
+|---|---|
+| Miro | `claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<token> -- npx -y @k-jarzyna/mcp-miro@1.0.11`, typed in your own terminal (or with the `!` prefix) |
+| Google Workspace CLI (`gws`) | `npm install -g @googleworkspace/cli` (Node.js 18+), then `gws auth login` with an OAuth `client_secret.json` from Google Cloud Console |
+| Anthropic-compatible LLM gateway | base URL and model aliases in `~/.neuroflow/integrations.json`; the key stays in a file you control — see the [custom gateway guide](skills/setup/references/custom-gateway.md) |
+| Zotero | an MCP server of your choice; `/ideation` searches your library first when it is there, and writes notes only when you opt in |
 
-> **Note:** `gws auth setup` requires the `gcloud` CLI. If `gcloud` is not installed, use the manual OAuth path: create credentials in [Google Cloud Console](https://console.cloud.google.com), download `client_secret.json`, place it at `~/.config/gws/client_secret.json`, and run `gws auth login`.
-
-### Setup wizard
-
-Run `/neuroflow:setup` (or answer **Y** when prompted during `/neuroflow:neuroflow`) to enter a guided wizard:
-
-1. **Miro** — paste a personal access token from your [Miro developer settings](https://miro.com/app/settings/user-profile/apps). Skippable.
-2. **Google Workspace CLI** — checks if `gws` is installed; offers to install via npm if not; guides through the manual OAuth credential path (no `gcloud` required). Skippable.
-
-Credentials are saved to **`~/.neuroflow/integrations.json`** (global, shared by all projects on the machine) or **`.neuroflow/integrations.json`** in your project folder (per-project override — takes precedence). The per-project file is excluded from git (see `.gitignore`) so it is never committed; the global file lives outside any repo.
-
-### Activating credentials
-
-After running `/setup`, export the env vars in your shell before starting Claude Code:
-
-```bash
-export MIRO_ACCESS_TOKEN="eyJ..."
-export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$HOME/.config/gws/client_secret.json"
-```
-
-Add these to your shell profile (`~/.zshrc`, `~/.bashrc`) so they load automatically on every session.
-
-Alternatively, you can set the env vars directly without running the wizard — the plugin will use whichever values are present in the environment.
-
-### What is automatic vs manual
-
-| Step | Automatic | Manual |
-|---|---|---|
-| MCP server processes started | ✅ Launched automatically via `npx` | — |
-| Miro token entry | ✅ Prompted by `/setup` wizard | ⚠️ You must create the token in the Miro browser UI first |
-| Miro OAuth browser login | ❌ Not implemented (by design — browser OAuth from a terminal subprocess is not feasible without a redirect server) | Use a personal access token instead |
-| Google Workspace CLI install | ✅ `/setup` wizard can run `npm install -g` if you confirm | Requires Node.js 18+ |
-| Google Workspace OAuth | ❌ `gws auth setup` requires `gcloud` CLI | Manual path: download `client_secret.json` from GCP Console, run `gws auth login` |
-| Env var export | ❌ Not automatic | Run `export …` or add to shell profile |
-
-### Reminder behavior
-
-- If you mention Miro during ideation and `MIRO_ACCESS_TOKEN` is missing, a reminder to run `/neuroflow:setup` appears.
-- You can always re-run `/neuroflow:setup` to add or update credentials.
+Non-secret settings live in **`~/.neuroflow/integrations.json`** (global) or **`.neuroflow/integrations.json`** (per-project override, gitignored). Re-run `/neuroflow:setup` any time; `/neuroflow:doctor` checks the rest of the setup.
 
 ---
 

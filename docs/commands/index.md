@@ -35,7 +35,8 @@ flowchart LR
 | Command | What it does |
 |---|---|
 | [`/neuroflow`](neuroflow.md) | Main entry point — scans your project, sets up `.neuroflow/`, or shows current status |
-| [`/setup`](setup.md) | Interactive wizard for PubMed and Miro credentials |
+| [`/setup`](setup.md) | Integration wizard — Google Workspace, optional Miro (added with `claude mcp add`, never a token in chat), and an Anthropic-compatible LLM gateway |
+| [`/migrate`](migrate.md) | Convert an older project's memory to the current format — plan first, writes after you agree |
 
 ---
 
@@ -75,12 +76,14 @@ flowchart LR
 | Command | What it does |
 |---|---|
 | [`/git`](git.md) | Context-aware git utility — smart push/pull, commit message generation, branch management, and PR creation with shorthand aliases |
-| [`/pipeline`](pipeline.md) | Define and run a multi-step research pipeline — interactive by default (pauses for approval between steps), or use `--executor` for brutal mode |
+| [`/pipeline`](pipeline.md) | Define and run a multi-step research pipeline — one step per invocation from a saved plan; interactive by default, or `--executor` for brutal mode (no questions) |
 | [`/output`](output.md) | Export project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
 | [`/search`](search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase |
 | [`/interview`](interview.md) | Interview preparation from either side — generate tailored questions, run practice Q&A, evaluate readiness |
-| [`/phase`](phase.md) | Show current phase and all phases worked on; optionally switch phase |
-| [`/sentinel`](sentinel.md) | Full audit of `.neuroflow/` — drift detection, broken references, version sync |
+| [`/phase`](phase.md) | Show the phase map and switch phase — a picker with the neuroflow mod |
+| [`/dashboard`](dashboard.md) | The project at a glance — phase map, deadlines, integrity state, task board, autoresearch loop |
+| [`/doctor`](doctor.md) | Health check of the setup around a project — tools, backups, storage location, contracts, and whether the mod is live |
+| [`/sentinel`](sentinel.md) | Full audit of `.neuroflow/` — deterministic checks first (`nf_check.py`), then drift, broken references, preregistration vs progress |
 | [`/quiz`](quiz.md) | Neuroscience quiz — flashcards, pub quiz, or rapid-fire throw questions |
 | [`/fails`](fails.md) | Log dissatisfaction — record plugin behavior, science quality, or UX issues; optionally opens a GitHub issue |
 | [`/idk`](idk.md) | Personal support companion — decompress, break down overwhelming tasks, or just chat |
