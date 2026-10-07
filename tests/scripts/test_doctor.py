@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -70,6 +71,19 @@ class DoctorTest(unittest.TestCase):
 
     def test_bad_project_is_usage_error(self):
         self.assertEqual(doctor.main(["--project", "/definitely/not/here/xyz"]), 2)
+
+    def test_text_output_survives_a_legacy_code_page(self):
+        # A Windows pipe defaults to the ANSI code page, which has no check mark and no CJK.
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "日本"
+            (project / ".neuroflow").mkdir(parents=True)
+            env = dict(os.environ, PYTHONIOENCODING="cp1250")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "skills" / "neuroflow-core" / "scripts" / "doctor.py"),
+                 "--project", str(project), "--home", str(Path(tmp) / "no-home")],
+                capture_output=True, env=env, timeout=120)
+            self.assertIn(proc.returncode, (0, 1), proc.stderr.decode("utf-8", "replace"))
+            self.assertIn("✔", proc.stdout.decode("utf-8"))
 
 
 class FlowieTest(unittest.TestCase):

@@ -193,7 +193,18 @@ def check_flowie(checks: list[dict], home: Path | None) -> None:
         check(checks, "flowie-sync-log", "warn", f"{len(failures)} flowie auto-sync failure(s){since} in ~/.neuroflow/flowie-sync.log — run /neuroflow:flowie --sync to resolve")
 
 
+def utf8_stdio() -> None:
+    """Make stdout and stderr UTF-8, so a path in any script survives a Windows pipe."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--project", default=".", help="project root (the folder holding .neuroflow/)")
     parser.add_argument("--json", action="store_true", help="print the report as JSON")

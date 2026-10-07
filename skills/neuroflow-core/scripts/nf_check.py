@@ -1011,7 +1011,18 @@ def render_text(ctx: Context, findings: list[Finding], statuses: dict[str, str],
     return "\n".join(lines)
 
 
+def utf8_stdio() -> None:
+    """Make stdout and stderr UTF-8, so a path in any script survives a Windows pipe."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    utf8_stdio()
     ap = argparse.ArgumentParser(
         prog="nf_check",
         description="Deterministic audit of a neuroflow project's .neuroflow/ memory (read-only).",

@@ -7,6 +7,7 @@ import datetime as dt
 import importlib.util
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -226,6 +227,18 @@ class StructureTests(Base):
         self.assertIn("project_config.md", s["root_files"])
         self.assertIn("sessions", s["root_folders"])
         self.assertIn("ideation", nf.canonical_phases(REPO))
+
+
+class CodePageTests(Base):
+    def test_output_survives_a_legacy_code_page(self):
+        # A Windows pipe defaults to the ANSI code page; a project path it cannot encode must not crash the script.
+        project = self.project.parent / "日本"
+        write(project, {".neuroflow/project_config.md": CONFIG})
+        env = dict(os.environ, PYTHONIOENCODING="cp1250")
+        proc = subprocess.run([sys.executable, str(SCRIPT), "--project", str(project)],
+                              capture_output=True, env=env, timeout=120)
+        self.assertIn(proc.returncode, (0, 1), proc.stderr.decode("utf-8", "replace"))
+        self.assertIn("日本", proc.stdout.decode("utf-8"))
 
 
 class CleanProjectTests(Base):
