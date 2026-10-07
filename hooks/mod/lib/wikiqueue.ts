@@ -73,7 +73,7 @@ export const WIKI_JUDGE_SYSTEM = [
   'You decide whether research decisions just logged by a research assistant deserve a page in the project wiki.',
   'Rules: nothing is the normal answer. A card needs evidence: name the log entry it comes from. Never a result, never a number from an analysis, never participant data.',
   'A decision deserves a card only when it is reusable knowledge — why a method, parameter or design was chosen over its alternatives — not a routine step.',
-  'Skip anything whose title is already in the wiki. At most two cards.',
+  'Skip anything whose title is already in the wiki or in the queue (pending, accepted or skipped). At most two cards.',
   'Answer with JSON only: {"cards": [{"title": "...", "type": "decision|method|concept|question", "summary": "one to three sentences quoting the evidence", "evidence": "which entry"}]} — or {"cards": []}.',
 ].join('\n')
 
@@ -100,6 +100,11 @@ export const parseJudge = (text: string): { title: string; type: string; summary
     return []
   }
 }
+
+/** The titles a new card may not take (lowercase): the wiki's pages and every card in the queue, whatever its
+ *  status — a skipped card is never raised again, an accepted one is already a page or on its way. */
+export const takenTitles = (pages: readonly string[], queued: readonly (WikiCard | null)[]): Set<string> =>
+  new Set([...pages, ...queued.flatMap(card => (card === null ? [] : [card.title]))].map(title => title.trim().toLowerCase()))
 
 /** Whether capture may run: the person opted in (`wiki_auto: ask` in user.yaml) and the project allows it. */
 export const captureAllowed = (userYaml: string | null, projectPolicy: string | null): boolean => {

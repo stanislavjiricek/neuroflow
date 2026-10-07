@@ -8,7 +8,8 @@
 //    deterministic checks (statcheck.py, cite_check.py) and reports them with no model turn.
 //  - U2 auto wiki: after a command turn that logged a new decision, one model call judges whether it is
 //    reusable knowledge (the wiki-protocol skill's rubric: nothing is the normal answer, evidence mandatory, never
-//    results); at most two cards go to .neuroflow/wiki/.pending/. Only with `wiki_auto: ask` in the person's
+//    results); at most two cards go to .neuroflow/wiki/.pending/, never one whose title is already in the wiki or
+//    anywhere in the queue (a skipped card is never raised again). Only with `wiki_auto: ask` in the person's
 //    user.yaml, a project that does not forbid it, and runtime on. `/neuroflow:wiki --review` opens the cards
 //    as a pane: accept runs the normal `/neuroflow:wiki --add --from-pending`; skip marks the card skipped.
 // The figure check (U4) is prose only: a viewer cannot show figures or take pointer input on most terminals.
@@ -34,7 +35,8 @@ import {
 } from '../lib/paper'
 import type { XrayFinding } from '../lib/paper'
 import { parseJson, runScript } from '../lib/scripts'
-import { PENDING_DIR, WIKI_JUDGE_SYSTEM, captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify } from '../lib/wikiqueue'
+import { PENDING_DIR, WIKI_JUDGE_SYSTEM, captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify, takenTitles } from '../lib/wikiqueue'
+import type { WikiCard } from '../lib/wikiqueue'
 import { paperOutputPath } from './checks'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -222,7 +224,20 @@ const settleCard = async ($: EngineInterface, file: string, accept: boolean): Pr
   await $.command.run({ command: 'neuroflow:wiki', args: `--add --from-pending ${PENDING_DIR}/${file}` })
 }
 
-/** U2 — after a command logged decisions: one judge call, at most two cards. */
+/** U2 — every card in the queue, newest first, whatever its status (pending, accepted or skipped). */
+const queuedCards = async (io: NfIo, root: string): Promise<WikiCard[]> => {
+  const dir = join(root, PENDING_DIR)
+  const names = (await io.list(dir)).filter(entry => !entry.isDir && entry.name.endsWith('.md')).map(entry => entry.name).sort().reverse()
+  const cards: WikiCard[] = []
+  for (const name of names) {
+    const card = parseCard((await io.read(join(dir, name))) ?? '')
+    if (card !== null) cards.push(card)
+  }
+  return cards
+}
+
+/** U2 — after a command logged decisions: one judge call, at most two cards. A title already in the wiki or anywhere
+ *  in the queue — skipped cards included, which are never raised again — is not queued a second time. */
 const judgeNewDecisions = async ($: EngineInterface, root: string, command: string, logPath: string, before: number, projectPolicy: string | null): Promise<number> => {
   const io = ioOf($)
   const home = await io.home()
@@ -231,18 +246,18 @@ const judgeNewDecisions = async ($: EngineInterface, root: string, command: stri
   const fresh = ((await io.read(logPath)) ?? '').split(/\r?\n/).filter(line => line.trim() !== '').slice(before)
   if (fresh.length === 0) return 0
   const known = (await read($, wikiIndexAtom)).filter(page => page.level === 'project').map(page => page.title)
-  const waiting = (await loadCards($, root)).map(card => card.title)
+  const queued = await queuedCards(io, root)
   const prompt = [
     `Command: /neuroflow:${command}`,
     `New entries in ${relativeTo(logPath, root) ?? logPath}:`,
     ...fresh.slice(-10),
     '',
     `Pages already in the wiki: ${known.slice(0, 200).join('; ') || 'none'}`,
-    `Cards already waiting: ${waiting.join('; ') || 'none'}`,
+    `Cards already in the queue (pending, accepted or skipped): ${queued.slice(0, 200).map(card => card.title).join('; ') || 'none'}`,
   ].join('\n')
   const reply = await $.model.complete({ model: await $.session.model(), system: WIKI_JUDGE_SYSTEM, prompt, maxTokens: 600, timeoutMs: 30_000 })
   if (!reply.isAnswered) return 0
-  const taken = new Set([...known, ...waiting].map(title => title.toLowerCase()))
+  const taken = takenTitles(known, queued)
   const cards = parseJudge(reply.text).filter(card => !taken.has(card.title.toLowerCase()))
   if (cards.length === 0) return 0
   const dir = join(root, PENDING_DIR)

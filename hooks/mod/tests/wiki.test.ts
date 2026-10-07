@@ -1,7 +1,11 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
-import { captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify } from '../lib/wikiqueue'
+import { captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify, takenTitles } from '../lib/wikiqueue'
 import { fakeFs } from './fakefs'
+
+/** A card file from an earlier day, already settled by the person. */
+const settledCard = (title: string, status: 'accepted' | 'skipped'): string =>
+  setCardStatus(cardText({ title, type: 'decision', evidence: 'reasoning/data-analyze.jsonl (2026-10-01 entry)', captured: '2026-10-01T09:00', by: 'mod', status: 'pending', body: 'An earlier card.' }), status)
 
 describe('wiki review queue', () => {
   test('a card round-trips through its file format; a missing status is pending', () => {
@@ -30,6 +34,12 @@ describe('wiki review queue', () => {
     expect(cards.map(card => card.title)).toEqual(['FDR across electrodes', 'Baseline window'])
     expect(parseJudge('{"cards": []}')).toEqual([])
     expect(parseJudge('not json')).toEqual([])
+  })
+
+  test('every queued card blocks its title, whatever its status', () => {
+    const queued = [parseCard(settledCard('FDR across electrodes', 'skipped')), parseCard(settledCard('Baseline window', 'accepted')), parseCard('no frontmatter')]
+    const taken = takenTitles(['  ICA before epoching '], queued)
+    expect([...taken].sort()).toEqual(['baseline window', 'fdr across electrodes', 'ica before epoching'])
   })
 
   test('capture needs the person\'s opt-in and a project that does not forbid it', () => {
@@ -94,6 +104,47 @@ describe('auto wiki in a session', () => {
     expect(JSON.stringify(await pane.drawn())).toContain('FDR across electrodes')
     await pane.press({ key: 'nf-wiki-skip' })
     expect(parseCard(fs.files[card])?.status).toBe('skipped')
+  })
+
+  test('a skipped or accepted card is never raised again', { options: { runtime: 'on' } }, async ($, on) => {
+    const pending = `${root}/.neuroflow/wiki/.pending`
+    const fs = fakeFs(on, {
+      ...files,
+      [`${pending}/.gitignore`]: '*\n',
+      [`${pending}/2026-10-01-fdr-across-electrodes.md`]: settledCard('FDR across electrodes', 'skipped'),
+      [`${pending}/2026-10-02-baseline-window.md`]: settledCard('Baseline window', 'accepted'),
+    }, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 14, 10).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('session.model', () => ({ value: 'claude-test' }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.toast', () => ({ value: undefined }))
+    on('ui.log', () => ({ value: undefined }))
+    on('turn.complete', () => ({ text: 'done' }))
+    on('command.run', () => ({ text: '', ref: 1 }))
+    const asked: string[] = []
+    on('model.complete', ($, e) => {
+      asked.push(String((e as unknown as { prompt: string }).prompt))
+      return {
+        value: {
+          isAnswered: true,
+          text: '{"cards": [' +
+            '{"title": "FDR across electrodes", "type": "decision", "summary": "Chosen over Bonferroni again.", "evidence": "reasoning/data-analyze.jsonl, 14:05 entry"},' +
+            '{"title": "baseline window", "type": "method", "summary": "-200 to 0 ms.", "evidence": "reasoning/data-analyze.jsonl, 14:06 entry"}]}',
+          usage: { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+        },
+      }
+    })
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:data-analyze', args: '' })
+    fs.files[`${root}/.neuroflow/reasoning/data-analyze.jsonl`] += '{"statement": "Use FDR across electrodes", "reasoning": "Bonferroni too conservative"}\n'
+    await $.turn.complete({ reason: 'answer', answer: 'done', durationMs: 1, isAborted: false, turnId: 't1' } as never)
+    expect(asked.length).toBe(1)
+    expect(asked[0]).toContain('Cards already in the queue (pending, accepted or skipped): Baseline window; FDR across electrodes')
+    expect(Object.keys(fs.files).filter(path => path.startsWith(`${pending}/2026-10-07`))).toEqual([])
+    expect(parseCard(fs.files[`${pending}/2026-10-01-fdr-across-electrodes.md`])?.status).toBe('skipped')
   })
 
   test('without the opt-in no model call is made', { options: { runtime: 'on' } }, async ($, on) => {
