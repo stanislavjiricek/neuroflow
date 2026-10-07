@@ -7,6 +7,8 @@ reads:
   - .neuroflow/flow.md
 writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
+  - ~/.neuroflow/private/interviews/      # interview notes — local only, never in a repo
+lifecycle: light
 ---
 
 # /interview
@@ -19,7 +21,7 @@ Helps with interview preparation from either side of the table. If `.neuroflow/p
 
 ## Step 1 — Determine role
 
-Ask: **"Are you the interviewer or the interviewee?"**
+Ask with `AskUserQuestion`: **"Are you the interviewer or the interviewee?"** (**Interviewer** / **Interviewee**)
 
 - **Interviewer** → go to [Interviewer mode](#interviewer-mode)
 - **Interviewee** → go to [Interviewee mode](#interviewee-mode)
@@ -79,9 +81,17 @@ Ask: **"Do you want to run through the questions now? I can model ideal answers,
 
 ### 2d — Save and wrap up
 
-Print the final question set as a clean markdown list. Suggest saving it to a file (e.g., `interview-questions-[role]-[date].md`).
+Print the final question set as a clean markdown list. The question set holds no candidate data — offer to save it wherever the person likes (e.g., `interview-questions-[role]-[date].md`).
 
-Append a summary to `.neuroflow/sessions/YYYY-MM-DD.md`.
+**Candidate data stays local.** Notes, impressions or scores about a candidate are personal data about someone else (the `local` tier — `neuroflow:neuroflow-core` → **Sharing tiers**). Save them only to `~/.neuroflow/private/interviews/{role}-{YYYY-MM-DD}.md`:
+
+- never in the project repo or `.neuroflow/` (git-tracked, shared with collaborators)
+- never in `~/.neuroflow/flowie/` (pushed to GitHub) or a hive
+- never in the session log
+
+Before saving, say where the file goes and that it should be deleted once the hiring decision is made, or as the person's institution's retention rules require. Offer to delete it when they ask.
+
+Append to `.neuroflow/sessions/YYYY-MM-DD.md`: `## HH:MM — [interview] Interviewer prep: {role}, {n} questions` — no candidate names or impressions.
 
 ---
 
@@ -132,7 +142,7 @@ If yes, provide:
 
 ### 2e — Save and wrap up
 
-Summarise what was covered and any key preparation notes. Append to `.neuroflow/sessions/YYYY-MM-DD.md`.
+Summarise what was covered and any key preparation notes. If the person wants to keep the evaluation, save it to `~/.neuroflow/private/interviews/` (local only) unless they name another place. Append to `.neuroflow/sessions/YYYY-MM-DD.md`: `## HH:MM — [interview] Interviewee practice: {role}, {n} questions`.
 
 ---
 

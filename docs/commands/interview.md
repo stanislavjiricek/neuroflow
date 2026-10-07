@@ -76,6 +76,9 @@ Claude asks: **"Are you the interviewer or the interviewee?"**
 
     The final question set is printed as a clean markdown list. Suggested file name: `interview-questions-[role]-[date].md`.
 
+    !!! warning "Candidate notes stay on your machine"
+        Notes, impressions or scores about a candidate are personal data about someone else. Claude saves them only to `~/.neuroflow/private/interviews/` — never in the project repo, `.neuroflow/`, your flowie repo or a hive — and reminds you to delete them once the hiring decision is made.
+
 ---
 
 ## Files read and written
@@ -83,7 +86,7 @@ Claude asks: **"Are you the interviewer or the interviewee?"**
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md` (if they exist) |
-| Writes | `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Writes | `.neuroflow/sessions/YYYY-MM-DD.md` (role and question count only), `~/.neuroflow/private/interviews/` (only notes you choose to keep — local, never synced) |
 
 ---
 

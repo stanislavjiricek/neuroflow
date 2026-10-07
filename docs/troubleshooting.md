@@ -63,9 +63,9 @@ If not installed, install Node.js from [nodejs.org](https://nodejs.org).
 
 ### `.neuroflow/` was not created
 
-**Cause:** `/neuroflow` was interrupted, or you declined to create it.
+**Cause:** `/neuroflow` was interrupted, or the scaffold refused — it never creates project memory in your home directory or inside another project.
 
-**Fix:** Run `/neuroflow:neuroflow` again and complete the setup interview.
+**Fix:** Run `/neuroflow:neuroflow` again from the project folder and complete the setup interview. It resumes a half-finished setup and never overwrites files that already exist.
 
 ### Project context is wrong or stale
 
@@ -75,7 +75,24 @@ If not installed, install Node.js from [nodejs.org](https://nodejs.org).
 
 1. Run `/neuroflow:sentinel` to detect and fix inconsistencies
 2. Check that `.claude/CLAUDE.md` contains the neuroflow block
-3. Run `/neuroflow:neuroflow` to refresh the status
+3. Check your global `~/.claude/CLAUDE.md`: older neuroflow versions wrote a neuroflow block naming an active phase there, which injects that phase into every Claude Code session on your machine. Run `/neuroflow:neuroflow` — it shows the block and offers to remove it
+4. Run `/neuroflow:neuroflow` to refresh the status
+
+### neuroflow says the project uses an older format
+
+**Cause:** `project_config.md` was written by an older neuroflow version (no `nf_schema` frontmatter), or decision logs are still `reasoning/*.json` arrays.
+
+**Fix:** Run `/neuroflow:migrate`. It shows the full plan first and writes only after you agree.
+
+### `/migrate` refuses: "nf_schema newer than this script knows"
+
+**Cause:** A collaborator with a newer neuroflow version already converted the project.
+
+**Fix:** Update the plugin (`claude plugin update neuroflow@neuroflow`, or `/plugin` in a session). Do not edit the file by hand to get past the check.
+
+### I started Claude in a subfolder
+
+Commands walk up from the working directory to the first folder with `.neuroflow/project_config.md`, stopping at the repository root. `/neuroflow` never creates a second `.neuroflow/` inside an existing project.
 
 ### Claude does not remember the project
 
@@ -95,7 +112,21 @@ If not installed, install Node.js from [nodejs.org](https://nodejs.org).
 /neuroflow:phase
 ```
 
-Then select the correct phase.
+Then pick the correct phase from the menu (arrow keys and Enter, or a click).
+
+### The personality mode changed when I did not ask for it
+
+Only an explicit prefix switches modes: `mode: critic` or `--mode critic` at the start of a message. Words in ordinary text — "critical period", "be careful with ICA" — never do. Your standing default lives in `~/.neuroflow/user.yaml` (`default_mode`); a team default can sit in `project_config.md`.
+
+### Too many permission prompts for neuroflow's own logs
+
+`/neuroflow` offers, once during setup, to allow its bookkeeping writes — session logs, decision logs and `flow.md` indexes — with three narrow rules in `.claude/settings.json`:
+
+```json
+"Edit(.neuroflow/sessions/**)", "Edit(.neuroflow/reasoning/**)", "Edit(.neuroflow/**/flow.md)"
+```
+
+Add them to `permissions.allow` yourself if you skipped the offer. Avoid a blanket `.neuroflow/**` rule — it would also cover credentials and confidential reviews.
 
 ### A command wrote to the wrong folder
 
@@ -123,7 +154,7 @@ Then select the correct phase.
 
 ### Sentinel reports `plugin_version` mismatch
 
-This is normal after a plugin update. Sentinel will auto-fix this by updating `plugin_version` in `project_config.md`.
+This is normal after a plugin update. `plugin_version` in `project_config.md` only records the neuroflow version that last wrote the file; Sentinel updates it. To see what changed between versions, read the [changelog](changelog.md). If the project predates the current memory format, run `/neuroflow:migrate`.
 
 ### Sentinel finds skill-named subfolders in `.neuroflow/`
 

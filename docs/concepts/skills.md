@@ -32,7 +32,7 @@ Skills give Claude phase-specific expertise without you having to instruct it ma
 
 | Skill | What it does |
 |---|---|
-| `neuroflow:neuroflow-core` | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, command lifecycle, frontmatter standard |
+| `neuroflow:neuroflow-core` | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, the `project_config.md` contract, shared formats (decision logs, integrity markers, merge safety, sharing tiers), command lifecycle and frontmatter standard. Ships `scripts/scaffold.py` (used by `/neuroflow`) and `scripts/migrate.py` (used by `/migrate`) |
 | `neuroflow:review-neuro` | Rigorous eight-area peer review of a neuroscience manuscript — invoked by `/review` |
 
 ### Phase skills
@@ -61,7 +61,7 @@ Each research phase has a corresponding skill that orients Claude's approach, su
 | `neuroflow:phase-brain-run` | `/brain-run` |
 | `neuroflow:phase-quiz` | `/quiz` |
 | `neuroflow:phase-fails` | `/fails` |
-| `neuroflow:phase-export` | `/export` |
+| `neuroflow:phase-output` | `/output` |
 | `neuroflow:phase-pipeline` | `/pipeline` |
 | `neuroflow:phase-search` | `/search` |
 

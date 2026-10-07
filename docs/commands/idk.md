@@ -36,6 +36,9 @@ Claude listens first, validates before suggesting anything, and only helps you u
 
 If you want to untangle things, Claude asks what feels heaviest, what actually has to happen today, and helps you find just the one next step — not the whole plan.
 
+!!! note "Nothing is recorded"
+    `/idk` is a quiet command. While it runs, neuroflow writes nothing: no session log, no `fails/` entry, no issue report, no wiki page — even if you vent about the plugin itself. What you say stays in the conversation.
+
 ---
 
 ## Files read and written
@@ -43,7 +46,7 @@ If you want to untangle things, Claude asks what feels heaviest, what actually h
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md` (if they exist) |
-| Writes | `.neuroflow/sessions/YYYY-MM-DD.md` — a one-line timestamp only; no details logged |
+| Writes | Nothing |
 
 ---
 

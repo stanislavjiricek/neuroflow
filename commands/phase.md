@@ -6,12 +6,15 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
   - .neuroflow/sessions/
+  - .neuroflow/timeline.md                # if it exists — deadlines under the map
+  - ~/.neuroflow/user.yaml                # personal default_mode, if set
+  - commands/{active_phase}.md            # plugin file — its requires/produces/next frontmatter
 writes:
-  - .neuroflow/project_config.md
-  - .claude/CLAUDE.md
-  - .github/copilot-instructions.md
-  - AGENTS.md
+  - .neuroflow/project_config.md          # active_phase only, when the person switches
+  - .neuroflow/sessions/YYYY-MM-DD.md
+  - .neuroflow/reasoning/general.jsonl
   - ~/.neuroflow/flowie/projects/
+lifecycle: light
 ---
 
 # /phase
@@ -20,14 +23,18 @@ writes:
 
 Shows a visual phase map of the project — current phase, visited phases, recommended phases, and untouched phases. Lets the user switch phase if they want.
 
+With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the map with a picker you move through with the arrow keys and Enter (or a click), and the switch is written to `active_phase` in code. This file is the fallback for Claude Code without the mod, and it asks the same question with `AskUserQuestion`.
+
 ---
 
 ## Steps
 
-1. Read `project_config.md` — extract:
+1. Read `project_config.md` — from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**; a legacy dialect is read as it is), extract:
    - `active_phase` (the current active phase)
    - `recommended_phases` (list suggested after the initial interview, if present)
-   - `default_mode` (personality mode: `teacher`, `executor`, or `critic` — absent if not set)
+   - `default_mode` (team default personality mode: `teacher`, `executor`, or `critic` — absent if not set)
+
+   Also read `default_mode` from `~/.neuroflow/user.yaml` if it exists — a personal default overrides the team default.
 
 2. Check which phase subfolders exist inside `.neuroflow/` — these are phases that have been worked on (a `.neuroflow/{phase}/` directory is present).
 
@@ -91,19 +98,24 @@ Shows a visual phase map of the project — current phase, visited phases, recom
 
    Skip the block silently if `timeline.md` is absent or empty.
 
-   Below that, print one line for the active personality mode:
+   Below that, print one line for the active personality mode and where it comes from:
 
    ```
-   Personality mode: 🧐 Teacher (teacher)    [or ⚡ Executor (executor) / 🔍 Critic (critic)]
+   Personality mode: 🧐 Teacher (teacher, personal default)    [or ⚡ Executor (executor) / 🔍 Critic (critic); team default]
    ```
 
-   If `default_mode` is absent from `project_config.md`, print: `Personality mode: not set (default: Executor — run /neuroflow to choose)`
+   If neither file sets `default_mode`, print: `Personality mode: not set (default: Executor — run /neuroflow to choose, or start any message with mode: <name>)`
 
-5. Ask: "Do you want to switch to a different phase, or continue with the current one?"
+   **Current phase checklist and next commands.** Read the frontmatter of the active phase's command in the plugin folder (`<neuroflow-core base dir>/../../commands/{active_phase}.md`). If it declares `requires:` or `produces:`, list each path with `[x]` when it exists and `[ ]` when it does not — information only, never a gate. If it declares `next:`, print `Next: /neuroflow:<name>` for each entry (at most three). Skip both silently when the keys are absent.
 
-6. If the user picks a different phase, update `project_config.md`, `.claude/CLAUDE.md`, `.github/copilot-instructions.md`, and `AGENTS.md` (all three agent-instruction mirrors must stay identical) with the new active phase, then suggest the corresponding command.
+5. Ask with `AskUserQuestion` whether to switch:
+   - **Stay in {active_phase}** — first option
+   - up to three phase options: the phases after the current one in `recommended_phases`, in order (without that list, the next phases in the canonical order)
+   - "Other" (added by the tool) — the person types any other phase; accept a canonical phase id from the Phase taxonomy and ask again if the answer matches none
 
-7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `~/.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`):
+6. If the user picks a different phase, set `active_phase` in the `project_config.md` frontmatter — that one key, in place (`neuroflow:neuroflow-core` → **project_config.md — the config contract**). Nothing else follows the phase: the `.claude/CLAUDE.md` block is static and is never edited here, and no other instruction file is written. Then append `## HH:MM — [phase] Active phase: {old} → {new}` to `sessions/YYYY-MM-DD.md`, add a line to `reasoning/general.jsonl` (a phase change is a mandatory reasoning trigger — `neuroflow:neuroflow-core` → **Reasoning log**), and suggest the new phase's command.
+
+7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `~/.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`). The person's choice in step 5 is the confirmation for this push to their own private flowie repo — never push for a phase change the model inferred:
 
    - Pull: `git -C ~/.neuroflow/flowie pull --rebase origin main || true`
    - Read `projects/projects.json` — find the project entry where `"id"` matches the linked project name

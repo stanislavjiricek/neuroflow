@@ -8,6 +8,7 @@ reads:
   - skills/phase-quiz/SKILL.md
 writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: light
 ---
 
 # /quiz
@@ -28,12 +29,12 @@ Runs an interactive neuroscience quiz. Supports three modes:
 
 ### 1 — Mode selection
 
-If the user has specified a mode in their invocation, use it directly. Otherwise, present the three options and ask:
+If the user has specified a mode in their invocation, use it directly. Otherwise, ask with `AskUserQuestion`:
 
 > "Which quiz mode would you like?
-> 1. **Flashcards** — Q&A cards you can save and print (A4 layout, both sides)
-> 2. **Pub quiz** — fun questions with house rules for a neuroscience pub night
-> 3. **Throw questions** — just fire questions at me (default)"
+> - **Throw questions** — just fire questions at me (default, first option)
+> - **Flashcards** — Q&A cards you can save and print (A4 layout, both sides)
+> - **Pub quiz** — fun questions with house rules for a neuroscience pub night"
 
 If the user says nothing or types any variation of "go", "start", "default" — use **throw questions**.
 
@@ -116,6 +117,6 @@ Vary question format:
 
 ## At end
 
-- If `.neuroflow/` exists: append to `.neuroflow/sessions/YYYY-MM-DD.md` with a one-line entry: mode used, subfield, number of questions, score if applicable.
+- If `.neuroflow/` exists: append one line to `.neuroflow/sessions/YYYY-MM-DD.md` — `## HH:MM — [quiz] {mode}, {subfield}: {n} questions{, score x/n}`.
 - If flashcard file was saved: confirm the save path to the user.
 - Offer to run again in a different mode or subfield.

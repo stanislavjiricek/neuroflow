@@ -6,7 +6,7 @@ title: /phase
 
 **Show the current project phase and optionally switch to a different one.**
 
-`/phase` gives you a quick status overview — what phase you're in, what phases have been worked on, and when the last session was. It also lets you switch phase if you want to jump to a different part of the pipeline.
+`/phase` gives you a quick status overview — what phase you're in, what phases have been worked on, and when the last session was. It also lets you switch phase from a menu if you want to jump to a different part of the pipeline.
 
 ---
 
@@ -20,32 +20,16 @@ title: /phase
 
 ## What it does
 
-1. Reads `project_config.md` to get the current active phase
-2. Reads root `flow.md` to list all phase subfolders that exist
-3. Checks `sessions/` for the most recent session log
+1. Reads `project_config.md` to get the current active phase and the phases recommended at setup
+2. Checks which phase subfolders exist in `.neuroflow/` and when the last session was
+3. Prints the phase map — `◉` current, `●` visited, `→` recommended, `○` not started — followed by upcoming deadlines from `timeline.md` and your personality mode
+4. For the current phase, lists its expected inputs and outputs (`[x]` present, `[ ]` missing — information only, never a gate) and the commands that usually come next
+5. Asks whether to switch, as a **menu**: move with the arrow keys and press Enter, or click an option. "Stay in the current phase" comes first, then the next recommended phases; **Other** lets you type any phase.
+6. If you pick a different phase, it changes `active_phase` in `project_config.md` — that one value — logs the switch, and suggests the new phase's command.
 
-Then prints a compact status:
+With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the same map with a picker (arrow keys and Enter, or a click), and the switch is written by code. Without the mod, Claude asks the same question with Claude Code's question menu.
 
-```
-Current phase: ideation
-Phases worked on: ideation, experiment
-Last session: 2026-03-09
-
-Available phases to switch to:
-  [ ] grant-proposal
-  [ ] tool-build
-  [ ] tool-validate
-  [ ] data
-  [ ] data-preprocess
-  [ ] data-analyze
-  [ ] paper
-  [ ] review
-  [ ] notes
-```
-
-4. Asks: "Do you want to switch to a different phase, or continue with the current one?"
-
-5. If you pick a different phase, it updates `project_config.md` and `.claude/CLAUDE.md` with the new active phase, then suggests the corresponding command.
+The switch never edits `.claude/CLAUDE.md`: its neuroflow block is static and points at `project_config.md`, so nothing goes stale.
 
 ---
 
@@ -56,13 +40,27 @@ Available phases to switch to:
 ```
 
 ```
-Current phase: data-preprocess
-Phases worked on: ideation, experiment, data, data-preprocess
-Last session: 2026-03-08
+Phase map — Last session: 2026-03-08
 
-Continue with data-preprocess, or switch phase?
+  ● ideation
+  ● experiment
+  ● data
+  ◉ data-preprocess     ← current
+  → data-analyze        ← recommended
+  → paper               ← recommended
+  ○ preregistration
+  ...
 
-You: Switch to data-analyze — preprocessing is done.
+Personality mode: 🔍 Critic (critic, team default)
+Next: /neuroflow:data-analyze
+
+Switch phase?
+  ▸ Stay in data-preprocess
+    data-analyze
+    paper
+    Other…
+
+You: (arrow down, Enter) data-analyze
 
 Claude: ✅ Active phase updated to: data-analyze
 
@@ -75,8 +73,8 @@ Claude: ✅ Active phase updated to: data-analyze
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/sessions/` |
-| Writes | `project_config.md` and `.claude/CLAUDE.md` (only if phase is changed) |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/sessions/`, `.neuroflow/timeline.md`, `~/.neuroflow/user.yaml` |
+| Writes | only when you switch: `active_phase` in `project_config.md`, a session line, a `reasoning/general.jsonl` entry, and your flowie project registry (if linked) |
 
 ---
 

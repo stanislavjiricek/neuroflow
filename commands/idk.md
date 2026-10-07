@@ -5,13 +5,15 @@ phase: utility
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-writes:
-  - .neuroflow/sessions/YYYY-MM-DD.md
+writes: []
+lifecycle: quiet
 ---
 
 # /idk
 
-Read `project_config.md` and `flow.md` first so you have context about what the user is working on. Then follow the interaction flow below. **Do not rush. Do not immediately offer solutions. Listen first.**
+Read `project_config.md` and `flow.md` first (if they exist) so you have context about what the user is working on. Then follow the interaction flow below. **Do not rush. Do not immediately offer solutions. Listen first.**
+
+**Quiet command** (`lifecycle: quiet` — `neuroflow:neuroflow-core` → **Lifecycle profiles**): while `/idk` runs there is no passive issue monitoring and nothing is written — no session log, no `fails/` entry, no issue draft or URL, no wiki crystallization offer, no reasoning entry. What the person says here stays in this conversation.
 
 ---
 
@@ -92,6 +94,5 @@ Do not push them back toward work. Let them decide when they are ready.
 
 ## At end
 
-- Append a brief note to `.neuroflow/sessions/YYYY-MM-DD.md` — just a timestamp and one line: "idk session — check-in." No details about the conversation.
-- Do **not** write to any phase subfolder.
-- Do **not** log a reasoning entry for this session.
+- Write nothing — no session line, no phase subfolder, no reasoning entry, no `fails/` line, no wiki page.
+- If the person moves on to a project task, the next command starts its own lifecycle as usual.

@@ -32,7 +32,12 @@ Last session: 2026-03-09
 Continue? Or switch phase / do something specific?
 ```
 
-It then waits for your instruction — no setup, no interview, just status + next step.
+It then asks what you want to do next — continue, switch phase, or something else — as a menu you answer with the arrow keys or a click. No setup, no interview, just status + next step. Started from a subfolder, it finds the project in the folder above.
+
+Two one-time checks can appear here:
+
+- **Older project format** — if `project_config.md` predates the current format, it offers [`/migrate`](migrate.md).
+- **Global instructions** — if an older neuroflow version wrote a neuroflow block into your `~/.claude/CLAUDE.md`, it shows you the block and offers to remove it (that block pushes one project's phase into every Claude Code session on your machine). Nothing is removed without your yes.
 
 ### New project
 
@@ -63,36 +68,50 @@ Claude asks a few focused questions — one or two at a time:
 
 **3. Create `.neuroflow/`**
 
+A small script (`scaffold.py` in the `neuroflow-core` skill) creates the structure in one step. It never overwrites a file that already exists:
+
 ```
 .neuroflow/
-├── project_config.md    ← research question, modality, tools, active phase
+├── project_config.md    ← frontmatter facts (active phase, recommended phases, collaborators) + your notes
 ├── flow.md              ← index of all subfolders
-├── sessions/            ← daily session logs (.gitignore this)
+├── sessions/            ← daily session logs (local only, gitignored)
+├── tasks/               ← project task board
+├── wiki/                ← project wiki skeleton
 └── reasoning/
-    └── general.json     ← project-level decisions (JSON)
+    └── general.jsonl    ← project-level decisions (JSON Lines)
 ```
 
-**4. Update `.claude/CLAUDE.md`, `.github/copilot-instructions.md`, and `AGENTS.md`**
+It also adds a few lines to `.gitignore` (session logs, confidential reviews and credentials stay out of git) and to `.gitattributes` (append-only logs merge without conflicts).
 
-Appends a neuroflow block to all three files so Claude, GitHub Copilot, and the π (PI) agent harness always load project context automatically:
+Your personal answers — whether neuroflow may offer issue reports, your preferred working mode, your name and writing style — go to `~/.neuroflow/user.yaml` on your machine, never into the shared project files.
+
+**4. Add the neuroflow block to `.claude/CLAUDE.md`**
+
+Claude Code loads this file whenever the folder is opened. The block is static — it names no phase, so it never goes stale:
 
 ```markdown
 ## neuroflow
 
-This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
+This project uses neuroflow, a Claude Code plugin. Project memory is in `.neuroflow/`.
 
-- Active phase: ideation
-- Config: `.neuroflow/project_config.md`
-- Start any session by reading `project_config.md` and `flow.md` first.
+- Read `.neuroflow/project_config.md` (its frontmatter holds `active_phase` and the other project facts) and `.neuroflow/flow.md` at the start of every session.
+- Record project decisions in `.neuroflow/reasoning/`, not in Claude's auto-memory.
+- Keep this block static: no phase or other changing facts here.
 ```
+
+The block is written only to the project's `.claude/CLAUDE.md` — never to your global `~/.claude/CLAUDE.md`.
 
 **5. Optional: integration setup**
 
-Asks whether you want to connect PubMed and Miro now. You can skip and run `/neuroflow:setup` later.
+Asks whether you want to connect Miro and custom LLM providers now. You can skip and run `/neuroflow:setup` later.
 
-**6. Suggest next step**
+**5b. Optional: fewer permission prompts**
 
-Based on your phase, Claude suggests the next command to run.
+Offers once to allow neuroflow's routine bookkeeping writes (session logs, decision logs, `flow.md` indexes) without a prompt each time, by adding three narrow `Edit(...)` rules to `.claude/settings.json`. You see the exact rules first; nothing is added without your yes.
+
+**6. Checklist and next step**
+
+Prints a short checklist of what is set up and what is still open (objectives, timeline, integrations), then suggests the next command for your phase.
 
 ---
 
@@ -110,10 +129,10 @@ What are you working on?
 > An auditory oddball study on attention modulation in healthy adults.
 
 Project name and institution?
-> OddballStudy2026 — Charles University, Prague
+> OddballStudy2026 — University of Example
 
 Modality?
-> EEG (64-channel BrainProducts)
+> EEG (64 channels)
 
 Tools?
 > Python + MNE, PsychoPy
@@ -133,13 +152,14 @@ Next step: /neuroflow:data-preprocess
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/integrations.json` |
-| Writes | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `.neuroflow/integrations.json`, `.claude/CLAUDE.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `~/.neuroflow/user.yaml`, `~/.neuroflow/flowie/` (if set up), `~/.claude/CLAUDE.md` (only to find an old neuroflow block) |
+| Writes | `.neuroflow/` (scaffold), `.neuroflow/project_config.md`, `.neuroflow/objectives.md`, `.neuroflow/timeline.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `.claude/CLAUDE.md`, `.gitattributes`, `.gitignore`, `~/.neuroflow/user.yaml`, `.claude/settings.json` (only if you agree) |
 
 ---
 
 ## Related commands
 
-- [`/setup`](setup.md) — configure PubMed and Miro credentials
+- [`/setup`](setup.md) — configure integration credentials
 - [`/phase`](phase.md) — check or switch the active phase
+- [`/migrate`](migrate.md) — bring an older project up to the current format
 - [`/sentinel`](sentinel.md) — audit `.neuroflow/` for consistency
