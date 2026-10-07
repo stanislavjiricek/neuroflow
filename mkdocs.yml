@@ -117,19 +117,14 @@ nav:
   - Quickstart: quickstart.md
   - Mind Map: mind.md
   - Concepts:
-      - Project Memory: concepts/project-memory.md
-      - Flowie Profile: concepts/flowie.md
       - Agents: concepts/agents.md
       - Skills: concepts/skills.md
       - Hooks: concepts/hooks.md
       - The neuroflow mod: concepts/mods.md
       - Design record: concepts/design-record.md
       - Personal Profile:
-          - "👤 Research Profile": commands/flowie.md
-          - "🧠 Personal Wiki": skills/wiki/SKILL.md
-          - "💡 Cross-project Ideas": commands/flowie.md
-          - "💚 Wellbeing": commands/flowie.md
-          - "📁 Project Registry": commands/flowie.md
+          - "👤 Flowie Profile": concepts/flowie.md
+          - "🧑 flowie": commands/flowie.md
       - Project Memory:
           - "🗂️ Project Memory": concepts/project-memory.md
           - "🚀 neuroflow": commands/neuroflow.md
@@ -178,7 +173,6 @@ nav:
   - Reference:
       - Commands: commands/index.md
       - Skills:
-          - Overview: concepts/skills.md
           - Expert:
               - "bids": skills/bids/SKILL.md
               - "humanizer": skills/humanizer/SKILL.md
@@ -223,7 +217,6 @@ nav:
               - "setup": skills/setup/SKILL.md
               - "skill-creator": skills/skill-creator/SKILL.md
       - Agents:
-          - Overview: concepts/agents.md
           - "paper-writer": agents/paper-writer.md
           - "paper-critic": agents/paper-critic.md
           - "poster-critic": agents/poster-critic.md
