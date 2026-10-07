@@ -83,7 +83,7 @@ Every file the model reads, and every command output it sees, is sent to the mod
 | `identifiable` | Identifiable data, as far as the approval covers this provider and route. Still only what the task needs. |
 
 <!-- nf-rule: PARTICIPANT-ROUTE -->
-**Participant data is read by the model only if `ai_processing` allows it.** When it does not, write the script, let the person run it, and work from its aggregate output. With `none`, offer to add the raw folders (e.g. `Read(./sourcedata/**)`) to `permissions.deny` in the project's `.claude/settings.json`: a seatbelt for the Read tool, not a vault, because shell commands and scripts can still print rows.
+**Participant data is read by the model only if `ai_processing` allows it.** A project marked `ethics: not-applicable` declares that it holds no participant data to protect, so the rule (and the mod's PARTICIPANT-ROUTE guard) does not apply there — the flag is for public de-identified data and simulations only. When reading is not allowed, write the script, let the person run it, and work from its aggregate output. With `none`, offer to add the raw folders (e.g. `Read(./sourcedata/**)`) to `permissions.deny` in the project's `.claude/settings.json`: a seatbelt for the Read tool, not a vault, because shell commands and scripts can still print rows.
 
 ## Participant erasure (`--erase`)
 

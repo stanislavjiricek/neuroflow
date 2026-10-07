@@ -257,7 +257,7 @@ set_at: 2026-09-12T09:00:00Z
 - A frozen preregistration file starts with a plain-text banner, so collaborators without the mod see it: `> FROZEN 2026-10-01 — sha256 3f5a… — do not edit; record changes in deviations.md`. `deviations.md` is append-only; unfreezing is a person's action only and is itself logged there. The freeze workflow lives in `/preregistration`.
 
 <!-- nf-rule: PARTICIPANT-ROUTE -->
-**Participant data:** the model reads participant-level data (raw recordings, `participants.tsv`, consent forms, anything identifying) only as `ai_processing` allows — `none`: never; `pseudonymised`: pseudonymised data only; `identifiable`: as approved. A missing field, or one with `set_by: model`, counts as `none`. `/ethics` records the field and details what each value allows; when reading is not allowed, write the script, let the person run it, and work from its aggregate output.
+**Participant data:** the model reads participant-level data (raw recordings, `participants.tsv`, consent forms, anything identifying) only as `ai_processing` allows — `none`: never; `pseudonymised`: pseudonymised data only; `identifiable`: as approved. A missing field, or one with `set_by: model`, counts as `none`. A project marked `ethics: not-applicable` (public de-identified data, simulations) declares no participant data to protect: this rule, and the mod's PARTICIPANT-ROUTE guard, do not apply there. `/ethics` records the field and details what each value allows; when reading is not allowed, write the script, let the person run it, and work from its aggregate output.
 
 ### Merge safety
 
@@ -747,6 +747,6 @@ write-report → output
 - `notes` is also a valid phase with its own subfolder, but is cadence-free — note-taking happens at any point, so it sits outside the ordered chain.
 - `finance` starts at funding and then runs alongside the whole project.
 
-**`utility`** — stateless commands that own no phase subfolder (`/git`, `/quiz`, `/search`, `/sentinel`, `/setup`, `/phase`, `/pipeline`, `/interview`, `/idk`, `/fails`, `/wiki`, `/flowie`, `/hive`, `/meeting`, `/slideshow`, `/autoresearch`, `/neuroflow`, `/migrate`).
+**`utility`** — commands outside the pipeline, owning no phase subfolder with a `flow.md` (`/git`, `/quiz`, `/search`, `/sentinel`, `/setup`, `/phase`, `/pipeline`, `/interview`, `/idk`, `/fails`, `/wiki`, `/flowie`, `/hive`, `/meeting`, `/slideshow`, `/autoresearch`, `/neuroflow`, `/migrate`, `/dashboard`, `/doctor`, `/ethics`, `/tasks`). Some keep a memory folder of their own — `/ethics` → `ethics/`, `/tasks` → `tasks/`.
 
 **Valid `phase:` frontmatter values:** `ideation`, `preregistration`, `grant-proposal`, `finance`, `experiment`, `tool-build`, `tool-validate`, `data`, `data-preprocess`, `data-analyze`, `brain-build`, `brain-optimize`, `brain-run`, `paper`, `review`, `poster`, `notes`, `write-report`, `output`, `utility`
