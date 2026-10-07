@@ -24,7 +24,7 @@ next:
 
 # /experiment
 
-Read the `neuroflow:phase-experiment` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/experiment/flow.md` before starting. Also check `.neuroflow/ideation/` for research question and hypothesis.
+Read the `neuroflow:phase-experiment` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/experiment/flow.md` before starting. Also check `.neuroflow/ideation/` for research question and hypothesis.
 
 ## Ground rules
 

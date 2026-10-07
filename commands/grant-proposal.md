@@ -27,7 +27,7 @@ next:
 
 # /grant-proposal
 
-Read the `neuroflow:phase-grant-proposal` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `objectives.md` (if it exists) before starting.
+Read the `neuroflow:phase-grant-proposal` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `objectives.md` (if it exists) before starting.
 
 **Style editing is opt-in.** Run `neuroflow:humanizer` on a section only when the person asks for it — a style edit (filler, rhythm, register), never a way to hide that AI helped write the text. AI assistance is declared in Step 6b.
 

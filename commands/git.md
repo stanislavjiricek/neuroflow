@@ -12,7 +12,7 @@ lifecycle: light
 
 # /git
 
-Read the `neuroflow:phase-git` skill first. Then read `project_config.md` and `flow.md` if they exist (they may not — `/git` works in any repo, not only neuroflow projects).
+Read the `neuroflow:phase-git` skill first. Then read `project_config.md` (and say the version notice when it is due — `neuroflow:neuroflow-core` → **Command lifecycle**, step 3) and `flow.md` if they exist (they may not — `/git` works in any repo, not only neuroflow projects).
 
 ## What this command does
 

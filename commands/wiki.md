@@ -30,7 +30,7 @@ Project-level shared knowledge base. Lives at `.neuroflow/wiki/`, git-tracked in
 - `/flowie --wiki-*` — personal wiki (private, in flowie repo)
 - `/hive --wiki-*` — team wiki (lab-wide, in hive repo)
 
-Read the `neuroflow:wiki-protocol` skill first with `level: project`. Then follow the neuroflow-core lifecycle.
+Read the `neuroflow:wiki-protocol` skill first with `level: project`. Then follow the neuroflow-core lifecycle — its version notice included (**Command lifecycle**, step 3).
 
 ---
 

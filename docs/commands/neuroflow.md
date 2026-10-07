@@ -34,8 +34,9 @@ Continue? Or switch phase / do something specific?
 
 It then asks what you want to do next — continue, switch phase, or something else — as a menu you answer with the arrow keys or a click. No setup, no interview, just status + next step. Started from a subfolder, it finds the project in the folder above.
 
-Two one-time checks can appear here:
+Three checks can appear here:
 
+- **Plugin updated** — if neuroflow was updated since the project was last brought up to date, it says so in one line and names [`/migrate`](migrate.md) (every neuroflow command does this once per session; see [Upgrading](../upgrading.md)).
 - **Older project format** — if `project_config.md` predates the current format, it offers [`/migrate`](migrate.md).
 - **Global instructions** — if an older neuroflow version wrote a neuroflow block into your `~/.claude/CLAUDE.md`, it shows you the block and offers to remove it (that block pushes one project's phase into every Claude Code session on your machine). Nothing is removed without your yes.
 

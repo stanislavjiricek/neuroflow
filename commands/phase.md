@@ -34,7 +34,7 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
 
 ## Steps
 
-1. Read `project_config.md` — from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**; a legacy dialect is read as it is), extract:
+1. Read `project_config.md` — from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**; a legacy dialect is read as it is), say the version notice when it is due (**Command lifecycle**, step 3), and extract:
    - `active_phase` (the current active phase)
    - `recommended_phases` (list suggested after the initial interview, if present)
    - `default_mode` (team default personality mode: `teacher`, `executor`, or `critic` — absent if not set)

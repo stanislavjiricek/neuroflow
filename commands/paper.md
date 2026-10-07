@@ -37,7 +37,7 @@ next:
 
 # /paper
 
-Read the `neuroflow:phase-paper` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/paper/flow.md` before starting. Load upstream context from `.neuroflow/ideation/` (research question, hypothesis) and `.neuroflow/data-analyze/` (results summary, figures).
+Read the `neuroflow:phase-paper` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/paper/flow.md` before starting. Load upstream context from `.neuroflow/ideation/` (research question, hypothesis) and `.neuroflow/data-analyze/` (results summary, figures).
 
 **Modes:** default (drafting loop, below) · `--submit` (submission package) · `--revise` (reviewer rebuttal — minimal-change discipline) · `--coauthor` (a coauthor's comments and tracked changes in a .docx) · `--abstract` (conference abstract) · `--xray` (sentence-by-sentence check of a manuscript) · `--auto on|off|status|sync` (living paper skeleton). The other modes are specified after the drafting workflow.
 

@@ -23,7 +23,7 @@ next:
 
 # /preregistration
 
-Read the `neuroflow:phase-preregistration` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/preregistration/flow.md` before starting. Also read `.neuroflow/ideation/flow.md` and `.neuroflow/experiment/flow.md` if they exist — load the research question, hypothesis, and paradigm details from there.
+Read the `neuroflow:phase-preregistration` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/preregistration/flow.md` before starting. Also read `.neuroflow/ideation/flow.md` and `.neuroflow/experiment/flow.md` if they exist — load the research question, hypothesis, and paradigm details from there.
 
 ## What this command does
 

@@ -13,7 +13,7 @@ lifecycle: light
 
 # /quiz
 
-Read the `neuroflow:phase-quiz` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` if they exist.
+Read the `neuroflow:phase-quiz` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3) and `flow.md` if they exist.
 
 ## What this command does
 

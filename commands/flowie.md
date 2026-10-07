@@ -50,7 +50,7 @@ Personal research OS for neuroflow. Links the current project to a private GitHu
 
 The `flowie` directory at `~/.neuroflow/flowie/` **is the git repo itself** — cloned from GitHub. GitHub is canonical. Pull before every read, push after every write.
 
-Read the `neuroflow:phase-flowie` skill first. For any `--wiki-*` mode, also read the `neuroflow:wiki-protocol` skill. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-flowie` skill first. For any `--wiki-*` mode, also read the `neuroflow:wiki-protocol` skill. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3) and `flow.md` before starting.
 
 Flowie is fully optional. Nothing breaks if it is not set up.
 

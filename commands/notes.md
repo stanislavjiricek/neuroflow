@@ -26,7 +26,7 @@ next:
 
 # /notes
 
-Read the `neuroflow:phase-notes` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` before starting.
+Read the `neuroflow:phase-notes` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3) and `flow.md` before starting.
 
 ## What this command does
 

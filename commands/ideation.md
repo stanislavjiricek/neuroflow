@@ -29,7 +29,7 @@ next:
 
 # /ideation
 
-Read the `neuroflow:phase-ideation` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/ideation/flow.md` before starting.
+Read the `neuroflow:phase-ideation` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/ideation/flow.md` before starting.
 
 ## What this command does
 

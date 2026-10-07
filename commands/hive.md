@@ -19,7 +19,7 @@ lifecycle: light
 
 # /hive
 
-Read the `neuroflow:phase-hive` skill first. Then follow the neuroflow-core lifecycle.
+Read the `neuroflow:phase-hive` skill first. Then follow the neuroflow-core lifecycle — its version notice included (**Command lifecycle**, step 3).
 
 ---
 

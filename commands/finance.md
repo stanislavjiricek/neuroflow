@@ -19,7 +19,7 @@ produces:
 
 # /finance
 
-Read the `neuroflow:phase-finance` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/finance/flow.md` before starting. Also read `.neuroflow/grant-proposal/flow.md` if it exists — load any funder, scheme, or budget figures from there.
+Read the `neuroflow:phase-finance` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/finance/flow.md` before starting. Also read `.neuroflow/grant-proposal/flow.md` if it exists — load any funder, scheme, or budget figures from there.
 
 ## What this command does
 

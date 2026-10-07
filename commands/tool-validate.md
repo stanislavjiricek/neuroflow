@@ -24,7 +24,7 @@ next:
 
 # /tool-validate
 
-Read the `neuroflow:phase-tool-validate` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/tool-validate/flow.md` before starting. Also check `.neuroflow/tool-build/` and `.neuroflow/experiment/` for relevant specs and code.
+Read the `neuroflow:phase-tool-validate` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/tool-validate/flow.md` before starting. Also check `.neuroflow/tool-build/` and `.neuroflow/experiment/` for relevant specs and code.
 
 ## What this command does
 

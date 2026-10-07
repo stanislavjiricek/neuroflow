@@ -29,7 +29,7 @@ produces:
 
 # /autoresearch
 
-Read the `neuroflow:autoresearch-protocol` skill first. Then follow the neuroflow-core lifecycle.
+Read the `neuroflow:autoresearch-protocol` skill first. Then follow the neuroflow-core lifecycle — its version notice included (**Command lifecycle**, step 3).
 
 ## What this command does
 

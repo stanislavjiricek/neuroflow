@@ -30,7 +30,7 @@ Ask with `AskUserQuestion`: **"Are you the interviewer or the interviewee?"** (*
 
 ## Step 2 — Read context
 
-If `.neuroflow/project_config.md` exists, read it. Extract:
+If `.neuroflow/project_config.md` exists, read it (and say the version notice when it is due — `neuroflow:neuroflow-core` → **Command lifecycle**, step 3). Extract:
 
 - Research question or topic
 - Modality (EEG, fMRI, eye tracking, etc.)
