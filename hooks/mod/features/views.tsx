@@ -109,6 +109,14 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
     })
   }
   if (!quiet) {
+    if (snap.wikiPending > 0) {
+      items.push({
+        level: 'info',
+        glyph: '✎',
+        text: `${snap.wikiPending} wiki card${snap.wikiPending === 1 ? '' : 's'} waiting for review`,
+        actions: [{ key: 'nf-wiki-review', label: 'review', hotkey: 'w', command: 'neuroflow:wiki', args: '--review' }],
+      })
+    }
     for (const loop of snap.loops.filter(item => /running/i.test(item.status))) {
       items.push({ level: 'info', glyph: '↻', text: `autoresearch ${loop.name}: iteration ${loop.iterations}, best ${loop.best}` })
     }

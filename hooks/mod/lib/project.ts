@@ -188,6 +188,12 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     }
   }
   meetings.sort((a, b) => a.startsIn - b.startsIn)
+  let wikiPending = 0
+  for (const entry of await io.list(join(nfDir, 'wiki/.pending'))) {
+    if (entry.isDir || !entry.name.endsWith('.md')) continue
+    const card = await io.read(join(nfDir, 'wiki/.pending', entry.name))
+    if (card !== null && !/^status:\s*(accepted|skipped)\b/m.test(card)) wikiPending += 1
+  }
   let wellbeingDue = false
   if (home) {
     const wellbeing = join(toSlash(home), '.neuroflow/flowie/wellbeing')
@@ -219,6 +225,8 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     wellbeingDue,
     ethicsNotApplicable: asString(config.ethics) === 'not-applicable',
     flowieProfiles: asList(config.flowie_profiles),
+    wikiCapture: asString(config.wiki_capture),
+    wikiPending,
     problems,
     loadedAt: nowMs,
   }

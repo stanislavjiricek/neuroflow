@@ -85,6 +85,10 @@ export type NfSnapshot = {
   ethicsNotApplicable: boolean
   /** Flowie profiles this project is linked to (`flowie_profiles`); empty when not linked. */
   flowieProfiles: string[]
+  /** The project's wiki capture policy (`wiki_capture: allow | forbid`), null when unset (allow). */
+  wikiCapture: string | null
+  /** Auto-capture cards waiting in .neuroflow/wiki/.pending/ for the person's review. */
+  wikiPending: number
   /** Things the loader could not read or understand, in plain words. */
   problems: string[]
   loadedAt: number
@@ -92,6 +96,9 @@ export type NfSnapshot = {
 
 /** One row of a wiki's index.md: which wiki, the page title, its file and one-line summary. */
 export type NfWikiPage = { level: string; title: string; path: string; summary: string }
+
+/** One auto-wiki card waiting for review (wiki skill → Auto capture). */
+export type NfWikiCard = { file: string; title: string; type: string; evidence: string; body: string; by: string }
 
 /** The living paper pane (phase-paper → Living paper skeleton). */
 export type NfPaperView = {
@@ -247,6 +254,10 @@ declare module 'claude-code' {
       xrayView: NfXrayView | null
       /** The X-ray finding picked in the pane. */
       xrayPick: string | null
+      /** The auto-wiki cards waiting for review, as the review pane shows them (U2). */
+      wikiCards: NfWikiCard[]
+      /** The card picked in the review pane (its file name). */
+      wikiPick: string | null
       // </feature:user>
     }
   }

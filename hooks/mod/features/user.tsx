@@ -6,14 +6,21 @@
 //  - U3 X-ray: `/neuroflow:paper --xray view` opens the newest X-ray as a pane; a finding is accepted (its box
 //    ticked) or rejected with a reason on a key press, in both X-ray files. `--xray check <file>` runs the two
 //    deterministic checks (statcheck.py, cite_check.py) and reports them with no model turn.
-// The auto wiki review (U2) lives here too; the figure check (U4) is prose only (docs/concepts/mods.md).
+//  - U2 auto wiki: after a command turn that logged a new decision, one model call judges whether it is
+//    reusable knowledge (the wiki skill's rubric: nothing is the normal answer, evidence mandatory, never
+//    results); at most two cards go to .neuroflow/wiki/.pending/. Only with `wiki_auto: ask` in the person's
+//    user.yaml, a project that does not forbid it, and runtime on. `/neuroflow:wiki --review` opens the cards
+//    as a pane: accept runs the normal `/neuroflow:wiki --add --from-pending`; skip marks the card skipped.
+// The figure check (U4) is prose only: a viewer cannot show figures or take pointer input on most terminals.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { NfPaperView, NfXrayView } from '../../../types'
+import type { NfPaperView, NfWikiCard, NfXrayView } from '../../../types'
 import type { NfIo } from '../lib/io'
+import { isoDate } from '../lib/memory'
+import { mayWrite } from '../lib/options'
 import type { NfOptions } from '../lib/options'
-import { join, resolveFrom } from '../lib/paths'
+import { join, relativeTo, resolveFrom, toSlash } from '../lib/paths'
 import {
   autoStatusLine,
   decideInJsonl,
@@ -27,6 +34,7 @@ import {
 } from '../lib/paper'
 import type { XrayFinding } from '../lib/paper'
 import { parseJson, runScript } from '../lib/scripts'
+import { PENDING_DIR, WIKI_JUDGE_SYSTEM, captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify } from '../lib/wikiqueue'
 import { paperOutputPath } from './checks'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -34,9 +42,15 @@ const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, nul
 const paperViewAtom = atom({ plugin: 'neuroflow', key: 'paperView' } as const, null)
 const xrayViewAtom = atom({ plugin: 'neuroflow', key: 'xrayView' } as const, null)
 const xrayPickAtom = atom({ plugin: 'neuroflow', key: 'xrayPick' } as const, null)
+const wikiCardsAtom = atom({ plugin: 'neuroflow', key: 'wikiCards' } as const, [])
+const wikiPickAtom = atom({ plugin: 'neuroflow', key: 'wikiPick' } as const, null)
+const wikiIndexAtom = atom({ plugin: 'neuroflow', key: 'wikiIndex' } as const, [])
+const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
+const baselineAtom = atom({ plugin: 'neuroflow', key: 'reasoningBaseline' } as const, null)
 
 const PAPER_PANE = 'nf-paper'
 const XRAY_PANE = 'nf-xray'
+const WIKI_PANE = 'nf-wiki'
 const PAPER_DIR = '.neuroflow/paper'
 
 /** The allow-listed source folders a sync reads (phase-paper → Living paper skeleton), for the staleness count. */
@@ -176,7 +190,125 @@ const quickCheck = async ($: EngineInterface, root: string, file: string): Promi
   return lines.join('\n')
 }
 
-export const registerUser = (on: On, _opts: NfOptions): void => {
+/** U2 — the pending cards, newest first, into state. */
+const loadCards = async ($: EngineInterface, root: string): Promise<NfWikiCard[]> => {
+  const io = ioOf($)
+  const dir = join(root, PENDING_DIR)
+  const cards: NfWikiCard[] = []
+  const names = (await io.list(dir)).filter(entry => !entry.isDir && entry.name.endsWith('.md')).map(entry => entry.name).sort().reverse()
+  for (const name of names) {
+    const card = parseCard((await io.read(join(dir, name))) ?? '')
+    if (card !== null && card.status === 'pending') cards.push({ file: name, title: card.title, type: card.type, evidence: card.evidence, body: card.body, by: card.by })
+  }
+  await update($, wikiCardsAtom, () => cards)
+  const pick = await read($, wikiPickAtom)
+  if (pick === null || !cards.some(card => card.file === pick)) await update($, wikiPickAtom, () => cards[0]?.file ?? null)
+  return cards
+}
+
+/** Skip marks the card skipped (it is never raised again); accept closes the pane and runs the normal --add flow. */
+const settleCard = async ($: EngineInterface, file: string, accept: boolean): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  if (scope === null || scope.root === null) return
+  const path = join(scope.root, PENDING_DIR, file)
+  if (!accept) {
+    const text = await ioOf($).read(path)
+    if (text !== null) await ioOf($).write(path, setCardStatus(text, 'skipped'))
+    const left = await loadCards($, scope.root)
+    if (left.length === 0) await $.ui.close({ id: WIKI_PANE })
+    return
+  }
+  await $.ui.close({ id: WIKI_PANE })
+  await $.command.run({ command: 'neuroflow:wiki', args: `--add --from-pending ${PENDING_DIR}/${file}` })
+}
+
+/** U2 — after a command logged decisions: one judge call, at most two cards. */
+const judgeNewDecisions = async ($: EngineInterface, root: string, command: string, logPath: string, before: number, projectPolicy: string | null): Promise<number> => {
+  const io = ioOf($)
+  const home = await io.home()
+  const userYaml = home ? await io.read(join(toSlash(home), '.neuroflow/user.yaml')) : null
+  if (!captureAllowed(userYaml, projectPolicy)) return 0
+  const fresh = ((await io.read(logPath)) ?? '').split(/\r?\n/).filter(line => line.trim() !== '').slice(before)
+  if (fresh.length === 0) return 0
+  const known = (await read($, wikiIndexAtom)).filter(page => page.level === 'project').map(page => page.title)
+  const waiting = (await loadCards($, root)).map(card => card.title)
+  const prompt = [
+    `Command: /neuroflow:${command}`,
+    `New entries in ${relativeTo(logPath, root) ?? logPath}:`,
+    ...fresh.slice(-10),
+    '',
+    `Pages already in the wiki: ${known.slice(0, 200).join('; ') || 'none'}`,
+    `Cards already waiting: ${waiting.join('; ') || 'none'}`,
+  ].join('\n')
+  const reply = await $.model.complete({ model: await $.session.model(), system: WIKI_JUDGE_SYSTEM, prompt, maxTokens: 600, timeoutMs: 30_000 })
+  if (!reply.isAnswered) return 0
+  const taken = new Set([...known, ...waiting].map(title => title.toLowerCase()))
+  const cards = parseJudge(reply.text).filter(card => !taken.has(card.title.toLowerCase()))
+  if (cards.length === 0) return 0
+  const dir = join(root, PENDING_DIR)
+  if (!(await io.exists(join(dir, '.gitignore')))) await io.write(join(dir, '.gitignore'), '*\n')
+  const now = await io.now()
+  const at = new Date(now)
+  const captured = `${isoDate(now)}T${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
+  let written = 0
+  for (const card of cards) {
+    const file = join(dir, `${isoDate(now)}-${slugify(card.title)}.md`)
+    if (await io.exists(file)) continue
+    await io.write(file, cardText({ title: card.title, type: card.type, evidence: card.evidence, captured, by: 'mod', status: 'pending', body: card.summary }))
+    written += 1
+  }
+  return written
+}
+
+export const registerUser = (on: On, opts: NfOptions): void => {
+  // U2: the judge runs after a main-loop command turn that logged new decisions (runtime on, opted in).
+  on('turn.complete', { reason: 'answer' }, async ($, e, next) => {
+    const result = await next(e)
+    if (!mayWrite(opts) || e.agentId !== undefined) return result
+    const scope = await read($, scopeAtom)
+    const command = await read($, activeCommandAtom)
+    const baseline = await read($, baselineAtom)
+    if (!scope?.isActive || scope.root === null || command === null || command.lifecycle === 'quiet' || baseline === null) return result
+    const snap = await read($, snapshotAtom)
+    const written = await judgeNewDecisions($, scope.root, command.name, baseline.path, baseline.lines, snap?.wikiCapture ?? null).catch(() => 0)
+    if (written > 0 && !scope.isHeadless) $.ui.toast(`neuroflow: ${written} wiki card${written === 1 ? '' : 's'} to review — w on the band, or /neuroflow:wiki --review`)
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // U2: /neuroflow:wiki --review opens the queue as a pane when a person is there; otherwise the prose walks it.
+  on('command.run', { command: 'neuroflow:wiki' }, async ($, e, next) => {
+    const scope = await read($, scopeAtom)
+    if (!scope?.isActive || scope.root === null || e.args.trim() !== '--review' || !(await isPersonThere($))) return next(e)
+    const cards = await loadCards($, scope.root)
+    if (cards.length === 0) return { text: 'No wiki cards are waiting for review.' }
+    await $.ui.open({ id: WIKI_PANE, title: 'wiki cards', focus: true })
+    return { text: `${cards.length} wiki card${cards.length === 1 ? '' : 's'} waiting — accept runs /neuroflow:wiki --add for the card; skip drops it for good.` }
+  }).catch(($, e, next) => next(e))
+
+  on('ui.render', { component: 'Pane', requestId: WIKI_PANE }, async ($, e) => {
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const cards = await read($, wikiCardsAtom)
+    const pick = await read($, wikiPickAtom)
+    const card = cards.find(item => item.file === pick) ?? cards[0] ?? null
+    if (card === null) return <Text dimColor>No wiki cards are waiting.</Text>
+    const index = cards.indexOf(card)
+    return (
+      <Box flexDirection="column" gap={1}>
+        <Text bold wrap="truncate-end">{`${index + 1}/${cards.length} · ${card.type}: ${card.title}`}</Text>
+        <Text wrap="wrap">{card.body}</Text>
+        <Text dimColor wrap="truncate-end">{`evidence: ${card.evidence} · captured by ${card.by === 'mod' ? 'the mod' : 'the model'}`}</Text>
+        <Box flexDirection="row" columnGap={1}>
+          <Button key="nf-wiki-accept" label="accept → /wiki --add" hotkey="a" onPress={() => settleCard($, card.file, true)} />
+          <Button key="nf-wiki-skip" label="skip" hotkey="s" onPress={() => settleCard($, card.file, false)} />
+          {cards.length > 1 ? (
+            <Button key="nf-wiki-next" label="next" hotkey="n" onPress={() => update($, wikiPickAtom, () => cards[(index + 1) % cards.length].file)} />
+          ) : null}
+          <Button key="nf-wiki-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: WIKI_PANE })} />
+        </Box>
+      </Box>
+    )
+  }).catch(($, e, next) => next(e))
+
   on('command.run', { command: 'neuroflow:paper' }, async ($, e, next) => {
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || scope.root === null) return next(e)

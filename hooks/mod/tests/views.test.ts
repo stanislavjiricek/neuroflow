@@ -27,6 +27,8 @@ const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   wellbeingDue: false,
   ethicsNotApplicable: false,
   flowieProfiles: [],
+  wikiCapture: null,
+  wikiPending: 0,
   problems: [],
   loadedAt: 0,
   ...over,
