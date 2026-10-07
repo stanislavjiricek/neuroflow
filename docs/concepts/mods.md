@@ -25,7 +25,7 @@ Set them in Claude Code's plugin configuration (`/plugin` → neuroflow → conf
 
 | Setting | Values | Default | What it does |
 |---|---|---|---|
-| `runtime` | `off` · `observe` · `on` | `observe` | `off`: the mod does nothing. `observe`: views, status and warnings only — it never writes into project memory and never blocks. `on`: it also fills bookkeeping gaps and may enforce guards. |
+| `runtime` | `off` · `observe` · `on` | `observe` | `off`: the mod does nothing. `observe`: views, status and warnings — it never writes into project memory on its own (only when you press a key or type a command that asks it to) and never blocks. `on`: it also fills bookkeeping gaps and may enforce guards. |
 | `guards` | `warn` · `enforce` | `warn` | `enforce` lets guards deny a tool call (only with `runtime: on`). `warn` says what a guard would have blocked. |
 | `band` | `off` · `quiet` · `normal` | `quiet` | The one-line band above the prompt. `quiet` shows only what needs attention. |
 | `citations` | on · off | off | Check that DOIs in manuscripts resolve after writes. |

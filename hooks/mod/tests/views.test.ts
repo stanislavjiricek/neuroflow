@@ -4,7 +4,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { NfSnapshot } from '../../../types'
 import { setActivePhase } from '../lib/config'
 import { nextPhase, phaseMap, pickerOrder } from '../lib/phases'
-import { bandItems, parseOpenQuestions, parseRunning, sparkline, tabLines } from '../features/views'
+import { bandItems, freezeCandidates, parseOpenQuestions, parseRunning, sparkline, tabLines } from '../features/views'
 import { fakeFs } from './fakefs'
 
 const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
@@ -186,5 +186,66 @@ describe('phase switching', () => {
     await $.session.start({ cwd: '/tmp/nothing', surface: 'terminal', isInteractive: true })
     expect((await $.command.run({ command: 'neuroflow:phase', args: '' })).text).toBe('prose')
     expect(ranProse).toBe(true)
+  })
+})
+
+describe('integrity actions in the dashboard', () => {
+  test('the documents a freeze covers', () => {
+    expect(freezeCandidates(['status.md', 'prereg-osf.md', 'review-report.md', 'deviations.md', 'registered-report.md', 'flow.md']))
+      .toEqual(['prereg-osf.md', 'registered-report.md'])
+  })
+
+  const root = '/work/proj'
+  const files = {
+    [`${root}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nactive_phase: preregistration\n---\n',
+    [`${root}/.neuroflow/preregistration/prereg-osf.md`]: '# Prereg',
+    [`${root}/.neuroflow/preregistration/review-report.md`]: '# Review',
+  }
+  const pane = { plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-dashboard', props: { title: 'neuroflow', isFocused: true, bodyColumns: 80, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} } }
+
+  const setUp = (on: On, answer: string): { asked: string[]; ran: string[][] } => {
+    const seen = { asked: [] as string[], ran: [] as string[][] }
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 12, 0).getTime() })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.toast', () => ({ value: undefined }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: undefined }))
+    on('tool.call', ($, e) => {
+      const input = e as unknown as { tool: string; questions?: { question: string }[] }
+      const question = input.questions?.[0]?.question ?? ''
+      seen.asked.push(question)
+      return { result: { questions: input.questions ?? [], answers: { [question]: answer } }, text: answer }
+    })
+    on('process.run', ($, e) => {
+      const argv = (e as unknown as { argv: string[] }).argv
+      if (/freeze\.py/.test(argv.join(' '))) seen.ran.push(argv)
+      return { value: { exitCode: /freeze\.py/.test(argv.join(' ')) ? 0 : 2, stdout: '{"status": "frozen"}', stderr: '' } }
+    })
+    return seen
+  }
+
+  test('a key press and an explicit yes freeze the prereg documents as the person', { options: { runtime: 'observe' } }, async ($, on) => {
+    const seen = setUp(on, 'Freeze — I froze it myself')
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: 'integrity' })
+    const ui = await $.ui.mount(pane as never)
+    expect(JSON.stringify(await ui.drawn())).toContain('freeze prereg…')
+    await ui.press({ key: 'nf-dash-freeze' })
+    expect(seen.asked[0]).toContain('prereg-osf.md')
+    const argv = seen.ran.find(item => item.includes('freeze')) ?? []
+    expect(argv).toContain('.neuroflow/preregistration/prereg-osf.md')
+    expect(argv).not.toContain('.neuroflow/preregistration/review-report.md')
+    expect(argv.slice(argv.indexOf('--set-by'), argv.indexOf('--set-by') + 2)).toEqual(['--set-by', 'person'])
+  })
+
+  test('any answer but the exact yes freezes nothing', { options: { runtime: 'observe' } }, async ($, on) => {
+    const seen = setUp(on, 'Not now')
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: 'integrity' })
+    const ui = await $.ui.mount(pane as never)
+    await ui.press({ key: 'nf-dash-freeze' })
+    expect(seen.ran.filter(item => item.includes('freeze'))).toEqual([])
   })
 })

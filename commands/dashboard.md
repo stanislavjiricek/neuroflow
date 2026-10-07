@@ -24,8 +24,10 @@ Shows the project at a glance. It changes nothing.
 
 **With the neuroflow mod active**, this command never reaches the model: the mod opens the dashboard as a pane drawn
 by code (tabs `p` phase · `d` deadlines · `i` integrity · `t` tasks · `l` loop, `s` to switch phase, `c` to close) and
-keeps it current as files change. `/neuroflow:dashboard loop` opens it on a tab. The rest of this file is what runs
-without the mod.
+keeps it current as files change. `/neuroflow:dashboard loop` opens it on a tab. On the integrity tab the person can
+freeze the preregistration (`f`, after an explicit yes), re-check its hashes (`v`) or unfreeze it with a reason (`u`) —
+the same `freeze.py` calls as `/preregistration` → Freeze, recorded as the person's action. The rest of this file is
+what runs without the mod.
 
 ## Steps
 

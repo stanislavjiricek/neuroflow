@@ -108,7 +108,7 @@ Once the pre-registration is final — at the latest when it goes to the registr
 - records the SHA-256 of each frozen file, the registry, DOI and planned N in the frontmatter of `.neuroflow/preregistration/status.md` (`status: frozen`, `set_by: person`)
 - puts a banner on the first line of each frozen file, visible to collaborators in any editor: `> FROZEN 2026-10-01 — sha256 3f5a… — do not edit; record changes in deviations.md`
 
-`freeze.py verify` re-checks the hashes at any time (line endings and the banner do not count, so Windows and macOS copies agree). From then on the frozen files are never edited — every change goes to `deviations.md`. Unfreezing, for example to fix a typo before submission, is your decision only; it is logged in `deviations.md` with the old hashes. The registry copy remains the public record.
+`freeze.py verify` re-checks the hashes at any time (line endings and the banner do not count, so Windows and macOS copies agree). From then on the frozen files are never edited — every change goes to `deviations.md`. Unfreezing, for example to fix a typo before submission, is your decision only; it is logged in `deviations.md` with the old hashes. With the neuroflow mod you can also freeze, verify and unfreeze from the integrity tab of [`/dashboard`](dashboard.md): a key press and an explicit yes, which the model cannot give on your behalf. The registry copy remains the public record.
 
 ---
 

@@ -358,11 +358,13 @@ const decide = async (
   const ask = violations.find(violation => violation.level === 'ask')
   if (ask !== undefined && enforce) {
     if (isHeadless || (await $.session.surfaces()).length === 0) return { deny: `${denyText(ask)} — nobody is here to confirm it` }
-    const answer = await $.ui.ask(`${ask.message.charAt(0).toUpperCase()}${ask.message.slice(1)}. Allow it?`, {
-      options: ['Allow — I confirm this myself', 'Block it'],
-      header: 'neuroflow',
-    })
-    return answer.startsWith('Allow') ? proceed() : { deny: `${denyText(ask)} — the person declined` }
+    // The safe answer comes first and only the exact label allows: a dialog that resolves on its own
+    // (the person away from the keyboard) must never let the call through.
+    const allow = 'Allow — I confirm this myself'
+    const answer = await $.ui
+      .ask(`${ask.message.charAt(0).toUpperCase()}${ask.message.slice(1)}. Allow it?`, { options: ['Block it', allow], header: 'neuroflow' })
+      .catch(() => '')
+    return answer === allow ? proceed() : { deny: `${denyText(ask)} — the person declined, or nobody answered` }
   }
   for (const violation of violations) {
     if (toolUseId !== undefined) $.ui.notice(toolUseId, `neuroflow: ${violation.message}`)

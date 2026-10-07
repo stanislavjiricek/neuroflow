@@ -2,7 +2,8 @@
 //  - the band above the prompt (M080, M064, M214): one line of what needs attention, letter hotkeys only
 //  - the dashboard pane (M069, M084): phase map, deadlines, integrity, tasks, autoresearch loop
 //  - /neuroflow:phase answered in code (M163, M011): a picker — arrows and Enter, or a click
-//  - /neuroflow:dashboard opens the pane
+//  - /neuroflow:dashboard opens the pane; its integrity tab freezes, verifies and unfreezes a
+//    preregistration on a person's key press and confirmation (M018), through freeze.py
 // Without the mod, commands/phase.md and commands/dashboard.md do the same in prose.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -15,6 +16,7 @@ import type { NfOptions } from '../lib/options'
 import { join, resolveFrom } from '../lib/paths'
 import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot } from '../lib/project'
+import { parseJson, runScript } from '../lib/scripts'
 import { buildBoard, cardLine, columnsFromConfig, parseTask } from '../lib/tasks'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -407,6 +409,93 @@ const settleDraft = async ($: EngineInterface, keep: boolean): Promise<void> => 
   await update($, draftAtom, () => null)
 }
 
+/** The files a freeze covers (commands/preregistration.md → Freeze): the prereg documents, not the review reports. */
+export const freezeCandidates = (names: readonly string[]): string[] =>
+  names.filter(name => /^(prereg-.+|registered-report)\.md$/i.test(name)).sort()
+
+const FREEZE_SCRIPT = 'skills/phase-preregistration/scripts/freeze.py'
+
+/** Logs a freeze or unfreeze the person did in the dashboard: a session line and a reasoning entry. */
+const logIntegrityAction = async ($: EngineInterface, root: string, statement: string, reasoning: string): Promise<void> => {
+  const io = ioOf($)
+  const now = await io.now()
+  await appendLine(io, sessionLogPath(root, now), sessionLine(now, 'preregistration', `${statement} (dashboard)`))
+  const entry = JSON.stringify({ statement, source: `mod:dashboard | ${isoDate(now)}`, reasoning, at: new Date(now).toISOString(), drafted_by: 'mod', approved_by: 'person' })
+  await appendLine(io, join(root, '.neuroflow/reasoning/preregistration.jsonl'), entry)
+}
+
+/**
+ * M018 — freezing is a person's action: a key press here, then an explicit confirmation, runs the same
+ * freeze.py the prose runs, with `--set-by person`. The model cannot press keys, so this marker is honest.
+ */
+const freezeFromDashboard = async ($: EngineInterface): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  if (scope === null || scope.root === null) return
+  const root = scope.root
+  const io = ioOf($)
+  const names = (await io.list(join(root, '.neuroflow/preregistration'))).filter(entry => !entry.isDir).map(entry => entry.name)
+  const files = freezeCandidates(names)
+  if (files.length === 0) {
+    $.ui.toast('neuroflow: no prereg-*.md document in .neuroflow/preregistration/ to freeze — /neuroflow:preregistration writes it')
+    return
+  }
+  // The safe answer comes first and only the exact label acts: a dialog that resolves on its own
+  // (the person away from the keyboard) must never freeze anything.
+  const confirm = 'Freeze — I froze it myself'
+  const answer = await $.ui
+    .ask(`Freeze ${files.join(', ')}? The files are hashed and get a FROZEN banner; later changes go to deviations.md.`, {
+      options: ['Not now', confirm],
+      header: 'Freeze',
+    })
+    .catch(() => '')
+  if (answer !== confirm) return
+  const run = await runScript(io, FREEZE_SCRIPT, ['freeze', ...files.map(name => `.neuroflow/preregistration/${name}`), '--set-by', 'person', '--root', root, '--json'], { cwd: root })
+  if (!run.ok) {
+    $.ui.toast(`neuroflow: the freeze did not run — ${(run.stderr.trim().split('\n').pop() ?? '') || 'no output'}`)
+    return
+  }
+  await logIntegrityAction($, root, `Preregistration frozen: ${files.join(', ')}`, 'Frozen by the person with a key press and a confirmation in the dashboard.')
+  await reload($, root)
+  $.ui.toast(`neuroflow: preregistration frozen (${files.length} file${files.length === 1 ? '' : 's'})`)
+}
+
+/** Unfreezing is a person's action too, with a reason that goes into deviations.md (freeze.py logs it). */
+const unfreezeFromDashboard = async ($: EngineInterface): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  if (scope === null || scope.root === null) return
+  const root = scope.root
+  const keep = 'Keep it frozen'
+  const reason = await $.ui
+    .ask('Unfreeze the preregistration? It goes back to draft, and the unfreeze is logged in deviations.md with the old hashes. Why? (pick or type a reason)', {
+      options: [keep, 'Fix an error before the registry submission', 'The registry asked for changes'],
+      header: 'Unfreeze',
+    })
+    .catch(() => keep)
+  if (reason.trim() === '' || reason === keep) return
+  const run = await runScript(ioOf($), FREEZE_SCRIPT, ['unfreeze', '--set-by', 'person', '--reason', reason, '--root', root, '--json'], { cwd: root })
+  if (!run.ok) {
+    $.ui.toast(`neuroflow: the unfreeze did not run — ${(run.stderr.trim().split('\n').pop() ?? '') || 'no output'}`)
+    return
+  }
+  await logIntegrityAction($, root, 'Preregistration unfrozen', `Unfrozen by the person in the dashboard: ${reason}`)
+  await reload($, root)
+  $.ui.toast('neuroflow: preregistration back to draft — freeze it again when it is final')
+}
+
+/** Re-hashes the frozen files now (freeze.py verify) and says what it found. */
+const verifyFromDashboard = async ($: EngineInterface): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  if (scope === null || scope.root === null) return
+  const run = await runScript(ioOf($), FREEZE_SCRIPT, ['verify', '--root', scope.root, '--json'], { cwd: scope.root })
+  const report = parseJson<{ findings?: { kind: string; path: string }[] }>(run.stdout)
+  if (report === null) {
+    $.ui.toast(`neuroflow: verify did not run — ${run.stderr.trim() || 'no output'}`)
+    return
+  }
+  const findings = report.findings ?? []
+  $.ui.toast(findings.length === 0 ? 'neuroflow: every frozen file matches its hash' : `neuroflow: ${findings.map(item => `${item.kind} ${item.path}`).join('; ')} — /neuroflow:preregistration`)
+}
+
 const TONE_COLOR: Record<Tone, 'error' | 'warning' | 'success' | 'suggestion' | 'subtle'> = {
   error: 'error',
   warning: 'warning',
@@ -601,6 +690,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     }
     const tab = await read($, tabAtom)
     const lines = tabLines(tab, snap, await read($, loopViewAtom))
+    const frozenByPerson = snap.prereg?.status === 'frozen' && snap.prereg.setBy === 'person'
     const title = `${snap.projectName ?? 'neuroflow project'} · ${snap.phase ?? 'no phase'}${snap.mode ? ` · ${snap.mode}` : ''}`
     return (
       <Box flexDirection="column" gap={1}>
@@ -626,6 +716,11 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         <Box flexDirection="row" columnGap={1}>
           {tab === 'phase' ? <Button key="nf-dash-switch" label="switch phase" hotkey="s" onPress={() => openPicker($)} /> : null}
           {tab === 'loop' ? <Button key="nf-dash-refresh" label="refresh" hotkey="r" onPress={() => loadLoopView($)} /> : null}
+          {tab === 'integrity' && !frozenByPerson ? (
+            <Button key="nf-dash-freeze" label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'} hotkey="f" onPress={() => freezeFromDashboard($)} />
+          ) : null}
+          {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-verify" label="verify" hotkey="v" onPress={() => verifyFromDashboard($)} /> : null}
+          {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey="u" onPress={() => unfreezeFromDashboard($)} /> : null}
           <Button key="nf-dash-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: DASHBOARD })} />
         </Box>
       </Box>

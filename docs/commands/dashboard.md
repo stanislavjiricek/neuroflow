@@ -18,7 +18,7 @@ terminal, or inline above the prompt otherwise. It stays current as files change
 |---|---|
 | `p` | **Phase** — the phase map (`●` current, `✔` visited, `○` recommended) and the next step; `s` opens the phase picker |
 | `d` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
-| `i` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems |
+| `i` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
 | `t` | **Tasks** — task files per board column |
 | `l` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions; `r` refreshes |
 
@@ -37,7 +37,7 @@ The same overview is printed once as a compact text block, read from the same fi
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/timeline.md`, `.neuroflow/ethics/status.md`, `.neuroflow/preregistration/status.md`, `.neuroflow/tasks/`, `.neuroflow/{phase}/autoresearch-loops.md` and the loops' `results.md` / `report.md` |
-| Writes | nothing |
+| Writes | nothing, unless you freeze or unfreeze the preregistration from the integrity tab: then `freeze.py` writes `.neuroflow/preregistration/status.md`, the banners and `deviations.md`, and the mod adds a session line and a reasoning entry |
 
 ## Related
 
