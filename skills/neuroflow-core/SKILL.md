@@ -320,6 +320,8 @@ Every command declares `lifecycle:` in its frontmatter (**Command frontmatter st
 
 Every `full` command follows this order; `light` and `quiet` commands follow the parts their profile allows.
 
+With the neuroflow mod active, a `neuroflow digest` note follows the command as it starts: the project, phase and mode, the ethics and preregistration state (markers a model set are shown as unconfirmed), the raw-data folders, the next dates, the phase's `flow.md` and the latest problem note — read from the files at that moment. Use it for those facts instead of re-reading the same files; read the files for anything more.
+
 **At start:**
 1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hives/*/` caches if they exist. This ensures every session starts with fresh knowledge from GitHub. It never blocks: a repository with a rebase in progress is skipped, a pull that stops on a conflict has its rebase aborted at once, and a failed flowie pull adds one line to `~/.neuroflow/flowie-sync.log` (`/flowie` reports it).
    ```bash
@@ -404,6 +406,8 @@ Before answering any domain-specific question, silently check whether a wiki exi
 4. Cite wiki pages with source label: `(→ project wiki: [Title])`, `(→ flowie wiki: [Title])`, `(→ hive/lab-name wiki: [Title])`
 
 Do not announce the lookup. Do not ask permission. Just use it.
+
+With the neuroflow mod active, a prompt that names wiki pages arrives with up to three matching titles and summaries from the indexes (`Possibly relevant wiki pages`) — read those pages before relying on them; the lookup above still applies to everything the titles do not cover.
 
 ---
 

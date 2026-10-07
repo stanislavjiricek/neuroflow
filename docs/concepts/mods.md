@@ -28,6 +28,8 @@ bookkeeping — because the prose in `skills/` and `commands/` stays the source 
 | Bookkeeping | Missing session lines and `flow.md` rows filled after a command's turn and marked `(auto)`; a decision drafted when a command logged none, kept only on your key press | `runtime: on` |
 | Integrity | The guards below; freezing, verifying and unfreezing the preregistration from the dashboard; frozen files re-hashed at start | `guards: enforce` to deny |
 | Checks | Text hidden from human readers in documents from outside, reported after the model reads them; DOIs checked after manuscript writes and weekly for notices | `citations` and `runtime: on` for DOIs |
+| Context | A digest of the project's integrity facts as a neuroflow command starts; wiki pages a prompt names; a capped digest of a linked flowie profile (no identity or wellbeing); the current and next phase marked in the slash menu | — |
+| Quiet | A `quiet` command such as `/idk` silences the band, status line and footer label until the next neuroflow command | — |
 | Autoresearch driver | `/neuroflow:autoresearch drive <name>`: one iteration per turn, caps checked between turns, a stop key | `runtime: on` |
 
 ---

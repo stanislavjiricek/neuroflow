@@ -83,10 +83,15 @@ export type NfSnapshot = {
   wellbeingDue: boolean
   /** `ethics: not-applicable` in the config: no participants needing a tracked approval. */
   ethicsNotApplicable: boolean
+  /** Flowie profiles this project is linked to (`flowie_profiles`); empty when not linked. */
+  flowieProfiles: string[]
   /** Things the loader could not read or understand, in plain words. */
   problems: string[]
   loadedAt: number
 }
+
+/** One row of a wiki's index.md: which wiki, the page title, its file and one-line summary. */
+export type NfWikiPage = { level: string; title: string; path: string; summary: string }
 
 /** What the dashboard's loop tab shows for one autoresearch loop. */
 export type NfLoopView = {
@@ -157,8 +162,14 @@ declare module 'claude-code' {
       degraded: string[]
       /** Short alerts features raise for the status line (a frozen file changed, a DOI does not resolve…). */
       statusAlerts: string[]
+      /** Since when a quiet command (`lifecycle: quiet`, e.g. /idk) holds the mod's own UI silent; null when not. */
+      quietSince: number | null
       // Feature slices: each feature file owns the keys between its markers.
       // <feature:context>
+      /** Page titles and one-line summaries of the initialized wikis (index.md rows), for prompt-time lookups. */
+      wikiIndex: NfWikiPage[]
+      /** The flowie profile digest for the system prompt (identity and wellbeing left out), or null. */
+      profileDigest: string | null
       // </feature:context>
       // <feature:bookkeeping>
       /** Lines in the command's reasoning log when it started (to see whether a decision was logged). */

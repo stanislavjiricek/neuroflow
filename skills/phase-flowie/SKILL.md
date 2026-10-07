@@ -40,6 +40,8 @@ Do not announce that you are reading the profile. Do not quote it back verbatim.
 
 If the profile does not exist or the project is not linked, proceed as normal — flowie is optional.
 
+With the neuroflow mod active and the project linked, a digest of the profile is already in the system prompt (its identity, contact and wellbeing sections left out, capped in length); read `profile.md` itself when a task needs more than the digest.
+
 ## Using the profile in other phases
 
 When assisting in any neuroflow phase, apply the profile as follows:

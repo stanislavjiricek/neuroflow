@@ -34,6 +34,7 @@ const snap = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   meetings: [],
   wellbeingDue: false,
   ethicsNotApplicable: false,
+  flowieProfiles: [],
   problems: [],
   loadedAt: 0,
   ...over,

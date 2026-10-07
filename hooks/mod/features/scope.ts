@@ -26,6 +26,13 @@ const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as 
 const turnWritesAtom = atom({ plugin: 'neuroflow', key: 'turnWrites' } as const, [])
 const degradedAtom = atom({ plugin: 'neuroflow', key: 'degraded' } as const, [])
 const alertsAtom = atom({ plugin: 'neuroflow', key: 'statusAlerts' } as const, [])
+const quietAtom = atom({ plugin: 'neuroflow', key: 'quietSince' } as const, null)
+
+/** How long a quiet command keeps the mod's own UI silent without another neuroflow command (M145). */
+export const QUIET_MS = 3 * 60 * 60 * 1000
+
+/** Whether the mod's own UI should stay silent now. */
+export const isQuiet = (since: number | null, nowMs: number): boolean => since !== null && nowMs - since < QUIET_MS
 
 const ioOf = ($: EngineInterface): NfIo => ({
   read: path => $.fs.read(path).then(text => (typeof text === 'string' ? text : null), () => null),
@@ -60,7 +67,8 @@ const showStatus = async ($: EngineInterface): Promise<void> => {
   const snapshot = await read($, snapshotAtom)
   const degraded = await read($, degradedAtom)
   const alerts = await read($, alertsAtom)
-  $.ui.status(scope?.isActive && snapshot !== null ? statusLine(snapshot, degraded, alerts) : undefined)
+  const quiet = isQuiet(await read($, quietAtom), await $.clock.now())
+  $.ui.status(scope?.isActive && snapshot !== null && !quiet ? statusLine(snapshot, degraded, alerts) : undefined)
 }
 
 export const registerScope = (on: On, _opts: NfOptions): void => {
@@ -73,6 +81,7 @@ export const registerScope = (on: On, _opts: NfOptions): void => {
     await update($, turnWritesAtom, () => [])
     await update($, activeCommandAtom, () => null)
     await update($, alertsAtom, () => [])
+    await update($, quietAtom, () => null)
     if (scope.isActive) await refreshSnapshot($)
     await showStatus($)
     return next(e)
@@ -84,6 +93,9 @@ export const registerScope = (on: On, _opts: NfOptions): void => {
     const { phase, lifecycle } = await commandFacts($, name)
     const startedAt = await $.clock.now()
     await update($, activeCommandAtom, () => ({ name, phase, lifecycle, startedAt }))
+    // M145: a quiet command (/idk) silences the band, status line and footer until the next neuroflow command.
+    await update($, quietAtom, () => (lifecycle === 'quiet' ? startedAt : null))
+    if (lifecycle === 'quiet') $.ui.status(undefined)
     const result = await next(e)
     // Answered by a hook (no engine run behind it): no model turn follows, so the command is over.
     if (result.ref === undefined) await update($, activeCommandAtom, () => null)

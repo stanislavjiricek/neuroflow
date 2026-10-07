@@ -18,6 +18,7 @@ import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases
 import { KNOWN_SCHEMA, loadSnapshot } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { buildBoard, cardLine, columnsFromConfig, parseTask } from '../lib/tasks'
+import { isQuiet } from './scope'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
@@ -31,6 +32,7 @@ const driveAtom = atom({ plugin: 'neuroflow', key: 'drive' } as const, null)
 const captureAtom = atom({ plugin: 'neuroflow', key: 'capture' } as const, null)
 const boardAtom = atom({ plugin: 'neuroflow', key: 'board' } as const, null)
 const boardPickAtom = atom({ plugin: 'neuroflow', key: 'boardPick' } as const, null)
+const quietAtom = atom({ plugin: 'neuroflow', key: 'quietSince' } as const, null)
 
 const DASHBOARD = 'nf-dashboard'
 const PICKER = 'nf-phase'
@@ -272,6 +274,8 @@ const switchPhase = async ($: EngineInterface, phase: string, via: string): Prom
   })
   await appendLine(io, join(scope.root, '.neuroflow/reasoning/general.jsonl'), entry)
   await reload($, scope.root)
+  // The slash menu marks the current and next phase (M065); its cached descriptions are stale now.
+  await $.ui.invalidate('command.describe')
   return `Active phase is now ${phase}.`
 }
 
@@ -409,6 +413,10 @@ const settleDraft = async ($: EngineInterface, keep: boolean): Promise<void> => 
   await update($, draftAtom, () => null)
 }
 
+/** M065 — the mark a phase command gets in the slash menu: the current phase and the recommended next one. */
+export const phaseMark = (command: string, current: string | null, next: string | null): string | null =>
+  command === current ? '● current phase ·' : command === next ? '→ next ·' : null
+
 /** The files a freeze covers (commands/preregistration.md → Freeze): the prereg documents, not the review reports. */
 export const freezeCandidates = (names: readonly string[]): string[] =>
   names.filter(name => /^(prereg-.+|registered-report)\.md$/i.test(name)).sort()
@@ -505,6 +513,16 @@ const TONE_COLOR: Record<Tone, 'error' | 'warning' | 'success' | 'suggestion' | 
 }
 
 export const registerViews = (on: On, opts: NfOptions): void => {
+  // M065: the current phase's command and the recommended next one are marked in the slash menu.
+  on('command.describe', { command: /^neuroflow:/ }, async ($, e, next) => {
+    const result = await next(e)
+    const scope = await read($, scopeAtom)
+    const snap = await read($, snapshotAtom)
+    if (!scope?.isActive || snap === null || result.isHidden) return result
+    const mark = phaseMark(e.command.slice('neuroflow:'.length), snap.phase, nextPhase(snap.phase, snap.recommendedPhases))
+    return mark === null ? result : { ...result, description: `${mark} ${result.description}` }
+  }).catch(($, e, next) => next(e))
+
   // /neuroflow:phase — bare: the picker; a phase name: switch at once; anything else: the prose flow.
   on('command.run', { command: 'neuroflow:phase' }, async ($, e, next) => {
     const scope = await read($, scopeAtom)
@@ -588,7 +606,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     if (opts.band === 'off' || e.props.hasSurvey) return next(e)
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || scope.isHeadless) return next(e)
-    if ((await read($, activeCommandAtom))?.lifecycle === 'quiet') return next(e)
+    if ((await read($, activeCommandAtom))?.lifecycle === 'quiet' || isQuiet(await read($, quietAtom), await $.clock.now())) return next(e)
     // A drafted decision waits for a person's keep or drop (M009); it outranks everything else.
     const draft = await read($, draftAtom)
     if (draft !== null) {

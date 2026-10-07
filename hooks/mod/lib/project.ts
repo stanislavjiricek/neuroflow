@@ -218,6 +218,7 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     meetings,
     wellbeingDue,
     ethicsNotApplicable: asString(config.ethics) === 'not-applicable',
+    flowieProfiles: asList(config.flowie_profiles),
     problems,
     loadedAt: nowMs,
   }
