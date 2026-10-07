@@ -5,15 +5,15 @@ phase: utility
 reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
-  - .neuroflow/fails/core.md
-  - .neuroflow/fails/science.md
-  - .neuroflow/fails/ux.md
   - .neuroflow/{phase}/flow.md
 writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
   - .neuroflow/slideshow/
   - .neuroflow/slideshow/flow.md
   - slides/
+lifecycle: full
+produces:
+  - slides/slideshow-YYYY-MM-DD.md
 ---
 
 # /slideshow
@@ -66,9 +66,11 @@ For each selected phase, read its `flow.md` to discover what's available. Load k
 - Figures referenced in flow files (note paths; do not embed binary files)
 - Key decisions logged in reasoning files
 - Preregistration deviations (if any)
-- Fails flagged in `.neuroflow/fails/` that are relevant to the scope
+- Limitations already recorded in analysis summaries or the manuscript
 
 Navigate using `flow.md` as the index. Only load a full file when it contains content directly relevant to a slide.
+
+A deck is shown outside the team (neuroflow-core → Sharing tiers): nothing from the local tier (`sessions/`, `review/`), `fails/` or `finance/` goes onto a slide, and neither do participant-identifying details (names, faces in figures, identifiable recordings).
 
 ---
 
@@ -94,7 +96,7 @@ Build the slide deck in the chosen format. Every deck must include the following
    - Background / motivation (if ideation phase included)
    - Methods (experiment, data-preprocess, data-analyze phases)
    - Results (data-analyze, brain-run phases) — key findings with bullet points; note figure paths
-   - Limitations (drawn from fails and preregistration deviations if any)
+   - Limitations (drawn from preregistration deviations and the limitations recorded in analysis summaries or the manuscript — never from `.neuroflow/fails/`, the team-internal log of dissatisfaction with neuroflow's behavior and outputs)
    - Model / simulation (brain-build, brain-optimize, brain-run phases if included)
 
 4. **Summary / conclusions slide**

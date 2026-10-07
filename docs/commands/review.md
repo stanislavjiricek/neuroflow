@@ -2,17 +2,20 @@
 
 > **You are the reviewer.** A colleague has sent you their paper and you need to produce a formal referee report. This command is for reviewing someone else's work — not for self-review before your own submission (use [`/paper`](paper.md) for that).
 
-The `/review` command gathers the paper, the target journal, and your review focus, then delegates the full analysis to the [`neuroflow:review-neuro`](../skills/review-neuro/SKILL.md) skill. The result is a structured referee report saved to your `reviews/` folder.
+The `/review` command checks the journal's AI-use policy, gathers the paper, the target journal, and your review focus, then delegates the full analysis to the [`neuroflow:review-neuro`](../skills/review-neuro/SKILL.md) skill. The result is a structured referee report saved in the local-only `.neuroflow/review/` folder.
 
 ---
 
 ## What it does
 
-1. **Asks for the paper** — paste the text, upload a PDF, or provide a file path
-2. **Asks for the target journal** — used to calibrate the referee persona and standards (optional; defaults to high general standards if not provided)
-3. **Asks for review type** — full review across all eight areas, or focused on specific areas (methods, statistics, writing, figures)
-4. **Delegates to `neuroflow:review-neuro`** — the skill runs the complete eight-area review
-5. **Saves the report** to `reviews/review-[paper-title-slug]-[date].md` in your project folder
+1. **Asks about the AI-use policy first** — before the manuscript is requested or read: does the journal (or funder) allow AI tools in peer review? If not, or if you are unsure, the manuscript is not read; you get only help that needs no manuscript text. Your answer is stamped at the top of the report.
+2. **Keeps everything local** — the manuscript, notes and report stay in `.neuroflow/review/`, which is gitignored, never exported by `/output`, and never sent to NotebookLM, Miro or Zotero (Zotero archival only if you opt in)
+3. **Asks for the paper** — provide a file path, upload a PDF, or paste the text
+4. **Asks for the target journal** — used to calibrate the referee persona and standards (optional; defaults to high general standards if not provided)
+5. **Asks for review type** — full review across all eight areas, or focused on specific areas (methods, statistics, writing, figures)
+6. **Scans for hidden instructions** — text hidden in the manuscript that tries to steer an AI reviewer is treated as data, reported to you, and noted for the editor
+7. **Delegates to `neuroflow:review-neuro`** — the skill runs the complete eight-area review
+8. **Saves the report** to `.neuroflow/review/review-[paper-title-slug]-[date].md`
 
 ---
 
@@ -38,13 +41,15 @@ The eight areas reviewed by `neuroflow:review-neuro`:
 ```
 /neuroflow:review
 
-> Here is the paper (pasted text or uploaded PDF)
+> AI-use policy: the journal allows AI assistance if disclosed to the editor
+> Here is the paper (file path or uploaded PDF)
 > Target journal: eLife
 > Focus: full review
 
+[hidden-instruction scan: nothing found]
 [review-neuro skill produces a structured referee report]
 
-Review saved to reviews/review-default-mode-connectivity-2025-06-15.md
+Review saved to .neuroflow/review/review-default-mode-connectivity-2025-06-15.md
 ```
 
 ---
@@ -61,7 +66,7 @@ Review saved to reviews/review-default-mode-connectivity-2025-06-15.md
 
 | File | Contents |
 |---|---|
-| `reviews/review-[title-slug]-[date].md` | Full structured referee report |
+| `.neuroflow/review/review-[title-slug]-[date].md` | Full structured referee report (local only, gitignored) |
 | `.neuroflow/sessions/YYYY-MM-DD.md` | One-liner entry (not the full report) |
 
 ---

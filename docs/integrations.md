@@ -4,7 +4,7 @@ title: Integrations
 
 # Integrations
 
-neuroflow connects to four MCP (Model Context Protocol) servers that Claude Code launches automatically via `npx`. One requires credentials; three work out of the box.
+neuroflow bundles three MCP (Model Context Protocol) servers that Claude Code launches automatically via `npx`; none needs credentials. Miro and Zotero are optional servers you add yourself.
 
 ---
 
@@ -13,12 +13,14 @@ neuroflow connects to four MCP (Model Context Protocol) servers that Claude Code
 | Server | npm package | Requires credentials |
 |---|---|---|
 | **PubMed / bioRxiv** | `paper-search-mcp-nodejs` | ❌ None |
-| **Miro** | `@k-jarzyna/mcp-miro` | ✅ `MIRO_ACCESS_TOKEN` |
 | **Context7** | `@upstash/context7-mcp` | ❌ None |
+| **Sequential thinking** | `@modelcontextprotocol/server-sequential-thinking` | ❌ None |
 
 All are started automatically by Claude Code — you do not need to run them manually.
 
-**Optional — Zotero:** neuroflow does not bundle a Zotero server, but if you add a community one (e.g. `zotero-mcp` — `claude mcp add zotero -- uvx zotero-mcp`, with the Zotero desktop app running or a `ZOTERO_API_KEY`), `/ideation` automatically switches to library-first literature search: your existing papers are recognized and skipped, and new findings can be saved into a project collection. See `/setup` for guidance.
+**Optional — Miro:** added by you, at user scope — see [Miro](#miro) below.
+
+**Optional — Zotero:** neuroflow does not bundle a Zotero server, but if you add a community one (e.g. `zotero-mcp` — `claude mcp add zotero -- uvx zotero-mcp`, with the Zotero desktop app running or a `ZOTERO_API_KEY` passed with `-e` in your own terminal), `/ideation` automatically switches to library-first literature search: your existing papers are recognized and skipped, and new findings can be saved into a project collection. See `/setup` for guidance.
 
 ---
 
@@ -44,29 +46,28 @@ The bioRxiv integration enables the [scholar agent](concepts/agents.md) to searc
 
 ## Miro
 
-The Miro integration enables Claude to create and edit Miro boards — useful for mind maps, experiment diagrams, and visual collaboration during ideation.
+The Miro integration enables Claude to create and edit Miro boards — useful for mind maps, experiment diagrams, and visual collaboration during ideation. It is optional and not bundled: its many tools would take context in every session, and its token is yours, so you add it yourself, once, for all your projects.
 
 ### Getting a personal access token
 
 1. Go to [https://miro.com/app/settings/user-profile/apps](https://miro.com/app/settings/user-profile/apps)
 2. Click **Create new app** (or select an existing one)
 3. Under **Token**, click **Create token**
-4. Copy the token — it starts with `eyJ…`
+4. Copy the token
 
 !!! note "No OAuth support"
     Miro OAuth browser login is not supported from a terminal subprocess. Use a personal access token instead.
 
 ### Setup
 
-Run the wizard:
-```
-/neuroflow:setup
-```
-
-Or set the environment variable directly:
+In a **separate terminal** — not in the Claude Code chat — run:
 ```bash
-export MIRO_ACCESS_TOKEN="eyJhbGciOiJSUzI1NiJ9..."
+claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<your-token> -- npx -y @k-jarzyna/mcp-miro
 ```
+On native Windows, if the server later fails to connect, use `-- cmd /c npx -y @k-jarzyna/mcp-miro` as the command part. Restart Claude Code (or check `/mcp`); the Miro tools then appear in every project. Claude Code keeps the token in its own user configuration on this machine.
+
+!!! warning "Keep the token out of the chat"
+    Never paste the token into a conversation, and don't run the command with the `!` prefix inside Claude Code — `!` commands and their output are recorded in the conversation. `/neuroflow:setup` walks you through the same steps.
 
 ---
 
@@ -80,75 +81,61 @@ This means when Claude writes an MNE preprocessing script, it can look up the cu
 
 ---
 
-## Custom LLM providers
+## Custom LLM gateways
 
-neuroflow's `/setup` command (Step 5) lets you configure an alternative LLM API endpoint for Claude Code — replacing Anthropic's API with any OpenAI-compatible endpoint.
+Claude Code can run against an **Anthropic-compatible gateway** instead of Anthropic's API — for example a gateway your institution or another provider runs for open models. Such a gateway speaks the Anthropic protocol, so Claude Code connects directly. **No proxy needed.** neuroflow's `/setup` (Step 4) records the non-secret settings; the launch itself happens in your terminal.
 
-### e-INFRA CZ (Czech academic researchers only)
-
-> **Access requirement:** e-INFRA CZ LLM API is available to Czech academic researchers with Metacentrum/e-INFRA CZ membership. See https://metavo.metacentrum.cz for eligibility. This service is not available for general international use.
-
-The e-INFRA CZ gateway at `https://llm.ai.e-infra.cz` provides free access to large open-source models — and it speaks the **Anthropic protocol natively**, so Claude Code connects directly. **No proxy needed.**
-
-**Native connection (recommended):**
+**Native connection (recommended)** — the values are placeholders; take yours from the provider:
 
 ```bash
-CLAUDE_CONFIG_DIR="$HOME/.claude-meta" \
-ANTHROPIC_BASE_URL="https://llm.ai.e-infra.cz/v1" \
-ANTHROPIC_AUTH_TOKEN="<YOUR_API_KEY>" \
-ANTHROPIC_MODEL="agentic" \
-ANTHROPIC_SMALL_FAST_MODEL="mini" \
-ANTHROPIC_DEFAULT_HAIKU_MODEL="mini" \
-ANTHROPIC_DEFAULT_SONNET_MODEL="agentic" \
-ANTHROPIC_DEFAULT_OPUS_MODEL="agentic" \
+CLAUDE_CONFIG_DIR="$HOME/.claude-gateway" \
+ANTHROPIC_BASE_URL="https://llm.example.org" \
+ANTHROPIC_AUTH_TOKEN="$(cat "$HOME/.claude-gateway/gateway-key")" \
+ANTHROPIC_MODEL="<main-model>" \
+ANTHROPIC_DEFAULT_SONNET_MODEL="<main-model>" \
+ANTHROPIC_DEFAULT_OPUS_MODEL="<main-model>" \
+ANTHROPIC_DEFAULT_HAIKU_MODEL="<small-model>" \
+ANTHROPIC_SMALL_FAST_MODEL="<small-model>" \
 CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1 \
 claude
 ```
 
-The isolated `CLAUDE_CONFIG_DIR` lets this run **alongside** your normal subscription `claude` in another terminal — zero shared state. Get an API key at [chat.ai.e-infra.cz](https://chat.ai.e-infra.cz) → Settings → Account → API keys.
+- The isolated `CLAUDE_CONFIG_DIR` lets this run **alongside** your normal subscription `claude` in another terminal — zero shared state.
+- The API key stays in a file only you can read (or your OS credential store) and is read at launch — never pasted into a chat or saved by neuroflow.
+- **Models:** gateway model lists change — list them live (`<base URL>/v1/models`); switch mid-session with `/model <id>`. Map the Sonnet/Opus slots to your main model and the Haiku slot to a small one.
+- **Rate limits:** gateways often cap parallel requests per key — heavy parallel subagent fan-out can hit 429s.
+- **Your data:** every prompt and file the model reads goes to the gateway operator; check that your ethics approval and data agreements allow that route.
 
-**Models:** the gateway list changes over time — fetch it live from `https://llm.ai.e-infra.cz/v1/models`. As of August 2026 it includes `agentic` (recommended for Claude Code tool use), `coder`, `thinker`, `mini` (background tasks), `kimi-k3`, `qwen3.5-122b`, `glm-5`, `deepseek`, and more. Switch mid-session with `/model <id>`.
-
-**Rate limit:** 4 parallel requests per key — normal interactive use fits; heavy parallel subagent fan-out will hit 429s.
-
-For full documentation — env var reference, context-window handling, and the legacy proxy appendix — see the `neuroflow:setup` skill → [`references/einfra-cc.md`](skills/setup/references/einfra-cc.md).
-
-### Other providers
-
-Any OpenAI-compatible endpoint works: set `base_url` and `api_key` during `/setup` Step 5. The custom LLM settings are saved to your chosen scope's `integrations.json` under the `custom_llm` key.
+For the full guide — Windows PowerShell launch, variable reference, context-window handling, and the legacy proxy for OpenAI-compatible-only providers — see the `neuroflow:setup` skill → [`references/custom-gateway.md`](skills/setup/references/custom-gateway.md).
 
 ---
 
-## Credential storage
+## Settings storage
 
-When you run `/neuroflow:setup`, credentials are saved to `~/.neuroflow/integrations.json` (global, all projects on this machine) or `.neuroflow/integrations.json` (per-project override — takes precedence). The wizard asks which scope to use:
+When you run `/neuroflow:setup`, non-secret settings are saved to `~/.neuroflow/integrations.json` (global, all projects on this machine) or `.neuroflow/integrations.json` (per-project override — takes precedence). The wizard asks which scope to use:
 
 ```json
 {
-  "miro": {
-    "MIRO_ACCESS_TOKEN": "eyJ..."
-  },
   "custom_llm": {
-    "provider": "einfra",
-    "base_url": "https://llm.ai.e-infra.cz/v1",
-    "api_key": "<stored locally, gitignored>",
-    "model": "qwen3.5-122b"
+    "provider": "my-gateway",
+    "base_url": "https://llm.example.org",
+    "model": "<model-id>"
   }
 }
 ```
 
-!!! warning "Never committed"
-    The per-project `.neuroflow/integrations.json` is automatically added to `.gitignore` by neuroflow, and the global `~/.neuroflow/integrations.json` lives outside any repository. Your credentials are stored locally only and never committed. Only non-secret settings (never `api_key`) are ever synced via `~/.neuroflow/flowie/integrations.json`.
+!!! warning "No secrets, never committed"
+    neuroflow never asks for a token or key in the chat and stores none in `integrations.json`: Miro's token lives in Claude Code's own MCP configuration, a gateway key in your key file, Google OAuth in `gws`. The per-project `.neuroflow/integrations.json` is automatically added to `.gitignore` by neuroflow, and the global `~/.neuroflow/integrations.json` lives outside any repository. Non-secret settings are synced via `~/.neuroflow/flowie/integrations.json` only after you confirm.
 
 ---
 
 ## Reminder behavior
 
-neuroflow checks credentials at the point of use, not upfront:
+neuroflow checks integrations at the point of use, not upfront:
 
 | Trigger | Reminder |
 |---|---|
-| Mention Miro in any command | If `MIRO_ACCESS_TOKEN` missing → offer to run `/setup` or skip |
-| Mention custom LLM / e-INFRA | If `custom_llm` missing → offer to run `/setup` Step 5 |
+| Mention Miro in any command | If no Miro tools are available → show how to add Miro (`/setup` Step 2) or skip |
+| Mention a custom LLM gateway | If `custom_llm` missing → offer to run `/setup` Step 4 |
 
 You can always re-run `/neuroflow:setup` to add or update credentials at any time.

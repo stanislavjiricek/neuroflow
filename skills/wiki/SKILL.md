@@ -217,7 +217,7 @@ Evolve `schema.md` collaboratively over time. When the user says "always do X" o
 7. For any concept/entity/method mentioned but lacking its own page: create it
 8. Update `index.md` with all new and changed pages
 9. Append to `log.md`: `## [date] ingest | {title}`
-10. Git push (flowie standard pattern)
+10. Commit; push only after the person confirms (see Git sync)
 
 **After ingest:** ask whether this might add to `flowie/ideas.md` (if synthesis spans multiple projects) or update `profile.md` methodological stances (if it supports a strong new stance).
 
@@ -229,7 +229,7 @@ Evolve `schema.md` collaboratively over time. When the user says "always do X" o
 4. Synthesize answer with citations (link to wiki pages, not raw sources)
 5. Ask: "Would you like to file this answer as a wiki page?" — if yes, write to `pages/synthesis/{slug}.md` with full frontmatter; use `[[Page Title]]` for all internal cross-references in the body; ask for project tags
 6. Append to `log.md`: `## [date] query | {question summary}`
-7. Git push if anything was written
+7. If anything was written: commit; push only after the person confirms (see Git sync)
 
 ### Lint workflow (`--wiki-lint`)
 
@@ -259,7 +259,7 @@ For manually creating or updating a wiki page:
 6. Write page to correct subfolder with full frontmatter
 7. Update `index.md`
 8. Append to `log.md`: `## [date] add | {title}`
-9. Git push
+9. Commit; push only after the person confirms (see Git sync)
 
 ### Schema workflow (`--wiki-schema`)
 
@@ -267,7 +267,7 @@ Show current `schema.md`. Then ask:
 - "Would you like to update any conventions?"
 - Walk through each section collaboratively
 
-After updating, show diff, confirm, write, push.
+After updating, show diff, confirm, write, commit; push only after the person confirms.
 
 ---
 
@@ -292,8 +292,8 @@ If `wiki/` does not exist:
    | raw/ | immutable source documents |
    | pages/ | LLM-maintained wiki pages |
    ```
-5. Update `~/.neuroflow/flowie/.flow` to add a wiki row
-6. Git push: `git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "wiki: initialize" && git -C ~/.neuroflow/flowie push || true`
+5. Add a wiki row to the level's index (`~/.neuroflow/flowie/.flow` at flowie level, `.neuroflow/flow.md` at project level)
+6. Commit with the message `wiki: initialize` at the wiki's level; push only after the person confirms (see Git sync)
 
 ---
 
@@ -341,23 +341,31 @@ When writing or updating `pages/methods/` pages, check `fails/science.md` (from 
 
 ## Git sync
 
-Git operations depend on level:
+<!-- nf-rule: EGRESS-CONFIRM -->
+A push is outbound data movement: push only after the person confirms, in the same turn (neuroflow-core → Sharing tiers). After a write, commit locally, list the changed pages and ask *"Push {N} wiki changes to {remote}/{branch}? (y/N)"* — never push after every write on your own.
 
-**flowie level:**
+Sync never hides a failure — no `|| true`. If a pull cannot fast-forward (diverged history, conflicts, uncommitted changes in the way), stop, report it and ask how to proceed; never leave a half-finished rebase or merge behind. A network error gets a one-line note, and the operation continues on the local copy.
+
+**flowie level** (private repo):
 ```bash
-git -C ~/.neuroflow/flowie pull --rebase origin main || true
-git -C ~/.neuroflow/flowie add -A && git -C ~/.neuroflow/flowie commit -m "wiki: {description}" && git -C ~/.neuroflow/flowie push || true
+git -C ~/.neuroflow/flowie pull --ff-only
+git -C ~/.neuroflow/flowie add wiki/ && git -C ~/.neuroflow/flowie commit -m "wiki: {description}" -- wiki/
+git -C ~/.neuroflow/flowie push        # only after the person confirms
 ```
 
-**project level:**
+**project level** — the wiki lives in the project repository, so sync follows the person's current branch:
 ```bash
-git pull --rebase origin main || true
-git add .neuroflow/wiki/ && git commit -m "wiki: {description}" && git push || true
+git pull --ff-only                      # current branch from its own upstream; never rebase onto main
+git add .neuroflow/wiki/ && git commit -m "wiki: {description}" -- .neuroflow/wiki/
+git push                                # only after the person confirms
 ```
+- No upstream for the current branch: skip the pull and say so.
+- The commit takes only `.neuroflow/wiki/` paths — other staged work stays staged.
+- On a feature branch, say so before committing: the wiki change travels with that branch and its pull request.
 
-**hive level:** use `gh` CLI or GitHub API to push to hive org repo. Pull via `gh api` or `git clone --depth 1` before reads.
+**hive level:** use `gh` CLI or GitHub API to push to hive org repo — only after the person confirms. Pull via `gh api` or `git clone --depth 1` before reads.
 
-Pull before every read. Push after every write. Fail silently on network errors.
+Pull (fast-forward only) before reads. Commit after writes; push on confirmation.
 
 ---
 
@@ -366,16 +374,17 @@ Pull before every read. Push after every write. Fail silently on network errors.
 - **flowie wiki**: private GitHub repo — never included in external outputs or exports
 - **project wiki**: git-tracked in project repo — shared with all collaborators; treat as project-confidential (not public)
 - **hive wiki**: stored in private org GitHub repo — team-wide access only
+- **Never ingest** local-tier material (manuscripts under confidential review in `.neuroflow/review/`, session logs), credentials or participant-identifying data into a wiki at any level (neuroflow-core → Sharing tiers)
 
 ---
 
 ## Session log
 
-Append to `.neuroflow/sessions/YYYY-MM-DD.md` after every wiki operation:
+Append to `.neuroflow/sessions/YYYY-MM-DD.md` after every wiki operation, in the canonical milestone format (the invoking command name in brackets):
 ```
-[HH:MM] /wiki --{mode} [level:{level}]: {brief summary}
+## HH:MM — [wiki] --{mode} [level:{level}]: {brief summary}
 ```
 Examples:
-- `[14:30] /wiki --ingest [level:project]: ingested "Gamma in WM" paper, updated 8 pages`
-- `[15:00] /flowie --wiki-query [level:flowie]: answered "what do I know about ICA?", filed as synthesis page`
-- `[15:45] /hive --wiki-lint [level:hive]: found 3 orphan pages, 1 missing concept page, fixed 2`
+- `## 14:30 — [wiki] --ingest [level:project]: ingested "Gamma in WM" paper, updated 8 pages`
+- `## 15:00 — [flowie] --wiki-query [level:flowie]: answered "what do I know about ICA?", filed as synthesis page`
+- `## 15:45 — [hive] --wiki-lint [level:hive]: found 3 orphan pages, 1 missing concept page, fixed 2`

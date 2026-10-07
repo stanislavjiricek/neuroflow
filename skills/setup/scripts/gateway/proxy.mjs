@@ -1,33 +1,35 @@
 /**
- * e-INFRA LLM Proxy for Claude Code
+ * Model-name proxy for Claude Code → an Anthropic-compatible gateway (legacy).
  *
- * Sits between Claude Code and https://llm.ai.e-infra.cz
- * Claude Code sends requests with claude-* model names → proxy maps them to real e-infra IDs.
+ * For gateways that speak the Anthropic protocol but reject Claude Code's claude-* model
+ * names when the ANTHROPIC_DEFAULT_*_MODEL mapping is not enough. Every request is sent with
+ * the target model; the original claude-* name is restored in the response.
+ * See skills/setup/references/custom-gateway.md.
  *
- * Usage:
- *   node proxy.mjs              (default: qwen3.5-122b on port 3456)
- *   node proxy.mjs kimi-k2.5    (use a different model)
- *   node proxy.mjs deepseek-v3.2 8080  (custom model + port)
+ * Usage (the key comes from the environment — never type it into a chat or this file):
+ *   GATEWAY_URL=https://llm.example.org GATEWAY_KEY="$(cat ~/.claude-gateway/gateway-key)" \
+ *     node proxy.mjs <target-model> [port]      (port defaults to 3456)
  *
  * Then in another terminal:
- *   ANTHROPIC_BASE_URL=http://localhost:3456 ANTHROPIC_API_KEY=any claude
+ *   ANTHROPIC_BASE_URL=http://localhost:3456 ANTHROPIC_AUTH_TOKEN=dummy claude
  */
 
 import http from "http";
 import https from "https";
 
-const EINFRA_API   = "https://llm.ai.e-infra.cz";
-const EINFRA_KEY   = "<YOUR_API_KEY>";    // replace with your e-INFRA API key
-const TARGET_MODEL = process.argv[2] || "qwen3.5-122b";
+const GATEWAY_URL  = process.env.GATEWAY_URL;
+const GATEWAY_KEY  = process.env.GATEWAY_KEY;
+const TARGET_MODEL = process.argv[2];
 const PORT         = parseInt(process.argv[3] || "3456", 10);
 
-// ── Available models ──────────────────────────────────────────────────────────
-// General / best overall:  qwen3.5-122b
-// Coding:                  qwen3-coder-next, deepseek-v3.2
-// Reasoning/thinking:      deepseek-v3.2-thinking
-// Agentic / tool use:      kimi-k2.5
-// Fast / small:            mini, mistral-small-4, qwen3-coder-30b
-// ─────────────────────────────────────────────────────────────────────────────
+if (!GATEWAY_URL || !GATEWAY_KEY || !TARGET_MODEL) {
+  console.error("Set GATEWAY_URL and GATEWAY_KEY, and pass the target model: node proxy.mjs <target-model> [port]");
+  process.exit(2);
+}
+
+function target_host() {
+  return new URL(GATEWAY_URL).host;
+}
 
 function forward(req, res, bodyChunks) {
   const body = Buffer.concat(bodyChunks);
@@ -49,21 +51,22 @@ function forward(req, res, bodyChunks) {
     payload = body;
   }
 
-  const target = new URL(EINFRA_API);
+  const target = new URL(GATEWAY_URL);
+  const secure = target.protocol === "https:";
   const options = {
     hostname: target.hostname,
-    port: 443,
-    path: req.url,
+    port: target.port || (secure ? 443 : 80),
+    path: target.pathname.replace(/\/$/, "") + req.url,
     method: req.method,
     headers: {
       "Content-Type": "application/json",
       "Content-Length": payload.length,
-      "Authorization": `Bearer ${EINFRA_KEY}`,
+      "Authorization": `Bearer ${GATEWAY_KEY}`,
       "anthropic-version": req.headers["anthropic-version"] || "2023-06-01",
     },
   };
 
-  const proxyReq = https.request(options, (proxyRes) => {
+  const proxyReq = (secure ? https : http).request(options, (proxyRes) => {
     res.writeHead(proxyRes.statusCode, proxyRes.headers);
 
     if (originalModel) {
@@ -100,11 +103,11 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`e-INFRA proxy running on http://localhost:${PORT}`);
+  console.log(`Gateway proxy running on http://localhost:${PORT} → ${target_host()}`);
   console.log(`Routing all requests → ${TARGET_MODEL}`);
   console.log();
   console.log("In another terminal, launch Claude Code with:");
-  console.log(`  ANTHROPIC_BASE_URL=http://localhost:${PORT} ANTHROPIC_API_KEY=any claude`);
+  console.log(`  ANTHROPIC_BASE_URL=http://localhost:${PORT} ANTHROPIC_AUTH_TOKEN=dummy claude`);
   console.log();
   console.log("Press Ctrl+C to stop.");
 });

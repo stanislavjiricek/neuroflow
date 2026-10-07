@@ -9,6 +9,9 @@ reads:
 writes:
   - .neuroflow/wiki/
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: full
+produces:
+  - .neuroflow/wiki/
 ---
 
 # /wiki
@@ -44,7 +47,7 @@ If no flag given: default to `--view` if wiki exists, `--schema` if it does not.
 | `--schema` | View or update wiki conventions (also initializes wiki) |
 
 Wiki root for all operations: `.neuroflow/wiki/`
-Git pattern: standard `git` in project root (not `-C` flowie pattern).
+Git pattern: standard `git` in project root (not `-C` flowie pattern), branch-safe — fast-forward-only pull of the current branch, commits limited to `.neuroflow/wiki/`, and a push only after the person confirms (the wiki skill's **Git sync**).
 
 ---
 
@@ -62,5 +65,5 @@ The current project IS the context — read `project_config.md` for project name
 Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ```
-[HH:MM] /wiki --{mode} [level:project] — {brief summary}
+## HH:MM — [wiki] --{mode} [level:project]: {brief summary}
 ```

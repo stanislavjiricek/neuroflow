@@ -1,16 +1,19 @@
 """
-Anthropic ↔ OpenAI proxy for Claude Code → e-INFRA CZ (or any OpenAI-compatible API).
+Anthropic ↔ OpenAI proxy for Claude Code → any OpenAI-compatible API (legacy).
 Handles text, tool_use, tool_result, streaming, and thinking blocks.
+
+Only needed for providers without an Anthropic-compatible endpoint; see
+skills/setup/references/custom-gateway.md (legacy appendix).
 
 Usage:
   uv run --python 3.12 --with fastapi --with httpx --with uvicorn \\
-    uvicorn proxy:app --host 0.0.0.0 --port 4001
+    uvicorn proxy:app --host 127.0.0.1 --port 4001
 
 Environment variables:
-  OPENAI_API_KEY    Your e-INFRA (or other provider) API key
-  OPENAI_BASE_URL   API base URL (default: https://llm.ai.e-infra.cz/v1)
-  BIG_MODEL         Model for large/smart requests (default: kimi-k2.5)
-  SMALL_MODEL       Model for small/fast requests (default: kimi-k2.5)
+  OPENAI_API_KEY    Your provider's API key (required; read it from a file, never type it into a chat)
+  OPENAI_BASE_URL   OpenAI-compatible base URL, e.g. https://llm.example.org/v1 (required)
+  BIG_MODEL         Model for large/smart requests (required)
+  SMALL_MODEL       Model for small/fast requests (default: BIG_MODEL)
   PROXY_DEBUG       Set to 1 to print raw streaming chunks to stderr
 
 Then in another terminal:
@@ -26,10 +29,14 @@ def dbg(*args):
     if DEBUG:
         print("[DBG]", *args, file=sys.stderr, flush=True)
 
-OPENAI_BASE = os.environ.get("OPENAI_BASE_URL", "https://llm.ai.e-infra.cz/v1")
+OPENAI_BASE = os.environ.get("OPENAI_BASE_URL", "").rstrip("/")
 OPENAI_KEY  = os.environ.get("OPENAI_API_KEY", "")
-BIG_MODEL   = os.environ.get("BIG_MODEL", "kimi-k2.5")
-SMALL_MODEL = os.environ.get("SMALL_MODEL", "kimi-k2.5")
+BIG_MODEL   = os.environ.get("BIG_MODEL", "")
+SMALL_MODEL = os.environ.get("SMALL_MODEL", "") or BIG_MODEL
+
+_missing = [n for n, v in (("OPENAI_BASE_URL", OPENAI_BASE), ("OPENAI_API_KEY", OPENAI_KEY), ("BIG_MODEL", BIG_MODEL)) if not v]
+if _missing:
+    sys.exit(f"proxy: set {', '.join(_missing)} first (see skills/setup/references/custom-gateway.md)")
 
 MODEL_MAP = {
     "claude-sonnet-4-6": BIG_MODEL,

@@ -1,6 +1,6 @@
 ---
 name: notebooklm
-description: Complete API for Google NotebookLM — full programmatic access including features not in the web UI. Create notebooks, add sources (URLs, YouTube, PDFs, audio, video, images), generate all artifact types (podcast, video, slide deck, infographic, report, quiz, flashcards, mind map), and download results in multiple formats. Activates on explicit /notebooklm or intent like "create a podcast about X", "turn this into an audio overview", "generate a quiz from my research", "make an infographic", or "create a slide deck".
+description: Google NotebookLM through the notebooklm-py CLI — create notebooks, add sources (each upload confirmed first), generate podcasts, videos, slide decks, infographics, reports, quizzes, flashcards and mind maps, and download them. Activates on /notebooklm or requests like "turn this into an audio overview", "make a quiz from my research" or "make an infographic".
 ---
 
 # NotebookLM
@@ -17,13 +17,7 @@ Complete programmatic access to Google NotebookLM — including capabilities not
 pip install notebooklm-py
 ```
 
-**Skill install:**
-
-```bash
-notebooklm skill install
-# or
-npx skills add teng-lin/notebooklm-py
-```
+This skill ships with neuroflow — no separate skill install is needed.
 
 **Authenticate before first use:**
 
@@ -78,15 +72,30 @@ Before starting any workflow, verify the CLI is ready:
 - `notebooklm create` — create notebook
 - `notebooklm ask "..."` — chat queries (without `--save-as-note`)
 - `notebooklm history` — display conversation history (read-only)
-- `notebooklm source add` — add sources
 
 **Ask before running:**
+- `notebooklm source add` — uploads the source to Google (see **Outbound data** below — confirm the exact list every time)
+- `notebooklm source add-research` — sends the research query to Google and adds what it finds as sources
 - `notebooklm delete` — destructive
 - `notebooklm generate *` — long-running, may fail
 - `notebooklm download *` — writes to filesystem
 - `notebooklm artifact wait` / `notebooklm source wait` / `notebooklm research wait` — long-running (when in main conversation)
 - `notebooklm ask "..." --save-as-note` — writes a note
 - `notebooklm history --save` — writes a note
+
+---
+
+## Outbound data — confirm every upload
+
+<!-- nf-rule: EGRESS-CONFIRM -->
+Adding a source sends it to Google. Before any `notebooklm source add` (files, pasted text, URLs) or `source add-research`, show the exact list — file paths with sizes, URLs, the research query — with `AskUserQuestion` (the list goes in the option preview), and run only what the person confirms in that turn. Nothing is uploaded on your own initiative, from a background subagent, or "automatically".
+
+Never upload (neuroflow-core → Sharing tiers):
+- local-tier files: `.neuroflow/sessions/`, `.neuroflow/review/` (manuscripts under confidential review), `integrations.json`, `.neuroflow/flowie/`
+- `.neuroflow/fails/`, `.neuroflow/finance/`, participant-identifying `ethics/` content
+- raw recordings or other participant data, or anything the ethics approval or a data-use agreement keeps inside the institution
+
+When the material comes from the project, export it first with `/output` (which holds back these paths) and upload from the export.
 
 ---
 
@@ -172,7 +181,7 @@ All generate commands support `-s, --source` (specific sources), `--language` (o
 ### Research to podcast
 
 1. `notebooklm create "Research: [topic]"`
-2. `notebooklm source add` for each URL/document
+2. Confirm the source list with the person (**Outbound data**), then `notebooklm source add` for each confirmed URL/document
 3. Wait for sources: `notebooklm source list --json` until all status=READY
 4. `notebooklm generate audio "Focus on [specific angle]"` (confirm when asked)
 5. Note the artifact ID returned
@@ -192,7 +201,7 @@ Task(
 ### Document analysis
 
 1. `notebooklm create "Analysis: [project]"`
-2. `notebooklm source add ./doc.pdf` (or URLs)
+2. After the person confirms the upload: `notebooklm source add ./doc.pdf` (or URLs)
 3. `notebooklm ask "Summarize the key points"`
 4. Continue chatting as needed
 
