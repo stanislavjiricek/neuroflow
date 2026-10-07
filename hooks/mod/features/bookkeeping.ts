@@ -4,7 +4,7 @@
 // rows, marked "(auto)". Only with runtime `on`; never for `lifecycle: quiet` commands or subagent turns.
 // Durable at once: written when the turn ends, never deferred to session end (charter rule 26).
 // The decision drafter (M009) also lives here.
-import { atom, read } from 'claude-code'
+import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { NfIo } from '../lib/io'
@@ -16,6 +16,8 @@ import { join, relativeTo } from '../lib/paths'
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
 const turnWritesAtom = atom({ plugin: 'neuroflow', key: 'turnWrites' } as const, [])
+const baselineAtom = atom({ plugin: 'neuroflow', key: 'reasoningBaseline' } as const, null)
+const draftAtom = atom({ plugin: 'neuroflow', key: 'draftedDecision' } as const, null)
 
 /** Files a flow.md never lists: logs, indexes and placeholders. */
 const UNLISTED = /(^|\/)(flow\.md|\.gitkeep|index\.md|log\.md)$/
@@ -55,6 +57,30 @@ export const hasSessionLineSince = (log: string, tags: readonly string[], since:
     return match !== null && match[1] >= since && tags.includes(match[2])
   })
 
+const countLines = (text: string | null): number => (text ?? '').split(/\r?\n/).filter(line => line.trim() !== '').length
+
+/** The decision drafter's instructions (M009): extract, never invent; one decision or none. */
+export const DRAFT_SYSTEM = [
+  "You read the end of a research assistant's work log and extract the single most significant research decision it records:",
+  'a method, test, threshold, parameter, design or scope choice — with what was considered and rejected, when the text says so.',
+  'Use only what the text states; never invent or infer a decision. Ignore routine actions (saving files, fixing typos, running scripts).',
+  'Answer with JSON only: {"statement": "<one sentence>", "reasoning": "<one or two sentences>"}, or {"statement": null} when the text records no such decision.',
+].join(' ')
+
+/** Parses the drafter's reply; null when it found no decision or the reply is not usable. */
+export const parseDraft = (text: string): { statement: string; reasoning: string } | null => {
+  const match = /\{[\s\S]*\}/.exec(text)
+  if (match === null) return null
+  try {
+    const value = JSON.parse(match[0]) as { statement?: unknown; reasoning?: unknown }
+    if (typeof value.statement !== 'string' || value.statement.trim() === '') return null
+    const reasoning = typeof value.reasoning === 'string' ? value.reasoning.trim() : ''
+    return { statement: value.statement.trim().slice(0, 300), reasoning: reasoning.slice(0, 600) }
+  } catch {
+    return null
+  }
+}
+
 const ioOf = ($: EngineInterface): NfIo => ({
   read: path => $.fs.read(path).then(text => (typeof text === 'string' ? text : null), () => null),
   exists: path => $.fs.exists(path).catch(() => false),
@@ -67,6 +93,18 @@ const ioOf = ($: EngineInterface): NfIo => ({
 })
 
 export const registerBookkeeping = (on: On, opts: NfOptions): void => {
+  // Remember how long the command's reasoning log was when it started (M009).
+  on('command.run', { command: /^neuroflow:/ }, async ($, e, next) => {
+    const scope = await read($, scopeAtom)
+    const command = await read($, activeCommandAtom)
+    if (scope?.isActive && scope.root !== null && command !== null && command.phase !== 'utility') {
+      const path = join(scope.root, '.neuroflow/reasoning', `${command.phase}.jsonl`)
+      const lines = countLines(await ioOf($).read(path))
+      await update($, baselineAtom, () => ({ path, lines }))
+    } else await update($, baselineAtom, () => null)
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
   on('turn.complete', { reason: 'answer' }, async ($, e, next) => {
     const result = await next(e)
     if (!mayWrite(opts) || e.agentId !== undefined) return result
@@ -97,6 +135,21 @@ export const registerBookkeeping = (on: On, opts: NfOptions): void => {
       for (const line of lines) if ((await appendLine(io, flowPath, line)) === 'written') filled.push(`a flow row in ${flowPath.split('/').slice(-2, -1)[0]}/flow.md`)
     }
     if (filled.length > 0) $.ui.log(`neuroflow: filled ${filled.join(', ')} (auto)`)
+
+    // M009: the command logged no decision — draft one for a person to keep or drop (never written unasked).
+    const baseline = await read($, baselineAtom)
+    await update($, baselineAtom, () => null)
+    const isPersonThere = !scope.isHeadless && (await $.session.surfaces()).length > 0
+    if (baseline !== null && command.lifecycle === 'full' && isPersonThere && (await read($, draftAtom)) === null && e.answer.trim().length > 200) {
+      if (countLines(await io.read(baseline.path)) <= baseline.lines) {
+        const reply = await $.model.complete({ model: await $.session.model(), system: DRAFT_SYSTEM, prompt: e.answer.slice(-8000), maxTokens: 400, timeoutMs: 30_000 })
+        const draft = reply.isAnswered ? parseDraft(reply.text) : null
+        if (draft !== null) {
+          await update($, draftAtom, () => ({ path: baseline.path, phase: command.phase, command: command.name, ...draft, at: now }))
+          $.ui.toast('neuroflow drafted a decision for the reasoning log — keep it (k) or drop it (n) in the band')
+        }
+      }
+    }
     return result
   }).catch(($, e, next) => next(e))
 }

@@ -83,6 +83,18 @@ export type NfLoopView = {
 
 export type NfDashboardTab = 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
 
+export type NfReasoningBaseline = { path: string; lines: number }
+
+export type NfDraftedDecision = {
+  /** The reasoning log the entry goes to, absolute. */
+  path: string
+  phase: string
+  command: string
+  statement: string
+  reasoning: string
+  at: number
+}
+
 /** The neuroflow command running in this turn, if any. */
 export type NfActiveCommand = { name: string; phase: string; lifecycle: string; startedAt: number }
 
@@ -100,6 +112,10 @@ declare module 'claude-code' {
       // <feature:context>
       // </feature:context>
       // <feature:bookkeeping>
+      /** Lines in the command's reasoning log when it started (to see whether a decision was logged). */
+      reasoningBaseline: NfReasoningBaseline | null
+      /** A decision the mod drafted after a command turn that logged none; kept only if a person presses keep. */
+      draftedDecision: NfDraftedDecision | null
       // </feature:bookkeeping>
       // <feature:status>
       // </feature:status>

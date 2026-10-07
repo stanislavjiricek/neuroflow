@@ -23,6 +23,7 @@ const tabAtom = atom({ plugin: 'neuroflow', key: 'dashboardTab' } as const, 'pha
 const bandHiddenAtom = atom({ plugin: 'neuroflow', key: 'bandHidden' } as const, false)
 const loopViewAtom = atom({ plugin: 'neuroflow', key: 'loopView' } as const, null)
 const pickerNoteAtom = atom({ plugin: 'neuroflow', key: 'pickerNote' } as const, null)
+const draftAtom = atom({ plugin: 'neuroflow', key: 'draftedDecision' } as const, null)
 
 const DASHBOARD = 'nf-dashboard'
 const PICKER = 'nf-phase'
@@ -267,6 +268,28 @@ const openPicker = async ($: EngineInterface): Promise<void> => {
 
 const isPersonThere = async ($: EngineInterface): Promise<boolean> => (await $.session.surfaces()).length > 0
 
+/** Keep (a person's press) writes the drafted decision to the reasoning log; drop discards it. Both are counted. */
+const settleDraft = async ($: EngineInterface, keep: boolean): Promise<void> => {
+  const draft = await read($, draftAtom)
+  if (draft === null) return
+  if (keep) {
+    const entry = JSON.stringify({
+      statement: draft.statement,
+      source: `command:${draft.command} | ${isoDate(draft.at)}`,
+      reasoning: draft.reasoning,
+      at: new Date(draft.at).toISOString(),
+      drafted_by: 'mod',
+      approved_by: 'person',
+    })
+    await appendLine(ioOf($), draft.path, entry)
+    await $.store.set('drafter.kept', (Number(await $.store.get('drafter.kept')) || 0) + 1)
+    $.ui.toast('neuroflow: decision kept in the reasoning log')
+  } else {
+    await $.store.set('drafter.dropped', (Number(await $.store.get('drafter.dropped')) || 0) + 1)
+  }
+  await update($, draftAtom, () => null)
+}
+
 const TONE_COLOR: Record<Tone, 'error' | 'warning' | 'success' | 'suggestion' | 'subtle'> = {
   error: 'error',
   warning: 'warning',
@@ -300,6 +323,18 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || scope.isHeadless) return next(e)
     if ((await read($, activeCommandAtom))?.lifecycle === 'quiet') return next(e)
+    // A drafted decision waits for a person's keep or drop (M009); it outranks everything else.
+    const draft = await read($, draftAtom)
+    if (draft !== null) {
+      const { Box, Button, Text } = $.ui.resolve(e)
+      return (
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+          <Text color="suggestion" wrap="truncate-end">✎ decision drafted for {draft.phase}: {draft.statement}</Text>
+          <Button key="nf-draft-keep" label="keep" hotkey="k" plain onPress={() => settleDraft($, true)} />
+          <Button key="nf-draft-drop" label="drop" hotkey="n" plain onPress={() => settleDraft($, false)} />
+        </Box>
+      )
+    }
     // Hidden for today: the press sets the state (redraw now) and the store (kept across sessions).
     const isHidden = (await read($, bandHiddenAtom)) || (await $.store.get(BAND_HIDDEN_ON)) === isoDate(await $.clock.now())
     if (isHidden) return next(e)

@@ -84,6 +84,10 @@ export const registerStatus = (on: On, opts: NfOptions): void => {
         : { id: 'scope', status: 'info', message: `the mod is idle here: ${scope.reason}` },
       ...degraded.map(feature => ({ id: `degraded-${feature}`, status: 'warn' as const, message: `mod feature could not run: ${feature}` })),
     ]
+    // The decision drafter's keep rate stays visible (G202: a drafter nobody keeps should be switched off).
+    const kept = Number(await $.store.get('drafter.kept')) || 0
+    const dropped = Number(await $.store.get('drafter.dropped')) || 0
+    if (kept + dropped > 0) modLines.push({ id: 'drafter', status: 'info', message: `decision drafter: ${kept} of ${kept + dropped} drafts kept` })
     const target = scope.root ?? (await $.session.cwd())
     const run = await runScript(ioOf($), 'skills/neuroflow-core/scripts/doctor.py', ['--json', '--project', target], { timeoutMs: 60_000 })
     const report = parseJson<DoctorReport>(run.stdout)
