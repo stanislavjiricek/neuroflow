@@ -52,7 +52,7 @@ Save the analysis plan and results summary in `.neuroflow/data-analyze/`. Write 
 
 ## At end
 
-- Save `analysis-summary.md` — key findings, figures produced, open questions
+- Save `analysis-summary.md` — key findings, figures produced, open questions. If `.neuroflow/data-analyze/multiverse.md` exists, label every result that came from it as exploratory and state how many specifications were tried
 - **Write a reproducibility manifest** `environment.md` next to the analysis scripts in `output_path`: Python/MATLAB version, exact package versions of everything imported, OS, random seeds (permutations, CV splits, decoding), and the git commit hash if tracked. Regenerate on every rerun — it must always answer "which MNE/sklearn versions produced Figure 2"
 - Update `.neuroflow/data-analyze/flow.md`
 - Log statistical-model and analysis-approach choices to `.neuroflow/reasoning/data-analyze.json` (test selection, correction method, rejected alternatives) — these are mandatory reasoning triggers

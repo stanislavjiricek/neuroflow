@@ -64,6 +64,7 @@ The loop folder is named `{name}_autoresearch/` and lives **next to the artifact
     └── ...
 
 .neuroflow/{phase}/autoresearch-loops.md   ← POINTER REGISTRY ONLY (in project memory)
+.neuroflow/data-analyze/multiverse.md      ← exploratory analysis loops only — every specification tried, with its result
 ```
 
 **Naming:** `{name}` defaults to a slug derived from the primary tracked file (`connectivity.py` → `connectivity`), always overridable at setup. Multiple loops can coexist — e.g. `intro_autoresearch/` and `methods_autoresearch/` both under `manuscript/`.
@@ -173,14 +174,15 @@ Started: YYYY-MM-DD
 ## Loop configuration
 loop_name: connectivity
 artifact_location: scripts/analysis/connectivity_autoresearch/
+integrity_mode: confirmatory          # confirmatory | exploratory | n/a — set by the INIT integrity gate (references/integrity.md)
 promote_to_project_wiki: ask          # on | off | ask
 branching: agent-decided              # off | agent-decided
 max_alive_branches: 3                 # cost cap when branching
-parameter_sweep: true                 # when a move tunes a scannable parameter, scan several values in ONE iteration and pick the best
+parameter_sweep: false                # when a move tunes a scannable parameter, scan several values in ONE iteration and pick the best (default on; off when confirmatory)
 literature_search: when-stuck         # off | when-stuck | agent-decided
 literature_sources: pubmed, biorxiv   # MCP sources to query
 literature_budget: 1 per 5 iterations # rate cap
-evaluation: self                      # self | fresh-eval
+evaluation: fresh-eval                # self | fresh-eval (default self; fresh-eval when confirmatory)
 output_dashboard: off                 # on | off
 output_report_md: on                  # on | off
 output_report_pdf: off                # on | off
@@ -200,9 +202,12 @@ notify_on_plateau: true
 7. WIKI — write an attempts/ page (what, why, verdict, delta, reasoning — especially failures); update synthesis/ on a pattern; update index.md + log.md
 8. REPORT — rewrite report.md (open questions on top); update the pointer registry; regenerate PDF/dashboard per cadence
 9. Items 7 and 8 are NOT optional and are NOT once-at-baseline — they run every single iteration. If you ever notice you skipped one, do it now before the next move.
+10. INTEGRITY — whenever integrity_mode is not n/a, this binds steps 3–6 (rules: references/integrity.md in the neuroflow:autoresearch skill):
+    confirmatory → run tracked code only on blind inputs; never touch an item frozen in Out of scope; judge outcome-blind criteria only — a larger effect, smaller p-value, or more significant tests is never BETTER
+    exploratory → every specification run on the study data — each sweep value included — goes into .neuroflow/data-analyze/multiverse.md with its result before JUDGE; ledger rows are never edited or deleted
 ```
 
-**The agent reads this config AND the iteration checklist at the start of every iteration and honors both exactly** — check `literature_budget` before searching, respect `branching` / `max_alive_branches` / `parameter_sweep`, use the configured `evaluation` mode, refresh outputs per `report_cadence`, and complete every checklist item including the wiki write and report refresh.
+**The agent reads this config AND the iteration checklist at the start of every iteration and honors both exactly** — check `literature_budget` before searching, respect `branching` / `max_alive_branches` / `parameter_sweep`, apply the `integrity_mode` rules, use the configured `evaluation` mode, refresh outputs per `report_cadence`, and complete every checklist item including the wiki write and report refresh.
 
 ---
 
@@ -234,28 +239,29 @@ Paths are relative to the loop folder. The agent modifies the real files; the ev
 
 ## INIT — setup interview (first run only)
 
-> **HARD GATE — the loop must NOT begin until the user has explicitly signed off on the full config block.** Never set silent defaults and jump into iterations. Every configuration option below is *asked* one at a time, not assumed — branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, and wiki promotion. If the user gives a partial answer, ask the rest; if they say "use defaults", still show the resulting config block and get an explicit "yes" before iterating. Starting iterations with any unasked option is the failure mode this gate exists to prevent.
+> **HARD GATE — the loop must NOT begin until the user has explicitly signed off on the full config block.** Never set silent defaults and jump into iterations. Every configuration option below is *asked* one at a time, not assumed — the integrity mode (analysis-touching loops, step 3), branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, and wiki promotion. If the user gives a partial answer, ask the rest; if they say "use defaults", still show the resulting config block and get an explicit "yes" before iterating. Starting iterations with any unasked option is the failure mode this gate exists to prevent.
 
 1. Read `project_config.md` → determine active phase
 2. **Which files should this loop improve?** (or infer from `--target`)
-3. **Name and location:** derive a default name from the primary tracked file and a default location = that file's directory. Show both: *"Loop folder: `scripts/analysis/connectivity_autoresearch/`. OK, or change name/location?"*
-4. **Build criteria** — Layer 1 (phase defaults from `references/phase-criteria.md`) + Layer 2 (context-inferred) + Layer 3 (user input) → `program.md`
-5. **Loop configuration interview — go slowly, ONE question at a time.** Ask each option as a separate message (or a clearly numbered walk-through), state the default and the trade-off, wait for the answer, then move to the next. Do NOT batch all options into one wall of text and do NOT rush to the loop — a hurried interview is exactly the failure this step guards against. Record each answer into the config block:
+3. **Integrity gate.** Read `references/integrity.md` and decide whether the loop is *analysis-touching* — phase `data-analyze` / `data-preprocess`, a tracked file that computes results from study data, or a tracked file implementing a preregistered analysis. If it is, ask the integrity question as its own step: **confirmatory** (a fixed analysis improved on blind inputs, scored only on outcome-blind criteria) or **exploratory** (confirmatory scripts forked, everything labelled exploratory, every specification logged with its result to `.neuroflow/data-analyze/multiverse.md`). There is no default — "use defaults" does not answer it. Record `integrity_mode`, log the choice to `.neuroflow/reasoning/{phase}.json`, and apply the mode's rules in every later step: forked tracked files, frozen items in `## Out of scope`, outcome-blind criteria, sweep and evaluation defaults. Not analysis-touching → `integrity_mode: n/a`, no question.
+4. **Name and location:** derive a default name from the primary tracked file and a default location = that file's directory. Show both: *"Loop folder: `scripts/analysis/connectivity_autoresearch/`. OK, or change name/location?"*
+5. **Build criteria** — Layer 1 (phase defaults from `references/phase-criteria.md`) + Layer 2 (context-inferred) + Layer 3 (user input) → `program.md`
+6. **Loop configuration interview — go slowly, ONE question at a time.** Ask each option as a separate message (or a clearly numbered walk-through), state the default and the trade-off, wait for the answer, then move to the next. Do NOT batch all options into one wall of text and do NOT rush to the loop — a hurried interview is exactly the failure this step guards against. Record each answer into the config block:
    - *Branching:* "When you see two equally promising directions, may I try both and keep the winner? (agent-decided / single-track)" → if agent-decided, "max directions to keep open at once?"
-   - *Parameter sweep (default yes):* "When a move tunes a parameter that makes sense to scan over a range — a threshold, filter cutoff, number of components, regularization strength — may I scan several values within a single iteration and pick the best, instead of one value per iteration? (yes / no)"
+   - *Parameter sweep (default yes; no when `integrity_mode: confirmatory`):* "When a move tunes a parameter that makes sense to scan over a range — a threshold, filter cutoff, number of components, regularization strength — may I scan several values within a single iteration and pick the best, instead of one value per iteration? (yes / no)"
    - *Literature search:* "May I search papers when I run out of ideas or want grounding? (when-stuck / anytime / off)" → sources? → budget (e.g. 1 per 5 iterations)?
-   - *Evaluation:* "Should I judge my own changes (faster, full context) or have a fresh independent check each time (slower, unbiased)? (self / fresh-eval)"
+   - *Evaluation (default self; fresh-eval when `integrity_mode: confirmatory`):* "Should I judge my own changes (faster, full context) or have a fresh independent check each time (slower, unbiased)? (self / fresh-eval)"
    - *Outputs:* "Live dashboard server? Human report.md (default on)? Also a PDF snapshot?" → cadence?
    - *Answers:* "Answer my questions in this session, via an answers.md inbox, or both?"
    - *Wiki promotion:* "At loop end, promote durable findings to the project wiki? (ask / auto / off)"
-6. **Confirm the full config (the gate).** Render the complete `## Loop configuration` block back to the user with every value filled in, and ask for an explicit go-ahead: *"This is the full configuration. Confirm to start the loop, or tell me what to change."* **Do not proceed to step 7 until the user confirms.** No iteration runs before this sign-off.
-7. Create the loop folder at the chosen location; initialize `wiki/` (index.md, log.md, schema.md, pages/ subfolders) — write a starter `schema.md` describing the artifact, the criteria, and the wikilink convention
-8. Snapshot tracked files → `history/v000/`; write baseline row to `results.md`
-9. Write `program.md` (with the confirmed config block **and the "## Iteration checklist" block — both are mandatory**), `__thetask__.md` (with the iteration reminder at top), `flow.md`
-10. Add a row to `.neuroflow/{phase}/autoresearch-loops.md` (create the registry if absent)
-11. If `output_dashboard: on`, write `server.py` from `scripts/server.py` in this skill and tell the user the URL
-12. Write the first `report.md`
-13. Start the loop
+7. **Confirm the full config (the gate).** Render the complete `## Loop configuration` block back to the user with every value filled in — and, when `integrity_mode` is not `n/a`, the frozen `## Out of scope` items and any planned fork — and ask for an explicit go-ahead: *"This is the full configuration. Confirm to start the loop, or tell me what to change."* **Do not proceed to step 8 until the user confirms.** No iteration runs before this sign-off.
+8. Create the loop folder at the chosen location — and, for an exploratory fork, the `_exploratory` copies of the confirmatory files (`references/integrity.md`); initialize `wiki/` (index.md, log.md, schema.md, pages/ subfolders) — write a starter `schema.md` describing the artifact, the criteria, and the wikilink convention
+9. Snapshot tracked files → `history/v000/`; write baseline row to `results.md`
+10. Write `program.md` (with the confirmed config block **and the "## Iteration checklist" block — both are mandatory**), `__thetask__.md` (with the iteration reminder at top), `flow.md`
+11. Add a row to `.neuroflow/{phase}/autoresearch-loops.md` (create the registry if absent). If `integrity_mode: exploratory`, create `.neuroflow/data-analyze/multiverse.md` if absent (format in `references/integrity.md`) and list it in `.neuroflow/data-analyze/flow.md`
+12. If `output_dashboard: on`, write `server.py` from `scripts/server.py` in this skill and tell the user the URL
+13. Write the first `report.md`
+14. Start the loop
 
 ---
 
@@ -290,6 +296,11 @@ REPEAT FOREVER until the human interrupts:
        apply. The scan is internal scratch — only the chosen value is written to the tracked
        files. Record the swept values and the choice in one wiki attempts/ page (the curve).
        A sweep is one axis × many values; branching (g) is many competing directions — don't conflate them.
+       INTEGRITY (integrity_mode ≠ n/a — references/integrity.md):
+         confirmatory → run tracked code only on blind inputs (simulated data, shuffled labels,
+                        or an excluded pilot subset); never touch an item frozen in Out of scope.
+         exploratory  → append every specification run on the study data — each sweep value
+                        included — to the multiverse ledger with its result, before JUDGE.
 
   JUDGE  (self, or one fresh subagent if evaluation: fresh-eval)
     i. Compare current tracked files to history/vBEST/ against the criteria.
@@ -297,6 +308,8 @@ REPEAT FOREVER until the human interrupts:
                per-criterion notes, numeric values if applicable,
                and the single weakest area to target next.
        If self-evaluating: judge it COLD — be skeptical of your own change.
+       If integrity_mode is confirmatory: outcome-blind criteria only — a larger effect,
+       a smaller p-value, or more significant tests is never BETTER.
 
   KEEP / REVERT
     j. If BETTER: snapshot tracked files → history/vNNN/; update __thetask__.md
@@ -328,6 +341,8 @@ REPEAT FOREVER until the human interrupts:
 | `fresh-eval` | One fresh general-purpose subagent judges the change with no loop context | Independent, unbiased; the only place a subagent is spawned; slower |
 
 The bias risk of `self` is real — an agent grading its own work tends to like it. Mitigations: judge against the explicit `vBEST` snapshot and named criteria, and let the wiki hold it honest. Choose `fresh-eval` when evaluation rigor matters more than speed.
+
+With `integrity_mode: confirmatory`, `fresh-eval` is the default and the evaluator sees only the diff and the blind-input check outputs. No evaluation mode can make an agent unsee results it has already seen — that is what the confirmatory blind-input rule is for (`references/integrity.md`).
 
 ---
 
@@ -362,7 +377,7 @@ Running: KEPT adds delta; REVERTED leaves it unchanged. Append numeric columns (
 
 ### report.md format — human steering surface
 
-Open questions lead the file. Answered questions are **deleted** from the report (their resolution goes to the wiki, not an archive section here).
+Open questions lead the file. Answered questions are **deleted** from the report (their resolution goes to the wiki, not an archive section here). In an exploratory loop (`integrity_mode: exploratory`), the line under the title — in `report.md` and `results.md` alike — reads `EXPLORATORY — {N} specifications tried — ledger: .neuroflow/data-analyze/multiverse.md`.
 
 ```markdown
 # Autoresearch Report — {name}
@@ -401,7 +416,7 @@ A costly/irreversible move (large deletion, expensive recompute) should be raise
 ## Session logging & registry
 
 Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
-- Loop start: `## HH:MM — [autoresearch/{name}] started — tracking {N} file(s) at {location}`
+- Loop start: `## HH:MM — [autoresearch/{name}] started — tracking {N} file(s) at {location} — integrity: {integrity_mode}`
 - Every 10 iterations: `## HH:MM — [autoresearch/{name}] iter {N} — running {R} — best {snapshot}`
 - Plateau: `## HH:MM — [autoresearch/{name}] PLATEAU — changing approach`
 - Interrupt: `## HH:MM — [autoresearch/{name}] interrupted at iter {N} — best {snapshot}`
@@ -414,13 +429,13 @@ Keep the pointer registry (`.neuroflow/{phase}/autoresearch-loops.md`) current: 
 
 Build `program.md` criteria in three layers on first run:
 
-- **Layer 1 — Phase defaults.** Always included. Full per-phase criteria tables are in **`references/phase-criteria.md`** — read it during INIT and copy the active phase's criteria into `program.md`.
+- **Layer 1 — Phase defaults.** Always included. Full per-phase criteria tables are in **`references/phase-criteria.md`** — read it during INIT and copy the active phase's criteria into `program.md`. The `data-analyze` and `data-preprocess` defaults are outcome-blind by design; a confirmatory loop keeps every layer that way (`references/integrity.md`).
 - **Layer 2 — Context-inferred.** Read existing `.neuroflow/` files and add relevant criteria:
 
   | If this exists | Add criterion |
   |---|---|
   | `.neuroflow/ideation/research-question.md` | Alignment with the stated research question |
-  | `.neuroflow/preregistration/` | Adherence to preregistered hypotheses / analysis plan |
+  | `.neuroflow/preregistration/` | Not a criterion — a constraint: write the preregistration line from `references/integrity.md` into `## Out of scope` |
   | `project_config.md` has `target_journal:` | Meets [journal] editorial standards |
   | `.neuroflow/grant-proposal/` names a funder | Meets [funder] reviewer criteria |
   | `.neuroflow/data-analyze/analysis-plan.md` | Covers all hypotheses in the analysis plan |
@@ -436,6 +451,7 @@ If `.neuroflow/{phase}/autoresearch-loops.md` lists one or more loops:
 - One loop → confirm: *"Resume autoresearch '{name}' at {location}? {N} iterations logged, best {snapshot}."*
 - Multiple → list them and ask which to resume
 - On resume: read that loop's `program.md`, `__thetask__.md`, `results.md`, and **the wiki** (index + synthesis), then go straight to the loop (skip INIT)
+- Exception: if the loop's config has no `integrity_mode` (it predates the integrity gate) and the loop is analysis-touching, run INIT step 3 first and write the answer — plus the mode's frozen items, fork, and checklist item 10 — into `program.md` before the next iteration
 
 ---
 
@@ -448,4 +464,5 @@ If `.neuroflow/{phase}/autoresearch-loops.md` lists one or more loops:
 ## Bundled resources
 
 - **`references/phase-criteria.md`** — per-phase Layer 1 default criteria (read during INIT)
+- **`references/integrity.md`** — the integrity gate: when it applies, confirmatory vs exploratory rules, the multiverse ledger format (read during INIT step 3)
 - **`scripts/server.py`** — optional dashboard template (write to the loop folder only if `output_dashboard: on`)

@@ -29,10 +29,11 @@ A **single managing agent** runs the whole loop and holds the thread of all iter
 
 1. Claude determines the active phase from `project_config.md`
 2. You name the files to improve (or use `--target path/to/file.py`)
-3. You confirm the **loop name and location** — the folder defaults to sitting next to the artifact (e.g. `scripts/analysis/connectivity_autoresearch/`), overridable
-4. Criteria are built in three layers: phase defaults → context-inferred → your additions
-5. A **configuration interview** sets the loop's behaviour, one option at a time: branching, parameter sweep (scan a parameter's values within a single iteration; default on), literature search, evaluation mode, outputs, answer channel, wiki promotion. The full config is shown back to you for explicit sign-off — **no iteration runs until you confirm it**
-6. The wiki is initialized, a baseline snapshot saved to `history/v000/`, and a pointer added to `.neuroflow/{phase}/autoresearch-loops.md`
+3. **Integrity gate** — if the files compute results from your study data, you choose what the loop is for: **confirmatory** or **exploratory** (see [Research integrity](#research-integrity)). There is no default
+4. You confirm the **loop name and location** — the folder defaults to sitting next to the artifact (e.g. `scripts/analysis/connectivity_autoresearch/`), overridable
+5. Criteria are built in three layers: phase defaults → context-inferred → your additions
+6. A **configuration interview** sets the loop's behaviour, one option at a time: branching, parameter sweep (scan a parameter's values within a single iteration; default on, off for confirmatory loops), literature search, evaluation mode, outputs, answer channel, wiki promotion. The full config is shown back to you for explicit sign-off — **no iteration runs until you confirm it**
+7. The wiki is initialized, a baseline snapshot saved to `history/v000/`, and a pointer added to `.neuroflow/{phase}/autoresearch-loops.md`
 
 ### The loop — never stops until you interrupt
 
@@ -47,6 +48,19 @@ Each iteration:
 ### Steering it while it runs
 
 The agent asks you questions without ever stopping. Open questions sit at the top of `report.md`. Answer them in the session (`A3: eLife`) or via the `answers.md` inbox — the agent picks up the answer on the next iteration, acts on it, and removes the question. Because every state is a snapshot, it can re-branch from an earlier best if you steer it elsewhere.
+
+---
+
+## Research integrity
+
+A loop that edits analysis code, scores each version by its results, and keeps the winner would be automated p-hacking. So when a loop touches code that computes results from your study data, it first asks which job it has:
+
+| Mode | What the loop may do | What it never does |
+|---|---|---|
+| **Confirmatory** | Improve the correctness, robustness, and reproducibility of a fixed analysis — running it only on simulated data, label-shuffled data, or an excluded pilot subset | Run on your real labelled data, score effect sizes or p-values, or touch anything the preregistration or analysis plan fixes |
+| **Exploratory** | Search over analysis choices, on a fork of any confirmatory script, with outputs in `exploratory/` folders | Edit a confirmatory script, or hide a specification — every one it tries is logged with its result to `.neuroflow/data-analyze/multiverse.md` |
+
+Exploratory reports carry an `EXPLORATORY — N specifications tried` header, and `/data-analyze` and `/paper` treat anything from the ledger as exploratory. If a preregistration exists, every loop — analysis or not — keeps the preregistered hypotheses, primary outcomes, and confirmatory/exploratory labels unchanged.
 
 ---
 
@@ -99,7 +113,7 @@ Each surface has one job; all are optional except `report.md`.
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, the pointer registry, tracked external files, the loop's `program.md` / `wiki/` / `results.md` / `history/` |
-| Writes | the loop folder next to the artifact, tracked external files (on KEPT), `history/vNNN/`, the pointer registry, session log |
+| Writes | the loop folder next to the artifact, tracked external files (on KEPT), `history/vNNN/`, the pointer registry, session log, the integrity decision in `.neuroflow/reasoning/`, and — exploratory loops only — `.neuroflow/data-analyze/multiverse.md` |
 
 ---
 

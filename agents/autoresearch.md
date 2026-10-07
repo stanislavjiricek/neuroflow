@@ -50,7 +50,7 @@ After every move is judged, **RECORD**: write an `attempts/` page (what changed,
 
 ## INIT gate — before any iteration on a new loop
 
-On a new loop, run the full INIT setup interview from the `neuroflow:autoresearch` skill and get the user's **explicit sign-off on the rendered config block before running any iteration**. Every option is asked, never assumed: branching, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, wiki promotion. Starting iterations with any unasked option — or with silent defaults — is the failure this gate prevents. Skip INIT only when resuming an existing loop.
+On a new loop, run the full INIT setup interview from the `neuroflow:autoresearch` skill and get the user's **explicit sign-off on the rendered config block before running any iteration**. Every option is asked, never assumed: the integrity mode for loops that touch analysis code (confirmatory / exploratory — no default; `references/integrity.md` in the skill), branching, parameter sweep, literature search (+ sources + budget), evaluation mode, outputs (dashboard / report.md / PDF) + cadence, answer channel, wiki promotion. Starting iterations with any unasked option — or with silent defaults — is the failure this gate prevents. Skip INIT only when resuming an existing loop — except that a resumed analysis-touching loop with no `integrity_mode` in its config gets the integrity question (INIT step 3) before its next iteration.
 
 ---
 
@@ -77,12 +77,18 @@ ACT
      (threshold, cutoff, n_components, regularization, k, window, lr, …), scan several values
      THIS iteration, measure each against the criteria, apply the best; record the swept
      values + choice in one wiki attempts/ page. Sweep = one axis × many values (≠ branching).
+     INTEGRITY (integrity_mode ≠ n/a): confirmatory → run tracked code only on blind inputs
+     (simulated data, shuffled labels, or an excluded pilot subset), never touch an item frozen
+     in Out of scope; exploratory → append every specification run on the study data — each
+     sweep value included — to the multiverse ledger with its result, before JUDGE.
 
 JUDGE  (self; or one fresh subagent if evaluation: fresh-eval)
   i. Compare current files to history/vBEST/ against the criteria. Return:
      VERDICT (BETTER | WORSE | NO CHANGE), Delta (−5..+5), per-criterion notes,
      numeric values if applicable, and the single weakest area to target next.
      If self-judging: judge COLD — be skeptical of your own change.
+     If integrity_mode is confirmatory: outcome-blind criteria only — a larger effect,
+     a smaller p-value, or more significant tests is never BETTER.
 
 KEEP / REVERT
   j. BETTER → snapshot tracked files to history/vNNN/; update __thetask__.md (iterations, best);
@@ -128,7 +134,7 @@ Open questions sit at the top of `report.md` with persistent, stable ids (Q3 sta
 ## Session logging
 
 Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
-- Start: `## HH:MM — [autoresearch/{name}] started — tracking {N} file(s) at {location}`
+- Start: `## HH:MM — [autoresearch/{name}] started — tracking {N} file(s) at {location} — integrity: {integrity_mode}`
 - Every 10 iterations: `## HH:MM — [autoresearch/{name}] iter {N} — running {R} — best {snapshot}`
 - Plateau: `## HH:MM — [autoresearch/{name}] PLATEAU — changing approach`
 - Interrupt: `## HH:MM — [autoresearch/{name}] interrupted at iter {N} — best {snapshot}`
@@ -137,7 +143,8 @@ Append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ## Behavioral rules
 
-- Read `program.md` every iteration — both the config block AND the "## Iteration checklist" — and honor it in full (branching, parameter_sweep, literature budget, evaluation mode, cadence)
+- Read `program.md` every iteration — both the config block AND the "## Iteration checklist" — and honor it in full (integrity_mode, branching, parameter_sweep, literature budget, evaluation mode, cadence)
+- Integrity is never traded for progress: in a confirmatory loop, never run tracked code on the real labelled data and never reward an outcome; in an exploratory loop, work only on the fork, never on a confirmatory script, and never edit or delete a row of `.neuroflow/data-analyze/multiverse.md`
 - Never skip RECALL or RECORD — the wiki is read before and written after every move, and report.md is refreshed every iteration (not once at baseline)
 - Never apply a KEPT change without first snapshotting it to `history/vNNN/`
 - Never revert from anything other than `history/vBEST/`

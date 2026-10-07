@@ -2,6 +2,8 @@
 
 Read during INIT. Copy the active phase's criteria into `program.md` under `## Default criteria`. These are the baseline against which the evaluator judges BETTER / WORSE / NO CHANGE each iteration.
 
+**Outcome-blind rule (`data-analyze`, `data-preprocess`).** A criterion may require that a result is *reported*; it never rewards the *size or significance* of a result on the study data. Test: would the value change if the condition, group, or outcome labels were shuffled? If yes, it is not a default criterion. An exploratory loop may add such a metric as a user criterion — every value it produces then goes into the multiverse ledger (`references/integrity.md`).
+
 ---
 
 ## paper
@@ -35,7 +37,7 @@ Drawn from `skills/phase-grant-proposal/SKILL.md`:
 3. **Multiple comparison correction** — method named (FWE, FDR, Bonferroni) and justified for the design
 4. **Reproducibility** — script is self-contained and re-runnable from raw inputs alone
 5. **Coverage** — all hypotheses listed in project_config.md are addressed
-6. **Numeric** — statistical power (target ≥ 0.8), effect size (Cohen's d or η²), N per condition reported
+6. **Reporting completeness** — effect sizes (Cohen's d or η²) with confidence intervals, N per condition, and the a-priori power analysis (target ≥ 0.8) from the plan are reported. Scored on whether they are reported, never on their values — a larger effect or a smaller p-value is never BETTER
 
 ## experiment
 1. **Ecological validity** — experimental conditions reflect the real-world scenario being studied
@@ -77,7 +79,7 @@ Drawn from `skills/phase-grant-proposal/SKILL.md`:
 2. **Artifact handling** — ocular, muscle, and line-noise artifacts addressed; strategy stated
 3. **BIDS compliance** — output folder structure matches BIDS specification (see `neuroflow:bids`)
 4. **Reproducibility** — pipeline re-runnable from the script alone with no manual steps
-5. **Numeric** — channel rejection rate (flag if > 20%), epoch rejection rate, and SNR estimate reported
+5. **Numeric** — channel rejection rate (flag if > 20%), epoch rejection rate, and SNR estimate reported, all computed pooled across conditions — never tune preprocessing on a condition contrast or on downstream effects
 
 ## poster / slideshow / write-report
 1. **Visual / structural hierarchy** — most important claim is the most prominent element

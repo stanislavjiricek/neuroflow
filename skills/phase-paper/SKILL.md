@@ -10,6 +10,7 @@ The paper phase produces a reviewed and approved neuroscience manuscript. Every 
 ## Approach
 
 - Read upstream phase flows (ideation, data-analyze, experiment) before drafting — pull facts from memory, not from recall
+- If `.neuroflow/data-analyze/multiverse.md` exists, every result that came from that search is exploratory: report it as exploratory, state in Methods how many specifications were tried, and never present it as confirmatory
 - Confirm target journal before writing any section; it determines structure, length, style, and the critic's review persona
 - Draft section by section in logical order; write the abstract last
 - Distinguish what the results show (Results) from what they mean (Discussion) — flag if they become conflated
