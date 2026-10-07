@@ -65,5 +65,9 @@ describe('requires in a session', () => {
     // The engine runs the command, then submits its prompt: the note rides on the prompt.
     const prompt = await $.prompt.submit({ text: '/neuroflow:data-analyze', origin: { kind: 'composer' }, wait: false } as never)
     expect((prompt.context ?? []).join(' ')).toContain('expects .neuroflow/data-preprocess/preprocess-report.md')
+    // Typed without the plugin prefix, the same command gets the same note.
+    await $.command.run({ command: 'neuroflow:data-analyze', args: '' })
+    const bare = await $.prompt.submit({ text: '/data-analyze', origin: { kind: 'composer' }, wait: false } as never)
+    expect((bare.context ?? []).join(' ')).toContain('expects .neuroflow/data-preprocess/preprocess-report.md')
   })
 })

@@ -231,7 +231,7 @@ export const registerCapture = (on: On, _opts: NfOptions): void => {
   // follows command.run for the same run with the slash command as its text. Only commands a person typed or a
   // headless run gave (the context notes in context.ts take every origin).
   on('prompt.submit', { origin: { kind: ['composer', 'bridge', 'sdk'] } }, async ($, e, next) => {
-    const typed = /^\s*\/neuroflow:([a-z0-9-]+)/i.exec(e.text)
+    const typed = /^\s*\/(?:neuroflow:)?([a-z0-9-]+)/i.exec(e.text) // with or without the plugin prefix, as context.ts
     if (typed === null) return next(e)
     const scope = await read($, scopeAtom)
     const command = await read($, activeCommandAtom)

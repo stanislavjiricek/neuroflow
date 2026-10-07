@@ -264,7 +264,8 @@ export const registerContext = (on: On, _opts: NfOptions): void => {
   // gives after next(), so the notes ride on that prompt: prompt.submit follows command.run for the same run, with
   // the slash command as its text. Code-answered and quiet commands get neither.
   on('prompt.submit', async ($, e, next) => {
-    const typed = /^\s*\/neuroflow:([a-z0-9-]+)/i.exec(e.text)
+    // `/paper` runs neuroflow:paper when no other command has the name: the active command decides, not the spelling.
+    const typed = /^\s*\/(?:neuroflow:)?([a-z0-9-]+)/i.exec(e.text)
     if (typed === null) return next(e)
     const command = await read($, activeCommandAtom)
     if (command === null || command.name !== typed[1].toLowerCase() || command.lifecycle === 'quiet') return next(e)

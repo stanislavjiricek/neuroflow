@@ -163,6 +163,25 @@ describe('context in a session', () => {
     expect((plain.context ?? []).join('\n')).not.toContain('is loaded from')
   })
 
+  test('a command typed without the plugin prefix gets the same notes', { options: { runtime: 'observe' } }, async ($, on) => {
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: 0 })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.toast', () => ({ value: undefined }))
+    on('command.run', () => ({ text: '', ref: 1 }))
+    on('prompt.submit', ($, e) => ({ text: e.text, context: e.context }))
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    // `/data-analyze` resolves to neuroflow:data-analyze when no other command has that name.
+    await $.command.run({ command: 'neuroflow:data-analyze', args: '' })
+    const run = await $.prompt.submit({ text: '/data-analyze', origin: { kind: 'composer' }, wait: false } as never)
+    expect((run.context ?? []).join('\n')).toContain('neuroflow digest for /neuroflow:data-analyze')
+    expect((run.context ?? [])[0]).toContain('neuroflow 0.2.22 is loaded from ')
+    const other = await $.prompt.submit({ text: '/paper', origin: { kind: 'composer' }, wait: false } as never)
+    expect((other.context ?? []).join('\n')).not.toContain('neuroflow digest')
+  })
+
   test('outside a project a command still learns where neuroflow runs from', { options: { runtime: 'observe' } }, async ($, on) => {
     fakeFs(on, files, '/work/empty')
     mock.env(on, { HOME: '/home/me' })
