@@ -15,7 +15,7 @@ import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom } from '../lib/paths'
 import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
-import { KNOWN_SCHEMA, loadSnapshot } from '../lib/project'
+import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { buildBoard, cardLine, columnsFromConfig, parseTask } from '../lib/tasks'
 import { isQuiet } from './scope'
@@ -86,6 +86,16 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
     items.push({ level: 'warn', glyph: '?', text: 'the preregistration "frozen" marker was not set by a person' })
   }
   for (const problem of snap.problems) items.push({ level: 'warn', glyph: '!', text: problem })
+  // After a plugin update, until /neuroflow:migrate has run (neuroflow-core → Command lifecycle, version notice).
+  const behind = versionNotice(snap)
+  if (behind !== null) {
+    items.push({
+      level: 'warn',
+      glyph: '↑',
+      text: behind,
+      actions: [{ key: 'nf-migrate', label: 'migrate', hotkey: 'm', command: 'neuroflow:migrate', args: '' }],
+    })
+  }
   // Meetings (M082): the next one within a day, and a past one left unclosed with open action items.
   const upcoming = snap.meetings.find(meeting => !meeting.closed && meeting.startsIn >= -15 && meeting.startsIn <= 24 * 60)
   if (upcoming !== undefined) {

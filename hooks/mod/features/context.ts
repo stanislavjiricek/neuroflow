@@ -19,6 +19,7 @@ import { manifestVersion } from '../lib/config'
 import type { NfIo } from '../lib/io'
 import type { NfOptions } from '../lib/options'
 import { join, toSlash } from '../lib/paths'
+import { versionNotice } from '../lib/project'
 import { isQuiet } from './scope'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -82,6 +83,9 @@ export const commandDigest = (
   lines.push(`- raw data, read-only: ${snap.rawRoots.length > 0 ? snap.rawRoots.join(', ') : 'raw_roots not set (treat sourcedata/ as raw)'}`)
   if (snap.deadlines.length > 0) lines.push(`- next dates: ${snap.deadlines.slice(0, 2).map(item => `${item.date} ${item.what} (${item.daysLeft} d)`).join('; ')}`)
   if (snap.problems.length > 0) lines.push(`- config problems: ${snap.problems.join('; ')}`)
+  // The version notice the prose says once per session; /migrate itself is what it points at.
+  const behind = command === 'migrate' ? null : versionNotice(snap)
+  if (behind !== null) lines.push(`- ${behind}`)
   if (phaseFlow !== null && phase !== 'utility') {
     const body = phaseFlow
       .split(/\r?\n/)

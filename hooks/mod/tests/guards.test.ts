@@ -19,6 +19,8 @@ const snap = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   root: '/work/proj',
   nfSchema: 1,
   dialect: 'frontmatter',
+  pluginVersion: null,
+  runningVersion: null,
   projectName: 'X',
   phase: 'data',
   mode: null,

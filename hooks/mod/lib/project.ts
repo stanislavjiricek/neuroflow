@@ -2,6 +2,7 @@
 // never a source of truth). Every read is tolerant: a missing or odd file becomes a `problems`
 // entry, never an exception, so a broken file can only make the mod show less.
 import type { NfDeadline, NfEthics, NfLoop, NfMeeting, NfPrereg, NfScope, NfSnapshot } from '../../../types'
+import { manifestVersion } from './config'
 import { asList, asMap, asNumber, asString, parseLegacyConfig, parseYamlSubset, splitFrontmatter } from './frontmatter'
 import type { Frontmatter } from './frontmatter'
 import type { NfIo } from './io'
@@ -209,6 +210,8 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     root,
     nfSchema,
     dialect,
+    pluginVersion: asString(config.plugin_version),
+    runningVersion: manifestVersion(await io.read(join(io.pluginRoot, '.claude-plugin/plugin.json'))),
     projectName: asString(config.project_name) ?? asString(config.project),
     phase: asString(config.active_phase) ?? asString(config.phase),
     mode: asString(config.default_mode),
@@ -234,3 +237,26 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
 
 /** A frozen/approved marker counts only when a person set it (neuroflow-core → C2). */
 export const isPersonSet = (file: { setBy: string | null } | null): boolean => file?.setBy === 'person'
+
+/** Dotted versions compared number by number ("0.2.10" is newer than "0.2.9"): below, at or above zero. */
+export const compareVersions = (a: string, b: string): number => {
+  const x = a.split(/[.+-]/).map(part => Number.parseInt(part, 10) || 0)
+  const y = b.split(/[.+-]/).map(part => Number.parseInt(part, 10) || 0)
+  for (let i = 0; i < Math.max(x.length, y.length); i += 1) {
+    const diff = (x[i] ?? 0) - (y[i] ?? 0)
+    if (diff !== 0) return diff
+  }
+  return 0
+}
+
+/**
+ * The version notice (neuroflow-core → Command lifecycle): the running neuroflow is newer than the one that last
+ * wrote project_config.md, or the file names none. Null when there is nothing to say (or the running version is unknown).
+ */
+export const versionNotice = (snap: Pick<NfSnapshot, 'pluginVersion' | 'runningVersion'>): string | null => {
+  const running = snap.runningVersion
+  if (typeof running !== 'string' || running === '') return null
+  const recorded = typeof snap.pluginVersion === 'string' && snap.pluginVersion !== '' ? snap.pluginVersion : null
+  if (recorded !== null && compareVersions(recorded, running) >= 0) return null
+  return `neuroflow ${running} is installed — this project is on ${recorded ?? 'an older version'} · /neuroflow:migrate`
+}

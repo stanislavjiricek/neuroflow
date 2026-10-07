@@ -239,7 +239,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 |---|---|
 | [`/neuroflow`](commands/neuroflow.md) | Main entry point — if `.neuroflow/` exists, shows current phase and status; if not, interviews the user and creates the project memory structure |
 | [`/setup`](commands/setup.md) | Integration wizard — Google Workspace CLI, optional Miro (you add it with `claude mcp add`, so no token ever enters the chat) and an Anthropic-compatible LLM gateway; stores non-secret settings in `~/.neuroflow/integrations.json` (or a per-project override) |
-| [`/migrate`](commands/migrate.md) | Bring an older project's memory up to the current format — shows the plan, writes only after you agree |
+| [`/migrate`](commands/migrate.md) | After a plugin update, bring your project, your flowie and the team hive up to the current format — shows the plan, writes only after you agree, pushes to a hive only after your yes |
 
 ### Research pipeline
 

@@ -157,7 +157,7 @@ Add them to `permissions.allow` yourself if you skipped the offer. Avoid a blank
 
 ### Sentinel reports `plugin_version` mismatch
 
-This is normal after a plugin update. `plugin_version` in `project_config.md` only records the neuroflow version that last wrote the file; Sentinel updates it. To see what changed between versions, read the [changelog](changelog.md). If the project predates the current memory format, run `/neuroflow:migrate`.
+This is normal after a plugin update. `plugin_version` in `project_config.md` only records the neuroflow version that last wrote the file; Sentinel updates it. To see what changed between versions, read the [changelog](changelog.md). Run `/neuroflow:migrate` after every update: it brings the project, your flowie and the team hive to the current format and records the new version ([Upgrading](upgrading.md)).
 
 ### Sentinel finds skill-named subfolders in `.neuroflow/`
 

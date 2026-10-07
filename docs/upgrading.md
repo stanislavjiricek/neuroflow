@@ -13,10 +13,12 @@ When a new version of neuroflow is installed, run one command in each project:
 It brings everything neuroflow keeps up to the version you run, level by level:
 
 1. **The project** — `.neuroflow/` to the current memory contract: the `project_config.md` frontmatter, reasoning logs as JSON Lines, the merge-safe `.gitattributes` and local-only `.gitignore` lines, the instruction block in `.claude/CLAUDE.md`, and the version that last wrote the project.
-2. **Your flowie** — your private repository is pulled and checked against the current formats; what is out of date is listed with the command that fixes it.
+2. **Your flowie** — your private repository is pulled and checked against the current formats; what is out of date (task files, a missing `.gitignore` line) is updated, committed and pushed to your repository.
 3. **The team hive** — the hive is pulled and checked the same way. Anything that would change the shared hive is pushed only after your yes.
 
 It shows the plan first and writes nothing until you agree. Running it a second time finds nothing to do.
+
+Everyone who updates runs it once, even when a teammate has already brought the project up to date: then it finds the project current and checks only your flowie and the hive.
 
 ## How you find out
 
