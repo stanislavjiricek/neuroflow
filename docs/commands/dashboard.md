@@ -28,7 +28,9 @@ Every symbol comes with a word, so the dashboard reads correctly without colour 
 
 ## Without the mod
 
-The same overview is printed once as a compact text block, read from the same files. Nothing is written.
+The same overview is printed once as a compact text block, read from the same files. Nothing is written. When the
+project was last written by an older neuroflow, an `Update` line names [`/neuroflow:migrate`](migrate.md); with the mod,
+the band above the prompt says the same.
 
 ---
 

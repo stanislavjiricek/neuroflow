@@ -49,6 +49,9 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
           Q4 — delete the third control analysis?
 ```
 
+   - **Update** (only when it applies): when the frontmatter `plugin_version` is missing or older than the running
+     plugin's version (neuroflow-core → **The plugin's own files**), one line under the header:
+     `Update    ↑ neuroflow 0.2.22 is installed · this project is on 0.2.21 — /neuroflow:migrate`.
    - **Phase**: the `recommended_phases` in order — `●` current, `✔` has a `.neuroflow/<phase>/` folder, `○` not
      started. Without `recommended_phases`, list the phases that have folders.
    - **Dates**: future rows of `.neuroflow/timeline.md` (`| YYYY-MM-DD | what | phase it gates |`), plus the ethics
@@ -61,6 +64,6 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
      `results.md` as a sparkline and the open questions at the top of its `report.md`.
    Every symbol has a word next to it, so the block reads correctly without colour.
 3. If something needs attention (a date within 3 days, an expired approval, a marker not set by a person, a legacy
-   config format), end with one line naming the command that deals with it.
+   config format, a project behind the installed neuroflow), end with one line naming the command that deals with it.
 
 This command writes nothing, so it adds no session line.

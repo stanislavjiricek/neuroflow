@@ -70,7 +70,7 @@ It looks like neuroflow setup was started but not finished. Let's complete it no
 Skip Step 0d (the folder already exists) and continue directly to Step 1 to run the interview.
 
 **If `.neuroflow/project_config.md` exists and `active_phase` is anything other than `setup`:**
-1. Read `project_config.md` — facts from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**). If it uses a legacy dialect (no `nf_schema` frontmatter), say so in one line and offer `/neuroflow:migrate`.
+1. Read `project_config.md` — facts from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**). If it uses a legacy dialect (no `nf_schema` frontmatter), say so in one line and offer `/neuroflow:migrate`. Otherwise, if its `plugin_version` is missing or older than the version printed in the logo, say the version notice in one line (`neuroflow:neuroflow-core` → **Command lifecycle**, step 3) — it names `/neuroflow:migrate`.
 2. Read `flow.md`
 3. Print a brief status: current phase(s), research question (if set), last session date (from `sessions/` folder)
 4. Run the journal check (Step 0b) and the integration check (Step 0c)

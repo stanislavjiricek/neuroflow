@@ -73,7 +73,7 @@ describe('command digest', () => {
 
   test('after a plugin update the digest carries the version notice, except for /migrate itself', () => {
     const behind = { ...full, pluginVersion: '0.2.21' } as NfSnapshot
-    expect(commandDigest('paper', 'paper', behind, null, null)).toContain('\n- neuroflow 0.2.22 is installed — this project is on 0.2.21 · /neuroflow:migrate\n')
+    expect(commandDigest('paper', 'paper', behind, null, null)).toContain('\n- neuroflow 0.2.22 is installed — this project is on 0.2.21 · /neuroflow:migrate — tell the person once')
     expect(commandDigest('migrate', 'utility', behind, null, null)).not.toContain('is installed')
     expect(commandDigest('paper', 'paper', full, null, null)).not.toContain('is installed')
   })
