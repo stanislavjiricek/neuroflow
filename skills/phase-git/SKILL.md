@@ -104,7 +104,7 @@ Branch naming guidance to offer if creating a new branch:
 ## Safety rules
 
 <!-- nf-rule: GIT-NO-SECRETS -->
-- **Local-only files are never staged, and `git clean -x` never runs.** `integrations.json`, `.neuroflow/sessions/`, `.neuroflow/review/`, `.neuroflow/paper/xray-*`, `.neuroflow/flowie/` and `user.yaml` stay out of every commit — after every `git add`, check `git diff --cached --name-only` and take any of them back out (`git reset -q -- <path>`). `git clean -x` / `-X` deletes ignored files — raw recordings, derivatives, credentials — so it is never run; any other command that discards work (`git clean`, `git reset --hard`, `git checkout -- <path>`, `git push --force`) is previewed and asked about first.
+- **Local-only files are never staged, and `git clean -x` never runs.** `integrations.json`, `.neuroflow/sessions/`, `.neuroflow/review/`, `.neuroflow/paper/xray-*`, `.neuroflow/wiki/.pending/`, `.neuroflow/flowie/` and `user.yaml` stay out of every commit — after every `git add`, check `git diff --cached --name-only` and take any of them back out (`git reset -q -- <path>`). `git clean -x` / `-X` deletes ignored files — raw recordings, derivatives, credentials — so it is never run; any other command that discards work (`git clean`, `git reset --hard`, `git checkout -- <path>`, `git push --force`) is previewed and asked about first.
 - **On main/master:** before any `add`, `commit`, or `push`, show a yellow warning:
   > "⚠️ You are on the `main` branch. Did you mean to work on a feature branch?"
   Ask before proceeding.

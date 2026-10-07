@@ -192,16 +192,23 @@ const quickCheck = async ($: EngineInterface, root: string, file: string): Promi
   return lines.join('\n')
 }
 
-/** U2 — the pending cards, newest first, into state. */
-const loadCards = async ($: EngineInterface, root: string): Promise<NfWikiCard[]> => {
-  const io = ioOf($)
+/** U2 — every card in the queue with its file name, newest first, whatever its status (pending, accepted or skipped). */
+const queuedCards = async (io: NfIo, root: string): Promise<{ file: string; card: WikiCard }[]> => {
   const dir = join(root, PENDING_DIR)
-  const cards: NfWikiCard[] = []
   const names = (await io.list(dir)).filter(entry => !entry.isDir && entry.name.endsWith('.md')).map(entry => entry.name).sort().reverse()
+  const out: { file: string; card: WikiCard }[] = []
   for (const name of names) {
     const card = parseCard((await io.read(join(dir, name))) ?? '')
-    if (card !== null && card.status === 'pending') cards.push({ file: name, title: card.title, type: card.type, evidence: card.evidence, body: card.body, by: card.by })
+    if (card !== null) out.push({ file: name, card })
   }
+  return out
+}
+
+/** U2 — the pending cards, newest first, into state. */
+const loadCards = async ($: EngineInterface, root: string): Promise<NfWikiCard[]> => {
+  const cards: NfWikiCard[] = (await queuedCards(ioOf($), root))
+    .filter(({ card }) => card.status === 'pending')
+    .map(({ file, card }) => ({ file, title: card.title, type: card.type, evidence: card.evidence, body: card.body, by: card.by }))
   await update($, wikiCardsAtom, () => cards)
   const pick = await read($, wikiPickAtom)
   if (pick === null || !cards.some(card => card.file === pick)) await update($, wikiPickAtom, () => cards[0]?.file ?? null)
@@ -224,18 +231,6 @@ const settleCard = async ($: EngineInterface, file: string, accept: boolean): Pr
   await $.command.run({ command: 'neuroflow:wiki', args: `--add --from-pending ${PENDING_DIR}/${file}` })
 }
 
-/** U2 — every card in the queue, newest first, whatever its status (pending, accepted or skipped). */
-const queuedCards = async (io: NfIo, root: string): Promise<WikiCard[]> => {
-  const dir = join(root, PENDING_DIR)
-  const names = (await io.list(dir)).filter(entry => !entry.isDir && entry.name.endsWith('.md')).map(entry => entry.name).sort().reverse()
-  const cards: WikiCard[] = []
-  for (const name of names) {
-    const card = parseCard((await io.read(join(dir, name))) ?? '')
-    if (card !== null) cards.push(card)
-  }
-  return cards
-}
-
 /** U2 — after a command logged decisions: one judge call, at most two cards. A title already in the wiki or anywhere
  *  in the queue — skipped cards included, which are never raised again — is not queued a second time. */
 const judgeNewDecisions = async ($: EngineInterface, root: string, command: string, logPath: string, before: number, projectPolicy: string | null): Promise<number> => {
@@ -246,7 +241,7 @@ const judgeNewDecisions = async ($: EngineInterface, root: string, command: stri
   const fresh = ((await io.read(logPath)) ?? '').split(/\r?\n/).filter(line => line.trim() !== '').slice(before)
   if (fresh.length === 0) return 0
   const known = (await read($, wikiIndexAtom)).filter(page => page.level === 'project').map(page => page.title)
-  const queued = await queuedCards(io, root)
+  const queued = (await queuedCards(io, root)).map(entry => entry.card)
   const prompt = [
     `Command: /neuroflow:${command}`,
     `New entries in ${relativeTo(logPath, root) ?? logPath}:`,

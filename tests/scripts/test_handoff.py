@@ -137,6 +137,14 @@ class HandoffTests(unittest.TestCase):
         write(pending / "2026-10-01-baseline-window.md", "---\ntitle: Baseline window\nstatus: skipped\n---\ncard\n")
         self.assertIn({"path": ".neuroflow/wiki/.pending/", "files": 2}, ho.section_personal(self.root))
 
+    def test_empty_local_folders_are_not_listed(self):
+        # Every local-tier folder follows the queue's rule: no files (its own .gitignore aside), no line.
+        (self.root / ".neuroflow" / "sessions").mkdir(parents=True, exist_ok=True)
+        write(self.root / ".neuroflow" / "review" / ".gitignore", "*\n")
+        paths = [s["path"] for s in ho.section_personal(self.root)]
+        self.assertNotIn(".neuroflow/sessions/", paths)
+        self.assertNotIn(".neuroflow/review/", paths)
+
     def test_model_set_approval_and_frozen_prereg(self):
         self.init_pushed_repo()
         nf = self.root / ".neuroflow"

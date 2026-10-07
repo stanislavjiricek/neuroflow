@@ -258,7 +258,7 @@ warning, kept as a rule of the mod's charter.
 | ID | Idea | Tier | Outcome | Note |
 |---|---|---|---|---|
 | G122 | Mod-off parity runs | X | Charter rule | Rule written in neuroflow-develop under 'The hooks module': no duty moves into code, and any duty that does must ship with a check that the prose path still meets it with the module off. |
-| G125 | Skill-routing observatory and eval capture for the maintainer | X | Built differently | New check V9 fails when a skill folder has a command's name; today that is autoresearch, setup and wiki until the C13 rename. |
+| G125 | Skill-routing observatory and eval capture for the maintainer | X | Built differently | New check V9 fails when a skill folder has a command's name; the C13 rename resolved the three collisions (autoresearch-protocol, wiki-protocol, setup-guide). |
 | G206 | Guard door-coverage matrix in CI | X | Built differently | The doors guards cannot close are listed in the mod page instead of a test matrix. |
 | M173 | Maintainer mode with live validation in the plugin repo | X | Built differently | neuroflow-develop documents an optional Stop hook for each maintainer's own .claude/settings.local.json. |
 | M174 | Release cockpit (/nf-release) | X | Built differently | New scripts/automation/bump_version.py bumps the patch version in the four places (or --set, --sync, --check, --dry-run). |
@@ -307,7 +307,7 @@ warning, kept as a rule of the mod's charter.
 | G117 | Person-presence contract for -p, SDK, desktop and scheduled turns | T0 | Charter rule | Charter: headless means no UI and no questions; guards still deny. |
 | G121 | Side-effect ledger with undo and clean disable | X | Charter rule | Charter: no side effects outside the project and the person's own files, so nothing to undo. |
 | M160 | Machine-readable integrity state contract | T0 | Built | C2 writers in this package: /ethics writes ethics/status.md frontmatter (set_by semantics, legacy migration); freeze.py writes preregistration/status.md. |
-| M161 | Context diet: slice heavy skills and trim the listing | T0 | Built | Done now: the V9 lint reports the three shadowed skills (autoresearch, setup, wiki). |
+| M161 | Context diet: slice heavy skills and trim the listing | T0 | Built | Done now: the V9 lint caught the three shadowed skills, renamed in C13 to autoresearch-protocol, wiki-protocol and setup-guide. |
 | M162 | Runtime capability handshake | X | Not built | No duty is delegated to the mod. |
 | M163 | Code-answered commands with CI exit codes | T2 | In the mod | `/phase`, `/dashboard`, `/tasks`, `/doctor` and paper status views answered in code, with the prose as fallback. |
 | M164 | Generated command manifest and single rules file | X | Folded into another | Covered by M210. |

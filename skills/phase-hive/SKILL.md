@@ -245,11 +245,11 @@ Check this member's setup. Read-only: it changes nothing except fetching remote 
 | Listed in the roster | `member_handle` from `sync.json` appears in the `github` column of `members.md` | `/hive --members` |
 | Project linked | `hive_repo` in `project_config.md` names this hive | `/hive --init` |
 | Flowie repo private (if flowie is set up) | `gh repo view {handle}/flowie --json visibility -q .visibility` is `PRIVATE` | change the visibility on GitHub |
-| Flowie fully pushed | `git -C ~/.neuroflow/flowie rev-list --count @{u}..HEAD` is 0 and `~/.neuroflow/flowie-sync.log` is empty | `/flowie --sync` |
+| Flowie fully pushed | the `flowie-unpushed` and `flowie-sync-log` lines of `python <neuroflow-core base dir>/scripts/doctor.py --json` (one home for the check) | `/flowie --sync` |
 | Project secrets ignored | `git check-ignore -q .neuroflow/integrations.json` | add `.neuroflow/integrations.json` to the project's `.gitignore` |
 | Flowie secrets ignored | `git -C ~/.neuroflow/flowie check-ignore -q integrations.json` | add `integrations.json` to `~/.neuroflow/flowie/.gitignore` |
 
-Skip rows whose tool or folder is absent and say so (e.g. "flowie: not set up — optional"). Report the network state once if the fetch fails; never retry in a loop. The project's own environment (Python, git remote, unpushed project commits) is `/doctor`'s job.
+Skip rows whose tool or folder is absent and say so (e.g. "flowie: not set up — optional"). Report the network state once if the fetch fails; never retry in a loop. The project's own environment (Python, git remote, unpushed project commits) and the flowie's sync state are `/doctor`'s job; this list only reads the flowie lines from it.
 
 ### `--recommend`
 Get team-aware recommendations for the current project phase.

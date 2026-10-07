@@ -42,6 +42,7 @@ Both agents run as subagents and cannot talk to the person: the orchestrator ask
 On the third rejection the loop halts. The orchestrator presents draft v3 and the unresolved critique to the user, appends the critique to `.neuroflow/paper/critic-log.md`, and asks whether to continue with the next section.
 
 **After each section verdict** (approved or halted), immediately — before moving to the next section:
+- Give the person the critique summary, including every finding the critic tagged `Figure (Area 8, advisory)` — as `/paper` Step 3 describes
 - Append a session line `## HH:MM — [paper] {Section}: approved after {N} round(s)` (or `halted at v3`)
 - If any framing or scope decision was made, append it to `.neuroflow/reasoning/paper.jsonl`
 

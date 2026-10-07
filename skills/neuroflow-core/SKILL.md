@@ -545,7 +545,7 @@ Every rule a mod guard may enforce has an HTML comment marker on the line before
 | `PREREG-FROZEN` | Frozen preregistration files are never edited; changes go to `deviations.md` | phase-preregistration skill, `/preregistration`, phase-paper skill |
 | `RAW-READONLY` | Files under `raw_roots` are never modified | bids skill, `/data` |
 | `MEMORY-PURITY` | `.neuroflow/` holds only the documented structure | neuroflow-core |
-| `GIT-NO-SECRETS` | Never stage `integrations.json`, `sessions/`, `review/`, `paper/xray-*`, `user.yaml`; never `git clean -x` | `/git` |
+| `GIT-NO-SECRETS` | Never stage `integrations.json`, `sessions/`, `review/`, `paper/xray-*`, `wiki/.pending/`, `user.yaml`; never `git clean -x` | `/git` |
 | `GIT-ALIAS-SCOPE` | Git aliases act only on the scope the person named | `/git` |
 | `ETHICS-GATE` | No data collection steps before the ethics status is approved | `/ethics`, `/data`, `/experiment` |
 | `EGRESS-CONFIRM` | Every outbound upload, push or export needs explicit confirmation | neuroflow-core (Sharing tiers), review-neuro skill |
