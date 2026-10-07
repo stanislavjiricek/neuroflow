@@ -292,6 +292,17 @@ class NF2Tests(Base):
         self.set_config(CONFIG.replace("[sourcedata/]", "[/mnt/raw]"))
         self.assertIn("must be relative", self.messages("NF2"))
 
+    def test_stray_wiki_auto_belongs_in_user_yaml(self):
+        self.set_config(CONFIG.replace("default_mode: critic", "default_mode: critic\nwiki_auto: ask\nwiki_capture: allow"))
+        found = [f for f in self.findings("NF2") if "wiki_auto" in f.message]
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].severity, nf.WARN)
+        self.assertIn("~/.neuroflow/user.yaml", found[0].message)
+        self.assertIn("/wiki --auto", found[0].fix)
+        # The project's own policy key is not personal.
+        self.set_config(CONFIG.replace("default_mode: critic", "default_mode: critic\nwiki_capture: forbid"))
+        self.assertNotIn("wiki", self.messages("NF2"))
+
 
 FREEZE = REPO / "skills" / "phase-preregistration" / "scripts" / "freeze.py"
 

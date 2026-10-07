@@ -11,7 +11,8 @@ Exit codes: 0 = clean, 1 = findings, 2 = usage or runtime error.
 
 Check ids are stable (agents/sentinel.md cites them):
   NF1  flow.md index: root flow.md lists every folder; each folder's flow.md lists its files
-  NF2  project_config.md: frontmatter contract, nf_schema, phases, plugin_version
+  NF2  project_config.md: frontmatter contract, nf_schema, phases, plugin_version, no personal
+       keys (they belong in ~/.neuroflow/user.yaml)
   NF3  integrity status: status.md files; frozen-file hashes re-checked by
        skills/phase-preregistration/scripts/freeze.py verify; ethics approval and expiry
   NF4  reasoning logs: reasoning/*.jsonl holds one JSON object per line
@@ -602,6 +603,12 @@ def check_nf2(ctx: Context) -> list[Finding]:
             out.append(Finding("NF2", WARN, shown,
                                "personal field(s) in the shared project file: " + ", ".join(f"`{k}`" for k in personal),
                                fix="move them to ~/.neuroflow/user.yaml (/neuroflow:migrate does this)"))
+        if "wiki_auto" in fm:
+            # Each person's own opt-in to wiki capture (it reads their sessions): never moved for them.
+            out.append(Finding("NF2", WARN, shown,
+                               "`wiki_auto` in the shared project file is ignored - it is each person's own opt-in, "
+                               "read only from ~/.neuroflow/user.yaml; the project's policy is `wiki_capture: allow | forbid`",
+                               fix="remove it here; whoever wants wiki capture runs /wiki --auto ask"))
     if not recorded:
         out.append(Finding("NF2", WARN, shown, "no plugin_version recorded",
                            fix=f"set plugin_version to {current}" if current else ""))
