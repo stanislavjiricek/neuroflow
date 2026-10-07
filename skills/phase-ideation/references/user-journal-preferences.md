@@ -1,8 +1,8 @@
 # User journal preferences — template
 
-Copy this file to `.neuroflow/journal-preferences.md` in your project directory to add project-specific journal preferences. These take priority over the defaults in `skills/phase-search/references/journal-defaults.md`.
+Copy this file to `.neuroflow/journal-preferences.md` in your project directory to add project-specific journal preferences. These take priority over the defaults in `skills/phase-ideation/references/journal-defaults.md`.
 
-> **Note:** This file is NOT auto-created by neuroflow. Create it manually when you have strong journal preferences for your project. It is NOT prompted from `/search`.
+> **Note:** This file is NOT auto-created by neuroflow. Create it manually when you have strong journal preferences for your project. It is NOT prompted from `/ideation`.
 
 ---
 
