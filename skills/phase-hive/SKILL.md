@@ -136,7 +136,7 @@ One cache folder per hive the user belongs to. Created by `/hive --init` (`git c
 
 **Pushing to the hive.** Every write to the shared hive repo is committed by path (never `git add -A`) and pulled with rebase first; on a rebase conflict, run `git rebase --abort` and resolve it with the person.
 <!-- nf-rule: EGRESS-CONFIRM -->
-Before every push, show the person which files will go to `{org}/{hive-repo}` and push only after their explicit yes in this turn. If the hive's main branch is protected (pull requests required), push to a branch instead and open a pull request with `gh pr create` — the review happens on GitHub.
+Before every push, show the person which files will go to `{org}/{hive-repo}` — everything ahead of the hive's upstream (`git -C ~/.neuroflow/hives/{org-repo} log --stat @{u}..HEAD`), not only the newest commit — and push only after their explicit yes in this turn. If the hive's main branch is protected (pull requests required), push to a branch instead and open a pull request with `gh pr create` — the review happens on GitHub.
 
 ---
 

@@ -26,7 +26,7 @@ writes:
   - ~/.neuroflow/user.yaml                # personal fields, only after the person agrees
   - ~/.neuroflow/flowie/tasks/            # committed and pushed: the person's own repository
   - ~/.neuroflow/flowie/.gitignore
-  - ~/.neuroflow/hives/{org-repo}/tasks/  # committed; pushed only after the person's yes
+  - ~/.neuroflow/hives/{org-repo}/tasks/  # written, committed and pushed only after the person's yes
   - ~/.neuroflow/hives/{org-repo}/.gitignore
 lifecycle: light
 produces:
@@ -115,9 +115,12 @@ The same plan-then-apply flow for the folders outside the project: your flowie (
    ```bash
    python <neuroflow-core base dir>/scripts/migrate.py --flowie --hive {org-repo}
    ```
-   `--flowie` only when the flowie pulled cleanly, and one `--hive {org-repo}` per hive that did; skip the dry run when no level is left. Never `--hives` here: it checks every cached hive, also one whose pull failed. The script plans task files written in a legacy form — flat in `tasks/`, or with `id` / `assignee` / `responsible` / `level` keys — into `tasks/{column}/{slug}.md` with the keys `/tasks` defines (**Task file format**, **Legacy files**): a slug `/tasks` accepts stays as it is, and when a name has to change, the `blocked_by` entries that name the task follow it. It adds `integrations.json` (flowie) or `sync.json` (hive) to that folder's `.gitignore`, and only reports such a file when git already tracks it. It also only reports a task file that is not UTF-8, one that names more than one person as its owner, and a `blocked_by` entry that could now mean two tasks. Exit codes as in Step 1; `2` also names an unknown `--hive` folder.
-3. **Show the plan** per level in short form, one line per moved or rewritten file, and ask with `AskUserQuestion`: **Apply these changes** / **Cancel**. A hive change rewrites the team's shared board: say so.
-4. **Apply:** the same command with `--apply --json`. In a git repository the script moves tracked task files with `git mv`, so their history follows them, stages every path it changed and lists those paths per level in `commit_paths`. It never commits or pushes. Take the paths from that JSON, never from the human output: a path may contain spaces.
+   `--flowie` only when the flowie pulled cleanly, and one `--hive {org-repo}` per hive that did; skip the dry run when no level is left. Never `--hives` here: it checks every cached hive, also one whose pull failed. The script plans task files written in a legacy form — flat in `tasks/`, or with `id` / `assignee` / `responsible` / `level` keys — into `tasks/{column}/{slug}.md` with the keys `/tasks` defines (**Task file format**, **Legacy files**): a slug `/tasks` accepts stays as it is, and when a name has to change, the `blocked_by` entries that name the task follow it. It adds `integrations.json` (flowie) or `sync.json` (hive) to that folder's `.gitignore`, and only reports such a file when git already tracks it. It also only reports a task file that is not UTF-8, one that names more than one person as its owner, and a `blocked_by` entry that could now mean two tasks. Exit codes here: `0` — these levels are current: say so in one line and go to **At end**; `1` — continue with 5.3; `2` — an unknown `--hive` folder or a failure: show the message and skip the rest of this step.
+3. **Show the plan** per level in short form, one line per moved or rewritten file, and ask per level with `AskUserQuestion`:
+   - flowie: **Apply these changes** / **Cancel**.
+   <!-- nf-rule: EGRESS-CONFIRM -->
+   - hive: the change rewrites the team's shared board and goes to the shared hive repository, so applying it and pushing it are one decision, asked before anything is written. Show the plan, everything already waiting in that clone (`git -C ~/.neuroflow/hives/{org-repo} log --stat @{u}..HEAD` — it would leave with the same push), and tell the person that teammates on an older neuroflow should update the plugin before they use the migrated board. Ask: **Apply and push to the hive** / **Cancel**. On Cancel nothing is written to that hive.
+4. **Apply:** the same command for the levels the person agreed to, with `--apply --json`. In a git repository the script moves tracked task files with `git mv`, so their history follows them, stages every path it changed and lists those paths per level in `commit_paths`. It never commits or pushes. Take the paths from that JSON, never from the human output: a path may contain spaces.
 5. **Commit by path** — exactly the `commit_paths` of each level, each one quoted, never `git add -A`:
    ```bash
    git -C ~/.neuroflow/flowie commit -m "migrate: current task format" -- "{path}" "{path}" …
@@ -125,8 +128,7 @@ The same plan-then-apply flow for the folders outside the project: your flowie (
    For a hive, the same inside `~/.neuroflow/hives/{org-repo}`.
 6. **Push:**
    - flowie — the person's own private repository, a sync target they set up (`neuroflow:neuroflow-core` → **Sharing tiers**): `git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push`. If the pull stops on a conflict, abort the rebase and leave the push for `/flowie --sync`.
-   <!-- nf-rule: EGRESS-CONFIRM -->
-   - hive — show the person the commit (its files and message) that would go to the shared hive repository, and tell them that teammates on an older neuroflow should update the plugin before they use the migrated board. Push only after their explicit yes in this turn, pulling with rebase first (`neuroflow:phase-hive` → **Pushing to the hive**, which also covers a protected branch). Without a yes the commit stays local: say so.
+   - hive — push what the person agreed to in 5.3, in the same turn, pulling with rebase first (`neuroflow:phase-hive` → **Pushing to the hive**, which also covers a protected branch). If the pull stops on a conflict (abort the rebase) or the push fails, the commit is still in the clone and would leave with the next hive push: say so, and offer to undo it (`git -C ~/.neuroflow/hives/{org-repo} reset --keep HEAD~1`) so nothing waits there unasked.
 7. **Report-only findings:** show the script's message for each. A tracked `integrations.json` stays the person's call: `git rm --cached` stops tracking it, older commits keep their copies. A tracked `sync.json` in a hive is the team's call. A task file that is not UTF-8: offer to convert it (ask which encoding it was written in when that is unclear), then run the dry run again. A task that names several people: ask who owns it — the others can go into its notes — and never drop one unasked. A `blocked_by` entry that could mean two tasks: ask which one, and edit the entry.
 
 ---

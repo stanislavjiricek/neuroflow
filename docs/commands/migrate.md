@@ -24,7 +24,7 @@ title: /migrate
 2. **Decisions** — asks about anything it cannot decide alone, for example which phase a legacy value such as `active development` means
 3. **Personal fields** — offers to move your issue-report consent, name, writing style and Zotero preference out of the shared project file into `~/.neuroflow/user.yaml`
 4. **Apply** — writes the plan only after you confirm
-5. **Your flowie and the team hive** — pulls each one and plans only those that pulled cleanly: one whose pull fails waits for the next run, and an older hive cache of copied files (no `.git/`) waits for `/hive --init`, which replaces it with a clone. It shows the plan, applies it after you agree, and commits exactly the files it changed; your flowie is pushed (it is your own private repository), a hive only after your explicit yes — with a reminder that teammates on an older neuroflow should update before they use the migrated board
+5. **Your flowie and the team hive** — pulls each one and plans only those that pulled cleanly: one whose pull fails waits for the next run, and an older hive cache of copied files (no `.git/`) waits for `/hive --init`, which replaces it with a clone. It shows the plan, applies it after you agree, and commits exactly the files it changed; your flowie is then pushed (it is your own private repository). A hive's change goes to the whole team, so for a hive it asks once, before writing anything there — apply and push, or leave the hive as it is — and shows anything else already waiting to leave that clone, with a reminder that teammates on an older neuroflow should update before they use the migrated board
 
 | What | Before | After |
 |---|---|---|
