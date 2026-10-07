@@ -12,7 +12,7 @@ When a new version of neuroflow is installed, run one command in each project:
 
 It brings everything neuroflow keeps up to the version you run, level by level:
 
-1. **The project** — `.neuroflow/` to the current memory contract: the `project_config.md` frontmatter, reasoning logs as JSON Lines, the merge-safe `.gitattributes` and local-only `.gitignore` lines, the instruction block in `.claude/CLAUDE.md`, and the version that last wrote the project.
+1. **The project** — `.neuroflow/` to the current memory contract: the `project_config.md` frontmatter, reasoning logs as JSON Lines, the merge-safe `.gitattributes` and local-only `.gitignore` lines, the instruction block in `.claude/CLAUDE.md`, and the neuroflow version the project is now up to date with.
 2. **Your flowie** — your private repository is pulled and checked against the current formats; what is out of date (task files, a missing `.gitignore` line) is updated, committed and pushed to your repository.
 3. **The team hive** — the hive is pulled and checked the same way. Anything that would change the shared hive is pushed only after your yes.
 
@@ -22,7 +22,11 @@ Everyone who updates runs it once, even when a teammate has already brought the 
 
 ## How you find out
 
-`project_config.md` records the neuroflow version that last wrote the project (`plugin_version`). When the installed version is newer, the first neuroflow command in a session says so in one line and names `/neuroflow:migrate`. With the [neuroflow mod](concepts/mods.md), the same line stays in the band above the prompt until the project is migrated.
+`project_config.md` records the neuroflow version the project was last brought up to date to (`plugin_version`). Only the setup of a new project and `/neuroflow:migrate` write it — switching phases or any other command leaves it alone, and it never goes down. When the installed version is newer, the first neuroflow command in each session says so in one line, until the project is migrated:
+
+> neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date.
+
+With the [neuroflow mod](concepts/mods.md), the same line stays in the band above the prompt until the project is migrated.
 
 ## Updating the plugin
 

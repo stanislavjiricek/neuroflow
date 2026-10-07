@@ -7,7 +7,7 @@ nothing. --apply writes the plan. Idempotent: a migrated level has nothing to do
 The project (the default; found by walking up from --root):
   - project_config.md: the legacy dialects (`key: value` lines, `**Bold:**` labels,
     or a mix) -> YAML frontmatter (nf_schema 1) followed by the free markdown body;
-    plugin_version -> the running plugin's version when it is older or missing
+    plugin_version -> the running plugin's version when it is older or missing (never lowered)
   - personal fields (auto_issue_reporting, researcher name, writing_style, zotero,
     notification / wellbeing settings) -> ~/.neuroflow/user.yaml, only with --move-personal
   - reasoning/*.json arrays -> *.jsonl, one element per line; the old file is kept as *.json.bak
@@ -227,6 +227,14 @@ def is_older(recorded: str, running: str) -> bool:
     a, b = version_key(recorded), version_key(running)
     width = max(len(a), len(b))
     return a + (0,) * (width - len(a)) < b + (0,) * (width - len(b))
+
+
+def recorded_version(recorded: str | None, running: str | None) -> str | None:
+    """The plugin_version a migration leaves: the running version when the recorded one is older or missing.
+    Never lower: a newer recorded version (a teammate's newer neuroflow migrated the project) stays."""
+    if running and (not recorded or is_older(recorded, running)):
+        return running
+    return recorded
 
 
 # ---------------------------------------------------------------------------
@@ -525,16 +533,16 @@ def plan_config(plan: Plan, config: Path, overrides: dict, move_personal: bool, 
             normalise("active_phase", current["active_phase"], phases, problems, "frontmatter")
         if "recommended_phases" in current:
             normalise("recommended_phases", current["recommended_phases"], phases, problems, "frontmatter")
-        # The version that last wrote the project: a newer running plugin records itself (the version notice).
+        # The version the project was last brought up to date to (what the version notice compares): raised to the
+        # running version when it is older or missing, never lowered — a teammate's newer plugin may have recorded it.
         recorded = next((segment_value(seg[1]) for seg in segs if seg[0] == "plugin_version"), None)
         recorded = recorded if isinstance(recorded, str) and recorded else None
-        behind = bool(version) and (recorded is None or is_older(recorded, version))
+        behind = recorded_version(recorded, version) != recorded
         summary_text = "update the frontmatter"
         if behind and not changed:
-            summary_text = (f"record neuroflow {version} as the version that last wrote the project "
+            summary_text = (f"record neuroflow {version} as the version the project is up to date with "
                             f"(was {recorded or 'not recorded'})")
-        changed = changed or behind
-        if changed and version:
+        if behind:
             emitted = emit_key("plugin_version", version)
             for seg in segs:
                 if seg[0] == "plugin_version":
@@ -542,6 +550,7 @@ def plan_config(plan: Plan, config: Path, overrides: dict, move_personal: bool, 
                     break
             else:
                 segs.append(["plugin_version", emitted])
+            changed = True
         if changed:
             fm = [line for seg in segs for line in seg[1]]
             new_text = "\n".join(["---", *fm, "---"]) + ("\n" + body if body else "\n")
@@ -599,8 +608,9 @@ def plan_config(plan: Plan, config: Path, overrides: dict, move_personal: bool, 
     if "active_phase" not in facts and not any("active_phase" in b for b in problems.blocking):
         problems.blocking.append("project_config.md names no phase. Ask the person which phase applies and "
                                  "rerun with --set active_phase=<id>.")
-    if version or legacy_version:
-        facts["plugin_version"] = version or legacy_version
+    kept_version = recorded_version(legacy_version, version)
+    if kept_version:
+        facts["plugin_version"] = kept_version
     body_lines = [line for n, line in enumerate(lines) if n not in consumed]
     body = re.sub(r"\n{3,}", "\n\n", "\n".join(body_lines)).strip("\n")
     new_text = "\n".join(["---", *emit_frontmatter(facts), "---", ""]) + ("\n" + body + "\n" if body else "")

@@ -85,7 +85,7 @@ paper_auto: off                   # optional: on | off (/paper --auto)
 hive_repo: owner/repo             # optional: GitHub org/repo of the team hive
 ethics: not-applicable            # optional: no approval tracked here (public de-identified data, simulations); silences the ETHICS-GATE and sentinel S4 — see /ethics
 wiki_capture: allow               # optional: allow | forbid — forbid stops all wiki capture in this project (e.g. confidential work); absent means allow — see /wiki
-plugin_version: 0.2.22            # the neuroflow version that last wrote this file
+plugin_version: 0.2.22            # the neuroflow version the project was last brought up to date to; only the scaffold and /neuroflow:migrate write it
 ---
 ```
 
@@ -96,7 +96,8 @@ plugin_version: 0.2.22            # the neuroflow version that last wrote this f
 
 - **Read** facts from the frontmatter. Older projects use a legacy dialect — `key: value` lines without frontmatter, bold labels (`**Phase:** x`), or a mix. Read them as they are, never rewrite them silently, and offer `/neuroflow:migrate`, which converts a project idempotently, shows the plan and asks before writing.
 - **Schema guard:** if `nf_schema` is greater than 1, a newer neuroflow wrote the file. Do not write it; say so and suggest updating the plugin.
-- **Write** one key in place (e.g. `active_phase`), keep the YAML valid, and set `plugin_version` when you know the running version (the `neuroflow-core` skill's base directory → `../../.claude-plugin/plugin.json`). Human notes stay in the body.
+- **Write** one key in place (e.g. `active_phase`) and keep the YAML valid. Human notes stay in the body.
+- **`plugin_version`** is the neuroflow version the project was last brought up to date to. Only the scaffold (a new project) and `/neuroflow:migrate` (once it has brought the project up to date) write it, and never to a lower version; every other writer leaves it as it is. Raised anywhere else, it silences the version notice (**Command lifecycle**) while the formats stay old; written by a teammate on an older plugin, it would go down.
 
 #### Personal layer — `~/.neuroflow/user.yaml`
 
@@ -342,7 +343,7 @@ With the neuroflow mod active, a `neuroflow digest` note follows the command as 
    done; true
    ```
 2. Read `.neuroflow/project_config.md` — facts from its frontmatter (**project_config.md — the config contract**). A legacy dialect: read it as it is and offer `/neuroflow:migrate` once. `nf_schema` above 1: do not write the file; say so.
-3. **Version notice:** compare `plugin_version` in that frontmatter — the neuroflow version that last wrote the project — with the running plugin's version (**The plugin's own files**: the `neuroflow-core` skill's base directory → `../../.claude-plugin/plugin.json`), number by number (`0.2.10` is newer than `0.2.9`). When the project's is older or missing, say once per session, before the command's own work, in one line: *"neuroflow {running} is installed; this project was last written by {plugin_version, or "an older version"}. Run /neuroflow:migrate to bring the project, your flowie and the team hive up to date."* Never block the command for it and never write anything for it; `quiet` commands and `/migrate` itself skip it.
+3. **Version notice:** compare `plugin_version` in that frontmatter — the neuroflow version the project was last brought up to date to — with the running plugin's version (**The plugin's own files**: the `neuroflow-core` skill's base directory → `../../.claude-plugin/plugin.json`), number by number (`0.2.10` is newer than `0.2.9`). When the project's is older or missing, say once per session, before the command's own work, in one line: *"neuroflow {running} is installed; this project is on {plugin_version, or "an older version"} — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date."* (the neuroflow mod's band shows the same sentence). Never block the command for it and never write anything for it: only `/neuroflow:migrate` raises `plugin_version`, so the notice returns in every session until the project is migrated. `quiet` commands and `/migrate` itself skip it.
 4. Read `.neuroflow/flow.md`
 5. **If `.neuroflow/objectives.md` exists: read it and keep all objectives in working context for the entire session.** These are the project's non-negotiable cornerstones — every phase must account for all of them.
 6. If the command has a phase subfolder: read `.neuroflow/{phase}/flow.md`
@@ -377,7 +378,7 @@ Write to session and reasoning logs broadly — not just at milestones, but afte
 1. Write external outputs (code, results, figures, manuscripts) to `output_path` — not inside `.neuroflow/`
 2. Write at least one `.md` memory file to `.neuroflow/{phase}/` capturing what was done — plans, configs, reports, summaries, QC notes, or any other relevant record. Format is free; use whatever structure fits the content. Every `.md` file written to the subfolder must be listed in `.neuroflow/{phase}/flow.md`.
 3. Update `.neuroflow/flow.md` if new subfolders were created
-4. Update `active_phase` in the `project_config.md` frontmatter if the phase changed — only after the person confirmed it (step 5). Nothing else follows the phase: the `.claude/CLAUDE.md` block is static (**Project instruction block**).
+4. Update `active_phase` in the `project_config.md` frontmatter if the phase changed — only after the person confirmed it (step 5). That key only: `plugin_version` stays as it is (**project_config.md — the config contract**), and nothing else follows the phase — the `.claude/CLAUDE.md` block is static (**Project instruction block**).
 5. **Phase transition check:** if the outputs produced during this session clearly belong to a different (later) phase than the active phase in `project_config.md`, prompt the user: *"The work produced looks like [phase] outputs. Should I update the active phase in project_config.md?"* Do not silently leave the phase wrong.
 6. **Next step:** if the command's frontmatter lists `next:`, close with `Next: /neuroflow:<name>` for the entry that fits what was done.
 7. **Open checklist items:** if TodoWrite or task items that are real research work (not micro-steps of this session) are still open, offer once to add them with `/tasks --add` — never add them unasked.

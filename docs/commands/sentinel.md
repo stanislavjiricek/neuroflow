@@ -89,7 +89,8 @@ Issues found:
 
 2. [NF2] project_config.md has plugin_version 0.2.18; the installed
    plugin is 0.2.22.
-   → Fix: update plugin_version? (y/n)
+   → Run /neuroflow:migrate: it brings the project, your flowie and
+     the team hive up to date and records the version.
 
 3. [NF7] .claude/CLAUDE.md holds an "Active phase" line — it goes stale.
    → Fix: remove the line? (y/n)
@@ -109,12 +110,11 @@ All other checks: ✅ All clear
 |---|---|
 | Missing file listed in `flow.md` | Remove the row |
 | Existing file not in `flow.md` | Add a row |
-| Plugin version out of sync | Update `plugin_version` in `project_config.md` |
 | Skill-named subfolder in `.neuroflow/` | Move its files to the phase folder, delete the skill folder |
 | Missing or stale neuroflow block in `.claude/CLAUDE.md` | Write the static block from `neuroflow-core` |
 | Neuroflow block in `~/.claude/CLAUDE.md` or a stale copy | Remove that block, keep the rest of the file |
 
-Sentinel never edits a frozen preregistration or its `status.md` (freezing and unfreezing are your actions; changes go to `deviations.md`), and never redacts sensitive data on its own.
+Sentinel never edits a frozen preregistration or its `status.md` (freezing and unfreezing are your actions; changes go to `deviations.md`), and never redacts sensitive data on its own. It never changes `plugin_version` either: an older or missing one points at [`/migrate`](migrate.md), which records the version when it brings the project, your flowie and the team hive up to date.
 
 ---
 

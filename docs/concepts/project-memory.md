@@ -46,7 +46,7 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 
 The most important file in `.neuroflow/`. Every command reads this first. It has two parts:
 
-- **A YAML frontmatter** with the facts commands and scripts read: `nf_schema` (format version), `project_name`, `active_phase`, `recommended_phases`, optional `default_mode`, `target_journal`, `raw_roots`, `hive_repo`, `collaborators`, and `plugin_version` (the neuroflow version that last wrote the file)
+- **A YAML frontmatter** with the facts commands and scripts read: `nf_schema` (format version), `project_name`, `active_phase`, `recommended_phases`, optional `default_mode`, `target_journal`, `raw_roots`, `hive_repo`, `collaborators`, and `plugin_version` (the neuroflow version the project was last brought up to date to — only the scaffold and `/neuroflow:migrate` write it)
 - **Free markdown notes** — institution, research question, modality, tools, and the output paths each phase writes to
 
 **Example:**

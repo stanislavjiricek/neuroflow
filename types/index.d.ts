@@ -62,7 +62,7 @@ export type NfSnapshot = {
   nfSchema: number | null
   /** 'frontmatter' for the current contract, 'legacy' for older config dialects */
   dialect: 'frontmatter' | 'legacy'
-  /** The neuroflow version that last wrote project_config.md (`plugin_version`), null when it names none. */
+  /** The neuroflow version the project was last brought up to date to (`plugin_version`), null when it names none. */
   pluginVersion: string | null
   /** The running plugin's version (.claude-plugin/plugin.json in the plugin's folder), null when unreadable. */
   runningVersion: string | null

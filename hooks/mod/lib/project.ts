@@ -250,13 +250,14 @@ export const compareVersions = (a: string, b: string): number => {
 }
 
 /**
- * The version notice (neuroflow-core → Command lifecycle): the running neuroflow is newer than the one that last
- * wrote project_config.md, or the file names none. Null when there is nothing to say (or the running version is unknown).
+ * The version notice (neuroflow-core → Command lifecycle), in the prose's own words: the running neuroflow is newer
+ * than the version the project was last brought up to date to (`plugin_version`, which only the scaffold and
+ * /neuroflow:migrate write), or the file names none. Null when there is nothing to say (or the running version is unknown).
  */
 export const versionNotice = (snap: Pick<NfSnapshot, 'pluginVersion' | 'runningVersion'>): string | null => {
   const running = snap.runningVersion
   if (typeof running !== 'string' || running === '') return null
   const recorded = typeof snap.pluginVersion === 'string' && snap.pluginVersion !== '' ? snap.pluginVersion : null
   if (recorded !== null && compareVersions(recorded, running) >= 0) return null
-  return `neuroflow ${running} is installed — this project is on ${recorded ?? 'an older version'} · /neuroflow:migrate`
+  return `neuroflow ${running} is installed; this project is on ${recorded ?? 'an older version'} — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date`
 }

@@ -50,8 +50,9 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
 ```
 
    - **Update** (only when it applies): when the frontmatter `plugin_version` is missing or older than the running
-     plugin's version (neuroflow-core → **The plugin's own files**), one line under the header:
-     `Update    ↑ neuroflow 0.2.22 is installed · this project is on 0.2.21 — /neuroflow:migrate`.
+     plugin's version (neuroflow-core → **The plugin's own files**), one line under the header with the version
+     notice (neuroflow-core → **Command lifecycle**, step 3):
+     `Update    ↑ neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date`.
    - **Phase**: the `recommended_phases` in order — `●` current, `✔` has a `.neuroflow/<phase>/` folder, `○` not
      started. Without `recommended_phases`, list the phases that have folders.
    - **Dates**: future rows of `.neuroflow/timeline.md` (`| YYYY-MM-DD | what | phase it gates |`), plus the ethics

@@ -46,7 +46,7 @@ Read the `neuroflow:neuroflow-core` skill first: the script ships in its `script
 
 ## When to run it
 
-- **after a plugin update** — the main reason. Every command compares the version that last wrote the project with the running one and, when the project is behind, names this command in one line (`neuroflow:neuroflow-core` → **Command lifecycle**, the version notice); with the neuroflow mod, the band above the prompt shows the same line until the project is migrated
+- **after a plugin update** — the main reason. Every command compares the version the project was last brought up to date to (`plugin_version`) with the running one and, when the project is behind, names this command in one line (`neuroflow:neuroflow-core` → **Command lifecycle**, the version notice); with the neuroflow mod, the band above the prompt shows the same line. Only this command (and the scaffold of a new project) writes `plugin_version`, so the line stays until the project is migrated
 - `/neuroflow`, `/phase` or another command reported a legacy `project_config.md` dialect (no `nf_schema` frontmatter)
 - reasoning logs are still JSON arrays (`reasoning/*.json`)
 - `.claude/CLAUDE.md` holds an older neuroflow block that names a phase
@@ -60,7 +60,7 @@ Read the `neuroflow:neuroflow-core` skill first: the script ships in its `script
 python <neuroflow-core base dir>/scripts/migrate.py --root .
 ```
 
-Use `python3` where `python` is not on the PATH. The script walks up to the project root, writes nothing, and prints the plan: a diff of `project_config.md` (with `plugin_version` set to the running version when the project's is older or missing), the reasoning conversions, the `.gitattributes` / `.gitignore` lines to add, the instruction-block fix, the decisions it needs, personal fields, and report-only findings. Add `--json` when you need the plan as data.
+Use `python3` where `python` is not on the PATH. The script walks up to the project root, writes nothing, and prints the plan: a diff of `project_config.md` (with `plugin_version` raised to the running version when the project's is older or missing — never lowered: a newer one, recorded by a teammate's newer neuroflow, stays), the reasoning conversions, the `.gitattributes` / `.gitignore` lines to add, the instruction-block fix, the decisions it needs, personal fields, and report-only findings. Add `--json` when you need the plan as data.
 
 | Exit code | Meaning | What to do |
 |---|---|---|

@@ -20,10 +20,10 @@ needs a mod at all, for value, effort and risk, and put in a tier. This page rec
 |---|---|
 | In the mod | 40 |
 | Built | 63 |
-| Built differently | 61 |
+| Built differently | 62 |
 | Folded into another | 10 |
 | Charter rule | 37 |
-| Not built | 59 |
+| Not built | 58 |
 
 *Built* means the plugin's prose, scripts or CI do it, for everyone. *In the mod* means the optional hooks module
 does it (see [The neuroflow mod](mods.md)); every such feature has a prose path that works without it. *Built
@@ -226,7 +226,7 @@ warning, kept as a rule of the mod's charter.
 | M156 | First-run onboarding and post-setup checklist | X | Built differently | AskUserQuestion for mode, modality and consent, plus a printed post-setup checklist ([x]/[ ]) at the end of /neuroflow. |
 | M157 | Command choreography: next-step suggestions and routing | T2 | In the mod | After a command's turn its first `next:` command is offered as the next prompt. |
 | M158 | Lab onboarding checklist pane | X | Built differently | New read-only /hive --doctor table with a fix command per row: gh auth, hive cache is a git clone and up to date, sync.json kept local, handle in the roster, project linked, flowie private and fully pushed with an… |
-| M159 | Update notifier, what's-new view and derived plugin_version | X | Not built | The marketplace's own update path covers notification; `plugin_version` records which version last wrote a project. |
+| M159 | Update notifier, what's-new view and derived plugin_version | X | Built differently | The notifier is built: every command's version notice (neuroflow-core → Command lifecycle), and the band line with an `m` key that runs /neuroflow:migrate. `plugin_version` is not derived: it is the version the project was last brought up to date to, written only by the scaffold and /neuroflow:migrate, never lowered. No what's-new view; the changelog covers it. |
 
 ## Other
 

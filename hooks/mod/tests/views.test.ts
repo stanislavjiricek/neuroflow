@@ -60,7 +60,8 @@ describe('band items', () => {
 
   test('after a plugin update the band names /neuroflow:migrate until the project is migrated', () => {
     const items = bandItems(snapshot({ pluginVersion: '0.2.9', runningVersion: '0.2.10' }), true)
-    expect(items.map(item => item.text)).toEqual(['neuroflow 0.2.10 is installed — this project is on 0.2.9 · /neuroflow:migrate'])
+    // The same sentence the prose says (neuroflow-core → Command lifecycle, version notice).
+    expect(items.map(item => item.text)).toEqual(['neuroflow 0.2.10 is installed; this project is on 0.2.9 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date'])
     expect(items[0].actions?.map(action => [action.command, action.args, action.hotkey])).toEqual([['neuroflow:migrate', '', 'm']])
     expect(bandItems(snapshot({ pluginVersion: null }), true)[0].text).toContain('this project is on an older version')
     expect(bandItems(snapshot({ pluginVersion: '0.2.23' }), false).some(item => item.text.includes('is installed'))).toBe(false)
@@ -159,7 +160,7 @@ describe('engine', () => {
       component: 'AbovePrompt',
       props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 120, scroll: { offset: 0, bodyRows: 4 }, view: {} },
     } as never)
-    expect(JSON.stringify(await ui.drawn())).toContain('neuroflow 0.2.22 is installed — this project is on 0.2.21 · /neuroflow:migrate')
+    expect(JSON.stringify(await ui.drawn())).toContain('neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate')
     await ui.press({ key: 'nf-migrate' })
     expect(ran).toEqual(['neuroflow:migrate'])
     await ui.unmount()
@@ -214,6 +215,32 @@ describe('phase switching', () => {
     } as never)
     await ui.select({ key: 'nf-phase-select', value: 'data-analyze' })
     expect(fs.files[`${project}/.neuroflow/project_config.md`]).toContain('active_phase: data-analyze\n')
+  })
+
+  test('a switch writes active_phase only: plugin_version and the version notice stay', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const config = '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\nplugin_version: 0.2.21\n---\n# Notes\n'
+    const fs = fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]: config,
+      // Not named "neuroflow": the pattern also matches the project, which would then read as the plugin's own repo.
+      '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 30).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.toast', () => ({ value: undefined }))
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    expect((await $.command.run({ command: 'neuroflow:phase', args: 'paper' })).text).toBe('Active phase is now paper.')
+    // Only /neuroflow:migrate raises plugin_version (neuroflow-core → the config contract).
+    expect(fs.files[`${project}/.neuroflow/project_config.md`]).toBe(config.replace('active_phase: data', 'active_phase: paper'))
+    const ui = await $.ui.mount({
+      plugin: 'neuroflow',
+      surface: 'terminal',
+      component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 120, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    expect(JSON.stringify(await ui.drawn())).toContain('neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate')
+    await ui.unmount()
   })
 
   test('without a project the markdown command runs', { options: { runtime: 'observe' } }, async ($, on) => {

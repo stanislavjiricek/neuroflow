@@ -9,7 +9,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { NfCard, NfDashboardTab, NfLoopView, NfSnapshot } from '../../../types'
-import { manifestVersion, setActivePhase, setConfigKey } from '../lib/config'
+import { setActivePhase } from '../lib/config'
 import type { NfIo } from '../lib/io'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
@@ -274,11 +274,10 @@ const switchPhase = async ($: EngineInterface, phase: string, via: string): Prom
   }
   const path = join(scope.root, '.neuroflow/project_config.md')
   const before = await io.read(path)
-  let after = before === null ? null : setActivePhase(before, phase)
+  // active_phase only: plugin_version is the version the project was last brought up to date to, written only by the
+  // scaffold and /neuroflow:migrate (neuroflow-core → the config contract), so the version notice stays until then.
+  const after = before === null ? null : setActivePhase(before, phase)
   if (after === null) return 'This project_config.md format cannot be edited safely — run /neuroflow:migrate first.'
-  // The plugin version that last wrote the file (C1), only in the current (frontmatter) format.
-  const version = manifestVersion(await io.read(join($.plugin.root, '.claude-plugin/plugin.json')))
-  if (version !== null && snap?.dialect === 'frontmatter') after = setConfigKey(after, 'plugin_version', version) ?? after
   if (after !== before) await io.write(path, after)
   const now = await io.now()
   await appendLine(io, sessionLogPath(scope.root, now), sessionLine(now, 'phase', `Active phase → ${phase} (${via})`))

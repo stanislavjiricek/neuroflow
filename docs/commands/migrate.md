@@ -6,13 +6,13 @@ title: /migrate
 
 **After a plugin update, the one command that brings your project, your flowie and the team hive up to date — shown first, written only after you agree.**
 
-`/migrate` converts what earlier neuroflow versions wrote, level by level. In the project's `.neuroflow/` it turns `project_config.md` into YAML frontmatter plus free notes, converts decision logs to JSON Lines, adds the merge-safety and local-only git lines, replaces an outdated instruction block, and records the neuroflow version that last wrote the project. In your flowie and the team hive it moves task files into the current format and keeps machine-local files out of git. It is idempotent: a migrated level has nothing left to do.
+`/migrate` converts what earlier neuroflow versions wrote, level by level. In the project's `.neuroflow/` it turns `project_config.md` into YAML frontmatter plus free notes, converts decision logs to JSON Lines, adds the merge-safety and local-only git lines, replaces an outdated instruction block, and records the neuroflow version the project is now up to date with (`plugin_version`). In your flowie and the team hive it moves task files into the current format and keeps machine-local files out of git. It is idempotent: a migrated level has nothing left to do.
 
 ---
 
 ## When to use it
 
-- after updating the plugin — the main reason. When the project was last written by an older version, the first neuroflow command in a session says so in one line and names `/migrate`; with the [neuroflow mod](../concepts/mods.md), the band above the prompt keeps that line, with an `m` key that runs `/migrate`, until the project is migrated. See [Upgrading](../upgrading.md)
+- after updating the plugin — the main reason. When the project is on an older version than the one installed, the first neuroflow command in each session says so in one line and names `/migrate`; with the [neuroflow mod](../concepts/mods.md), the band above the prompt keeps that line, with an `m` key that runs `/migrate`. Only `/migrate` (and the setup of a new project) records the version, so the line stays until the project is migrated. See [Upgrading](../upgrading.md)
 - `/neuroflow` or another command says your `project_config.md` uses a legacy format
 - your decision logs are still `reasoning/*.json` arrays
 
@@ -29,7 +29,7 @@ title: /migrate
 | What | Before | After |
 |---|---|---|
 | `project_config.md` | `**Phase:** data-analyze` or `active_phase: data analyze` lines | YAML frontmatter (`nf_schema: 1`, `active_phase: data-analyze`, …) followed by your notes, unchanged |
-| `plugin_version` | an older version, or none | the version you run |
+| `plugin_version` | an older version, or none | the version you run (a newer one, recorded by a teammate's newer neuroflow, stays) |
 | Decision logs | `reasoning/general.json` (one JSON array) | `reasoning/general.jsonl` (one entry per line); the old file is kept as `general.json.bak` |
 | `.gitattributes` | — | union merge for append-only logs, so two collaborators' entries merge without conflicts |
 | `.gitignore` | — | session logs, confidential reviews and credentials stay out of git |

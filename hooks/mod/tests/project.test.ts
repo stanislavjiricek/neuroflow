@@ -80,14 +80,15 @@ describe('snapshot', () => {
 })
 
 describe('version notice', () => {
-  test('the snapshot mirrors the version that last wrote the project and the running plugin\'s', async () => {
+  test('the snapshot mirrors the version the project was last brought up to date to and the running plugin\'s', async () => {
     const io = memIo({
       '/work/proj/.neuroflow/project_config.md': '---\nnf_schema: 1\nactive_phase: paper\nplugin_version: 0.2.21\n---\n',
       '/plugin/.claude-plugin/plugin.json': '{ "name": "neuroflow", "version": "0.2.22" }',
     })
     const snap = await loadSnapshot(io, '/work/proj')
     expect([snap.pluginVersion, snap.runningVersion]).toEqual(['0.2.21', '0.2.22'])
-    expect(versionNotice(snap)).toBe('neuroflow 0.2.22 is installed — this project is on 0.2.21 · /neuroflow:migrate')
+    // The sentence neuroflow-core's Command lifecycle (version notice) has every command say.
+    expect(versionNotice(snap)).toBe('neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date')
     const legacy = await loadSnapshot(memIo({ '/work/proj/.neuroflow/project_config.md': '**Plugin version:** 0.2.20\n**Phase:** data\n' }), '/work/proj')
     expect([legacy.pluginVersion, legacy.runningVersion]).toEqual(['0.2.20', null])
   })
@@ -95,8 +96,8 @@ describe('version notice', () => {
   test('versions compare number by number; nothing to say when current, newer or unknown', () => {
     expect(compareVersions('0.2.10', '0.2.9') > 0).toBe(true)
     expect(compareVersions('0.2', '0.2.0')).toBe(0)
-    expect(versionNotice({ pluginVersion: '0.2.9', runningVersion: '0.2.10' })).toBe('neuroflow 0.2.10 is installed — this project is on 0.2.9 · /neuroflow:migrate')
-    expect(versionNotice({ pluginVersion: null, runningVersion: '0.2.22' })).toBe('neuroflow 0.2.22 is installed — this project is on an older version · /neuroflow:migrate')
+    expect(versionNotice({ pluginVersion: '0.2.9', runningVersion: '0.2.10' })).toBe('neuroflow 0.2.10 is installed; this project is on 0.2.9 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date')
+    expect(versionNotice({ pluginVersion: null, runningVersion: '0.2.22' })).toBe('neuroflow 0.2.22 is installed; this project is on an older version — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date')
     expect(versionNotice({ pluginVersion: '0.2.22', runningVersion: '0.2.22' })).toBe(null)
     expect(versionNotice({ pluginVersion: '0.2.23', runningVersion: '0.2.22' })).toBe(null)
     expect(versionNotice({ pluginVersion: '0.2.21', runningVersion: null })).toBe(null)

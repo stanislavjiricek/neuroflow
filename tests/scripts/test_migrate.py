@@ -245,7 +245,7 @@ class MigrateTest(unittest.TestCase):
         self.assertTrue(raw.startswith("---\r\nnf_schema: 1\r\n"))
         self.assertNotIn("\n", raw.replace("\r\n", ""))
 
-    # -- plugin_version: the version that last wrote the project ---------------
+    # -- plugin_version: the version the project was last brought up to date to ----
 
     def run_version(self, running: str, *extra: str) -> tuple[int, dict]:
         out = io.StringIO()
@@ -272,7 +272,7 @@ class MigrateTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual([c["path"] for c in result["changes"]], [".neuroflow/project_config.md"])
         self.assertEqual(result["changes"][0]["summary"],
-                         "record neuroflow 0.2.10 as the version that last wrote the project (was 0.2.9)")
+                         "record neuroflow 0.2.10 as the version the project is up to date with (was 0.2.9)")
         self.assertEqual(self.read(".neuroflow/project_config.md"), config, "a dry run writes nothing")
 
         code, result = self.run_version("0.2.10", "--apply")
@@ -281,6 +281,26 @@ class MigrateTest(unittest.TestCase):
         self.assertEqual(self.run_version("0.2.10")[1]["changes"], [], "a second run finds nothing to do")
         code, result = self.run_version("0.2.9")
         self.assertEqual((code, result["changes"]), (0, []), "a newer recorded version is never lowered")
+
+    def test_a_newer_recorded_version_stays_while_other_changes_are_written(self) -> None:
+        # A teammate on a newer neuroflow migrated the project; this older plugin still finds a key to add.
+        config = "---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: paper\nplugin_version: 0.3.0\n---\n\nNotes.\n"
+        self.write(".neuroflow/project_config.md", config)
+        code, result = self.run_version("0.2.22", "--apply")
+        self.assertTrue(result["applied"])
+        change = next(c for c in result["changes"] if c["path"] == ".neuroflow/project_config.md")
+        self.assertEqual(change["summary"], "update the frontmatter")
+        self.assertEqual(self.read(".neuroflow/project_config.md"),
+                         config.replace("plugin_version: 0.3.0\n", "recommended_phases: []\nplugin_version: 0.3.0\n"),
+                         "the pending key is added; the newer version is never lowered")
+        self.assertEqual(self.run_version("0.2.22")[1]["changes"], [], "nothing is left to do")
+
+        legacy = "# cfg\n\n**Plugin version:** 0.3.0\n**Phase:** paper\n"  # the same in a legacy dialect
+        self.write(".neuroflow/project_config.md", legacy)
+        self.run_version("0.2.22", "--apply")
+        converted = self.read(".neuroflow/project_config.md")
+        self.assertIn("plugin_version: 0.3.0\n", converted)
+        self.assertNotIn("0.2.22", converted)
 
     def test_a_missing_plugin_version_is_recorded(self) -> None:
         self.write(".neuroflow/project_config.md",
