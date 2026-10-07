@@ -510,14 +510,38 @@ class FlowieHiveTest(unittest.TestCase):
         self.write(self.hives / "lab-a" / ".gitignore", "sync.json\n")
         self.repo(self.hives / "lab-a")  # lab-b is an older cache of copied files, not a clone
         code, result = self.levels("--hives", "--apply")
-        self.assertEqual(code, 0, result)
+        self.assertEqual(code, 1, "lab-b stays a finding until /hive --init replaces it")
+        self.assertTrue(result["applied"])
         self.assertEqual([level["name"] for level in result["levels"]], ["lab-a", "lab-b"])
-        for name in ("lab-a", "lab-b"):
-            self.assertTrue((self.hives / name / "tasks" / "review" / "plan.md").is_file())
-            self.assertFalse((self.hives / name / "tasks" / "t-1-plan.md").exists())
+        self.assertTrue((self.hives / "lab-a" / "tasks" / "review" / "plan.md").is_file())
+        self.assertFalse((self.hives / "lab-a" / "tasks" / "t-1-plan.md").exists())
         self.assertEqual(result["levels"][0]["commit_paths"], ["tasks/t-1-plan.md", "tasks/review/plan.md"])
-        self.assertEqual(result["levels"][1]["commit_paths"], [])
-        self.assertTrue(any("not a git repository" in note for note in result["levels"][1]["notes"]))
+        lab_b = result["levels"][1]
+        self.assertEqual((lab_b["changes"], lab_b["commit_paths"]), ([], []))
+        self.assertEqual([item["message"] for item in lab_b["report"]],
+                         ["not a git clone — /hive --init replaces it with a clone"])
+        self.assertTrue((self.hives / "lab-b" / "tasks" / "t-1-plan.md").exists(), "the copied files stay as they are")
+        self.assertFalse((self.hives / "lab-b" / "tasks" / "review").exists())
+
+    def test_a_hive_cache_without_git_is_reported_never_written(self) -> None:
+        cache = self.hives / "old-lab"  # copied files from an older /hive --init: no .git/
+        legacy = "---\nid: t-3\ntitle: Shared plan\nstatus: active\nassignee: li\n---\n"
+        self.write(cache / "tasks" / "t-3-shared-plan.md", legacy)
+        self.write(cache / "hive.md", "# Old lab\n")
+        for args in (("--hive", "old-lab"), ("--hive", "old-lab", "--apply"), ("--hives", "--apply")):
+            code, result = self.levels(*args)
+            self.assertEqual(code, 1, args)
+            self.assertFalse(result["applied"], args)
+            level = result["levels"][0]
+            self.assertEqual(level["changes"], [], "no writes are planned for a copied-file cache")
+            self.assertEqual(level["report"], [{"path": "~/.neuroflow/hives/old-lab",
+                                                "message": "not a git clone — /hive --init replaces it with a clone"}])
+        self.assertEqual(self.read(cache / "tasks" / "t-3-shared-plan.md"), legacy)
+        self.assertEqual(sorted(p.relative_to(cache).as_posix() for p in cache.rglob("*")),
+                         ["hive.md", "tasks", "tasks/t-3-shared-plan.md"], "not even a .gitignore is added")
+        code, text = self.levels("--hive", "old-lab", as_json=False)
+        self.assertIn("report only: ~/.neuroflow/hives/old-lab: not a git clone — /hive --init replaces it with a clone",
+                      text)
 
     def test_what_cannot_be_moved_is_reported(self) -> None:
         tasks = self.flowie / "tasks"
@@ -552,6 +576,122 @@ class FlowieHiveTest(unittest.TestCase):
         big = self.read(tasks / "todo" / "big-idea.md")  # no status: the board's default column
         self.assertEqual(big, f"---\r\ntitle: Big idea\r\nstatus: todo\r\nowner: alice\r\nupdated: {self.today}\r\n---\r\nBody\r\n")
         self.assertTrue((tasks / "shelf" / "unicode-title.md").is_file(), "a name that is only the id: the title")
+
+    def test_a_task_file_that_is_not_utf8_is_reported_never_rewritten(self) -> None:
+        tasks = self.flowie / "tasks"
+        flat = tasks / "t-2-priprava-dat.md"
+        flat_bytes = "---\nid: t-2\ntitle: Příprava dat\nstatus: active\nassignee: jana\n---\n\nPoznámky.\n".encode("cp1250")
+        in_column = tasks / "active" / "cisteni.md"
+        column_bytes = "---\ntitle: Čištění\nassignee: li\n---\n".encode("cp1250")
+        for path, data in ((flat, flat_bytes), (in_column, column_bytes)):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1)
+        self.assertFalse(result["applied"])
+        level = result["levels"][0]
+        self.assertEqual(level["changes"], [])
+        self.assertEqual({item["path"]: item["message"] for item in level["report"]}, {
+            "tasks/t-2-priprava-dat.md": "not UTF-8 — convert it, then rerun",
+            "tasks/active/cisteni.md": "not UTF-8 — convert it, then rerun",
+        })
+        self.assertEqual(flat.read_bytes(), flat_bytes, "never rewritten")
+        self.assertEqual(in_column.read_bytes(), column_bytes, "never rewritten")
+
+        flat.write_bytes(flat_bytes.decode("cp1250").encode("utf-8"))  # the person converts one: it migrates
+        code, result = self.levels("--flowie", "--apply")
+        self.assertTrue((tasks / "active" / "priprava-dat.md").is_file())
+        self.assertIn("Příprava dat", self.read(tasks / "active" / "priprava-dat.md"))
+        self.assertEqual([item["path"] for item in result["levels"][0]["report"]], ["tasks/active/cisteni.md"])
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_valid_legacy_slugs_are_kept_and_renames_carry_blocked_by(self) -> None:
+        tasks = self.flowie / "tasks"
+        long_slug = "write-the-methods-section-for-the-oddball-paradigm-paper"  # longer than 40 characters
+        self.write(tasks / f"t-7-{long_slug}.md", "---\nid: t-7\ntitle: Methods\nstatus: inbox\n---\n")
+        self.write(tasks / "Big Idea.md", "---\ntitle: Big idea\n---\n")  # not a slug /tasks would write
+        self.write(tasks / "t-2-plan.md", "---\nid: t-2\ntitle: Plan B\nstatus: review\n---\n")
+        self.write(tasks / "review" / "plan.md", "---\ntitle: Plan\nstatus: review\n---\n")
+        after = "---\ntitle: After the plans\nstatus: active\nblocked_by: [Big Idea, plan, t-2, t-7]\nupdated: 2026-01-01\n---\n"
+        self.write(tasks / "active" / "after-plans.md", after)
+        self.write(tasks / "active" / "unrelated.md", "---\ntitle: Unrelated\nstatus: active\nblocked_by: [plan]\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        self.repo(self.flowie)
+
+        code, result = self.levels("--flowie")
+        level = result["levels"][0]
+        self.assertEqual({c["path"]: c.get("to") for c in level["changes"]}, {
+            f"tasks/t-7-{long_slug}.md": f"tasks/inbox/{long_slug}.md",  # kept verbatim, whatever its length
+            "tasks/Big Idea.md": "tasks/inbox/big-idea.md",  # invalid characters: a new slug
+            "tasks/t-2-plan.md": "tasks/review/plan-2.md",  # a -2 collision
+            "tasks/active/after-plans.md": None,  # its blocked_by follows the renamed tasks
+        })
+        self.assertEqual(next(c["summary"] for c in level["changes"] if c["path"] == "tasks/active/after-plans.md"),
+                         f"blocked_by: Big Idea -> big-idea, t-2 -> plan-2, t-7 -> {long_slug}")
+        # 'plan' may now mean the task that has always been plan or the renamed t-2: reported, not guessed.
+        self.assertEqual(sorted(item["path"] for item in level["report"]),
+                         ["tasks/active/after-plans.md", "tasks/active/unrelated.md"])
+        self.assertTrue(all("'plan'" in item["message"] and "plan or plan-2" in item["message"]
+                            for item in level["report"]))
+
+        code, text = self.levels("--flowie", "--apply", as_json=False)
+        self.assertEqual(code, 1, "the unclear entries stay findings")
+        self.assertEqual(self.read(tasks / "active" / "after-plans.md"),
+                         "---\ntitle: After the plans\nstatus: active\n"
+                         f"blocked_by: [big-idea, plan, plan-2, {long_slug}]\nupdated: {self.today}\n---\n")
+        self.assertIn("blocked_by: [plan]\n", self.read(tasks / "active" / "unrelated.md"), "nothing to follow there")
+        self.assertIn('"tasks/Big Idea.md"', text, "a path with a space is quoted")
+        paths = [line for line in text.splitlines() if "commit exactly these paths" in line]
+        self.assertEqual(len(paths), 1)
+        staged = run_git(self.flowie, "diff", "--cached", "--name-only", "--no-renames", "-z").split("\0")
+        self.assertIn("tasks/Big Idea.md", staged)
+        self.assertIn("tasks/inbox/big-idea.md", staged)
+
+    def test_a_task_naming_two_people_is_reported_and_nobody_is_dropped(self) -> None:
+        tasks = self.flowie / "tasks"
+        pair = "---\nid: t-5\ntitle: Pair task\nstatus: active\nassignee: jana\nresponsible: \"@li\"\n---\n"
+        self.write(tasks / "t-5-pair-task.md", pair)
+        owned = "---\ntitle: Owned\nstatus: review\nowner: stan\nassignee: jana\n---\n"
+        self.write(tasks / "review" / "owned.md", owned)
+        listed = "---\ntitle: Listed\nassignee: [jana, li]\n---\n"
+        self.write(tasks / "inbox" / "listed.md", listed)
+        same = "---\ntitle: Same person\nassignee: jana\nresponsible: \"@Jana\"\n---\n"
+        self.write(tasks / "inbox" / "same.md", same)
+        kept = "---\ntitle: Kept owner\nowner: li\nresponsible: li\n---\n"
+        self.write(tasks / "inbox" / "kept.md", kept)
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1)
+        level = result["levels"][0]
+        reported = {item["path"]: item["message"] for item in level["report"]}
+        self.assertEqual(sorted(reported), ["tasks/inbox/listed.md", "tasks/review/owned.md", "tasks/t-5-pair-task.md"])
+        self.assertIn("(jana, li)", reported["tasks/t-5-pair-task.md"])
+        self.assertIn("(stan, jana)", reported["tasks/review/owned.md"])
+        self.assertIn("(jana, li)", reported["tasks/inbox/listed.md"])
+        for path, text in ((tasks / "t-5-pair-task.md", pair), (tasks / "review" / "owned.md", owned),
+                           (tasks / "inbox" / "listed.md", listed)):
+            self.assertEqual(self.read(path), text, "nobody is dropped: the file stays as it was")
+        self.assertEqual(self.read(tasks / "inbox" / "same.md"),
+                         f"---\ntitle: Same person\nstatus: inbox\nowner: jana\nupdated: {self.today}\n---\n")
+        self.assertEqual(self.read(tasks / "inbox" / "kept.md"),
+                         f"---\ntitle: Kept owner\nstatus: inbox\nowner: li\nupdated: {self.today}\n---\n")
+
+    def test_a_task_left_as_it_is_learns_where_its_blocked_by_moved(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "t-4-collect.md", "---\nid: t-4\ntitle: Collect\nstatus: ready\n---\n")
+        pair = "---\ntitle: Pair\nstatus: active\nassignee: jana\nresponsible: li\nblocked_by: [t-4]\n---\n"
+        self.write(tasks / "active" / "pair.md", pair)
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1)
+        messages = [item["message"] for item in result["levels"][0]["report"] if item["path"] == "tasks/active/pair.md"]
+        self.assertEqual(len(messages), 2, messages)
+        self.assertIn("(jana, li)", messages[0])
+        self.assertEqual(messages[1], "blocked_by: t-4 -> collect (those tasks moved): edit the entries when you fix "
+                                      "this file")
+        self.assertEqual(self.read(tasks / "active" / "pair.md"), pair)
+        self.assertTrue((tasks / "ready" / "collect.md").is_file())
 
     @unittest.skipUnless(shutil.which("git"), "needs git")
     def test_a_rebase_in_progress_blocks_writing(self) -> None:

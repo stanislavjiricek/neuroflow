@@ -18,9 +18,13 @@ The project (the default; found by walking up from --root):
 
 Your flowie (--flowie) and team hives (--hive NAME, --hives), instead of the project:
   - task files in a legacy form (flat tasks/{id}-{slug}.md, or id / assignee / responsible /
-    level keys) -> tasks/{column}/{slug}.md with the keys commands/tasks.md defines
+    level keys) -> tasks/{column}/{slug}.md with the keys commands/tasks.md defines; a slug /tasks
+    accepts is kept as it is, and blocked_by entries follow a task whose name changes
   - .gitignore: integrations.json (flowie) or sync.json (hive) added when it is missing
-  Only reports (never edits): integrations.json or sync.json tracked by git.
+  Only reports (never edits): integrations.json or sync.json tracked by git; a task file that is
+  not UTF-8, holds conflict markers or names more than one person as its owner; a blocked_by entry
+  that could now mean two tasks; a cached hive without .git/ (the copied-file cache that
+  /hive --init replaces with a clone).
   With --apply in a git repository, tracked task files move with `git mv` (history follows
   them) and every changed path is staged; the result lists the paths to commit. It never
   commits or pushes.
@@ -878,7 +882,13 @@ TASK_COLUMNS = ["inbox", "ready", "active", "review", "meeting", "done", "archiv
 LEGACY_TASK_KEYS = {"id", "assignee", "responsible", "level"}
 NOT_TASK_FILES = {"flow.md", "readme.md", "index.md"}
 SLUG_MAX = 40
+# A legacy slug /tasks would accept as it is: kept verbatim, whatever its length (a slug is never renamed).
+VALID_SLUG = re.compile(r"[a-z0-9-]*[a-z0-9][a-z0-9-]*")
 FM_KEY_LINE = re.compile(r"^[A-Za-z_][\w-]*:(?:[ \t]|$)")
+TASK_PROBLEMS = {
+    "conflict": "merge-conflict markers; resolve them, then rerun",
+    "not-utf8": "not UTF-8 — convert it, then rerun",
+}
 # The file each level keeps on this machine: listed in its .gitignore, never committed.
 KEEP_LOCAL = {
     "flowie": ("integrations.json", "# neuroflow: settings that stay on this machine, never synced"),
@@ -959,32 +969,83 @@ def column_for(status, columns: list[str], default: str, archive: str | None) ->
 
 
 def read_task(path: Path) -> dict | None:
-    """A task file's frontmatter segments and body; None without a frontmatter block."""
-    raw = sc.read_text(path)
+    """A task file's frontmatter segments and body; None without a frontmatter block.
+
+    `problem` names what keeps the file from being migrated (TASK_PROBLEMS). The file is decoded strictly as
+    UTF-8: one that does not decode is never rewritten, since writing it back would replace every character
+    that could not be read."""
+    try:
+        with open(path, encoding="utf-8", newline="") as fh:
+            raw = fh.read()
+    except UnicodeDecodeError:
+        return {"problem": "not-utf8"}
     bom = "﻿" if raw.startswith("﻿") else ""
     text = raw[len(bom):].replace("\r\n", "\n")
     if CONFLICT_RE.search(text):
-        return {"conflict": True}
+        return {"problem": "conflict"}
     split = sc.split_frontmatter(text)
     if split is None or not any(FM_KEY_LINE.match(line) for line in split[0]):
         return None
     segs = segment_frontmatter(split[0])
-    return {"conflict": False, "bom": bom, "segs": segs, "body": split[1], "newline": sc.detect_newline(raw),
+    return {"problem": None, "bom": bom, "segs": segs, "body": split[1], "newline": sc.detect_newline(raw),
             "values": {seg[0]: segment_value(seg[1]) for seg in segs if seg[0]}}
 
 
-def owner_of(value) -> str | list[str] | None:
-    """An `assignee` / `responsible` value as `owner`: roster handles without the @."""
+def handles_in(value) -> list[str]:
+    """The people an `owner` / `assignee` / `responsible` value names: roster handles without the @."""
     items = value if isinstance(value, list) else [value]
     handles = [item.strip().lstrip("@").strip() for item in items if isinstance(item, str)]
-    handles = [handle for handle in handles if handle]
-    if not handles:
+    return [handle for handle in handles if handle]
+
+
+def task_owners(task: dict) -> list[str]:
+    """Each person the task names in `owner`, `assignee` or `responsible` (in that order), once."""
+    people: dict[str, str] = {}
+    for key in ("owner", "assignee", "responsible"):
+        for seg_key, lines in task["segs"]:
+            if seg_key == key:
+                for handle in handles_in(segment_value(lines)):
+                    people.setdefault(handle.lower(), handle)
+    return list(people.values())
+
+
+def blocked_by_of(task: dict) -> list[str] | None:
+    """The `blocked_by` entries (slugs at the same level); None when the key is absent or not a list of slugs."""
+    seg = next((seg for seg in task["segs"] if seg[0] == "blocked_by"), None)
+    if seg is None:
         return None
-    return handles[0] if len(handles) == 1 else handles
+    value = segment_value(seg[1])
+    items = value if isinstance(value, list) else [value] if isinstance(value, str) and value else []
+    return items if all(isinstance(item, str) for item in items) else None
 
 
-def current_task_text(task: dict, column: str, today: str) -> tuple[str, list[str]]:
-    """The task file with the keys /tasks defines (status = its column, owner, updated), and what changed."""
+def set_updated(out: list[list], today: str) -> None:
+    """`updated` is set on every change, moves included (commands/tasks.md)."""
+    updated = next((seg for seg in out if seg[0] == "updated"), None)
+    if updated is None:
+        after_created = next((n + 1 for n, seg in enumerate(out) if seg[0] == "created"), len(out))
+        out.insert(after_created, ["updated", [f"updated: {today}"]])
+    else:
+        updated[1] = [f"updated: {today}"]
+
+
+def task_text(task: dict, out: list[list]) -> str:
+    fm = [line for seg in out for line in seg[1]]
+    body = task["body"]
+    return task["bom"] + "\n".join(["---", *fm, "---"]) + ("\n" + body if body else "\n")
+
+
+def retargeted(old: list[str], new: list[str]) -> str:
+    return "blocked_by: " + ", ".join(f"{a} -> {b}" for a, b in zip(old, new) if a != b)
+
+
+def current_task_text(task: dict, column: str, today: str,
+                      blocked_by: list[str] | None = None) -> tuple[str, list[str]]:
+    """The task file with the keys /tasks defines (status = its column, owner, updated), and what changed.
+
+    The caller has checked that the task names at most one person (task_owners): that person becomes `owner`.
+    `blocked_by`, when given, replaces that key's entries (slugs this migration renamed)."""
+    owners = task_owners(task)
     has_owner = any(seg[0] == "owner" for seg in task["segs"])
     out: list[list] = []
     changed: list[str] = []
@@ -993,13 +1054,16 @@ def current_task_text(task: dict, column: str, today: str) -> tuple[str, list[st
             changed.append(f"{key} dropped")
             continue
         if key in ("assignee", "responsible"):
-            owner = owner_of(segment_value(lines))
-            if has_owner or owner is None:
+            if has_owner or not owners:  # the person is already the owner, or the key names nobody
                 changed.append(f"{key} dropped")
                 continue
-            out.append(["owner", emit_key("owner", owner)])
+            out.append(["owner", emit_key("owner", owners[0])])
             has_owner = True
             changed.append(f"{key} -> owner")
+            continue
+        if key == "blocked_by" and blocked_by is not None:
+            changed.append(retargeted(blocked_by_of(task) or [], blocked_by))
+            out.append([key, emit_key(key, blocked_by)])
             continue
         out.append([key, list(lines)])
     status = next((seg for seg in out if seg[0] == "status"), None)
@@ -1011,15 +1075,15 @@ def current_task_text(task: dict, column: str, today: str) -> tuple[str, list[st
         if segment_value(status[1]) != column:
             changed.append(f"status: {segment_value(status[1]) or '(empty)'} -> {column}")
         status[1] = [f"status: {column}"]
-    updated = next((seg for seg in out if seg[0] == "updated"), None)
-    if updated is None:  # set on every change, moves included
-        after_created = next((n + 1 for n, seg in enumerate(out) if seg[0] == "created"), len(out))
-        out.insert(after_created, ["updated", [f"updated: {today}"]])
-    else:
-        updated[1] = [f"updated: {today}"]
-    fm = [line for seg in out for line in seg[1]]
-    body = task["body"]
-    return task["bom"] + "\n".join(["---", *fm, "---"]) + ("\n" + body if body else "\n"), changed
+    set_updated(out, today)
+    return task_text(task, out), changed
+
+
+def retargeted_task_text(task: dict, blocked_by: list[str], today: str) -> str:
+    """A current task file with only its `blocked_by` entries (and `updated`) changed."""
+    out = [[key, emit_key(key, blocked_by) if key == "blocked_by" else list(lines)] for key, lines in task["segs"]]
+    set_updated(out, today)
+    return task_text(task, out)
 
 
 class LevelPlan:
@@ -1056,32 +1120,57 @@ class LevelPlan:
         self.changes.append({"path": self.rel(path), "action": "write", "summary": summary})
 
 
+def one_owner_or_report(plan: LevelPlan, path: Path, task: dict) -> bool:
+    """True when the task names at most one person. /tasks gives a task one `owner` (a roster handle), so a legacy
+    file naming several (assignee and responsible, or either beside an owner) is reported, never rewritten:
+    migrating it must not drop a person."""
+    people = task_owners(task)
+    if len(people) <= 1:
+        return True
+    plan.report.append({"path": plan.rel(path), "message": (
+        f"names {len(people)} people in owner / assignee / responsible ({', '.join(people)}), but a task has one "
+        "owner (/tasks); choose who owns it (the others can go into the notes), then rerun")})
+    return False
+
+
 def plan_tasks(plan: LevelPlan, today: str) -> None:
-    """Legacy task files -> tasks/{column}/{slug}.md with the current keys (commands/tasks.md)."""
+    """Legacy task files -> tasks/{column}/{slug}.md with the current keys (commands/tasks.md).
+
+    A slug is never renamed once written: a legacy file keeps its slug when /tasks would accept it as it is,
+    whatever its length, and only a name /tasks would not write becomes a new slug. When a move cannot keep the
+    name (invalid characters, a -N collision, or a legacy id the file no longer carries), the `blocked_by` entries
+    at this level that name the task follow it; an entry that could now mean two tasks is reported instead."""
     tasks_dir = plan.root / "tasks"
     if not tasks_dir.is_dir():
         return
     columns, default, archive, note = task_columns(tasks_dir)
     if note:
         plan.notes.append(note)
-    taken = {path.stem.lower() for folder in tasks_dir.iterdir() if folder.is_dir() for path in folder.glob("*.md")}
-    for column in columns:  # a file in its column folder that still carries legacy keys
+    # The slugs at this level after the migration (lowercase -> as written); the slug is the task's id here.
+    slugs = {path.stem.lower(): path.stem for folder in tasks_dir.iterdir() if folder.is_dir()
+             for path in folder.glob("*.md")}
+    entries: list[dict] = []  # the task files this run rewrites or moves, in the order they are planned
+    held: list[tuple[Path, dict]] = []  # legacy files left as they are (reported), still checked for blocked_by
+    for column in columns:  # files in their column folder: the folder is the column
         folder = tasks_dir / column
         for path in sorted(folder.glob("*.md")) if folder.is_dir() else []:
             task = read_task(path)
-            if task is None or not (task["conflict"] or LEGACY_TASK_KEYS & set(task["values"])):
+            if task is None:
                 continue
-            if task["conflict"]:
-                plan.report.append({"path": plan.rel(path), "message": "merge-conflict markers; resolve them, then rerun"})
+            if task["problem"]:
+                plan.report.append({"path": plan.rel(path), "message": TASK_PROBLEMS[task["problem"]]})
                 continue
-            text, changed = current_task_text(task, column, today)
-            plan.move(path, path, text, task["newline"], "current task keys: " + "; ".join(changed))
+            legacy = bool(LEGACY_TASK_KEYS & set(task["values"]))
+            if legacy and not one_owner_or_report(plan, path, task):
+                held.append((path, task))
+                continue
+            entries.append({"path": path, "dst": path, "task": task, "column": column, "legacy": legacy, "was": []})
     for path in sorted(p for p in tasks_dir.glob("*.md") if p.is_file()):  # flat {id}-{slug}.md files
         if path.name.lower() in NOT_TASK_FILES:
             continue
         task = read_task(path)
-        if task is None or task["conflict"]:
-            message = ("merge-conflict markers; resolve them, then rerun" if task else
+        if task is None or task["problem"]:
+            message = (TASK_PROBLEMS[task["problem"]] if task else
                        "not a task file (no frontmatter), so the board does not show it; move or remove it")
             plan.report.append({"path": plan.rel(path), "message": message})
             continue
@@ -1092,6 +1181,9 @@ def plan_tasks(plan: LevelPlan, today: str) -> None:
                                 f"of this board ({', '.join(columns)}); ask which column it belongs in, then "
                                 "/tasks --move moves it"})
             continue
+        if not one_owner_or_report(plan, path, task):
+            held.append((path, task))
+            continue
         legacy_id = values.get("id") if isinstance(values.get("id"), str) else ""
         stem = path.stem
         if legacy_id and stem.lower().startswith(legacy_id.lower() + "-"):
@@ -1099,14 +1191,62 @@ def plan_tasks(plan: LevelPlan, today: str) -> None:
         elif legacy_id and stem.lower() == legacy_id.lower():
             stem = ""
         title = values.get("title") if isinstance(values.get("title"), str) else ""
-        base = slugify(stem or title)
+        base = stem if VALID_SLUG.fullmatch(stem) else slugify(stem or title)
         slug, n = base, 2
-        while slug.lower() in taken:  # the slug is the task's id at this level
+        while slug.lower() in slugs:
             slug, n = f"{base}-{n}", n + 1
-        taken.add(slug.lower())
-        text, changed = current_task_text(task, column, today)
-        plan.move(path, tasks_dir / column / f"{slug}.md", text, task["newline"],
-                  "; ".join(["into its column folder", *changed]))
+        slugs[slug.lower()] = slug
+        was = [name for name in dict.fromkeys([stem, legacy_id, path.stem]) if name and name != slug]
+        entries.append({"path": path, "dst": tasks_dir / column / f"{slug}.md", "task": task, "column": column,
+                        "legacy": True, "was": was})
+
+    # The names a moved task leaves behind: each follows it, unless it may also name another task now.
+    meanings: dict[str, set[str]] = {}
+    for entry in entries:
+        for name in entry["was"]:
+            meanings.setdefault(name.lower(), set()).add(entry["dst"].stem)
+    renamed: dict[str, str] = {}
+    unclear: dict[str, list[str]] = {}
+    for name, targets in meanings.items():
+        if name in slugs and name not in {target.lower() for target in targets}:
+            targets = targets | {slugs[name]}  # a task at this level still carries that slug
+        if len(targets) == 1:
+            renamed[name] = next(iter(targets))
+        else:
+            unclear[name] = sorted(targets)
+
+    def follow(path: Path, task: dict) -> list[str] | None:
+        """The task's blocked_by with renamed slugs followed (None: nothing to change); unclear entries reported."""
+        items = blocked_by_of(task)
+        if not items:
+            return None
+        for item in items:
+            if item.lower() in unclear:
+                plan.report.append({"path": plan.rel(path), "message": (
+                    f"blocked_by names {item!r}, which may now mean {' or '.join(unclear[item.lower()])} (slugs changed "
+                    "in this migration); check which task it means and edit the entry")})
+        followed = [renamed.get(item.lower(), item) for item in items]
+        return followed if followed != items else None
+
+    for path, task in held:  # left as they are: say what their blocked_by should become
+        followed = follow(path, task)
+        if followed is not None:
+            plan.report.append({"path": plan.rel(path), "message": (
+                f"{retargeted(blocked_by_of(task) or [], followed)} (those tasks moved): edit the entries when you "
+                "fix this file")})
+    for entry in entries:
+        path, task, column = entry["path"], entry["task"], entry["column"]
+        followed = follow(path, task)
+        if entry["legacy"]:
+            text, changed = current_task_text(task, column, today, followed)
+            if entry["dst"] == path:
+                summary = "current task keys: " + "; ".join(changed)
+            else:
+                summary = "; ".join(["into its column folder", *changed])
+            plan.move(path, entry["dst"], text, task["newline"], summary)
+        elif followed is not None:
+            plan.move(path, path, retargeted_task_text(task, followed, today), task["newline"],
+                      retargeted(blocked_by_of(task) or [], followed))
 
 
 def is_ignored(plan: LevelPlan, name: str) -> bool:
@@ -1119,6 +1259,11 @@ def is_ignored(plan: LevelPlan, name: str) -> bool:
 
 
 def plan_level(plan: LevelPlan, today: str) -> None:
+    if plan.level == "hive" and not plan.is_repo:
+        # An older cache of copied files (phase-hive → Local hive cache): read-only here, and /hive --init
+        # replaces it with a clone after the person confirms. Nothing is planned for it.
+        plan.report.append({"path": plan.shown, "message": "not a git clone — /hive --init replaces it with a clone"})
+        return
     if not plan.is_repo:
         plan.notes.append("not a git repository: changes are written in place, there is nothing to commit")
     elif not plan.git:
@@ -1218,7 +1363,8 @@ def print_levels(result: dict) -> None:
         for note in level["notes"]:
             print(f"    note: {note}")
         if level["commit_paths"]:
-            print(f"    staged, not committed - commit exactly these paths: {' '.join(level['commit_paths'])}")
+            paths = " ".join(f'"{path}"' if " " in path else path for path in level["commit_paths"])
+            print(f"    staged, not committed - commit exactly these paths (commit_paths in --json): {paths}")
     levels = result["levels"]
     if not result["applied"] and any(lv["changes"] for lv in levels) and not any(lv["blocking"] for lv in levels):
         print("  run again with --apply to write these changes (git changes are staged, never committed or pushed)")
@@ -1255,6 +1401,7 @@ def run_levels(args: argparse.Namespace, home: Path, fail) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    sc.utf8_stdio()  # paths and task titles in any script survive a Windows pipe (the prose reads --json)
     ap = argparse.ArgumentParser(description="Migrate neuroflow's memory to the current contracts: the project "
                                              "(default), or your flowie and team hives. Dry run unless --apply.")
     ap.add_argument("--root", default=".", help="folder inside the project (default: current directory)")

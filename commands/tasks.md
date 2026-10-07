@@ -59,7 +59,7 @@ Free-form task notes below the frontmatter.
 - **`status` mirrors the folder.** If they disagree, the folder wins; fix `status` on the next write.
 - **`owner`** is a handle from the roster: `collaborators:` in `project_config.md`, the hive's `members.md`, or the person's own flowie handle. If a name does not match the roster, ask — never invent a handle or an email address.
 - **No machine-local paths** (`C:/Users/…`, `/home/…`) in task files: flowie and hive tasks sync to other machines and people. Refer to projects by name (`project:`), to files by repo-relative path.
-- **Legacy files** (`{id}-{slug}.md` flat in `tasks/`, or `id:` / `assignee:` / `responsible:` / `level:` keys) stay readable: read `assignee` or `responsible` as `owner` and `status` as the column (`archived` = `archive`). The next write to such a task moves it into its column folder under its slug and writes the keys above.
+- **Legacy files** (`{id}-{slug}.md` flat in `tasks/`, or `id:` / `assignee:` / `responsible:` / `level:` keys) stay readable: read `assignee` or `responsible` as `owner` and `status` as the column (`archived` = `archive`). The next write to such a task moves it into its column folder under its slug and writes the keys above. If `assignee`, `responsible` and `owner` name different people, ask who owns the task before that write — never drop a person. If its name has to change (a `-2` suffix, or a file name that is not a slug), update the `blocked_by` entries at that level that name it.
 
 ## Columns
 
