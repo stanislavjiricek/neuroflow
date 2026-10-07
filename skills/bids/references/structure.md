@@ -69,30 +69,30 @@ dataset/
 │   │   │   └── sub-XX_m0scan.nii.gz    ← optional M0 image
 │   │   │
 │   │   ├── eeg/                         ← electroencephalography
-│   │   │   ├── sub-XX_task-<label>_eeg.edf         ← or .set/.fif/.vhdr+.vmrk+.eeg
+│   │   │   ├── sub-XX_task-<label>_eeg.edf         ← or .bdf/.set(+.fdt)/.vhdr+.vmrk+.eeg
 │   │   │   ├── sub-XX_task-<label>_eeg.json        ← REQUIRED
-│   │   │   ├── sub-XX_task-<label>_channels.tsv    ← REQUIRED
+│   │   │   ├── sub-XX_task-<label>_channels.tsv    ← recommended
 │   │   │   ├── sub-XX_task-<label>_channels.json
 │   │   │   ├── sub-XX_task-<label>_events.tsv      ← recommended
 │   │   │   ├── sub-XX_task-<label>_events.json
-│   │   │   ├── sub-XX_task-<label>_coordsystem.json ← recommended
-│   │   │   └── sub-XX_electrodes.tsv               ← if electrode positions known
+│   │   │   ├── sub-XX_electrodes.tsv               ← if electrode positions known
+│   │   │   └── sub-XX_coordsystem.json             ← REQUIRED when electrodes.tsv exists
 │   │   │
 │   │   ├── meg/                         ← magnetoencephalography
-│   │   │   ├── sub-XX_task-<label>_meg.fif         ← or .ds/.raw.fif/etc.
+│   │   │   ├── sub-XX_task-<label>_meg.fif         ← native format: .fif, .ds/ (CTF), .sqd/.con (KIT), ...
 │   │   │   ├── sub-XX_task-<label>_meg.json        ← REQUIRED
-│   │   │   ├── sub-XX_task-<label>_channels.tsv    ← REQUIRED
+│   │   │   ├── sub-XX_task-<label>_channels.tsv    ← recommended
 │   │   │   ├── sub-XX_task-<label>_channels.json
 │   │   │   ├── sub-XX_task-<label>_events.tsv      ← recommended
-│   │   │   ├── sub-XX_task-<label>_coordsystem.json ← REQUIRED (landmark info)
+│   │   │   ├── sub-XX_coordsystem.json             ← optional (coordinate systems, landmarks)
 │   │   │   └── sub-XX_headshape.pos                ← optional digitized points
 │   │   │
 │   │   ├── ieeg/                        ← intracranial EEG (sEEG, ECoG, DBS)
-│   │   │   ├── sub-XX_task-<label>_ieeg.edf        ← or .vhdr/etc.
+│   │   │   ├── sub-XX_task-<label>_ieeg.edf        ← or .vhdr/.set/.nwb/.mefd
 │   │   │   ├── sub-XX_task-<label>_ieeg.json       ← REQUIRED
-│   │   │   ├── sub-XX_task-<label>_channels.tsv    ← REQUIRED
+│   │   │   ├── sub-XX_task-<label>_channels.tsv    ← recommended
 │   │   │   ├── sub-XX_task-<label>_events.tsv
-│   │   │   ├── sub-XX_electrodes.tsv               ← REQUIRED (electrode coords)
+│   │   │   ├── sub-XX_electrodes.tsv               ← REQUIRED (electrode coords and size)
 │   │   │   └── sub-XX_coordsystem.json             ← REQUIRED
 │   │   │
 │   │   ├── pet/                         ← positron emission tomography
@@ -171,9 +171,9 @@ dataset/
 | anat | `*_<suffix>.nii.gz`, `*_<suffix>.json` |
 | func | `*_bold.nii.gz`, `*_bold.json` (TaskName + RepetitionTime) |
 | dwi | `*_dwi.nii.gz`, `*_dwi.json`, `*_dwi.bval`, `*_dwi.bvec` |
-| eeg | `*_eeg.<ext>`, `*_eeg.json`, `*_channels.tsv` |
-| meg | `*_meg.<ext>`, `*_meg.json`, `*_channels.tsv`, `*_coordsystem.json` |
-| ieeg | `*_ieeg.<ext>`, `*_ieeg.json`, `*_channels.tsv`, `*_electrodes.tsv`, `*_coordsystem.json` |
+| eeg | `*_eeg.<ext>`, `*_eeg.json` (+ `*_coordsystem.json` when `*_electrodes.tsv` is present; `*_channels.tsv` recommended) |
+| meg | `*_meg.<ext>`, `*_meg.json` (`*_channels.tsv` recommended, `*_coordsystem.json` optional) |
+| ieeg | `*_ieeg.<ext>`, `*_ieeg.json`, `*_electrodes.tsv`, `*_coordsystem.json` (`*_channels.tsv` recommended) |
 | pet | `*_pet.nii.gz`, `*_pet.json` |
 | nirs | `*_nirs.<ext>`, `*_nirs.json`, `*_channels.tsv`, `*_optodes.tsv`, `*_coordsystem.json` |
 
@@ -246,9 +246,11 @@ derivatives/fmriprep/sub-01/anat/sub-01_space-MNI152NLin2009cAsym_res-2_desc-bra
 | Modality | Accepted formats |
 |----------|-----------------|
 | MRI (anat/func/dwi) | `.nii`, `.nii.gz` |
-| EEG | `.edf`, `.bdf`, `.set` (+.fdt), `.vhdr` (+.vmrk+.eeg), `.fif`, `.cnt`, `.mff` |
-| MEG | `.fif`, `.ds`, `.raw.fif`, `.sqd`, `.con`, `.kdf`, `.txt`, `.mef` |
-| iEEG | `.edf`, `.vhdr` (+.vmrk+.eeg), `.nwb`, `.mef` |
+| EEG | `.edf`, `.bdf`, `.set` (+.fdt), `.vhdr` (+.vmrk+.eeg) — convert `.fif`, `.cnt`, `.mff` to one of these |
+| MEG | the system's native format: `.fif` (Neuromag/Elekta/MEGIN), `.ds/` (CTF), BTi/4D folder, `.sqd`/`.con` (KIT/Yokogawa/Ricoh), `.kdf` (KRISS), `.raw`+`.mhd` (ITAB) |
+| iEEG | `.edf`, `.vhdr` (+.vmrk+.eeg), `.set` (+.fdt), `.nwb`, `.mefd` |
+
+EEG, MEG and iEEG rows checked against BIDS 1.11.2.
 | PET | `.nii`, `.nii.gz` |
 | NIRS | `.snirf`, `.nirs` |
 | Motion | `.tsv` (+ `.json` sidecar) |

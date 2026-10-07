@@ -73,6 +73,10 @@ Before running any script:
 
 **Intermittent disconnects**: Use `try/except TimeoutError` on all receive methods.
 
+### Stream health check
+
+When the Neon data reach LSL (for example through Pupil Labs' LSL relay), take a snapshot without writing code: `python <phase-tool-validate base dir>/scripts/lsl_check.py --stream <Neon stream name> --duration 10` reports the effective sampling rate, gaps, clock offset and latency (exit 1 = findings; with no streams found it prints the multicast/firewall hint). For a live view during setup, LabRecorder's stream list or mne-lsl's stream viewer is enough — nothing needs to run inside Claude Code while a participant is recorded.
+
 ## Multi-threaded Data Collection
 
 **Why threading is required**: All `receive_*()` methods block until data arrives or timeout expires. Single-threaded code would miss data from other streams while waiting. Threading enables parallel collection from multiple streams without blocking.

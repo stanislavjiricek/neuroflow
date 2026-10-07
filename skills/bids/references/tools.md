@@ -4,44 +4,45 @@
 
 ### Installation
 ```bash
-# Node.js CLI (recommended)
-npm install -g bids-validator
+# Schema validator (current) — pre-built binary from PyPI
+pip install bids-validator-deno          # command: bids-validator-deno
 
-# Python wrapper
-pip install bids-validator
-
-# Docker (no install needed)
-docker run -ti --rm -v /path/to/dataset:/data:ro \
-  bids/validator /data
+# or with Deno installed (no separate install step)
+deno run -ERWN jsr:@bids/validator /path/to/dataset
 ```
+
+The npm package `bids-validator` (1.x, Node.js) and the PyPI package `bids-validator` (a Python filename-checking library) are the legacy tools; the npm package is deprecated.
 
 ### Usage
 ```bash
 # Basic validation
-bids-validator /path/to/dataset
+bids-validator-deno /path/to/dataset
 
-# JSON output (parse errors programmatically)
-bids-validator --json /path/to/dataset > validation_results.json
+# JSON output (parse errors programmatically) — then digest it
+bids-validator-deno /path/to/dataset --json -o validation_results.json
+python <bids skill base dir>/scripts/bids_digest.py validation_results.json
 
-# Ignore specific error codes
-bids-validator --ignoreNiftiHeaders /path/to/dataset
+# Skip checks that need to open NIfTI headers (faster on large MRI datasets)
+bids-validator-deno /path/to/dataset --ignoreNiftiHeaders
 
-# Web tool (no install): https://bids-standard.github.io/bids-validator/
+# Web tool (no install; runs in the browser): https://bids-standard.github.io/bids-validator/
 ```
 
-### .bids-validator-config.json
-Place at dataset root to suppress known non-issues:
+`bids_digest.py` lists every issue code with its count and first locations, prints the dataset summary without participant metadata, and exits 0 = no errors, 1 = errors (`--strict`: warnings too), 2 = not validator JSON. It reads both the current and the legacy JSON layout.
+
+### Config file
+Pass a JSON file with `-c FILE` (`--config FILE`) to reclassify known non-issues:
 ```json
 {
   "ignore": [
     {"code": "JSON_KEY_RECOMMENDED", "location": "/T1w.json"},
-    "EMPTY_FILE",
-    {"code": "NOT_INCLUDED", "location": "/sourcedata"}
+    {"code": "NOT_INCLUDED", "location": "sourcedata/**"}
   ],
-  "warning": ["INCONSISTENT_COLUMNS"],
-  "error": []
+  "warning": [],
+  "error": [{"code": "NO_AUTHORS"}]
 }
 ```
+A `location` without a leading `/` is a gitignore-style pattern.
 
 ### Common error codes and fixes
 

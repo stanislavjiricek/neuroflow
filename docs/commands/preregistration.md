@@ -27,6 +27,7 @@ Claude reads your project memory (`.neuroflow/ideation/` and `.neuroflow/experim
 2. **Review pre-registration** — check an existing document for completeness and consistency
 3. **Deviation log** — record and justify any post-registration change to the plan
 4. **Link registered report** — record the DOI, URL, or registry ID of a submitted or accepted registered report
+5. **Freeze** — hash-lock the final pre-registration so the local copy cannot drift from what was registered
 
 ---
 
@@ -66,6 +67,8 @@ Claude asks which registry and template you are targeting:
 
     Structured for stage 1 submission to a journal. Claude asks for the target journal's specific section requirements.
 
+Every draft ends with a small machine-readable block (`yaml prereg-parameters`) that restates the plan: planned N, stopping rule, alpha, filters, epoch and baseline windows, ROIs, tests, exclusions, and the allocation seed if orders are counterbalanced. Later phases compare the analysis against it without parsing prose; the registered text stays authoritative.
+
 **Output:** `prereg-[registry]-[date].md` saved to `.neuroflow/preregistration/`
 
 ---
@@ -98,6 +101,17 @@ When something changes after registration, Claude records:
 
 ---
 
+## Freeze
+
+Once the pre-registration is final — at the latest when it goes to the registry — Claude shows what would be frozen and freezes it only after you confirm in that turn. `freeze.py` then:
+
+- records the SHA-256 of each frozen file, the registry, DOI and planned N in the frontmatter of `.neuroflow/preregistration/status.md` (`status: frozen`, `set_by: person`)
+- puts a banner on the first line of each frozen file, visible to collaborators in any editor: `> FROZEN 2026-10-01 — sha256 3f5a… — do not edit; record changes in deviations.md`
+
+`freeze.py verify` re-checks the hashes at any time (line endings and the banner do not count, so Windows and macOS copies agree). From then on the frozen files are never edited — every change goes to `deviations.md`. Unfreezing, for example to fix a typo before submission, is your decision only; it is logged in `deviations.md` with the old hashes. The registry copy remains the public record.
+
+---
+
 ## Example session
 
 ```
@@ -115,6 +129,7 @@ Claude: I found your research question from /ideation:
         2. Review existing pre-registration
         3. Log a deviation
         4. Link a registered report
+        5. Freeze the final pre-registration
 
 You: 1
 

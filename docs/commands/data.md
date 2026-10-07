@@ -19,6 +19,11 @@ title: /data
 
 ---
 
+## Before the steps — ethics and data access
+
+- **Ethics gate.** For data from your own participants, Claude first reads `.neuroflow/ethics/status.md`. If the approval is missing, expired, or was not confirmed by a person, intake stops and Claude says why and points to [`/ethics`](ethics.md). Public de-identified datasets and projects marked `ethics: not-applicable` are outside the gate.
+- **What the model may read.** `ai_processing` in the same file decides whether Claude may open participant-level files. With `none`, Claude looks at file names, sidecars and column names only, writes the scripts, and works from what they print in aggregate.
+
 ## Three steps
 
 Claude works through these in order:
@@ -30,6 +35,11 @@ Claude uses Glob and file inspection to understand your data:
 - How many subjects / sessions / runs
 - File formats present
 - Whether it looks BIDS-compliant already
+- Where it lives — a synced folder (OneDrive, Dropbox, iCloud Drive, Google Drive) or a network share gets a warning and a recommendation to work on a local copy
+- Which folders hold the original recordings — recorded as `raw_roots` in `project_config.md` (after asking), and read-only from then on
+- Whether it is a DataLad dataset — then `datalad get` / `run` / `unlock` / `rerun` are used instead of a parallel log
+- Collected vs planned participants (e.g. 18/48) when the preregistration records `planned_n`
+- That `participants.tsv` and file names hold pseudonyms only
 
 ```
 Claude: I found 24 subject folders (sub-01 through sub-24), each with:
@@ -52,9 +62,13 @@ Checks for BIDS compliance:
 - Required files (`dataset_description.json`, `participants.tsv`, `events.tsv`)
 - Sidecar JSON completeness
 
+If bids-validator is installed, its `--json` output is condensed by `bids_digest.py` into counts per issue code with the first locations — no issue code is dropped, and the full JSON is kept.
+
 If data is not in BIDS format, Claude asks whether you want to convert or proceed as-is.
 
 ### Step 3 — Convert
+
+Raw recordings are never modified: conversion reads from them and writes the BIDS copy elsewhere. BrainVision files are never renamed by hand — `.vhdr`, `.vmrk` and `.eeg` point to each other by name, so a renamed set breaks; MNE-BIDS writes the copy and fixes the pointers.
 
 Runs or writes conversion scripts for common cases:
 
@@ -105,12 +119,13 @@ Claude: I'll write a conversion script using mne_bids.write_raw_bids().
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/data/flow.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/data/flow.md`, `.neuroflow/ethics/status.md`, `.neuroflow/preregistration/status.md` |
 | Writes | `.neuroflow/data/`, `.neuroflow/data/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `scripts/` (conversion code) |
 
 ---
 
 ## Related commands
 
+- [`/ethics`](ethics.md) — the approval and `ai_processing` this command checks first
 - [`/experiment`](experiment.md) — the recording setup that generated this data
 - [`/data-preprocess`](data-preprocess.md) — the next step after data intake

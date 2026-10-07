@@ -55,9 +55,9 @@ my_fmri_study/
   "BIDSVersion": "1.11.1",
   "DatasetType": "raw",
   "License": "CC-BY-4.0",
-  "Authors": [{"name": "Jane Doe", "email": "jane@example.com"}],
-  "Funding": [{"Funder": "NIH", "Grant": "R01DA123456"}],
-  "EthicsApprovals": [{"Name": "IRB", "Reference": "IRB00012345"}]
+  "Authors": ["Jane Doe"],
+  "Funding": ["Example Research Council, grant GRANT-0001"],
+  "EthicsApprovals": ["University of Example ethics committee, EC-2026-014"]
 }
 ```
 
@@ -128,6 +128,7 @@ my_eeg_study/
   "Instructions": "Sit still and look at the fixation cross",
   "SamplingFrequency": 1000,
   "PowerLineFrequency": 50,
+  "SoftwareFilters": "n/a",
   "EEGReference": "FCz",
   "EEGGround": "AFz",
   "EEGChannelCount": 64,
@@ -155,7 +156,7 @@ F3	EEG	µV	1000	0.016	250	FCz	good
 VEOG	EOG	µV	1000	0.016	250	FCz	good
 HEOG	EOG	µV	1000	0.016	250	FCz	good
 ECG	ECG	µV	1000	0.016	250	FCz	good
-Trigger	STIM	V	1000	n/a	n/a	n/a	good
+Trigger	TRIG	V	1000	n/a	n/a	n/a	good
 ```
 
 ---
@@ -183,6 +184,8 @@ my_meg_study/
   "TaskDescription": "Auditory oddball paradigm",
   "SamplingFrequency": 600,
   "PowerLineFrequency": 50,
+  "DewarPosition": "upright",
+  "SoftwareFilters": "n/a",
   "MEGChannelCount": 102,
   "MEGREFChannelCount": 0,
   "EEGChannelCount": 0,
@@ -190,7 +193,7 @@ my_meg_study/
   "ECGChannelCount": 1,
   "RecordingDuration": 600.0,
   "RecordingType": "continuous",
-  "Manufacturer": "Elekta",
+  "Manufacturer": "Neuromag/Elekta/MEGIN",
   "ManufacturersModelName": "Neuromag VectorView",
   "DigitizedLandmarks": true,
   "DigitizedHeadPoints": true
@@ -222,6 +225,7 @@ my_ieeg_study/
   "TaskName": "rest",
   "SamplingFrequency": 30000,
   "PowerLineFrequency": 60,
+  "SoftwareFilters": "n/a",
   "iEEGReference": "intracranial",
   "SEEGChannelCount": 128,
   "ECGChannelCount": 1,
@@ -257,19 +261,20 @@ from pathlib import Path
 
 bids_root = Path('/path/to/bids_dataset')
 
-# 1. Validate
+# 1. Validate (schema validator, see tools.md; for a compact summary use scripts/bids_digest.py)
 result = subprocess.run(
-    ['bids-validator', str(bids_root), '--json'],
+    ['bids-validator-deno', str(bids_root), '--json'],
     capture_output=True, text=True
 )
 import json
 validation = json.loads(result.stdout)
-errors = [i for i in validation.get('issues', {}).get('errors', [])]
+issues = validation['issues']['issues']  # the legacy 1.x validator used issues.errors / issues.warnings
+errors = [i for i in issues if i.get('severity', 'error') == 'error']
 if errors:
     for e in errors:
-        print(f"ERROR {e['key']}: {e['reason']}")
+        print(f"ERROR {e['code']}: {e.get('location', '')}")
 else:
-    print("Dataset is BIDS-valid")
+    print("No validator errors")
 
 # 2. Build layout
 layout = BIDSLayout(bids_root, derivatives=True)
