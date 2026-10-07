@@ -92,8 +92,10 @@ Current: data-analyze — analysis
 
 ## Settings
 
-Set them in Claude Code's plugin configuration (`/plugin` → neuroflow → configure) or in settings under
-`pluginConfigs`. Values are per user; per-project facts stay in `.neuroflow/`.
+Set them in Claude Code's plugin configuration (`/plugin` → neuroflow → configure, or `/config`) or in your user
+settings (`~/.claude/settings.json`) under `pluginConfigs` → `neuroflow` → `options`; a settings file passed with
+`--settings` works too. Claude Code does not read plugin options from a project's settings. Values are per user;
+per-project facts stay in `.neuroflow/`.
 
 | Setting | Values | Default | What it does |
 |---|---|---|---|
