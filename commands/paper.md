@@ -103,6 +103,7 @@ if REJECTED (3rd rejection) → halt loop for this section
 Rounds 2 and 3 resume the agents that already worked on the section: `SendMessage` the critic's feedback to the same `paper-writer` agent id, and the revised draft to the same `paper-critic` agent id. If resuming fails or is unavailable, spawn fresh with the Revision-mode prompt (`neuroflow:worker-critic` → Revision mode). The 3-round cap does not change.
 
 **After each section verdict — immediately, before moving to the next section:**
+- Give the person the critique summary: the verdict, the rounds it took and, for a halted section, the unresolved items. Relay every finding the critic tagged `Figure (Area 8, advisory)` in any round of the section, as the critic wrote it, and say whether it saw the figure files or only the captions. These findings never block a verdict and the writer does not fix figure files, so the person decides: a problem inside a figure is fixed in the plotting code through the `/data-analyze` figure check (a row in `.neuroflow/data-analyze/figure-notes.md`), a caption problem in the section text on request
 - Append a session line: `## HH:MM — [paper] {Section}: approved after {N} round(s)` (or `halted at v3`)
 - If any editorial or framing decision was made (target journal confirmed, outline approved, scope narrowed, section order changed), append it to `.neuroflow/reasoning/paper.jsonl`
 

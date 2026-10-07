@@ -106,6 +106,8 @@ The `paper-critic` agent applies the full `neuroflow:review-neuro` eight-area me
 | Literature Gap | Missing citations vs local paper library and the manuscript's own references |
 | Figure Review | Figure citations, panel completeness, axes/units/error bars, statistical annotations |
 
+Figure Review findings are advisory: they never block a verdict, and you see them in the critique summary after each section — fix a figure in its plotting code through the [`/data-analyze`](data-analyze.md) figure check. A figure that contradicts the text or the statistics is a blocking Internal Consistency or Statistics item instead.
+
 A section is approved only if it would survive peer review at a top-tier neuroscience journal. The bar is not "acceptable draft" — it is "ready for submission".
 
 ---
