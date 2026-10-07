@@ -10,6 +10,8 @@ which is `nf_check.py` / `/sentinel`):
 - the project does not live on a network share or inside a cloud-synced folder
 - project_config.md uses the current contract (frontmatter + nf_schema) — else /neuroflow:migrate
 - .gitignore keeps the local-only paths out of git; .gitattributes merges append-only logs
+- the person's flowie, when it is set up: commits in ~/.neuroflow/flowie not pushed to its upstream, and
+  auto-sync failures waiting in ~/.neuroflow/flowie-sync.log — /neuroflow:flowie --sync resolves both
 
 Usage:
     python doctor.py [--project PATH] [--json]
@@ -162,15 +164,49 @@ def check_git_files(checks: list[dict], project: Path) -> None:
         check(checks, "gitattributes", "info", "append-only logs are not set to merge=union — two people's log lines may conflict (/neuroflow:migrate adds it)")
 
 
+def check_flowie(checks: list[dict], home: Path | None) -> None:
+    """The person's flowie (optional): commits not pushed, and auto-sync failures waiting in the log.
+
+    Says nothing when flowie is not set up. The unpushed count needs a git repository with an upstream
+    and compares with the last fetched state of it (no network)."""
+    if home is None:
+        return
+    flowie = home / ".neuroflow" / "flowie"
+    if not flowie.is_dir():
+        return
+    if shutil.which("git") is not None and (flowie / ".git").exists():
+        code, out = run(["git", "rev-list", "--count", "@{u}..HEAD"], cwd=flowie)
+        if code == 0 and out.strip().isdigit():
+            ahead = int(out.strip())
+            if ahead > 0:
+                check(checks, "flowie-unpushed", "warn", f"{ahead} flowie commit(s) not pushed to your private repo — run /neuroflow:flowie --sync")
+            else:
+                check(checks, "flowie-unpushed", "ok", "flowie: everything committed is pushed")
+    log = home / ".neuroflow" / "flowie-sync.log"
+    try:
+        failures = [line.strip() for line in log.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
+    except OSError:
+        return  # no log: nothing failed (or nothing to read)
+    if failures:
+        first = failures[0].split()[0]
+        since = f" since {first}" if re.match(r"\d{4}-\d{2}-\d{2}", first) else ""
+        check(checks, "flowie-sync-log", "warn", f"{len(failures)} flowie auto-sync failure(s){since} in ~/.neuroflow/flowie-sync.log — run /neuroflow:flowie --sync to resolve")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--project", default=".", help="project root (the folder holding .neuroflow/)")
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
+    parser.add_argument("--home", help=argparse.SUPPRESS)  # tests only: stands in for the home directory
     args = parser.parse_args(argv)
     project = Path(args.project).resolve()
     if not project.is_dir():
         print(f"not a folder: {project}", file=sys.stderr)
         return 2
+    try:
+        home: Path | None = Path(args.home) if args.home else Path.home()
+    except RuntimeError:  # no home directory can be determined: the flowie checks are skipped
+        home = None
     checks: list[dict] = []
     now = time.time()
     check_tools(checks)
@@ -178,6 +214,7 @@ def main(argv: list[str] | None = None) -> int:
     check_config(checks, project)
     check_git(checks, project, now)
     check_git_files(checks, project)
+    check_flowie(checks, home)
     if args.json:
         print(json.dumps({"project": str(project), "checks": checks}, indent=1))
     else:

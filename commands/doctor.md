@@ -1,11 +1,13 @@
 ---
 name: doctor
-description: Health check of the setup around a neuroflow project — Python, git, Claude Code version, whether the neuroflow mod is live, backups (unpushed commits, last commit, remote), network or cloud-synced locations, and whether the config and git files follow the current contracts.
+description: Health check of the setup around a neuroflow project — Python, git, Claude Code version, whether the neuroflow mod is live, backups (unpushed commits, last commit, remote, and your flowie's sync state), network or cloud-synced locations, and whether the config and git files follow the current contracts.
 phase: utility
 reads:
   - .neuroflow/project_config.md
   - .gitignore
   - .gitattributes
+  - ~/.neuroflow/flowie/           # git state only: commits not pushed
+  - ~/.neuroflow/flowie-sync.log
   - skills/neuroflow-core/scripts/doctor.py
 writes: []
 lifecycle: light
@@ -35,8 +37,8 @@ to the reasons in `docs/concepts/mods.md` → "When the mod is not running".
 2. Print one line per check, glyph first (`✔` ok, `·` info, `⚠` warning, `✖` failure), then the mod line:
    "⚠ neuroflow mod not live in this session" (this prose only runs when the mod did not answer).
 3. For each warning, name the fix in one line: `/neuroflow:migrate` for config and git-file contracts, `git push` or
-   adding a remote for backups, moving the project to a local disk for network or synced folders, updating Claude Code
-   for an old version.
+   adding a remote for backups, `/neuroflow:flowie --sync` for unpushed flowie commits or logged flowie sync failures,
+   moving the project to a local disk for network or synced folders, updating Claude Code for an old version.
 
 The checks it runs:
 
@@ -48,5 +50,6 @@ The checks it runs:
 | network share or cloud-synced folder | sync and shares corrupt or duplicate files written mid-sync |
 | `project_config.md` frontmatter and `nf_schema` | the mod and the scripts read the current contract |
 | `.gitignore` local-only paths, `.gitattributes` union merge | keeps private files out of git and makes append-only logs merge cleanly |
+| your flowie, if set up: commits in `~/.neuroflow/flowie` not pushed to its upstream, failures in `~/.neuroflow/flowie-sync.log` (count and first timestamp) | profile, task and wiki changes that never reached your private repo exist on this machine only — `/neuroflow:flowie --sync`; nothing is reported when flowie is not set up |
 
 This command writes nothing, so it adds no session line.

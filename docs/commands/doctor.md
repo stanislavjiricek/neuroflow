@@ -19,6 +19,7 @@ the neuroflow mod is live.**
 | network share or cloud-synced folder | sync and shares corrupt or duplicate files written mid-sync |
 | `project_config.md` frontmatter and `nf_schema` | the mod and the scripts read the current contract |
 | `.gitignore` and `.gitattributes` | local-only files stay out of git; append-only logs merge cleanly |
+| your flowie, if set up: unpushed commits, failures in `~/.neuroflow/flowie-sync.log` (count and first timestamp) | changes that never reached your private repo exist on this machine only — [`/flowie --sync`](flowie.md) resolves both; nothing is reported without flowie |
 
 ## Is the mod live?
 
