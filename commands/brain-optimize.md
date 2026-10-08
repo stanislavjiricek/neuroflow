@@ -25,7 +25,7 @@ next:
 
 # /brain-optimize
 
-Read the `neuroflow:phase-brain-optimize` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/brain-optimize/flow.md` before starting. Also check `.neuroflow/brain-build/` for the existing model spec and code location.
+Read the `neuroflow:phase-brain-optimize` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/brain-optimize/flow.md` before starting. Also check `.neuroflow/brain-build/` for the existing model spec and code location.
 
 **Earlier runs first:** if `.neuroflow/brain-optimize/runs.md` exists, check it (`python <skill base dir>/../phase-brain-run/scripts/runs.py check --file .neuroflow/brain-optimize/runs.md`; exit 1 = something finished or failed) and inspect finished sweeps before starting new ones.
 

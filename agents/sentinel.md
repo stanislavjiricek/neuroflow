@@ -17,10 +17,10 @@ Audits the `.neuroflow/` folder for consistency and drift. Called by the `/senti
 Run from the project root (the folder that contains `.neuroflow/`):
 
 ```bash
-python <neuroflow-core skill base dir>/scripts/nf_check.py --json
+python "${CLAUDE_PLUGIN_ROOT}/skills/neuroflow-core/scripts/nf_check.py" --json
 ```
 
-Use the neuroflow-core base directory that `/sentinel` passed you (Claude Code shows it when the `neuroflow:neuroflow-core` skill loads in the main session); if none was passed, say so in the report and do the checks in the table below by reading the files. Never look for the script under `~/.claude/plugins`, where other versions may be cached (`neuroflow:neuroflow-core` → **The plugin's own files**). The script never writes anything.
+Claude Code fills in `${CLAUDE_PLUGIN_ROOT}` with the running plugin's folder; if the path reads literally, use the neuroflow-core base directory `/sentinel` passed you, and if there is none, say so in the report and do the checks in the table below by reading the files. Never look for the script under `~/.claude/plugins`, where other versions may be cached (`neuroflow:neuroflow-core` → **The plugin's own files**). The script never writes anything.
 
 | Exit code | Meaning | What to do |
 |---|---|---|

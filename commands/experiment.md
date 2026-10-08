@@ -24,7 +24,7 @@ next:
 
 # /experiment
 
-Read the `neuroflow:phase-experiment` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/experiment/flow.md` before starting. Also check `.neuroflow/ideation/` for research question and hypothesis.
+Read the `neuroflow:phase-experiment` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/experiment/flow.md` before starting. Also check `.neuroflow/ideation/` for research question and hypothesis.
 
 ## Ground rules
 

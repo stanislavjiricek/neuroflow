@@ -53,7 +53,7 @@ PROBES = {
     ".neuroflow/sessions/": ".neuroflow/sessions/nf-probe.md",
     ".neuroflow/review/": ".neuroflow/review/nf-probe.md",
     ".neuroflow/integrations.json": ".neuroflow/integrations.json",
-    ".neuroflow/flowie/": ".neuroflow/flowie/nf-probe.md",
+    ".neuroflow/flowie/": ".neuroflow/flowie/nf-probe.md",  # the legacy project-level folder the gitignore keeps out
     ".neuroflow/paper/xray-*": ".neuroflow/paper/xray-nf-probe.jsonl",
     ".neuroflow/wiki/.pending/": ".neuroflow/wiki/.pending/nf-probe.md",
 }

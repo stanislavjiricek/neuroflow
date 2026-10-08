@@ -23,7 +23,8 @@ next:
 Shows the project at a glance. It changes nothing.
 
 **With the neuroflow mod active**, this command never reaches the model: the mod opens the dashboard as a pane drawn
-by code (tabs `p` phase · `d` deadlines · `i` integrity · `t` tasks · `l` loop, `s` to switch phase, `c` to close) and
+by code (tabs `p` phase · `d` deadlines · `i` integrity · `t` tasks · `l` loop, `s` to switch phase, `m` to run
+`/neuroflow:migrate` when the project is behind the installed neuroflow, `c` to close) and
 keeps it current as files change. `/neuroflow:dashboard loop` opens it on a tab. On the integrity tab the person can
 freeze the preregistration (`f`, after an explicit yes), re-check its hashes (`v`) or unfreeze it with a reason (`u`) —
 the same `freeze.py` calls as `/preregistration` → Freeze, recorded as the person's action. The rest of this file is
@@ -31,7 +32,7 @@ what runs without the mod.
 
 ## Steps
 
-1. Read `.neuroflow/project_config.md` (frontmatter per neuroflow-core → C1). If `.neuroflow/` does not exist, follow
+1. Read `.neuroflow/project_config.md` (frontmatter per neuroflow-core → **project_config.md — the config contract**). If `.neuroflow/` does not exist, follow
    the neuroflow-core missing-project rule and stop.
 2. Render one compact block, in this order, each section a few lines at most:
 
@@ -58,7 +59,7 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
    - **Dates**: future rows of `.neuroflow/timeline.md` (`| YYYY-MM-DD | what | phase it gates |`), plus the ethics
      expiry; `⚠` within 3 days, `▸` within 14, `·` later.
    - **Integrity**: the frontmatter of `.neuroflow/ethics/status.md` and `.neuroflow/preregistration/status.md`
-     (neuroflow-core → C2). A `frozen` or `approved` marker whose `set_by` is not `person` is shown with `?` and the
+     (neuroflow-core → **Integrity markers**). A `frozen` or `approved` marker whose `set_by` is not `person` is shown with `?` and the
      words "not set by a person".
    - **Tasks**: the number of task files per column of `.neuroflow/tasks/`.
    - **Loop**: each row of the phases' `autoresearch-loops.md`; for a running loop, the `Running` column of its

@@ -21,7 +21,7 @@ produces:
 
 **This command owns the task board.** The 3-tier task model has exactly one canonical spec — this file. `/flowie --tasks`, `/hive --tasks`, and `/meeting` action-item conversion follow the rules here; they must not define their own board behavior or task format.
 
-Follow the `neuroflow:neuroflow-core` lifecycle (open with its version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`, step 3; and the missing-`.neuroflow/` rule — for `--level project` without `.neuroflow/`, offer `/neuroflow` first).
+Follow the `neuroflow:neuroflow-core` lifecycle (open with its version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3), and the missing-`.neuroflow/` rule — for `--level project` without `.neuroflow/`, offer `/neuroflow` first).
 
 ## Levels
 

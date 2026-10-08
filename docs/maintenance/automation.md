@@ -227,7 +227,7 @@ python scripts/automation/post_discussion.py \
 - The `daily-maintenance` and `research-radar` workflows use minimal permissions (`contents: read`, `discussions: write`).
 - The `sentinel-dev` workflow additionally needs `contents: write` and `pull-requests: write` to create fix branches and open PRs.
 - `validate` only reads (`contents: read`); `mod-canary` adds `issues: write` to open its issue; `deploy-docs` needs `pages: write` and `id-token: write` to publish the site.
-- The report workflows call no external service except `api.github.com`. The others install their tools — Python packages from PyPI, Claude Code from npm — and the docs deploy publishes to GitHub Pages.
+- Every workflow installs its tools first — Python packages from PyPI, and Claude Code from npm where it is needed. At run time the report workflows call no external service except `api.github.com`, and the docs deploy publishes to GitHub Pages.
 
 ---
 

@@ -44,7 +44,7 @@ One markdown file per task at `tasks/{column}/{slug}.md` — the folder is the c
 
 Frontmatter: `title`, `status` (always the column), optional `owner`, `due`, `phase`, `tags`, `blocked_by`, then `created`, `updated`, and at flowie/hive level `project`. Tasks created from meeting action items carry a `source:` pointing at the meeting file (e.g. `project:meetings/2026-08-12-lab-meeting.md`). Owners are roster handles — never invented — and task files never contain machine-local paths.
 
-Older task files (`{id}-{slug}.md`, `assignee:` or `responsible:`) stay readable and are moved into the new layout, under the same slug, the next time they are written. If one names two people, you are asked who owns the task first, so nobody is dropped.
+Older task files (`{id}-{slug}.md`, `assignee:` or `responsible:`) stay readable and are moved into the new layout the next time they are written, under the same slug when `/tasks` accepts it. If one names two people, you are asked who owns the task first, so nobody is dropped.
 
 ---
 

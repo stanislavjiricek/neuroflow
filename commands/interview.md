@@ -30,7 +30,7 @@ Ask with `AskUserQuestion`: **"Are you the interviewer or the interviewee?"** (*
 
 ## Step 2 — Read context
 
-If `.neuroflow/project_config.md` exists, read it (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — `neuroflow:neuroflow-core` → **Command lifecycle**, step 3). Extract:
+If `.neuroflow/project_config.md` exists, read it (and open with the version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — `neuroflow:neuroflow-core` → **Command lifecycle**, step 3). Extract:
 
 - Research question or topic
 - Modality (EEG, fMRI, eye tracking, etc.)

@@ -200,7 +200,7 @@ The ids come from the rule table in neuroflow-core. A guard cites the id it enfo
 7. Bump the patch version in **all four places** (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is) with `python scripts/automation/bump_version.py` (`--dry-run` shows the change first; `--sync` repairs drift without bumping). It rewrites only the version strings:
    - `.claude-plugin/plugin.json` → `version` field
    - `.claude-plugin/marketplace.json` → `plugins[].version` field
-   - `.neuroflow/project_config.md` → `plugin_version` (the plugin's own project memory; the `Plugin version:` line in the legacy dialect)
+   - `.neuroflow/project_config.md` → `plugin_version` (the plugin's own project memory; the `Plugin version:` line in the legacy dialect). This is the one writer besides the scaffold and `/neuroflow:migrate` (neuroflow-core → the config contract): when a memory format changed in the release, run `/neuroflow:migrate` on the repo first
    - `mkdocs.yml` → `extra.version` field
 8. Run `python scripts/automation/validate_pr.py --base origin/main` and `python -m unittest discover -s tests -p "test_*.py"` — CI runs both on the PR (`validate.yml`). Run sentinel-dev for the checks that need judgement.
 9. Commit and push to GitHub:

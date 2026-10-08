@@ -12,7 +12,7 @@ lifecycle: light
 
 # /git
 
-Read the `neuroflow:phase-git` skill first. Then read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — `neuroflow:neuroflow-core` → **Command lifecycle**, step 3) and `flow.md` if they exist (they may not — `/git` works in any repo, not only neuroflow projects).
+Read the `neuroflow:phase-git` skill first. Then read `project_config.md` (and open with the version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — `neuroflow:neuroflow-core` → **Command lifecycle**, step 3) and `flow.md` if they exist (they may not — `/git` works in any repo, not only neuroflow projects).
 
 ## What this command does
 

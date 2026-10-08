@@ -30,7 +30,7 @@ Project-level shared knowledge base. Lives at `.neuroflow/wiki/`, git-tracked in
 - `/flowie --wiki-*` — personal wiki (private, in flowie repo)
 - `/hive --wiki-*` — team wiki (lab-wide, in hive repo)
 
-Read the `neuroflow:wiki-protocol` skill first with `level: project`. Then follow the neuroflow-core lifecycle — open with its version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3).
+Read the `neuroflow:wiki-protocol` skill first with `level: project`. Then follow the neuroflow-core lifecycle — open with its version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3).
 
 ---
 

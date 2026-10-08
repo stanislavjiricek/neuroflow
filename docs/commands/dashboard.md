@@ -22,7 +22,8 @@ terminal, or inline above the prompt otherwise. It stays current as files change
 | `t` | **Tasks** — task files per board column |
 | `l` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions; `r` refreshes |
 
-`/neuroflow:dashboard loop` opens it on a tab. The one-line band above the prompt opens it with `d`.
+`/neuroflow:dashboard loop` opens it on a tab. The one-line band above the prompt opens it with `d`. When the project is on an
+older neuroflow than the one installed, an `Update` line sits under the title and `m` runs [`/neuroflow:migrate`](migrate.md).
 
 Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader.
 
@@ -30,7 +31,7 @@ Every symbol comes with a word, so the dashboard reads correctly without colour 
 
 The same overview is printed once as a compact text block, read from the same files. Nothing is written. When the
 project is on an older neuroflow version than the one installed, an `Update` line names [`/neuroflow:migrate`](migrate.md);
-with the mod, the band above the prompt says the same.
+with the mod, the band above the prompt and the dashboard pane say the same.
 
 ---
 

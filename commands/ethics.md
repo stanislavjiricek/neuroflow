@@ -21,7 +21,7 @@ next:
 
 # /ethics
 
-Follow the `neuroflow:neuroflow-core` lifecycle — open with its version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3). Ethics approval is a **hard gate** for human neuroscience — no data collection may begin before it, and expired approvals invalidate ongoing collection. This command makes that gate visible.
+Follow the `neuroflow:neuroflow-core` lifecycle — open with its version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3). Ethics approval is a **hard gate** for human neuroscience — no data collection may begin before it, and expired approvals invalidate ongoing collection. This command makes that gate visible.
 
 Everything lives in the standard `.neuroflow/ethics/` root folder, with a `status.md` as the single source of truth.
 
@@ -83,7 +83,7 @@ Every file the model reads, and every command output it sees, is sent to the mod
 | `identifiable` | Identifiable data, as far as the approval covers this provider and route. Still only what the task needs. |
 
 <!-- nf-rule: PARTICIPANT-ROUTE -->
-**Participant data is read by the model only if `ai_processing` allows it.** A project marked `ethics: not-applicable` declares that it holds no participant data to protect, so the rule (and the mod's PARTICIPANT-ROUTE guard) does not apply there — the flag is for public de-identified data and simulations only. When reading is not allowed, write the script, let the person run it, and work from its aggregate output. With `none`, offer to add the raw folders (e.g. `Read(./sourcedata/**)`) to `permissions.deny` in the project's `.claude/settings.json`: a seatbelt for the Read tool, not a vault, because shell commands and scripts can still print rows.
+**Participant data is read by the model only if `ai_processing` allows it.** A project marked `ethics: not-applicable` declares that it holds no participant data to protect, so the rule (and the mod's PARTICIPANT-ROUTE guard) does not apply there — the flag is for public de-identified data and simulations only, and only the person sets it: suggest it if it fits, and write it only after their explicit yes in that turn, with a line in `reasoning/general.jsonl`. When reading is not allowed, write the script, let the person run it, and work from its aggregate output. With `none`, offer to add the raw folders (e.g. `Read(./sourcedata/**)`) to `permissions.deny` in the project's `.claude/settings.json`: a seatbelt for the Read tool, not a vault, because shell commands and scripts can still print rows.
 
 ## Participant erasure (`--erase`)
 
