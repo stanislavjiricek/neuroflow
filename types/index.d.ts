@@ -149,13 +149,66 @@ export type NfLoopView = {
 
 export type NfDashboardTab = 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
 
-export type NfCard = { slug: string; title: string; owner: string | null; due: string | null; overdue: boolean }
+export type NfCard = {
+  slug: string
+  title: string
+  owner: string | null
+  due: string | null
+  overdue: boolean
+  /** The task's `project:` (flowie and hive levels), null when it names none. */
+  project: string | null
+  /** The task belongs to this project: every task at project level, a matching `project:` elsewhere. */
+  isMine: boolean
+}
 
-/** The project task board as the board pane draws it (commands/tasks.md format). */
+/** One level's task board as the board pane draws it (commands/tasks.md format). */
 export type NfBoard = {
   columns: { id: string; label: string; cards: NfCard[]; total: number }[]
   done: number
   archived: number
+}
+
+/** One task board level (commands/tasks.md → Levels), read from the local files as they are. */
+export type NfTaskLevel = {
+  /** `project`, `flowie`, or `hive:{folder}`: what the board pane switches by. */
+  id: string
+  kind: 'project' | 'flowie' | 'hive'
+  /** What the views call it: `project`, `flowie`, or the hive's folder under ~/.neuroflow/hives/. */
+  name: string
+  /** Open tasks: every column but done and the archive ones. */
+  open: number
+  /** Open tasks that belong to this project (all of them at project level). */
+  mine: number
+  board: NfBoard
+  /** The level's first open cards: this project's first, overdue first, then by due date. */
+  top: NfCard[]
+}
+
+/** The task boards of every level, for the dashboard's tasks tab and the board pane. */
+export type NfTaskView = {
+  /** The flowie project this folder is linked to (local-projects.json, else projects.json), or null. */
+  linkedProject: string | null
+  /** Project first, then flowie, then the hives (those user.yaml lists first, the rest alphabetically). */
+  levels: NfTaskLevel[]
+}
+
+/** A flowie sync the mod queued (in $.store): the files it wrote there and the commit message. */
+export type NfFlowieSyncEntry = {
+  /** Paths inside the flowie repository, forward slashes. */
+  paths: string[]
+  message: string
+  /** When it was last queued; a sync that ran from an older copy of the queue leaves it queued. */
+  at: number
+}
+
+/** What the band shows about the mod's flowie syncs. */
+export type NfFlowieSync = {
+  /** Commit messages of the syncs still waiting, oldest first. */
+  pending: string[]
+  /** The last attempt's outcome when it did not go through (`push failed: …`); null after a clean sync. */
+  failure: string | null
+  /** After a failure no new attempt runs until something new is queued, a new session or /neuroflow:flowie. */
+  isHeld: boolean
 }
 
 export type NfReasoningBaseline = { path: string; lines: number }
@@ -205,6 +258,8 @@ declare module 'claude-code' {
       statusAlerts: string[]
       /** Since when a quiet command (`lifecycle: quiet`, e.g. /idk) holds the mod's own UI silent; null when not. */
       quietSince: number | null
+      /** The mod's own flowie syncs: queued by the wellbeing band (views) and the idea capture, run by capture. */
+      flowieSync: NfFlowieSync
       // Feature slices: each feature file owns the keys between its markers.
       // <feature:context>
       /** Page titles and one-line summaries of the initialized wikis (index.md rows), for prompt-time lookups. */
@@ -235,7 +290,10 @@ declare module 'claude-code' {
       loopView: NfLoopView | null
       /** A line the phase picker shows (e.g. why it could not switch). */
       pickerNote: string | null
-      board: NfBoard | null
+      /** Every level's task board, read when the dashboard's tasks tab or the board pane opens (null until then). */
+      taskView: NfTaskView | null
+      /** The level the board pane shows (an NfTaskLevel id); null picks one as the pane opens. */
+      boardLevel: string | null
       /** The task card picked on the board, to move it. */
       boardPick: string | null
       // </feature:views>

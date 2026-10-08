@@ -3,20 +3,26 @@
 //  - M157: after a command's turn, its first `next:` command is proposed as the next prompt (ghost text)
 //  - M034: a scholar run's closing [REPORT downloaded=… files=… stubs=…] line is checked against the disk
 //  - M101: a reminder when pinned literature queries in .neuroflow/ideation/watch.md go unchecked for a week
-// Zero-turn note and idea capture (M104, M149) and the citation trigger (M030, G107, G101) live here too.
+// Zero-turn note and idea capture (M104, M149) and the citation trigger (M030, G107, G101) live here too, and
+// the mod's own flowie syncs: the queue the idea capture and the wellbeing band fill (lib/flowiesync.ts) is run
+// here, from hook dispatches only — the capture's own, a main-loop turn's end and the session's start.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
+import type { NfFlowieSyncEntry } from '../../../types'
+import { NO_SYNC, SYNC_QUEUE, afterFlush, asQueue, enqueue, flushFlowie, isSettled, syncState } from '../lib/flowiesync'
+import type { FlushResult } from '../lib/flowiesync'
 import { asList, parseYamlSubset, splitFrontmatter } from '../lib/frontmatter'
 import type { NfIo } from '../lib/io'
 import { appendLine, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
-import { join } from '../lib/paths'
+import { join, toSlash } from '../lib/paths'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
 const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
 const captureAtom = atom({ plugin: 'neuroflow', key: 'capture' } as const, null)
+const flowieSyncAtom = atom({ plugin: 'neuroflow', key: 'flowieSync' } as const, NO_SYNC)
 
 /** The flag a /notes or /meeting --notes live capture writes (phase-notes → Live capture); empty = off. */
 export const CAPTURE_FLAG = '.neuroflow/notes/.capturing'
@@ -132,27 +138,44 @@ const ioOf = ($: EngineInterface): NfIo => ({
 const keysOf = async ($: EngineInterface, name: string): Promise<CommandKeys> =>
   commandKeys(await ioOf($).read(join($.plugin.root, 'commands', `${name}.md`)))
 
+/** Queues a sync of files the mod wrote into the flowie (lib/flowiesync.ts); the queue outlives the session. */
+const queueFlowieSync = async ($: EngineInterface, entry: NfFlowieSyncEntry): Promise<void> => {
+  const queue = enqueue(asQueue(await $.store.get(SYNC_QUEUE)), entry)
+  await $.store.set(SYNC_QUEUE, queue)
+  await update($, flowieSyncAtom, () => syncState(queue, null))
+}
+
 /**
- * Commits one file in the personal flowie repository and syncs it (the mod's own cache — charter: mod git
- * only there). Skipped when the repository has git hooks or LFS, which $.process.run would bypass.
+ * Runs the queued flowie syncs (the mod's own cache — charter: mod git only there) from the hook dispatch that
+ * calls it. After a failure the queue is held: no new attempt until something new is queued or a session starts
+ * (`force`) — no retry loop (phase-flowie → Record failures, don't swallow them) — but each call checks, locally,
+ * whether a sync that ran elsewhere (/neuroflow:flowie --sync) settled it. Null when nothing ran.
  */
-const syncFlowie = async ($: EngineInterface, flowie: string, file: string, message: string): Promise<string> => {
-  const git = (args: readonly string[]) =>
-    $.process.run(['git', '-C', flowie, ...args], { timeoutMs: 30_000 }).catch(error => ({ exitCode: 1, stdout: '', stderr: String(error) }))
-  const hooksPath = (await git(['config', '--get', 'core.hooksPath'])).stdout.trim()
-  const hooks = (await ioOf($).list(`${flowie}/.git/hooks`)).filter(entry => !entry.name.endsWith('.sample'))
-  const attributes = (await ioOf($).read(`${flowie}/.gitattributes`)) ?? ''
-  if (hooksPath !== '' || hooks.length > 0 || /filter=lfs/.test(attributes)) return 'saved locally — this flowie repository uses git hooks or LFS, so sync it with /neuroflow:flowie --sync'
-  for (const args of [['add', '--', file], ['commit', '-m', message, '--', file], ['pull', '--rebase'], ['push']]) {
-    const run = await git(args)
-    if (run.exitCode !== 0 && !(args[0] === 'commit' && /nothing to commit/i.test(`${run.stdout}${run.stderr}`))) {
-      const home = (await ioOf($).home()) ?? ''
-      const first = `${run.stderr}${run.stdout}`.trim().split(/\r?\n/)[0] ?? ''
-      await appendLine(ioOf($), `${home}/.neuroflow/flowie-sync.log`, `${new Date(await $.clock.now()).toISOString()} git ${args[0]} failed: ${first}`)
-      return 'saved locally; the sync failed and was logged — /neuroflow:flowie --sync resolves it'
-    }
+const flushQueued = async ($: EngineInterface, force: boolean): Promise<FlushResult | null> => {
+  const state = await read($, flowieSyncAtom)
+  const queue = asQueue(await $.store.get(SYNC_QUEUE))
+  if (queue.length === 0) {
+    if (state.pending.length > 0 || state.failure !== null) await update($, flowieSyncAtom, () => NO_SYNC)
+    return null
   }
-  return 'synced'
+  const io = ioOf($)
+  const home = toSlash((await io.home()) ?? '')
+  if (home === '') return null
+  if (state.isHeld && !force) {
+    if (await isSettled(io, home, queue)) {
+      const left = afterFlush(asQueue(await $.store.get(SYNC_QUEUE)), queue)
+      await $.store.set(SYNC_QUEUE, left)
+      await update($, flowieSyncAtom, () => syncState(left, null))
+    }
+    return null
+  }
+  const result = await flushFlowie(io, home, queue)
+  // Read the queue again: the band may have queued another entry while git ran.
+  const current = asQueue(await $.store.get(SYNC_QUEUE))
+  const left = result.outcome === 'failed' ? current : afterFlush(current, queue)
+  await $.store.set(SYNC_QUEUE, left)
+  await update($, flowieSyncAtom, () => syncState(left, result))
+  return result
 }
 
 /** Appends one idea to the inbox (flowie when set up, else the project), exactly as /notes --idea does. */
@@ -170,8 +193,22 @@ const saveIdea = async ($: EngineInterface, text: string): Promise<string> => {
   await appendLine(io, path, ideaLine(now, snap?.phase ?? null, text))
   const count = ((await io.read(path)) ?? '').split(/\r?\n/).filter(line => line.startsWith('- ')).length
   if (scope?.root) await appendLine(io, sessionLogPath(scope.root, now), sessionLine(now, 'notes', `idea captured (${toFlowie ? 'flowie inbox' : 'project inbox'})`))
-  const synced = toFlowie ? ` · ${await syncFlowie($, flowie, 'ideas-inbox.md', 'idea: inbox')}` : ' · project inbox (shared with collaborators)'
-  return `Idea saved — inbox: ${count}${synced}`
+  if (!toFlowie) return `Idea saved — inbox: ${count} · project inbox (shared with collaborators)`
+  // Queued first, so a sync that cannot run now still runs at the next turn's end or session start.
+  let synced: string
+  try {
+    await queueFlowieSync($, { paths: ['ideas-inbox.md'], message: 'idea: inbox', at: now })
+    const result = await flushQueued($, true)
+    synced =
+      result === null
+        ? 'sync queued — it runs when a turn ends'
+        : result.outcome === 'failed'
+          ? `saved locally; the sync did not go through (${result.detail}) and was logged — /neuroflow:flowie --sync resolves it`
+          : 'synced'
+  } catch {
+    synced = 'saved locally; the sync could not start — /neuroflow:flowie --sync syncs it'
+  }
+  return `Idea saved — inbox: ${count} · ${synced}`
 }
 
 /** Appends one live-capture message to the target named by the capture flag; returns the entry count. */
@@ -279,6 +316,25 @@ export const registerCapture = (on: On, _opts: NfOptions): void => {
     if (problems.length === 0) return result
     if (!scope.isHeadless) $.ui.toast(`neuroflow: the scholar report does not match the disk (${problems.length} problem(s))`)
     return { ...result, context: [...(result.context ?? []), `neuroflow check of the scholar report: ${problems.join('; ')}. Correct the download summary before relying on it.`] }
+  }).catch(($, e, next) => next(e))
+
+  // The mod's flowie syncs (lib/flowiesync.ts): what the wellbeing band or an idea queued runs when a main-loop turn
+  // ends — a hook dispatch that runs to its end, unlike a drawing's closure. A held (failed) sync is not retried
+  // here, only checked for a sync that ran elsewhere.
+  on('turn.complete', { reason: ['answer', 'aborted', 'error', 'refusal'] }, async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId !== undefined) return result
+    const scope = await read($, scopeAtom)
+    if (scope?.isActive) await flushQueued($, false).catch(() => undefined)
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // ... and as a session starts: a sync an earlier session queued but could not run (it ended first, or failed).
+  on('session.start', { isInteractive: [true, false] }, async ($, e, next) => {
+    const result = await next(e)
+    const scope = await read($, scopeAtom)
+    if (scope?.isActive) await flushQueued($, true).catch(() => undefined)
+    return result
   }).catch(($, e, next) => next(e))
 
   // M101: once per interactive session, remind about pinned queries not checked for a week (no searches run).

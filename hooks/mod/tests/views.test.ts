@@ -117,7 +117,8 @@ describe('dashboard lines', () => {
     })
     expect(tabLines('phase', snap, null)[0].text).toBe('✔ ideation  ✔ preregistration  ✔ data  ● data-analyze  ○ paper')
     expect(tabLines('integrity', snap, null)[0].text).toBe('✔ ethics approved · expires 2027-06-30')
-    expect(tabLines('tasks', snap, null)[0].text).toBe('inbox 2 · ready 1 · active 1 · review 0 · meeting 0 · done 4 · archive 0')
+    // The tasks tab reads every level's board when it opens; until then it says so.
+    expect(tabLines('tasks', snap, null)[0]).toEqual({ text: 'Reading the task boards…', dim: true })
     expect(tabLines('deadlines', snap, null)[0].dim).toBe(true)
     expect(tabLines('loop', snap, null)[0].text).toBe('No autoresearch loops.')
   })
