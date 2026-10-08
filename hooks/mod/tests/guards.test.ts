@@ -257,8 +257,33 @@ describe('shell rules', () => {
     expect(scope('git tag v1.0', 'acp')).toEqual(['GIT-ALIAS-SCOPE'])
     expect(scope('git stash', 'a')).toEqual(['GIT-ALIAS-SCOPE'])
     expect(scope('git stash pop', 'ps')).toEqual(['GIT-ALIAS-SCOPE'])
-    // unstaging is part of /git c; throwing work away is still asked about, whatever the alias
-    expect(shellViolations('git reset --hard HEAD~1', snap(), { ...ctx, gitAlias: 'c' }).map(v => [v.rule, v.level])).toEqual([['GIT-NO-SECRETS', 'ask']])
+    // unstaging is part of /git c, moving history is not; throwing work away is asked about whatever the alias
+    expect(shellViolations('git reset --hard HEAD~1', snap(), { ...ctx, gitAlias: 'c' }).map(v => [v.rule, v.level])).toEqual([['GIT-NO-SECRETS', 'ask'], ['GIT-ALIAS-SCOPE', 'deny']])
+    expect(shellViolations('git reset --hard HEAD~1', snap(), { ...ctx, gitAlias: 'a' }).map(v => [v.rule, v.level])).toEqual([['GIT-NO-SECRETS', 'ask']])
+  })
+
+  test('/git c only unstages, /git p and pl only stash and pop; a lone & starts a new command', () => {
+    const scope = (command: string, alias: string): string[] => shellViolations(command, snap(), { ...ctx, gitAlias: alias }).map(v => v.rule)
+    expect(scope('git reset -q -- .neuroflow/sessions/x.md', 'c')).toEqual([])
+    expect(scope('git reset --soft HEAD~1', 'c')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git reset HEAD~3', 'c')).toEqual(['GIT-ALIAS-SCOPE'])
+    for (const alias of ['p', 'pl']) {
+      for (const ok of ['git stash', 'git stash push -m wip', 'git stash pop', 'git stash list']) expect([alias, ok, scope(ok, alias)]).toEqual([alias, ok, []])
+      for (const bad of ['git stash drop', 'git stash clear']) expect([alias, bad, scope(bad, alias)]).toEqual([alias, bad, ['GIT-ALIAS-SCOPE']])
+    }
+    expect(scope('git branch --list & git push', 'c')).toEqual(['GIT-ALIAS-SCOPE'])
+    expect(scope('git status 2>&1 | head', 'c')).toEqual([])
+  })
+
+  test('every broad git add asks while local-only lines are missing; a forced one is denied', () => {
+    const bare = { gitignore: '', isLoginNode: false }
+    for (const command of ['git add -- .', 'git add -v .', 'git add :/', 'git add -Av', 'git add --all']) {
+      expect([command, shellViolations(command, snap(), bare).map(v => [v.rule, v.level])]).toEqual([command, [['GIT-NO-SECRETS', 'ask']]])
+    }
+    for (const command of ['git add -f .', 'git add --force -A']) {
+      expect([command, shellViolations(command, snap(), ctx).map(v => [v.rule, v.level])]).toEqual([command, [['GIT-NO-SECRETS', 'deny']]])
+    }
+    expect(shellViolations('git add src/analysis.py', snap(), bare)).toEqual([])
   })
 
   test('raw data, frozen files, uploads', () => {
@@ -306,6 +331,24 @@ describe('shell rules', () => {
       'git checkout -- sourcedata/sub-01/beh.tsv',
     ]
     for (const command of changes) expect([command, rules(command).includes('RAW-READONLY')]).toEqual([command, true])
+  })
+
+  test('what a shell is told to run, a subshell and backticks are checked too; a move onto a recording is a change', () => {
+    const rules = (command: string): string[] => shellViolations(command, snap(), ctx).map(v => v.rule)
+    const changes = [
+      'bash -c "rm -rf sourcedata"',
+      "sh -c 'rm -rf sourcedata/sub-01'",
+      'powershell -Command "Remove-Item -Recurse -Force sourcedata"',
+      'cmd /c "del /s /q sourcedata"',
+      '(cd /work/proj && rm -rf sourcedata)',
+      'echo `rm -rf sourcedata`',
+      'mv ~/Downloads/fixed.eeg sourcedata/sub-01/sub-01_task-rest_eeg.eeg',
+      'Move-Item -Force fixed.eeg sourcedata/sub-01/sub-01_task-rest_eeg.eeg',
+    ]
+    for (const command of changes) expect([command, rules(command).includes('RAW-READONLY')]).toEqual([command, true])
+    for (const command of ['bash -c "ls sourcedata"', 'sh -c "cp ~/new.eeg sourcedata/sub-03/"', 'git commit -m "never rm -rf sourcedata"']) {
+      expect([command, rules(command)]).toEqual([command, []])
+    }
   })
 
   test('printing participant data follows the ethics record; sidecars and listings are fine', () => {

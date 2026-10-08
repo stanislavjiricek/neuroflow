@@ -196,6 +196,35 @@ export const ALIAS_ALLOWS: Readonly<Record<string, readonly string[]>> = {
 /** The verbs alias scope watches: everything that changes the index, history, refs or a remote — not their listings (isGitListing). */
 const GUARDED_VERBS = ['add', 'commit', 'push', 'pull', 'fetch', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'branch', 'tag', 'stash', 'cherry-pick', 'revert']
 
+/** `git reset` that only unstages paths (`git reset -q -- <path>`): no mode flag, no commit to move to. */
+const unstagesOnly = (args: readonly string[]): boolean => {
+  const cut = args.indexOf('--')
+  return cut >= 0 && cut + 1 < args.length && args.slice(0, cut).every(arg => /^(-q|--quiet|HEAD)$/.test(arg))
+}
+
+/** `git stash` as the pull steps use it: stash, push, pop, apply, list or show — never drop or clear. */
+const stashesOnly = (args: readonly string[]): boolean => args.length === 0 || args[0].startsWith('-') || /^(push|pop|apply|list|show)$/.test(args[0])
+
+/** Verbs an alias may run only in the form its prose takes (`c` unstages, `p` and `pl` stash before pulling). */
+const ALIAS_FORMS: Readonly<Record<string, Readonly<Record<string, (args: readonly string[]) => boolean>>>> = {
+  c: { reset: unstagesOnly },
+  p: { stash: stashesOnly },
+  pl: { stash: stashesOnly },
+}
+
+/** `git add` that stages everything: `.`, `:/`, `-A` / `--all`, `-u` / `--update` (also inside combined flags). */
+const broadAdd = (args: readonly string[]): boolean =>
+  args.some(arg => /^(\.|\.\/|:\/|:\(top\)|--all|--update)$/.test(arg) || /^-[a-zA-Z]*[Au][a-zA-Z]*$/.test(arg))
+
+/** `git add -f` / `--force`: it stages ignored files too. */
+const forcedAdd = (args: readonly string[]): boolean => args.some(arg => arg === '--force' || /^-[a-zA-Z]*f[a-zA-Z]*$/.test(arg))
+
+/** Where one shell command ends and the next begins: `&&`, `||`, `;`, `|`, a new line, or a lone `&` (not `&>`, `>&`, `2>&1`). */
+const SEGMENTS = /&&|\|\||;|\||\r?\n|(?<![&>])&(?![&>])/
+
+/** The commands of a shell line, one per segment. */
+const segmentsOf = (line: string): string[] => line.split(SEGMENTS).map(part => part.trim()).filter(Boolean)
+
 /** The words of a shell segment (best effort, nothing expanded): quotes removed, output redirections and their targets left out. */
 const shellWords = (segment: string): string[] => {
   const tokens = segment.match(/(?:"[^"]*"|'[^']*'|[^\s"'])+/g) ?? []
@@ -273,7 +302,7 @@ const pathPattern = (root: string): string => escapeRe(trimRoot(root)).replace(/
  * A raw root inside one shell word, on path boundaries: `sourcedata`, `./sourcedata/x`, `/abs/sourcedata/x`,
  * `-Path:sourcedata`, `sourcedata*` — never `sourcedata_old/`, nor `draw_plot.png` for a root `raw/`.
  */
-const rawWord = (root: string): RegExp => new RegExp(`(^|[\\\\/=:*?])${pathPattern(root)}(?=[\\\\/*?[]|$)`, 'i')
+const rawWord = (root: string): RegExp => new RegExp(`(^|[\\\\/=:*?({\`])${pathPattern(root)}(?=[\\\\/*?[)}\`]|$)`, 'i')
 
 type IgnoreRule = { negated: boolean; folderOnly: boolean; pattern: RegExp }
 
@@ -356,38 +385,55 @@ const MOVES = /^(mv|move|Move-Item)$/i
 /** The command a word names: `/bin/rm` → rm, `$(rm` → rm, `move.exe` → move. */
 const commandName = (word: string): string => word.replace(/^[$({`]+/, '').replace(/^.*[\\/]/, '').replace(/\.exe$/i, '')
 
-/** What a move takes away: every path but its destination (`-t`, `--target-directory`, `-Destination`, else the last path). */
-const moveSources = (args: readonly string[]): string[] => {
+/**
+ * A move's paths: what it takes away (`sources`) and where they go (`destination`, from `-t`,
+ * `--target-directory` or `-Destination`, else the last path; `folder` when it can only be a folder).
+ */
+const moveParts = (args: readonly string[]): { sources: string[]; destination: string | null; folder: boolean } => {
   const paths: string[] = []
-  let named = false
+  let destination: string | null = null
+  let folder = false
   for (let i = 0; i < args.length; i += 1) {
-    const destination = /^(?:-t|--target-directory)(=.*)?$/.exec(args[i]) ?? /^-Destination(:.*)?$/i.exec(args[i])
-    if (destination !== null) {
-      named = true
-      if (destination[1] === undefined) i += 1 // the destination is the next word
+    const target = /^(?:-t|--target-directory)(?:=(.*))?$/.exec(args[i])
+    const named = target ?? /^-Destination(?::(.*))?$/i.exec(args[i])
+    if (named !== null) {
+      destination = named[1] ?? args[i + 1] ?? ''
+      folder = target !== null // -t names a folder; -Destination may name a file
+      if (named[1] === undefined) i += 1 // the destination is the next word
     } else if (!args[i].startsWith('-')) {
       paths.push(args[i])
     }
   }
-  return named ? paths : paths.slice(0, -1)
+  if (destination !== null) return { sources: paths, destination, folder }
+  return { sources: paths.slice(0, -1), destination: paths.at(-1) ?? null, folder: false }
 }
 
 /**
  * Whether a segment changes something under a raw root (`words`: shellWords; `targets`: redirectTargets):
- * writes into it by redirection, edits, renames or deletes a path in it, moves one out of it, or discards one
- * through git. A copy, or a move whose only raw-root path is its destination, adds a recording — allowed,
- * like a new file written there.
+ * writes into it by redirection, edits, renames or deletes a path in it, moves one out of it or onto a file
+ * in it, or discards one through git. A copy, or a move into a folder there (a path ending in `/`, or
+ * `-t`), adds a recording — allowed, like a new file written there. A quoted command line (`bash -c "…"`,
+ * `powershell -Command "…"`, `cmd /c "…"`) is checked as a command line of its own.
  */
-const changesRaw = (words: readonly string[], targets: readonly string[], inRoot: RegExp, verb: string | null): boolean => {
+const changesRaw = (words: readonly string[], targets: readonly string[], inRoot: RegExp, verb: string | null, depth = 0): boolean => {
   if (targets.some(target => inRoot.test(target))) return true
   if ((verb === 'clean' || verb === 'checkout' || verb === 'restore') && words.some(word => inRoot.test(word))) return true
-  return words.some((word, at) => {
+  const direct = words.some((word, at) => {
     const name = commandName(word)
     const rest = words.slice(at + 1)
     if (CHANGES.test(name)) return rest.some(arg => inRoot.test(arg))
-    if (MOVES.test(name)) return moveSources(rest).some(source => inRoot.test(source))
+    if (MOVES.test(name)) {
+      const move = moveParts(rest)
+      // Onto a path that names a file there, a move may replace a recording: only a folder destination adds one.
+      const ontoFile = move.destination !== null && inRoot.test(move.destination) && !move.folder && !/[\\/]$/.test(move.destination)
+      return ontoFile || move.sources.some(source => inRoot.test(source))
+    }
     return name === 'sed' && rest.some(arg => /^(-[a-zA-Z]*i|--in-place)/.test(arg)) && rest.some(arg => inRoot.test(arg))
   })
+  if (direct || depth >= 3) return direct
+  // Only what a shell is told to run (`-c`, `-Command`, `/c`, `eval`) — not a commit message that names a command.
+  return words.some((word, at) => at > 0 && /\s/.test(word) && /^(-[il]?c|-Command|\/[ck]|eval)$/i.test(words[at - 1]) &&
+    segmentsOf(word).some(sub => changesRaw(shellWords(sub), redirectTargets(sub), inRoot, gitVerb(sub), depth + 1)))
 }
 
 const READ_VERBS = /^(cat|head|tail|less|more|type|Get-Content|gc|xxd|od|strings|bat|zcat)$/i
@@ -401,8 +447,7 @@ export const shellViolations = (
   const gitAlias = context.gitAlias ?? null
   const routeDenied = participantRoute(snap) === 'deny'
   const out: Violation[] = []
-  const segments = command.split(/&&|\|\||;|\||\r?\n/).map(part => part.trim()).filter(Boolean)
-  for (const segment of segments) {
+  for (const segment of segmentsOf(command)) {
     const verb = gitVerb(segment)
     if (verb === 'clean' && /\s-[a-zA-Z]*[xX]/.test(segment)) {
       out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: '`git clean -x` deletes ignored files — recordings, local credentials, caches. Use `git clean -n` to preview, then remove files by name' })
@@ -417,8 +462,11 @@ export const shellViolations = (
     }
     if (gitAlias !== null && verb !== null) {
       const allowed = ALIAS_ALLOWS[gitAlias]
-      if (allowed !== undefined && GUARDED_VERBS.includes(verb) && !allowed.includes(verb) && !isGitListing(verb, gitArgs(segment))) {
-        out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} stops at its endpoint — \`git ${verb}\` is beyond it; ask the person for a new instruction` })
+      const args = gitArgs(segment)
+      const form = ALIAS_FORMS[gitAlias]?.[verb]
+      const inScope = allowed !== undefined && allowed.includes(verb) && (form === undefined || form(args))
+      if (allowed !== undefined && GUARDED_VERBS.includes(verb) && !inScope && !isGitListing(verb, args)) {
+        out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} stops at its endpoint — \`git ${verb}${form !== undefined && allowed.includes(verb) ? ` ${args.join(' ')}` : ''}\` is beyond it; ask the person for a new instruction` })
       }
     }
     if (gitAlias !== null && /\bgh\s+pr\s+create\b/.test(segment) && gitAlias !== 'pr') {
@@ -428,7 +476,9 @@ export const shellViolations = (
       const named = /(integrations\.json|\.neuroflow[\\/](sessions|review|flowie)\b|\.neuroflow[\\/]paper[\\/]xray-\S*|\.neuroflow[\\/]wiki[\\/]\.pending\b|user\.yaml)/i.exec(segment)
       if (named !== null) {
         out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `${named[1]} is local-only (sessions, confidential reviews, paper X-rays, wiki cards awaiting review, personal settings) and must never be committed` })
-      } else if (/\sadd\s+(-A\b|--all\b|\.(\s|$)|-u\b)/.test(segment)) {
+      } else if (broadAdd(gitArgs(segment)) && forcedAdd(gitArgs(segment))) {
+        out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `\`${segment.slice(0, 80)}\` stages ignored files too, local-only ones included — stage the files you mean by name` })
+      } else if (broadAdd(gitArgs(segment))) {
         // An ask, not a denial: /git a stages everything and then takes each local-only path back out.
         const missing = uncoveredLocalOnly(context.gitignore ?? '')
         if (missing.length > 0) {
