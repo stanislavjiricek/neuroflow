@@ -18,8 +18,10 @@ the neuroflow mod is live.**
 | uncommitted changes under `.neuroflow/` | the same, for today's work |
 | network share or cloud-synced folder | sync and shares corrupt or duplicate files written mid-sync |
 | `project_config.md` frontmatter and `nf_schema` | the mod and the scripts read the current contract |
+| the neuroflow version the project is on (`plugin_version`) against the installed one | after an update, the project's memory may still be in an older format — [`/migrate`](migrate.md) brings the project, your flowie and the team hive up to date |
 | `.gitignore` and `.gitattributes` | local-only files stay out of git; append-only logs merge cleanly |
 | your flowie, if set up: unpushed commits, failures in `~/.neuroflow/flowie-sync.log` (count and first timestamp) | changes that never reached your private repo exist on this machine only — [`/flowie --sync`](flowie.md) resolves both; nothing is reported without flowie |
+| your flowie, if set up: uncommitted changes (a count and up to three paths, never file contents) | they exist on this machine only, and changes to tracked files stop every pull, so your flowie stops updating — [`/flowie --sync`](flowie.md) commits and pushes them |
 
 ## Is the mod live?
 
