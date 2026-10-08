@@ -269,6 +269,12 @@ const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '
 /** A pattern for a project-relative folder that matches either slash. */
 const pathPattern = (root: string): string => escapeRe(trimRoot(root)).replace(/\//g, '[\\\\/]')
 
+/**
+ * A raw root inside one shell word, on path boundaries: `sourcedata`, `./sourcedata/x`, `/abs/sourcedata/x`,
+ * `-Path:sourcedata`, `sourcedata*` — never `sourcedata_old/`, nor `draw_plot.png` for a root `raw/`.
+ */
+const rawWord = (root: string): RegExp => new RegExp(`(^|[\\\\/=:*?])${pathPattern(root)}(?=[\\\\/*?[]|$)`, 'i')
+
 type IgnoreRule = { negated: boolean; folderOnly: boolean; pattern: RegExp }
 
 /** A gitignore glob as a regular expression: `*` and `?` stay inside one folder, `**` spans folders, `[…]` is a class. */
@@ -337,6 +343,53 @@ export const uncoveredLocalOnly = (gitignore: string): string[] => {
   return LOCAL_ONLY.filter(line => !isIgnored(rules, line.endsWith('/') ? `${line}nf-any` : line.replace(/\*$/, 'nf-any')))
 }
 
+/** The files a segment's output redirections write to (`> f`, `2>>f`, `&> "f"`); `2>&1` writes none. */
+const redirectTargets = (segment: string): string[] =>
+  [...segment.matchAll(/(?<!>)>{1,2}\s*("[^"]*"|'[^']*'|[^\s"'<>;&|]+)/g)].map(match => match[1].replace(/^["']|["']$/g, ''))
+
+/** Commands that change, rename or delete the files they name. */
+const CHANGES = /^(rm|rmdir|del|erase|ren|rename|Remove-Item|Rename-Item|Set-Content|Out-File|truncate|shred)$/i
+
+/** Commands that move files: a move takes its sources away and adds at its destination. */
+const MOVES = /^(mv|move|Move-Item)$/i
+
+/** The command a word names: `/bin/rm` → rm, `$(rm` → rm, `move.exe` → move. */
+const commandName = (word: string): string => word.replace(/^[$({`]+/, '').replace(/^.*[\\/]/, '').replace(/\.exe$/i, '')
+
+/** What a move takes away: every path but its destination (`-t`, `--target-directory`, `-Destination`, else the last path). */
+const moveSources = (args: readonly string[]): string[] => {
+  const paths: string[] = []
+  let named = false
+  for (let i = 0; i < args.length; i += 1) {
+    const destination = /^(?:-t|--target-directory)(=.*)?$/.exec(args[i]) ?? /^-Destination(:.*)?$/i.exec(args[i])
+    if (destination !== null) {
+      named = true
+      if (destination[1] === undefined) i += 1 // the destination is the next word
+    } else if (!args[i].startsWith('-')) {
+      paths.push(args[i])
+    }
+  }
+  return named ? paths : paths.slice(0, -1)
+}
+
+/**
+ * Whether a segment changes something under a raw root (`words`: shellWords; `targets`: redirectTargets):
+ * writes into it by redirection, edits, renames or deletes a path in it, moves one out of it, or discards one
+ * through git. A copy, or a move whose only raw-root path is its destination, adds a recording — allowed,
+ * like a new file written there.
+ */
+const changesRaw = (words: readonly string[], targets: readonly string[], inRoot: RegExp, verb: string | null): boolean => {
+  if (targets.some(target => inRoot.test(target))) return true
+  if ((verb === 'clean' || verb === 'checkout' || verb === 'restore') && words.some(word => inRoot.test(word))) return true
+  return words.some((word, at) => {
+    const name = commandName(word)
+    const rest = words.slice(at + 1)
+    if (CHANGES.test(name)) return rest.some(arg => inRoot.test(arg))
+    if (MOVES.test(name)) return moveSources(rest).some(source => inRoot.test(source))
+    return name === 'sed' && rest.some(arg => /^(-[a-zA-Z]*i|--in-place)/.test(arg)) && rest.some(arg => inRoot.test(arg))
+  })
+}
+
 const READ_VERBS = /^(cat|head|tail|less|more|type|Get-Content|gc|xxd|od|strings|bat|zcat)$/i
 
 /** What a shell command would break (best effort: it cannot see inside the scripts it starts). */
@@ -387,22 +440,19 @@ export const shellViolations = (
         }
       }
     }
+    const argv = shellWords(segment)
+    const targets = redirectTargets(segment)
     for (const root of rawRootsOf(snap)) {
       if (trimRoot(root) === '') continue
-      const escaped = pathPattern(root)
-      const destructive = new RegExp(`\\b(rm|rmdir|del|erase|mv|move|ren|rename|Remove-Item|Move-Item|Rename-Item|Set-Content|Out-File|truncate|shred)\\b[^;&|]*${escaped}`, 'i')
-      const editInPlace = new RegExp(`\\bsed\\s+-i\\b[^;&|]*${escaped}`, 'i')
-      const redirected = new RegExp(`>{1,2}\\s*["']?${escaped}`, 'i')
-      const gitDiscard = (verb === 'clean' || verb === 'checkout' || verb === 'restore') && new RegExp(escaped, 'i').test(segment)
-      if (destructive.test(segment) || editInPlace.test(segment) || redirected.test(segment) || gitDiscard) {
-        out.push({ rule: 'RAW-READONLY', level: 'deny', message: `this command would change files under ${root}, a read-only raw-data folder (raw_roots)` })
+      if (changesRaw(argv, targets, rawWord(root), verb)) {
+        out.push({ rule: 'RAW-READONLY', level: 'deny', message: `this command would change, move or delete files under ${root}, a read-only raw-data folder (raw_roots) — write derivatives elsewhere; new recordings may be added` })
       }
     }
     if (routeDenied) {
       const words = segment.split(/\s+/).map(word => word.replace(/^["']|["']$/g, ''))
       if (words.length > 1 && READ_VERBS.test(words[0])) {
         for (const root of rawRootsOf(snap)) {
-          const inRoot = new RegExp(`(^|[\\\\/])${pathPattern(root)}([\\\\/]|$)`, 'i')
+          const inRoot = rawWord(root)
           if (words.slice(1).some(word => inRoot.test(word) && !/\.json$/i.test(word))) {
             out.push({ rule: 'PARTICIPANT-ROUTE', level: 'deny', message: `this command would show participant data under ${root} to the model, which the ethics record does not allow — run a script and work from its aggregate output` })
           }

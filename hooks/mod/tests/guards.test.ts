@@ -269,6 +269,45 @@ describe('shell rules', () => {
     expect(shellViolations('notebooklm source add paper.pdf', snap(), ctx)[0].level).toBe('ask')
   })
 
+  test('a raw root matches on path boundaries, never inside another name', () => {
+    const raw = snap({ rawRoots: ['raw/'] })
+    const rules = (command: string, s: NfSnapshot): string[] => shellViolations(command, s, ctx).map(v => v.rule)
+    for (const command of ['rm figures/draw_plot.png', 'mv results/rawdata.csv results/old/', 'echo done > raw_counts.txt']) {
+      expect([command, rules(command, raw)]).toEqual([command, []])
+    }
+    for (const command of ['rm -rf sourcedata_old/', 'git checkout -b sourcedata-fix']) {
+      expect([command, rules(command, snap())]).toEqual([command, []])
+    }
+    for (const command of ['rm raw/sub-01.eeg', 'truncate -s 0 ./raw/sub-01/beh.tsv', 'echo x >> raw/notes.txt', 'Remove-Item -Path:raw\\sub-01 -Recurse']) {
+      expect([command, rules(command, raw)]).toEqual([command, ['RAW-READONLY']])
+    }
+  })
+
+  test('moving or copying a new recording into a raw root adds it; changing one, or moving it out, is denied', () => {
+    const rules = (command: string): string[] => shellViolations(command, snap(), ctx).map(v => v.rule)
+    const additions = [
+      'mv ~/Downloads/sub-02.eeg sourcedata/sub-02/',
+      'mv -t sourcedata/sub-02/ ~/Downloads/sub-02.vhdr ~/Downloads/sub-02.vmrk',
+      'Move-Item -Path C:\\Users\\me\\Downloads\\sub-02.eeg -Destination .\\sourcedata\\sub-02\\',
+      'cp ~/Downloads/sub-02.eeg sourcedata/sub-02/',
+      'Copy-Item D:\\lab\\sub-02 .\\sourcedata\\ -Recurse',
+      'mv ~/Downloads/sub-02.eeg sourcedata/sub-02/ 2>/dev/null',
+    ]
+    for (const command of additions) expect([command, rules(command)]).toEqual([command, []])
+    const changes = [
+      'mv sourcedata/sub-01/x.eeg derivatives/',
+      'mv sourcedata/sub-01/a.vhdr sourcedata/sub-01/b.vhdr',
+      'Move-Item .\\sourcedata\\sub-01 .\\archive\\',
+      'git mv sourcedata/sub-01 sourcedata/sub-001',
+      'echo x > ./sourcedata/sub-01/beh.tsv',
+      "sed -i.bak 's/a/b/' sourcedata/sub-01/events.tsv",
+      'Set-Content -Path sourcedata/sub-01/beh.tsv -Value x',
+      '/bin/rm -rf sourcedata*',
+      'git checkout -- sourcedata/sub-01/beh.tsv',
+    ]
+    for (const command of changes) expect([command, rules(command).includes('RAW-READONLY')]).toEqual([command, true])
+  })
+
   test('printing participant data follows the ethics record; sidecars and listings are fine', () => {
     const none = snap(ethics('none'))
     expect(shellViolations('cat sourcedata/sub-01/beh/sub-01_beh.tsv', none, ctx)[0].rule).toBe('PARTICIPANT-ROUTE')
