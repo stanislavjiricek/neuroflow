@@ -173,6 +173,16 @@ class FlowieTest(unittest.TestCase):
         self.log.write_text("\n", encoding="utf-8")
         self.assertEqual(flowie_checks(self.home), {})
 
+    def test_the_mods_synced_lines_are_no_failure(self):
+        self.flowie.mkdir(parents=True)
+        self.log.write_text("2026-10-07T07:30:00Z synced: wellbeing/2026-10-07.json wellbeing/.flow (mod)\n", encoding="utf-8")
+        self.assertEqual(flowie_checks(self.home), {})
+        with self.log.open("a", encoding="utf-8") as log:
+            log.write("2026-10-08T07:30:00Z push failed: ideas-inbox.md (mod) — fatal: could not resolve host\n")
+            log.write("2026-10-08T08:00:00Z synced: ideas-inbox.md (mod)\n")
+        found = flowie_checks(self.home)
+        self.assertIn("1 flowie auto-sync failure(s) since 2026-10-08T07:30:00Z", found["flowie-sync-log"]["message"])
+
 
 @unittest.skipUnless(shutil.which("git"), "needs git")
 class FlowieGitTest(unittest.TestCase):

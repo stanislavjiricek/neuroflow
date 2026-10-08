@@ -61,6 +61,8 @@ PROBES = {
 WHOLE_MEMORY = {".neuroflow", ".neuroflow/", ".neuroflow/*", ".neuroflow/**"}
 UNION_FILES = [".neuroflow/reasoning/*.jsonl", ".neuroflow/sessions/*.md"]
 SYNCED_MARKERS = ("onedrive", "dropbox", "icloud", "google drive", "googledrive", "my drive", "box sync", "nextcloud", "owncloud")
+# A flowie-sync.log line for a sync that went through (`{time} synced: {paths} (mod)`): the log's one non-failure line.
+SYNCED = re.compile(r"^\S+\s+synced:")
 
 
 def check(checks: list[dict], cid: str, status: str, message: str) -> None:
@@ -231,9 +233,11 @@ def check_flowie(checks: list[dict], home: Path | None) -> None:
                 check(checks, "flowie-unpushed", "ok", "flowie: everything committed is pushed")
     log = home / ".neuroflow" / "flowie-sync.log"
     try:
-        failures = [line.strip() for line in log.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
+        lines = [line.strip() for line in log.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
     except OSError:
         return  # no log: nothing failed (or nothing to read)
+    # The neuroflow mod logs each of its own sync attempts; a `synced` line is no failure.
+    failures = [line for line in lines if not SYNCED.match(line)]
     if failures:
         first = failures[0].split()[0]
         since = f" since {first}" if re.match(r"\d{4}-\d{2}-\d{2}", first) else ""

@@ -18,7 +18,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 ├── integrations.json                ← global integration settings, no secrets (/setup stores no token or key) — device-wide, never inside any repo
 ├── private/                         ← local-only personal files that never sync (e.g. interview notes about candidates); not a git repo
 ├── local-projects.json              ← machine-local project registry (flowie project name → local folder), written by /flowie --link, never synced
-├── flowie-sync.log                  ← one line per failed flowie auto-sync, machine-local, cleared by /flowie --sync
+├── flowie-sync.log                  ← one line per failed flowie auto-sync, plus one per sync the neuroflow mod attempts (its `synced` lines are no failure), machine-local, cleared by /flowie --sync
 ├── flowie/                          ← ONE global clone of github.com/{handle}/flowie
 │   ├── .gitignore                   ← integrations.json
 │   ├── profile.md

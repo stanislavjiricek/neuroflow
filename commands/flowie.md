@@ -98,7 +98,7 @@ Read `.neuroflow/project_config.md` and `.neuroflow/flow.md`.
 Check whether `~/.neuroflow/flowie/` exists:
 
 - **If it does not exist** — this is first run. Go to Step 2.
-- **If it exists** — pull latest from GitHub (Git operations pattern), then read `sync.json` to confirm the linked GitHub repo and last sync time. If `~/.neuroflow/flowie-sync.log` exists and is not empty, tell the person once: *"{N} flowie auto-sync failure(s) since {first timestamp} — run `/flowie --sync` to resolve."* Go to Step 3 (mode menu).
+- **If it exists** — pull latest from GitHub (Git operations pattern), then read `sync.json` to confirm the linked GitHub repo and last sync time. If `~/.neuroflow/flowie-sync.log` holds failure lines (every line but the neuroflow mod's `{time} synced: …` lines), tell the person once: *"{N} flowie auto-sync failure(s) since {first timestamp} — run `/flowie --sync` to resolve."* Go to Step 3 (mode menu).
 
 ---
 
@@ -526,7 +526,7 @@ Update `last_synced` in `sync.json` to the current ISO 8601 timestamp, then Sync
 
 ### Auto-sync log
 
-If `~/.neuroflow/flowie-sync.log` has lines, show them (newest last). Once the pull and the push above have both succeeded, the failures it records are resolved: empty the file. If either step failed, leave the log as it is.
+If `~/.neuroflow/flowie-sync.log` has failure lines, show them (newest last; the neuroflow mod's `synced` lines record syncs that went through). Once the pull and the push above have both succeeded, the failures it records are resolved: empty the file. If either step failed, leave the log as it is.
 
 ### Wellbeing check
 
