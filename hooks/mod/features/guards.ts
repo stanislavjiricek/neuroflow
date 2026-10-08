@@ -8,7 +8,7 @@
 // Rules this file enforces (validate_pr V8 matches each to its prose marker):
 //   nf-rule: PREREG-FROZEN      writes to a preregistration a person froze; deviations.md stays append-only
 //   nf-rule: RAW-READONLY       changes to existing files under raw_roots (new recordings may be added)
-//   nf-rule: GIT-NO-SECRETS     `git clean -x`, staging local-only files; asks before `git add -A` without the .gitignore lines
+//   nf-rule: GIT-NO-SECRETS     `git clean -x`, staging local-only files; asks before `git add -A` without the .gitignore lines or in the flowie
 //   nf-rule: GIT-ALIAS-SCOPE    git verbs beyond the running /git alias's endpoint (listings such as `git branch --show-current` are fine)
 //   nf-rule: PARTICIPANT-ROUTE  the model reading participant data the ethics record keeps from it
 //   nf-rule: LOGIN-NODE         heavy compute on an HPC login node (asks)
@@ -218,6 +218,36 @@ const broadAdd = (args: readonly string[]): boolean =>
 
 /** `git add -f` / `--force`: it stages ignored files too. */
 const forcedAdd = (args: readonly string[]): boolean => args.some(arg => arg === '--force' || /^-[a-zA-Z]*f[a-zA-Z]*$/.test(arg))
+
+/** The local-only paths a `git add` must never name (neuroflow-core → Sharing tiers). */
+const LOCAL_NAMED = /(integrations\.json|\.neuroflow[\\/](sessions|review|flowie)\b|\.neuroflow[\\/]paper[\\/]xray-\S*|\.neuroflow[\\/]wiki[\\/]\.pending\b|user\.yaml)/i
+
+/** How a shell command names the home folder: `~`, `$HOME`, `${HOME}`, `$env:USERPROFILE` (PowerShell), `%USERPROFILE%` (cmd). */
+const HOME_REFS = ['~', '\\$\\{?HOME\\}?', '\\$\\{?env:(?:HOME|USERPROFILE)\\}?', '%(?:HOME|USERPROFILE)%']
+
+/** The home folder's own path as a command may spell it: either slash, and a drive as `C:` or as Git Bash's `/c`. */
+const homePaths = (home: string | null | undefined): string[] => {
+  const path = toSlash(home ?? '').replace(/\/+$/, '')
+  if (path === '') return []
+  const drive = /^([A-Za-z]):(\/.*)?$/.exec(path)
+  const msys = /^\/([A-Za-z])(\/.*)?$/.exec(path)
+  const spellings = [path, ...(drive === null ? [] : [`/${drive[1]}${drive[2] ?? ''}`]), ...(msys === null ? [] : [`${msys[1]}:${msys[2] ?? ''}`])]
+  return spellings.map(spelling => escapeRe(spelling).replace(/\//g, '[\\\\/]+'))
+}
+
+/**
+ * The person's own `~/.neuroflow/` at the start of a shell word (`below`: a folder in it). It holds their flowie,
+ * a repository whose files are committed and pushed, and their hive clones; only a project's `.neuroflow/` has the
+ * local-only folders. Without the home folder's path, only `~`, `$HOME` and the like are recognised.
+ */
+const homeNeuroflow = (home: string | null | undefined, flags: string, below = ''): RegExp =>
+  new RegExp(`(^|[\\s"'=])(?:${[...HOME_REFS, ...homePaths(home)].join('|')})[\\\\/]+\\.neuroflow${below}(?=[\\\\/"'\\s]|$)`, flags)
+
+/** Whether a git segment runs in the person's flowie: `git -C ~/.neuroflow/flowie …`. */
+const inHomeFlowie = (segment: string, home: string | null | undefined): boolean => {
+  const match = GIT_COMMAND.exec(segment)
+  return match !== null && homeNeuroflow(home, 'i', '[\\\\/]+flowie').test(match[0])
+}
 
 /** Where one shell command ends and the next begins: `&&`, `||`, `;`, `|`, a new line, or a lone `&` (not `&>`, `>&`, `2>&1`). */
 const SEGMENTS = /&&|\|\||;|\||\r?\n|(?<![&>])&(?![&>])/
@@ -442,7 +472,7 @@ const READ_VERBS = /^(cat|head|tail|less|more|type|Get-Content|gc|xxd|od|strings
 export const shellViolations = (
   command: string,
   snap: NfSnapshot,
-  context: { gitignore: string | null; isLoginNode: boolean; gitAlias?: string | null },
+  context: { gitignore: string | null; isLoginNode: boolean; gitAlias?: string | null; home?: string | null },
 ): Violation[] => {
   const gitAlias = context.gitAlias ?? null
   const routeDenied = participantRoute(snap) === 'deny'
@@ -473,12 +503,18 @@ export const shellViolations = (
       out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} does not open pull requests — ask the person for a new instruction` })
     }
     if (verb === 'add') {
-      const named = /(integrations\.json|\.neuroflow[\\/](sessions|review|flowie)\b|\.neuroflow[\\/]paper[\\/]xray-\S*|\.neuroflow[\\/]wiki[\\/]\.pending\b|user\.yaml)/i.exec(segment)
+      // The home `.neuroflow/` is left out of this match: `~/.neuroflow/flowie` is the person's flowie repository,
+      // not the project's local-only `.neuroflow/flowie/` (the flowie's integrations.json is still local-only).
+      const named = LOCAL_NAMED.exec(segment.replace(homeNeuroflow(context.home, 'gi'), '$1~'))
+      const args = gitArgs(segment)
       if (named !== null) {
         out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `${named[1]} is local-only (sessions, confidential reviews, paper X-rays, wiki cards awaiting review, personal settings) and must never be committed` })
-      } else if (broadAdd(gitArgs(segment)) && forcedAdd(gitArgs(segment))) {
+      } else if (broadAdd(args) && forcedAdd(args)) {
         out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `\`${segment.slice(0, 80)}\` stages ignored files too, local-only ones included — stage the files you mean by name` })
-      } else if (broadAdd(gitArgs(segment))) {
+      } else if (broadAdd(args) && inHomeFlowie(segment, context.home)) {
+        // The project's .gitignore says nothing about the flowie, whose files are staged by path (/flowie → Git operations pattern).
+        out.push({ rule: 'GIT-NO-SECRETS', level: 'ask', message: `\`${segment.slice(0, 80)}\` stages everything in your flowie — stage the files you mean by name, never integrations.json` })
+      } else if (broadAdd(args)) {
         // An ask, not a denial: /git a stages everything and then takes each local-only path back out.
         const missing = uncoveredLocalOnly(context.gitignore ?? '')
         if (missing.length > 0) {
@@ -705,8 +741,9 @@ export const registerGuards = (on: On, opts: NfOptions): void => {
     const command = (e as unknown as { command?: string }).command ?? ''
     if (command === '') return next(e)
     const gitignore = /\bgit\b[^;&|]*\badd\b/.test(command) ? await $.fs.read(join(scope.root, '.gitignore')).then(text => (typeof text === 'string' ? text : ''), () => '') : null
+    const home = gitignore !== null ? ((await ioOf($).home()) ?? null) : null
     const loginNode = isHeavy(command) ? await isLoginNode($) : false
-    const violations = shellViolations(command, snap, { gitignore, isLoginNode: loginNode, gitAlias: await read($, gitAliasAtom) })
+    const violations = shellViolations(command, snap, { gitignore, isLoginNode: loginNode, gitAlias: await read($, gitAliasAtom), home })
     return decide($, e.tool_use_id, violations, opts, scope.isHeadless, toasted, () => next(e)) as ReturnType<typeof next>
   }).catch(($, e, next) => (next.called ? next(e) : mayEnforce(opts) ? { deny: 'neuroflow: a guard could not check this command — try again, or set the neuroflow mod to observe' } : next(e)))
 }

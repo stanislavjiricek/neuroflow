@@ -286,6 +286,53 @@ describe('shell rules', () => {
     expect(shellViolations('git add src/analysis.py', snap(), bare)).toEqual([])
   })
 
+  // commands/flowie.md → Git operations pattern, commands/migrate.md 5.1, commands/phase.md, wiki-protocol: the flowie
+  // is the person's own repository, staged by path. Only the project's .neuroflow/flowie/ is local-only.
+  test('staging in the flowie by path goes through; its integrations.json and a project\'s local-only folders do not', () => {
+    const home = { ...ctx, home: '/home/me' }
+    const rules = (command: string, context: Parameters<typeof shellViolations>[2] = home): string[][] => shellViolations(command, snap(), context).map(v => [v.rule, v.level])
+    const steps = [
+      'git -C ~/.neuroflow/flowie -c core.quotepath=off status --porcelain --untracked-files=all',
+      'git -C ~/.neuroflow/flowie add -- "wellbeing/log.md" "wellbeing/2026-10-08.json"',
+      'git -C ~/.neuroflow/flowie commit -m "sync: before migrate" -- "wellbeing/log.md" "wellbeing/2026-10-08.json"',
+      'git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push',
+      'git -C ~/.neuroflow/flowie add -- tasks/inbox/plan.md',
+      'git -C ~/.neuroflow/flowie add wiki/ && git -C ~/.neuroflow/flowie commit -m "wiki: P300 window" -- wiki/',
+      'git -C ~/.neuroflow/flowie add projects/projects.json "projects/oddball.md" && git -C ~/.neuroflow/flowie commit -m "phase: oddball → data" && git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push || true',
+      'git -C "$HOME/.neuroflow/flowie" add -- notes/idea.md',
+      'git -C ${HOME}/.neuroflow/flowie add -- notes/idea.md',
+      'git -C "$env:USERPROFILE\\.neuroflow\\flowie" add -- notes/idea.md',
+      'git -C %USERPROFILE%\\.neuroflow\\flowie add -- notes/idea.md',
+      'git -C /home/me/.neuroflow/flowie add -- notes/idea.md',
+      'git --git-dir=/home/me/.neuroflow/flowie/.git --work-tree=/home/me/.neuroflow/flowie add -- notes/idea.md',
+      'git -C ~/.neuroflow/hives/example-lab add -- tasks/inbox/plan.md',
+    ]
+    for (const command of steps) expect([command, rules(command)]).toEqual([command, []])
+    const windows = { ...ctx, home: 'C:\\Users\\me' }
+    for (const command of ['git -C "C:\\Users\\me\\.neuroflow\\flowie" add -- notes/idea.md', 'git -C C:/Users/me/.neuroflow/flowie add -- notes/idea.md', 'git -C /c/Users/me/.neuroflow/flowie add -- notes/idea.md']) {
+      expect([command, rules(command, windows)]).toEqual([command, []])
+    }
+    expect(rules('git -C ~/.neuroflow/flowie add -- integrations.json')).toEqual([['GIT-NO-SECRETS', 'deny']])
+    // A project's own .neuroflow/, wherever it is — under the home folder too — keeps its local-only folders.
+    const project = [
+      'git add .neuroflow/flowie/profile.md',
+      'git -C .neuroflow/flowie add profile.md',
+      'git -C /work/proj add /work/proj/.neuroflow/flowie/profile.md',
+      'git add /home/me/studies/oddball/.neuroflow/flowie/profile.md',
+      'git -C /home/meg/.neuroflow/flowie add -- profile.md',
+      'git add "$PWD/.neuroflow/sessions/2026-10-07.md"',
+      'git -C ~/studies/oddball add .neuroflow/sessions/2026-10-07.md',
+    ]
+    for (const command of project) expect([command, rules(command)]).toEqual([command, [['GIT-NO-SECRETS', 'deny']]])
+    // The home folder's own path is known only from the environment; without it, such a path counts as a project's.
+    expect(rules('git -C /home/me/.neuroflow/flowie add -- notes/idea.md', ctx)).toEqual([['GIT-NO-SECRETS', 'deny']])
+    // A broad add in the flowie asks whatever the project's .gitignore says: the flowie is staged by path.
+    for (const command of ['git -C ~/.neuroflow/flowie add -A', 'git -C "$HOME/.neuroflow/flowie" add .']) {
+      expect([command, rules(command)]).toEqual([command, [['GIT-NO-SECRETS', 'ask']]])
+    }
+    expect(rules('git -C ~/.neuroflow/flowie add -f -A')).toEqual([['GIT-NO-SECRETS', 'deny']])
+  })
+
   test('raw data, frozen files, uploads', () => {
     expect(shellViolations('rm -rf sourcedata/sub-03', snap(), ctx)[0].rule).toBe('RAW-READONLY')
     expect(shellViolations('Remove-Item .\\sourcedata\\sub-03 -Recurse', snap(), ctx)[0].rule).toBe('RAW-READONLY')
@@ -484,6 +531,27 @@ describe('guards in a session', () => {
     answer = 'Allow — I confirm this myself'
     await $.tool.call({ tool: 'Bash', command: 'git add .' } as never)
     expect(ran).toBe(1)
+  })
+
+  test('under enforce, staging in the flowie by path runs; staging the project\'s local-only folder does not', { options: { runtime: 'on', guards: 'enforce' } }, async ($, on) => {
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: 0 })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    let ran = 0
+    on('tool.call', () => {
+      ran += 1
+      return { result: 'ok', text: 'ok' }
+    })
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    // the second names the home folder by its path, which the guard learns from HOME
+    for (const command of ['git -C ~/.neuroflow/flowie add -- "wellbeing/log.md"', 'git -C /home/me/.neuroflow/flowie add -- notes/idea.md']) {
+      await $.tool.call({ tool: 'Bash', command } as never)
+    }
+    expect(ran).toBe(2)
+    const denied = await $.tool.call({ tool: 'Bash', command: 'git add .neuroflow/flowie/profile.md' } as never)
+    expect(ran).toBe(2)
+    expect(JSON.stringify(denied)).toContain('nf-rule: GIT-NO-SECRETS')
   })
 
   test('a /git alias reading the repo state draws no warning; a step past its endpoint does', { options: { runtime: 'observe' } }, async ($, on) => {
