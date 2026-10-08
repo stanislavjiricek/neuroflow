@@ -1421,6 +1421,12 @@ def stage(plan: LevelPlan, path: Path) -> None:
         plan.commit_paths.append(plan.rel(path))
 
 
+def in_head(plan: LevelPlan, path: Path) -> bool:
+    """Whether the last commit has the file. A `git commit -- <paths>` stops at a path that is in neither the last
+    commit nor the index, which is what a file staged but never committed becomes after `git mv`."""
+    return git(plan.root, "cat-file", "-e", f"HEAD:{plan.rel(path)}").returncode == 0
+
+
 def apply_level(plan: LevelPlan) -> None:
     """Writes the plan; in a git repository tracked task files move with git mv and every change is staged."""
     for src, dst, text, newline in plan.moves:
@@ -1428,7 +1434,8 @@ def apply_level(plan: LevelPlan) -> None:
             dst.parent.mkdir(parents=True, exist_ok=True)
             if plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", plan.rel(src)).returncode == 0:
                 git_ok(plan.root, "mv", "--", plan.rel(src), plan.rel(dst))
-                plan.commit_paths.append(plan.rel(src))
+                if in_head(plan, src):  # the commit records the old path's removal only when it had the file
+                    plan.commit_paths.append(plan.rel(src))
             else:
                 src.rename(dst)
         sc.write_text(dst, text, newline)

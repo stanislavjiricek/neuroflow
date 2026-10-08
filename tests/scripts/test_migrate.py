@@ -876,6 +876,35 @@ class FlowieHiveTest(unittest.TestCase):
                          "local changes outside the plan never join the migration commit")
 
     @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_task_staged_but_never_committed_still_commits_by_path(self) -> None:
+        # A file staged but never committed - new, or the new name of a staged rename - is in neither HEAD nor the
+        # index after git mv: as a commit path, it would stop `git commit -- <paths>` and commit nothing.
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "t-1-plan.md", "---\nid: t-1\ntitle: Plan\nstatus: active\n---\n")
+        self.write(tasks / "t-3-old.md", "---\nid: t-3\ntitle: Review\nstatus: review\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        self.repo(self.flowie)
+        self.write(tasks / "t-7-new.md", "---\nid: t-7\ntitle: New\nstatus: inbox\n---\n")
+        run_git(self.flowie, "add", "--", "tasks/t-7-new.md")
+        run_git(self.flowie, "mv", "--", "tasks/t-3-old.md", "tasks/t-3-review.md")
+
+        code, result = self.levels("--flowie")
+        self.assertEqual({c["path"] for c in result["levels"][0]["changes"] if c.get("local_changes")},
+                         {"tasks/t-3-review.md", "tasks/t-7-new.md"})
+        code, result = self.levels("--flowie", "--apply")  # the person agreed to include them (commands/migrate.md 5.3)
+        self.assertEqual(code, 0, result)
+        paths = result["levels"][0]["commit_paths"]
+        self.assertEqual(sorted(paths), ["tasks/active/plan.md", "tasks/inbox/new.md", "tasks/review/review.md",
+                                         "tasks/t-1-plan.md"])
+        run_git(self.flowie, "commit", "-q", "-m", "migrate: current task format", "--", *paths)
+        tree = run_git(self.flowie, "ls-tree", "-r", "--name-only", "HEAD").splitlines()
+        for path in ("tasks/active/plan.md", "tasks/inbox/new.md", "tasks/review/review.md"):
+            self.assertIn(path, tree)
+        self.assertNotIn("tasks/t-1-plan.md", tree)
+        self.assertEqual(run_git(self.flowie, "status", "--porcelain", "-uall").splitlines(), ["D  tasks/t-3-old.md"],
+                         "the old name of the person's own staged rename is no part of the plan: it stays theirs")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
     def test_a_level_with_only_local_changes_is_current(self) -> None:
         self.write(self.flowie / "tasks" / "active" / "plan.md",
                    "---\ntitle: Plan\nstatus: active\ncreated: 2026-04-01\nupdated: 2026-04-02\n---\n")
