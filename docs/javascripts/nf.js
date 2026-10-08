@@ -293,9 +293,13 @@
       });
     };
 
+    // The results sit between the field and the index, which the theme scrolls to the current page
+    // on load: typing brings them back into view under the field.
+    const scrollers = [input.closest('.md-sidebar__scrollwrap'), input.closest('.md-sidebar__inner')].filter(Boolean);
     const update = () => {
       filterNav(termsOf(input.value));
       render(input.value);
+      if (input.value.trim()) scrollers.forEach((el) => { el.scrollTop = 0; });
     };
     input.addEventListener('input', update);
     input.addEventListener('focus', () => {
