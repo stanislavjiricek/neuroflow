@@ -10,8 +10,9 @@ which is `nf_check.py` / `/sentinel`):
 - the project does not live on a network share or inside a cloud-synced folder
 - project_config.md uses the current contract (frontmatter + nf_schema) — else /neuroflow:migrate
 - .gitignore keeps the local-only paths out of git; .gitattributes merges append-only logs
-- the person's flowie, when it is set up: commits in ~/.neuroflow/flowie not pushed to its upstream, and
-  auto-sync failures waiting in ~/.neuroflow/flowie-sync.log — /neuroflow:flowie --sync resolves both
+- the person's flowie, when it is set up: commits in ~/.neuroflow/flowie not pushed to its upstream,
+  uncommitted changes there (a count and up to three paths, never file contents), and auto-sync failures
+  waiting in ~/.neuroflow/flowie-sync.log — /neuroflow:flowie --sync resolves all three
 
 Usage:
     python doctor.py [--project PATH] [--json]
@@ -213,11 +214,36 @@ def check_git_files(checks: list[dict], project: Path) -> None:
         check(checks, "gitattributes", "info", "append-only logs are not set to merge=union — two people's log lines may conflict (/neuroflow:migrate adds it)")
 
 
+def flowie_uncommitted(flowie: Path) -> list[str] | None:
+    """One path per change `git status` lists in the flowie (paths only, never contents), integrations.json aside:
+    it stays on this machine and is never committed. None when git cannot answer."""
+    try:
+        proc = subprocess.run(["git", "-C", str(flowie), "--no-optional-locks", "status", "--porcelain", "-z",
+                               "--untracked-files=all"], capture_output=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    fields = proc.stdout.decode("utf-8", "replace").split("\0")
+    paths: list[str] = []
+    i = 0
+    while i < len(fields):
+        entry, i = fields[i], i + 1
+        if len(entry) < 4:
+            continue
+        if "R" in entry[:2] or "C" in entry[:2]:
+            i += 1  # the source path of a rename or copy follows
+        if entry[3:] != "integrations.json":
+            paths.append(entry[3:])
+    return paths
+
+
 def check_flowie(checks: list[dict], home: Path | None) -> None:
-    """The person's flowie (optional): commits not pushed, and auto-sync failures waiting in the log.
+    """The person's flowie (optional): commits not pushed, uncommitted changes, and auto-sync failures waiting in the log.
 
     Says nothing when flowie is not set up. The unpushed count needs a git repository with an upstream
-    and compares with the last fetched state of it (no network)."""
+    and compares with the last fetched state of it (no network). Uncommitted changes are not backed up, and a pull
+    with rebase refuses to run over them, so every pull of the flowie (and /neuroflow:migrate) passes it by."""
     if home is None:
         return
     flowie = home / ".neuroflow" / "flowie"
@@ -231,6 +257,10 @@ def check_flowie(checks: list[dict], home: Path | None) -> None:
                 check(checks, "flowie-unpushed", "warn", f"{ahead} flowie commit(s) not pushed to your private repo — run /neuroflow:flowie --sync")
             else:
                 check(checks, "flowie-unpushed", "ok", "flowie: everything committed is pushed")
+        changed = flowie_uncommitted(flowie)
+        if changed:
+            shown = ", ".join(changed[:3]) + (f" and {len(changed) - 3} more" if len(changed) > 3 else "")
+            check(checks, "flowie-uncommitted", "warn", f"{len(changed)} uncommitted change(s) in your flowie ({shown}) — run /neuroflow:flowie --sync")
     log = home / ".neuroflow" / "flowie-sync.log"
     try:
         lines = [line.strip() for line in log.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]

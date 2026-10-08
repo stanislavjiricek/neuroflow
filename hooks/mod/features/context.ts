@@ -90,7 +90,7 @@ export const commandDigest = (
   // it points at and /setup configures integrations, not the project, so both skip it — as quiet commands do, which
   // get no digest at all.
   const behind = NO_VERSION_NOTICE.has(command) ? null : versionNotice(snap)
-  if (behind !== null) lines.push(`- version notice, to tell the person once in one line before the command's own work: "${behind}."`)
+  if (behind !== null) lines.push(`- version notice, to tell the person once, verbatim as one sentence, before the command's own work: "${behind}."`)
   if (phaseFlow !== null && phase !== 'utility') {
     const body = phaseFlow
       .split(/\r?\n/)

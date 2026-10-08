@@ -62,8 +62,8 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
 ```
 
    - **Update** (only when the version notice applies — neuroflow-core → **Command lifecycle**, step 3, which compares
-     the versions number by number; the running one is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`): one line under the header with the notice. It stands in for the separate
-     one-line notice, so the person reads it once:
+     the versions number by number; the running one is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`): one line under the header with the notice, verbatim. It stands in for the
+     separate one-line notice, so the person reads it once:
      `Update    ↑ neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date`.
    - **Phase**: the `recommended_phases` in order — `●` current, `✔` has a `.neuroflow/<phase>/` folder, `○` not
      started. Without `recommended_phases`, list the phases that have folders.
