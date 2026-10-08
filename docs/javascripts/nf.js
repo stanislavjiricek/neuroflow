@@ -26,6 +26,7 @@
     notes: 'any time',
   };
   const MAX_RESULTS = 8;
+  const UNAVAILABLE = 'Search is unavailable — the index list still filters';
 
   const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' };
   const plain = (html) => String(html || '')
@@ -73,6 +74,7 @@
 
     const input = document.querySelector('[data-nf-search]');
     const box = document.querySelector('[data-nf-results]');
+    const status = document.querySelector('[data-nf-status]');
     const nav = document.querySelector('.md-sidebar--primary .md-nav--primary');
     if (!input || !box || !nav) return;
     let base = '.';
@@ -110,15 +112,21 @@
       });
     });
 
-    // The search index loads on first use.
+    // The search index loads on first use. A failed load is forgotten, so the next keystroke tries
+    // again; until then the field still filters the index.
     let pages = null;
     let loading = null;
+    let failed = false;
     const load = () => {
       if (!loading) {
         loading = fetch(base + '/search/search_index.json')
-          .then((response) => (response.ok ? response.json() : { docs: [] }))
+          .then((response) => {
+            if (!response.ok) throw new Error('search index: HTTP ' + response.status);
+            return response.json();
+          })
           .then((data) => {
-            const docs = Array.isArray(data.docs) ? data.docs : [];
+            if (!data || !Array.isArray(data.docs)) throw new Error('search index: no documents');
+            const docs = data.docs;
             const titles = new Map();
             docs.forEach((doc) => {
               if (!String(doc.location).includes('#')) titles.set(doc.location, plain(doc.title));
@@ -155,11 +163,25 @@
                 textKey: text.toLowerCase(),
               };
             });
+            failed = false;
             return pages;
           })
-          .catch(() => (pages = []));
+          .catch(() => {
+            loading = null;
+            failed = true;
+            return null;
+          });
       }
       return loading;
+    };
+
+    // Screen readers hear the outcome of a search (a status line), not every result.
+    let saying = 0;
+    const announce = (text) => {
+      clearTimeout(saying);
+      if (!status) return;
+      if (!text) status.textContent = '';
+      else saying = setTimeout(() => { status.textContent = text; }, 400);
     };
 
     const filterNav = (words) => {
@@ -223,30 +245,41 @@
         });
     };
 
+    const note = (text) => {
+      box.textContent = '';
+      const line = document.createElement('p');
+      line.className = 'nf-results__note';
+      line.textContent = text;
+      box.appendChild(line);
+    };
+
     const render = (query) => {
       const key = keyOf(query);
       const words = key.split(' ').filter(Boolean);
       box.textContent = '';
       if (words.length === 0 || words.join('').length < 2) {
         box.hidden = true;
+        announce('');
         return;
       }
       box.hidden = false;
       if (pages === null) {
-        const wait = document.createElement('p');
-        wait.className = 'nf-results__note';
-        wait.textContent = 'Searching…';
-        box.appendChild(wait);
-        load().then(() => {
-          if (keyOf(input.value) === key) render(input.value);
+        note(failed ? UNAVAILABLE : 'Searching…');
+        load().then((ready) => {
+          if (keyOf(input.value) !== key) return;
+          if (ready) {
+            render(input.value);
+          } else {
+            note(UNAVAILABLE);
+            announce(UNAVAILABLE);
+          }
         });
         return;
       }
-      const hits = rank(key).slice(0, MAX_RESULTS);
-      const head = document.createElement('p');
-      head.className = 'nf-results__note';
-      head.textContent = hits.length === 0 ? 'Nothing matches. Try a phase or a command name.' : 'In the pages';
-      box.appendChild(head);
+      const found = rank(key);
+      const hits = found.slice(0, MAX_RESULTS);
+      note(hits.length === 0 ? 'Nothing matches. Try a phase or a command name.' : 'In the pages');
+      announce(found.length === 0 ? 'No results' : found.length === 1 ? '1 result' : found.length + ' results' + (found.length > MAX_RESULTS ? ', the first ' + MAX_RESULTS + ' listed' : ''));
       hits.forEach(({ doc, inTitle }) => {
         const link = document.createElement('a');
         link.href = base + '/' + doc.location;
