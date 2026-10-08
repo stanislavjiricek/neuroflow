@@ -7,6 +7,8 @@ reads:
   - .neuroflow/tasks/
   - ~/.neuroflow/flowie/tasks/
   - ~/.neuroflow/hives/{org-repo}/tasks/
+  - ~/.neuroflow/local-projects.json        # which flowie project this repo is (this project's tasks first)
+  - ~/.neuroflow/flowie/projects/projects.json
 writes:
   - .neuroflow/tasks/
   - ~/.neuroflow/flowie/tasks/
@@ -31,7 +33,9 @@ Follow the `neuroflow:neuroflow-core` lifecycle (open with its version notice wh
 | `flowie` | `~/.neuroflow/flowie/tasks/` | Personal, cross-project, private | Pull before read; the flowie auto-sync hook commits and pushes each file written with Edit/Write |
 | `hive` | `~/.neuroflow/hives/{org-repo}/tasks/` | Team-wide | Pull before read; commit by path, push only after the person confirms |
 
-Select with `--level project|flowie|hive`. If the requested level's storage doesn't exist (no flowie linked, no hive joined), say so and point at `/flowie` or `/hive --init` — never scaffold another level's storage from here.
+Select with `--level project|flowie|hive`. At hive level, `--hive {org-repo}` names the hive — its folder under `~/.neuroflow/hives/` — when the person joined several; without it, ask which (a single joined hive needs no flag). If the requested level's storage doesn't exist (no flowie linked, no hive joined), say so and point at `/flowie` or `/hive --init` — never scaffold another level's storage from here.
+
+**This project** at flowie and hive level is the flowie project this repo is linked to: the `name` of this folder's entry in `~/.neuroflow/local-projects.json`, else the `projects/projects.json` entry whose `repos` list this folder or its `origin` remote URL. Its tasks are those whose `project:` is that name. Without a link, no task is this project's — never guess one from names.
 
 ## Task file format
 
@@ -69,10 +73,14 @@ A level may carry `tasks/config.json` with its own `columns` list (`id`, `label`
 
 ## Modes
 
-**With the neuroflow mod**, a bare `/neuroflow:tasks` never reaches the model: the mod draws the project board as a
-pane from these files (same rendering rules), you pick a card and a column, and it puts
-`/neuroflow:tasks --move {slug} {column}` in the prompt for you to send — the move itself still runs as below. Any
-argument (`--list`, `--add`, `--move`, `--level`, …) runs this prose.
+**With the neuroflow mod**, a bare `/neuroflow:tasks` never reaches the model: the mod draws the boards as a pane
+from these files, each level's board as `/tasks --level {level}` renders it (same rendering rules) — the project's,
+the flowie's and every hive clone's, read as the local clones are (nothing is pulled). `v` or a level's button
+switches the level; the pane opens on the project board when it has open tasks, else on the first level with open
+tasks of this project, else on the first with any. You pick a card and a column, and it puts the move in the prompt
+for you to send — `/neuroflow:tasks --move {slug} {column}`, with `--level flowie` or `--level hive --hive {org-repo}`
+before `--move` at those levels; the move itself still runs as below. Any argument (`--list`, `--add`, `--move`,
+`--level`, `--hive`, …) runs this prose.
 
 | Mode | What it does |
 |---|---|
@@ -110,8 +118,8 @@ Every board display renders as an ASCII Kanban — never a flat list, except in 
 
 - Columns in board order. Omit empty columns except `inbox` and `active`; `done` and `archive` are counted in the footer, not drawn.
 - At most 5 cards per column (`+N more` underneath); titles or slugs truncated to fit; `owner` as `@handle`, `due` as `due MM-DD`.
-- Overdue tasks (past `due` and not done) are marked `⚠` and listed first in their column.
-- Footer: the done count and the level shown.
+- Overdue tasks (past `due` and not done) are marked `⚠`. Within a column: at `flowie` and `hive` level this project's tasks first (Levels → This project), marked `◆`; then overdue tasks; then by `due`, undated last.
+- Footer: the done count and the level shown — at flowie or hive level with `◆ {project}` when this project's tasks are marked.
 
 ## At end
 

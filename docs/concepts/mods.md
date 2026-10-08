@@ -62,13 +62,14 @@ Current: data-analyze — analysis
 
 <figure class="nf-shot">
 <div class="nf-term"><span class="dim">&gt;</span> /neuroflow:tasks
-<div class="nf-pane"><span class="nf-pane__title">tasks</span>┌─ inbox ──────────┬─ active ─────────┬─ review ────────┐
+<div class="nf-pane"><span class="nf-pane__title">tasks</span>level: <span class="nf-key on">project 3</span><span class="nf-key">flowie 12</span><span class="nf-key">example-lab-hive 4</span><span class="nf-key">next level <i>v</i></span>
+┌─ inbox ──────────┬─ active ─────────┬─ review ────────┐
 │ fix-marker       │ <span class="warn">⚠ rerun-ica @li</span>  │ qc-report       │
 │                  │   due 08-20      │                 │
 │                  │ spin-tests       │                 │
 └──────────────────┴──────────────────┴─────────────────┘
 <span class="dim">[done: 3 · level: project]</span></div></div>
-<figcaption>The project's task board. Pick a card and a column; the move is one command you send.</figcaption>
+<figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies. <code>v</code> switches the level; on flowie and hive boards this project's tasks come first, marked ◆. Pick a card and a column; the move is one command you send.</figcaption>
 </figure>
 
 ---
@@ -77,8 +78,8 @@ Current: data-analyze — analysis
 
 | Feature | What you see | Needs |
 |---|---|---|
-| Views | `/neuroflow:dashboard` opens a pane (phase map, deadlines, integrity, tasks, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` a board | — |
-| Band, status line, footer | One line above the prompt when something needs attention (a deadline, a meeting, a drafted decision, a loop being driven, a plugin update the project has not been [migrated](../upgrading.md) to); a status line that speaks only about exceptions; `neuroflow · phase · mode` in the footer | `band` |
+| Views | `/neuroflow:dashboard` opens a pane (phase map, deadlines, integrity, open tasks at every level, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` the task boards of the project, your flowie and each hive, `v` switching between them | — |
+| Band, status line, footer | One line above the prompt when something needs attention (a deadline, a meeting, a drafted decision, a loop being driven, a plugin update the project has not been [migrated](../upgrading.md) to, a flowie sync of the mod's that is pending or did not go through); a status line that speaks only about exceptions; `neuroflow · phase · mode` in the footer | `band` |
 | Instant answers | `/neuroflow:doctor`, `/neuroflow:phase <name>`, `idea: …` and live note capture answered in code, with no model turn | — |
 | Bookkeeping | Missing session lines and `flow.md` rows filled after a command's turn and marked `(auto)`; a decision drafted when a command logged none, kept only on your key press | `runtime: on` |
 | Integrity | The guards below; freezing, verifying and unfreezing the preregistration from the dashboard; frozen files re-hashed at start | `guards: enforce` to deny |
@@ -86,6 +87,12 @@ Current: data-analyze — analysis
 | Context | A digest of the project's integrity facts as a neuroflow command starts; wiki pages a prompt names; a capped digest of a linked flowie profile (no identity or wellbeing); the current and next phase marked in the slash menu | — |
 | Quiet | A `quiet` command such as `/idk` silences the band, status line and footer label until the next neuroflow command | — |
 | Autoresearch driver | `/neuroflow:autoresearch drive <name>`: one iteration per turn, caps checked between turns, a stop key | `runtime: on` |
+
+The wellbeing check-in on the band and `idea: …` write into your private [flowie](flowie.md). The mod commits those
+files by path, pulls and pushes them — for an idea right away, for the check-in when the next turn ends or the next
+session starts, never from the band's own field — and writes each attempt and its outcome as a line of
+`~/.neuroflow/flowie-sync.log`. A sync that does not go through stays on the band, pointing at
+`/neuroflow:flowie --sync`; it is tried again when something new is saved or a session starts, never in a loop.
 
 ---
 
