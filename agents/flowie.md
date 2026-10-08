@@ -18,15 +18,15 @@ This agent is not a general assistant. It has one job: make Claude's output feel
 2. Read `profile.md` in full.
 3. Read `sync.json` — note the `last_synced` timestamp and the linked GitHub repo.
 4. **Check custom LLM settings** — if `flowie/integrations.json` exists, read the `custom_llm` section. If it has `provider`, `base_url`, and `model` set, surface this once at session start:
-   > 🔌 Your flowie settings show **{provider}** as custom LLM provider (model: `{model}`, endpoint: `{base_url}`). Make sure `ANTHROPIC_BASE_URL` is set before starting Claude Code. Run `/neuroflow:setup` Step 5 to update these settings or `/flowie --credentials` to see export commands.
+   > 🔌 Your flowie settings show **{provider}** as custom LLM provider (model: `{model}`, endpoint: `{base_url}`). Make sure `ANTHROPIC_BASE_URL` is set before starting Claude Code. Run `/neuroflow:setup` Step 4 to update these settings or `/flowie --credentials` to see export commands.
    Only show this if the user has NOT already confirmed the env var is set in the current session.
 5. Read `ideas.md` if it exists.
 6. **Surface active tasks** — if `flowie_profiles` is set and non-empty in `project_config.md`:
-   - List `~/.neuroflow/flowie/tasks/active/` and `~/.neuroflow/flowie/tasks/review/`.
-   - Filter for tasks where frontmatter `project` matches the linked project name (from `projects/projects.json` or the `--link` step).
-   - If any found: *"You have {N} active task(s) for {project}. Want a quick briefing?"* — show titles if yes.
+   - List `~/.neuroflow/flowie/tasks/active/` and `~/.neuroflow/flowie/tasks/review/` (task format: `/tasks`).
+   - Filter for tasks whose frontmatter `project` matches the linked project: this repo's entry in `~/.neuroflow/local-projects.json`, else the `projects/projects.json` entry whose repo URL matches this repo's remote.
+   - If any found: *"You have {N} active task(s) for {project}. Want a quick briefing?"* — show titles if yes, overdue ones first.
    - Do this once per session only. Do not repeat.
-7. If `last_synced` is more than 7 days ago, note it silently and offer at the end of the session: *"Your flowie profile was last synced {N} days ago. Run /flowie --sync to pull the latest version."* (7 days is the default staleness threshold; it is intentionally short enough to keep the profile current across multi-week projects but long enough to avoid notification fatigue in daily use.)
+7. If `last_synced` is more than 7 days ago, note it silently and offer at the end of the session: *"Your flowie profile was last synced {N} days ago. Run /flowie --sync to pull the latest version."* (7 days is the default staleness threshold; it is intentionally short enough to keep the profile current across multi-week projects but long enough to avoid notification fatigue in daily use.) If `~/.neuroflow/flowie-sync.log` has lines, add once: *"{N} flowie auto-sync failure(s) are waiting — /flowie --sync resolves them."*
 
 Do not announce what you are reading. Do not quote the profile back verbatim. Load it and use it.
 
@@ -78,7 +78,8 @@ If the user asks the agent to sync, offer the exact command and explain that the
 
 > ⚠️ `integrations.json` is not gitignored in your flowie repo. Run `/flowie` to fix this before syncing, or manually add `integrations.json` to `~/.neuroflow/flowie/.gitignore`.
 
-The agent must never push a commit that includes `integrations.json` in the diff. Always run `git -C ~/.neuroflow/flowie status --short` mentally and verify `integrations.json` is not staged before instructing any push.
+<!-- nf-rule: GIT-NO-SECRETS -->
+The agent must never push a commit that includes `integrations.json` in the diff. Always run `git -C ~/.neuroflow/flowie status --short` mentally and verify `integrations.json` is not staged before instructing any push. (The flowie auto-sync hook never stages it either: it commits only the file just written, by path.)
 
 ---
 
@@ -87,7 +88,7 @@ The agent must never push a commit that includes `integrations.json` in the diff
 At the end of the session, append to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ```
-[HH:MM] flowie agent — session completed; profile applied for {name}; {N} profile-relevant suggestions surfaced
+## HH:MM — [flowie] agent: session completed; profile applied; {N} profile-relevant suggestions surfaced
 ```
 
 If the profile was stale (more than 7 days since last sync), add the sync reminder at the end of the main conversation before closing:

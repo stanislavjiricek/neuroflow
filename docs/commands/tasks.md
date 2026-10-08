@@ -18,7 +18,7 @@ title: /tasks
 | `flowie` | `~/.neuroflow/flowie/tasks/` | Personal, cross-project, private |
 | `hive` | `~/.neuroflow/hives/{org-repo}/tasks/` | Team-wide |
 
-Select with `--level project|flowie|hive`. Flowie and hive levels pull before reading and push after writing.
+Select with `--level project|flowie|hive`. Flowie and hive levels pull before reading. Flowie writes are pushed by the flowie auto-sync hook; hive pushes happen only after you confirm; project-level changes stay in your working tree until you commit them.
 
 ---
 
@@ -27,18 +27,24 @@ Select with `--level project|flowie|hive`. Flowie and hive levels pull before re
 | Mode | What it does |
 |---|---|
 | *(none)* | Render the ASCII Kanban board |
+| `--list` | Flat list grouped by column (for narrow screens) |
 | `--add "title"` | Create a task in `inbox` |
-| `--move {id} {column}` | Move between `inbox` / `active` / `review` / `done` |
-| `--done {id}` | Complete a task |
-| `--archive` | Archive all done tasks |
+| `--move {slug} {column}` | Move a task to another column |
+| `--done {slug}` | Complete a task |
+| `--archive` | Archive done tasks older than `archive_after_days` (default 90) |
+| `--project {name}` | Filter to one project |
 
-Every board display is a rendered ASCII Kanban — never a flat list. Overdue tasks are flagged `⚠` and float to the top of their column.
+Every board display is a rendered ASCII Kanban — never a flat list, except `--list`. Overdue tasks are flagged `⚠` and float to the top of their column.
 
 ---
 
 ## Task files
 
-One markdown file per task with frontmatter (`id`, `title`, `status`, `created`, optional `due`, `assignee`, `project`, `source`) and free-form notes below. Tasks created from meeting action items carry a `source:` pointing at the meeting file.
+One markdown file per task at `tasks/{column}/{slug}.md` — the folder is the column. Default columns: `inbox`, `ready`, `active`, `review`, `meeting`, `done`, `archive` (a level can define its own in `tasks/config.json`).
+
+Frontmatter: `title`, `status` (always the column), optional `owner`, `due`, `phase`, `tags`, `blocked_by`, then `created`, `updated`, and at flowie/hive level `project`. Tasks created from meeting action items carry a `source:` pointing at the meeting file (e.g. `project:meetings/2026-08-12-lab-meeting.md`). Owners are roster handles — never invented — and task files never contain machine-local paths.
+
+Older task files (`{id}-{slug}.md`, `assignee:` or `responsible:`) stay readable and are moved into the new layout the next time they are written, under the same slug when `/tasks` accepts it. If one names two people, you are asked who owns the task first, so nobody is dropped.
 
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: phase-slideshow
 description: Phase guidance for the neuroflow /slideshow command. Loaded automatically when /slideshow is invoked to orient agent behavior, slide structure decisions, format selection, and audience calibration for presentation generation.
+user-invocable: false
 ---
 
 # phase-slideshow
@@ -14,11 +15,13 @@ The slideshow phase generates a structured slide deck outline from `.neuroflow/`
 - Calibrate slide count and detail level to the stated talk length — do not pad or over-explain
 - Synthesize, do not transcribe — a slide is a claim supported by evidence, not a file dump
 - Flag figures by path but do not attempt to embed binary image files
+- Build the Limitations slide from preregistration deviations and the limitations recorded in analysis summaries or the manuscript — never from `.neuroflow/fails/` (team-internal feedback about neuroflow)
+- A deck leaves the team: no local-tier content (`sessions/`, `review/`), `fails/`, `finance/` or participant-identifying details on any slide (neuroflow-core → Sharing tiers)
 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
-- `neuroflow:notebooklm` — when the user says "use NotebookLM" or wants AI-narrated slides / an audio walkthrough of the slides, route the output to the `notebooklm` skill instead of (or in addition to) generating Markdown/reveal.js
+- `neuroflow:notebooklm` — when the user says "use NotebookLM" or wants AI-narrated slides / an audio walkthrough of the slides, route the output to the `notebooklm` skill instead of (or in addition to) generating Markdown/reveal.js; uploading the deck there is outbound data movement — show what will be uploaded and wait for the person's confirmation
 
 ## Audience calibration
 
@@ -58,7 +61,7 @@ If the user asks for more slides than the heuristic suggests, comply but note th
 
 ## Workflow hints
 
-- Save the slideshow to `.neuroflow/slideshow/slideshow-YYYY-MM-DD.md` — confirm before writing
+- Save the deck to `slides/slideshow-YYYY-MM-DD.md` (a deliverable — never inside `.neuroflow/`); keep the working outline and speaker notes in `.neuroflow/slideshow/` — confirm before writing
 - If a same-date file exists, append `-v2`, `-v3`, etc.
 - Keep bullet points to ≤ 6 words per line where possible — slides are prompts, not paragraphs
 

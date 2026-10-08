@@ -1,6 +1,7 @@
 ---
 name: phase-ideation
 description: Phase guidance for the neuroflow /ideation command. Loaded automatically when /ideation is invoked to orient agent behavior, relevant skills, and workflow hints for the ideation phase.
+user-invocable: false
 ---
 
 # phase-ideation
@@ -13,6 +14,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 - Resist generating a full proposal before the research question is clear — sequence matters
 - Perform all literature searches **inline** by following `skills/phase-ideation/references/search-protocol.md` — do NOT spawn sub-agents
 - Save `.md` metadata stubs for all results and ask the user which papers to download
+- Download open-access copies only — never Sci-Hub; when no open copy exists, the person gets the paper through their institutional library access
 - After the user selects papers (or skips), use the `literature-review` agent to run the full 12-protocol analysis
 - The literature-review agent works from PDFs or `.md` stubs — full download is not required
 - Keep outputs hypothesis-driven and concise; avoid scope creep at this stage
@@ -20,7 +22,7 @@ The ideation phase is the entry point of a research project — sharpening a vag
 
 ## Relevant agents
 
-- `literature-review` — runs 12 sequential analytical protocols on downloaded papers through the worker-critic loop; produces a compiled literature review saved to `.neuroflow/ideation/literature-review-[date].md`. The loop protocol is defined in `neuroflow:worker-critic` — the orchestrator is the current Claude instance and the critic role is played inline, not by separate agent files.
+- `literature-review` — runs 12 sequential analytical protocols on downloaded papers; checks each with a critic pass defined in the agent itself (rubric, mechanical checks first, up to 3 rounds, verdicts in the `neuroflow:worker-critic` format), saves each as a resumable checkpoint, and compiles the review to `.neuroflow/ideation/literature-review-[date].md`. The critic pass is a self-check by the same agent; `/ideation` can add an independent check by running the critic brief in a separate general-purpose agent.
 
 > **Note:** Literature searches are performed inline by the main agent following the search protocol — the `scholar` agent is NOT spawned as a sub-agent. Use the standalone `scholar` agent only for ad-hoc searches outside the `/ideation` workflow.
 
@@ -31,14 +33,18 @@ The ideation phase is the entry point of a research project — sharpening a vag
 
 ## Zotero integration (optional)
 
-If a Zotero MCP server is connected (any `mcp__*zotero*` tools available), the literature workflow becomes **library-first**: search the user's Zotero library before external sources, mark already-owned papers 📚 in results (excluded from download offers), offer to save newly selected papers into a project-named Zotero collection, and let the literature review pull the user's existing Zotero notes/annotations. If no Zotero MCP is present, `/ideation` asks once per project whether to set one up (answer stored as `zotero:` in `project_config.md`; setup guidance lives in `/setup`). Never require Zotero — the plain stub-based flow is always the fallback.
+If a Zotero MCP server is connected (any `mcp__*zotero*` tools available), the literature workflow becomes **library-first**: search the user's Zotero library before external sources, mark already-owned papers 📚 in results (excluded from download offers), and pass the user's existing Zotero notes/annotations to the literature review in its brief. If no Zotero MCP is present, `/ideation` asks once whether to set one up (answer stored as `zotero:` in `~/.neuroflow/user.yaml` — a personal preference, not a project fact; setup guidance lives in `/setup`). Never require Zotero — the plain stub-based flow is always the fallback.
+
+<!-- nf-rule: EGRESS-CONFIRM -->
+Writing to Zotero is opt-in, never a default: adding items, collections, notes, tags or attachments happens only after the person confirms that specific write in the same turn.
 
 ## Workflow hints
 
 - The research question produced here anchors every downstream phase — write it precisely
 - Save the final research question to `.neuroflow/ideation/research-question.md`
-- Update `project_config.md` if the research question is defined or changed
+- Update the research question in the markdown body of `project_config.md` if it is defined or changed (it is not a frontmatter key)
 - Downloaded papers live in `.neuroflow/ideation/papers/` — this folder is the input for the `literature-review` agent
+- Standing queries live in `.neuroflow/ideation/watch.md`; recommend free PubMed / bioRxiv alerts for them, and add watch hits to `papers/` only for the papers the person picks
 - The compiled literature review (`literature-review-[date].md`) feeds directly into the `paper` phase; reference it there
 - The search protocol reads `skills/phase-ideation/references/journal-defaults.md` to match the query to one of eight neuroscience areas and surface high-impact journals. If the user has custom journal preferences, they can create `.neuroflow/journal-preferences.md` from the template at `skills/phase-ideation/references/user-journal-preferences.md`.
 

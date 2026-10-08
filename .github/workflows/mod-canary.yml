@@ -1,0 +1,56 @@
+name: mod-canary
+
+# Weekly: the neuroflow mod against the newest Claude Code release. Function hooks are an early-access
+# API that changes between releases; this finds a break before users do (docs/concepts/mods.md).
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install the newest Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-code@latest
+          claude --version
+
+      - name: Validate the plugin and its hooks module
+        run: claude plugin validate .
+
+      - name: Mod tests
+        if: ${{ !cancelled() }}
+        run: claude plugin test .
+
+      - name: Mod policy
+        if: ${{ !cancelled() }}
+        run: python scripts/automation/mod_policy.py
+
+      - name: Open an issue when the newest release breaks the mod
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(claude --version 2>/dev/null | head -n 1)"
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          title="mod canary: the neuroflow mod fails on Claude Code ${version}"
+          if gh issue list --state open --search "${title} in:title" --json number --jq 'length' | grep -qx 0; then
+            gh issue create --title "${title}" --body "The weekly canary failed on Claude Code ${version}: ${run_url}
+
+          Until it is fixed, users on that release can set the mod's runtime to off (/plugin → Installed → neuroflow → Configure options); the plugin keeps working without it." || true
+          fi

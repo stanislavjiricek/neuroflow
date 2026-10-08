@@ -55,6 +55,16 @@ Write code, test, refine — applying domain best practices:
 
 ---
 
+## Real-time and closed-loop tools
+
+- **The latency budget is part of "done"** — written into `tool-spec.md` as a number (e.g. p95 ≤ 50 ms).
+- **Outputs carry their source timestamp** (`outlet.push_sample(x, timestamp=source_ts)`), and remote clocks are corrected with `time_correction()`, so latency can actually be measured.
+- **`lsl_check.py --stream <output> --budget-ms 50`** reports p50 / p95 / max latency against the budget, plus rate, gaps and clock offset (pylsl needed). That is processing latency; stimulus-to-photon timing is a photodiode test in [`/tool-validate`](tool-validate.md).
+- **Tools used during recordings run on their own** — never inside a Claude Code session on the acquisition PC.
+- **Stimulation hardware is started by a person.** Claude never writes code that triggers TMS, tES or other stimulation on its own, and no software check is presented as a safety interlock.
+
+---
+
 ## Example session
 
 ```

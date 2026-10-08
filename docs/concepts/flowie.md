@@ -23,14 +23,14 @@ Your intellectual fingerprint:
 - Domain knowledge areas
 - Collaboration style
 
-The [`flowie` agent](../concepts/agents.md) reads this profile silently at the start of every session and applies it without exposing the contents in external-facing outputs.
+The [`flowie` agent](agents.md#flowie) reads this profile silently at the start of every session and applies it without exposing the contents in external-facing outputs.
 
 ### 2. Kanban task board (`tasks/`)
 
 A personal task board linked to your active projects:
-- Configurable columns (default: Inbox → Next → Active → Waiting → Done → Archive)
+- Configurable columns (default: Inbox → Ready → Active → Review → Meeting → Done → Archive)
 - Tasks can be linked to projects in the project registry
-- Managed via `/flowie --tasks` with `--add`, `--move`, `--done`, `--archive` subcommands
+- Managed via `/flowie --tasks` with `--add`, `--move`, `--done`, `--archive` subcommands — the same task format as project and hive boards ([`/tasks`](../commands/tasks.md))
 
 ### 3. Project registry (`projects/`)
 
@@ -38,6 +38,7 @@ A list of all your neuroflow projects with phase timelines:
 - Tracks which project is at which phase
 - Phase changes in your project repos automatically sync to the registry
 - Managed via `/flowie --projects`
+- Where each project lives on *this* machine is kept in `~/.neuroflow/local-projects.json` — outside the repo and never synced, so no local paths reach GitHub
 
 ---
 
@@ -47,6 +48,8 @@ A list of all your neuroflow projects with phase timelines:
 2. Run `/flowie --init` in any neuroflow project to link and clone it
 3. Answer a few questions to seed your initial profile
 4. On subsequent sessions, `/flowie --sync` keeps the profile up to date
+
+Everything Claude writes to flowie is committed and pushed right away by the plugin's auto-sync hook — one file at a time, pulling first. If a push fails (offline, auth, conflict), the commit stays local, a line goes to `~/.neuroflow/flowie-sync.log`, and `/flowie --sync` sorts it out.
 
 ---
 
@@ -64,7 +67,7 @@ When flowie is linked, at the start of any command that benefits from personalis
 
 ## Daily wellbeing tracking (optional)
 
-Run `/flowie --assess` to opt in to a short daily check-in (anxiety, energy, happiness on a 1–10 scale). Stored in `flowie/wellbeing/YYYY-MM-DD.md`. Claude will nudge you to fill it in if you sync without having done so that day. Entirely optional and never shared.
+Run `/flowie --assess` to opt in to a short daily check-in (anxiety, energy, happiness on a 1–10 scale). Stored as `wellbeing/YYYY-MM-DD.json` in your private flowie repo — pushed to GitHub like every flowie file, never shared with collaborators, the hive or exports. While tracking is on, Claude asks once a day during flowie writes; it never infers your mood from anything else. Entirely optional — switch it off in `wellbeing/config.json`.
 
 ---
 

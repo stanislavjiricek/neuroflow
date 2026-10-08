@@ -31,4 +31,4 @@ Used by the literature search protocol (`skills/phase-ideation/references/search
 
 ## Project-level overrides
 
-Users can add their own journal preferences at the project level by creating `.neuroflow/journal-preferences.md` in their project directory (see `skills/phase-search/references/user-journal-preferences.md` for the template). Project-level preferences take priority over this defaults table.
+Users can add their own journal preferences at the project level by creating `.neuroflow/journal-preferences.md` in their project directory (see `skills/phase-ideation/references/user-journal-preferences.md` for the template). Project-level preferences take priority over this defaults table.

@@ -1,6 +1,7 @@
 ---
 name: phase-quiz
 description: Phase guidance for the neuroflow /quiz command. Loaded automatically when /quiz is invoked to orient behaviour, question quality, and mode-specific workflow for neuroscience quiz sessions.
+user-invocable: false
 ---
 
 # phase-quiz

@@ -54,7 +54,15 @@ Claude records:
 - Description and justification
 - Which budget line it maps to
 
-Overspends are flagged immediately.
+Each expense is one row of a fixed table, so the numbers can be added up exactly:
+
+```markdown
+| date | grant | category | budget_line | amount | currency | description | reference |
+|---|---|---|---|---|---|---|---|
+| 2026-03-14 | GR-2025-001 | consumables | consumables | 1240.00 | EUR | EEG caps (2x) | INV-2026-0314 |
+```
+
+Amounts are plain decimals (`1240.00`), currencies are ISO codes, and rows are only ever appended — a correction is a new row. Every expense comes from you, with a receipt or invoice: AI usage figures are never booked as grant expenses. Overspends are flagged immediately.
 
 **Output:** appended to `expenses-[year].md` in `.neuroflow/finance/`
 
@@ -71,6 +79,8 @@ Claude produces a report covering:
 | **Remaining balance** | Per budget line |
 | **Compliance notes** | Any flagged issues |
 
+Every figure comes from the ledger script, never from mental arithmetic — see below.
+
 **Output:** `financial-report-[funder]-[date].md` saved to `.neuroflow/finance/`
 
 ---
@@ -85,6 +95,16 @@ Claude checks the current expense log against grant conditions:
 - Is the reporting deadline approaching?
 
 **Output:** `compliance-check-[date].md` saved to `.neuroflow/finance/`
+
+---
+
+## Ledger script
+
+`ledger.py` (in the `phase-finance` skill) reads the expense tables and prints exact totals per currency — by grant, by category, and by budget line. With `--budget` it compares spending with the budget's `## Budget lines` table and flags overspent lines; with `--csv` it exports the rows for a funder's spreadsheet. It is read-only and never converts currencies: if a funder needs another currency, you give the converted amount at the rate the funder mandates.
+
+```
+python <phase-finance base dir>/scripts/ledger.py .neuroflow/finance/ --budget .neuroflow/finance/budget-gr1-2025-01-10.md
+```
 
 ---
 

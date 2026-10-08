@@ -16,6 +16,7 @@ title: /ideation
 - You want to search what is already known before committing to a question
 - You have an idea and want to sharpen it into a concrete, testable research question
 - You want to produce a written project proposal
+- You have a set of papers and want a structured, critic-checked literature review
 
 ---
 
@@ -57,16 +58,24 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
 === "2. Explore literature"
 
-    Search PubMed and bioRxiv simultaneously using the inline [search protocol](../concepts/agents.md) (no sub-agent spawned).
+    Search PubMed and bioRxiv simultaneously using the inline [search protocol](../skills/phase-ideation/references/search-protocol.md) (no sub-agent spawned), with CrossRef, Semantic Scholar and arXiv as fallbacks.
 
     !!! note "No credentials required"
         PubMed and bioRxiv search works out of the box — no setup needed.
 
     **What Claude does:**
-    - Runs your topic on both PubMed and bioRxiv
+    - Runs your topic on both PubMed and bioRxiv, then CrossRef / Semantic Scholar / arXiv when bioRxiv coverage is thin
     - Tries synonym and broader/narrower queries if results are thin
     - Returns a deduplicated list with ⚠️ preprint and 🔒 paywall markers
-    - Offers follow-up: download, save as markdown, or synthesize
+    - Saves a metadata stub per paper; each DOI is labelled with the check actually done (for example "from the PubMed record" or "resolves on 2026-10-07"), never "verified"
+    - Downloads only the papers you pick, and only open-access copies (preprint servers, open repository copies, publisher open access) — never Sci-Hub. For the rest it tells you which PDFs to get through your library and where to save them
+    - Offers follow-up: literature review, save as markdown, synthesize, or watch the query
+
+    !!! tip "Keep following a topic"
+        Choose **watch** to pin a query in `.neuroflow/ideation/watch.md`. Claude recommends a free PubMed alert ("Create alert") and bioRxiv / medRxiv subject alerts; when a pinned query has not been checked for a week, `/ideation` offers to re-run it and shows only the new papers — they join your paper set only if you pick them.
+
+    !!! note "Zotero (optional)"
+        With a Zotero MCP server connected, Claude searches your library first and skips papers you already have. It writes to Zotero (collections, notes, tags) only when you confirm each write.
 
     **Output:** `literature-[topic]-[date].md` saved to `.neuroflow/ideation/`
 
@@ -108,13 +117,24 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
     **Output:** `proposal-[date].md` saved to `.neuroflow/ideation/`
 
+=== "5. Literature review"
+
+    Run 12 analytical protocols — intake, contradictions, gaps, timeline, methods, citation network, review prose, devil's advocate, theory, variables, plain language, research agenda — on the papers in `.neuroflow/ideation/papers/` (PDFs or metadata stubs).
+
+    **What Claude does:**
+    - Confirms the paper list with you, then runs the `literature-review` agent
+    - The agent checks every protocol with a critic pass (its rubric, countable items first) — a self-check, labelled as such — and saves each protocol as a checkpoint, so an interrupted review resumes where it stopped
+    - Shows a status table (approved or halted per protocol); on request, a separate critic agent re-checks a protocol against the paper files
+
+    **Output:** `literature-review-[date].md` in `.neuroflow/ideation/`, with per-protocol checkpoints in `literature-review-[date]/`
+
 ---
 
 ## Integration reminders
 
 **PubMed / bioRxiv** — no credentials required, works out of the box.
 
-**Miro** — if you mention Miro or ask to visualize a mind map, Claude checks `MIRO_ACCESS_TOKEN` and offers to configure it if missing.
+**Miro** — if you mention Miro or ask to visualize a mind map, Claude checks whether Miro tools are available in the session. If not, it shows how to add Miro yourself with `claude mcp add` in a separate terminal (the `/setup` Step 2 instructions); it never asks for your token.
 
 ---
 
@@ -122,8 +142,8 @@ When you run `/neuroflow:ideation`, Claude asks which mode applies:
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/integrations.json` |
-| Writes | `.neuroflow/ideation/`, `.neuroflow/ideation/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/ideation/watch.md`, `~/.neuroflow/user.yaml` |
+| Writes | `.neuroflow/ideation/` (including `papers/`, `watch.md`, `literature-review-[date].md`), `.neuroflow/ideation/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `~/.neuroflow/user.yaml` (your Zotero answer) |
 
 ---
 

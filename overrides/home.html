@@ -1,0 +1,513 @@
+{#-
+  The landing page: one screen. Wheel, swipe and the arrow keys turn the research cycle (nineteen
+  phases), then the memory chapter (you, the project, the team) and the next study. When a window
+  is too short for the scene, the page scrolls first, so the install line and links stay in reach.
+  Built from the Orbit design; docs/index.md selects it with `template: home.html`.
+-#}
+<!doctype html>
+<html lang="{{ config.theme.language | d('en') }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>neuroflow — a complete research system for neuroscience teams</title>
+<meta name="description" content="{{ config.site_description | e }}">
+<link rel="canonical" href="{{ config.site_url }}">
+<link rel="icon" href="{{ config.theme.favicon | url }}">
+<meta name="theme-color" content="#06070A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@200..600&amp;family=DM+Mono:wght@300;400;500&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#06070A;overscroll-behavior:none}
+a{color:#E9E9E4}a:hover{color:#FFFFFF}
+@keyframes nfo-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes nfo-cue{0%{transform:scaleY(0);transform-origin:top}45%{transform:scaleY(1);transform-origin:top}55%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+.nfo-rise{animation:nfo-rise 1.4s cubic-bezier(.16,1,.3,1) both}
+.nfo-root{position:relative;min-height:100vh;overflow:hidden;background:radial-gradient(circle at 74% 50%,rgba(233,233,228,.045),rgba(6,7,10,0) 36%),#06070A;color:#E9E9E4;font-family:'Albert Sans',system-ui,sans-serif;touch-action:pinch-zoom}
+.nfo-root:focus-visible{outline:1px solid rgba(233,233,228,.32);outline-offset:-10px}
+.nfo-grid{min-height:100vh;max-width:1440px;margin:0 auto;padding:clamp(28px,6.5vh,60px) 72px clamp(24px,5.8vh,52px);box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:64px}
+.nfo-left{min-height:0;display:flex;flex-direction:column;justify-content:space-between;gap:24px}
+.nfo-brand{display:flex;align-items:baseline;gap:14px}
+.nfo-brand b{font-size:17px;font-weight:500;letter-spacing:-.01em}
+.nfo-brand span{font-family:'DM Mono',monospace;font-size:11px;color:#7C7E84}
+.nfo-mid{display:flex;flex-direction:column;gap:clamp(22px,4.4vh,40px)}
+.nfo-hero{display:flex;flex-direction:column;gap:clamp(14px,2.4vh,22px)}
+.nfo-hero h1{margin:0;font-size:clamp(36px,5.8vh,54px);line-height:1.05;font-weight:200;letter-spacing:-.04em}
+.nfo-hero p{margin:0;max-width:540px;font-size:clamp(15px,2vh,18px);line-height:1.6;font-weight:300;color:#A2A4A9}
+.nfo-stack{display:grid}
+.nfo-stack>[data-at]{grid-area:1/1}
+.nfo-stage{min-height:clamp(112px,16.5vh,150px);max-width:560px;font-size:clamp(17px,2.35vh,21px)}
+.nfo-stage>[data-at]{display:flex;flex-direction:column;gap:14px}
+.nfo-sk{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:#7C7E84}
+.nfo-st{line-height:1.5;font-weight:300;text-wrap:pretty}
+.nfo-bar{display:flex;gap:10px;max-width:640px}
+.nfo-bar>[data-go]{min-width:0;display:flex;flex-direction:column;gap:12px;cursor:pointer}
+.nfo-bar>[data-go]>div{display:flex;gap:3px}
+.nfo-bar span{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;white-space:nowrap}
+.nfo-cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px 32px;font-size:14px}
+.nfo-cta code{font-family:'DM Mono',monospace;font-size:13px;font-weight:300;color:#CFD0D3;user-select:all}
+.nfo-cta a{text-decoration:none}
+.nfo-cta .nfo-docs{border-bottom:1px solid #E9E9E4;padding-bottom:3px}
+.nfo-cta .nfo-src{color:#8E9096}
+.nfo-right{position:relative;min-height:0;display:flex;align-items:center;justify-content:center;animation-delay:.12s}
+.nfo-dial{position:relative;width:min(100%,calc(100vh - 150px),620px);aspect-ratio:1/1;container-type:inline-size}
+.nfo-dial svg{display:block;overflow:visible}
+.nfo-center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.nfo-c{width:280px;width:45cqw;text-align:center}
+.nfo-c>[data-at]{display:flex;flex-direction:column;align-items:center;gap:12px;gap:1.95cqw}
+.nfo-ck{font-family:'DM Mono',monospace;font-size:11px;font-size:max(10px,1.8cqw);letter-spacing:.2em;color:#7C7E84}
+.nfo-ct{font-size:34px;font-size:5.5cqw;font-weight:200;letter-spacing:-.035em;line-height:1.05}
+.nfo-cd{font-size:15px;font-size:max(12.5px,2.45cqw);line-height:1.55;font-weight:300;color:#A2A4A9;text-wrap:balance}
+.nfo-cc{font-family:'DM Mono',monospace;font-size:12px;font-size:max(11px,1.95cqw);color:#CFD0D3}
+.nfo-foot{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:flex-end;align-items:center;gap:40px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;color:#7C7E84}
+.nfo-hint{display:flex;align-items:center;gap:14px;transition:opacity .8s ease}
+.nfo-cueline{display:block;position:relative;overflow:hidden;width:1px;height:26px;background:#2A2C33}
+.nfo-cue{position:absolute;inset:0;background:#E9E9E4;animation:nfo-cue 2.4s cubic-bezier(.65,0,.35,1) infinite}
+[data-moved] .nfo-hint{opacity:0}
+[data-at]{opacity:0;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
+[data-at][data-on]{opacity:1;transform:none;transition:opacity .55s cubic-bezier(.2,.7,.2,1) .06s,transform .55s cubic-bezier(.2,.7,.2,1) .06s;pointer-events:auto}
+[data-nf-root]:not([data-armed]) [data-at~="p0"],[data-nf-root]:not([data-armed]) [data-at~="s0"]{opacity:1;transform:none}
+.nfo-k-again{display:none}
+[data-again] .nfo-k-first{display:none}
+[data-again] .nfo-k-again{display:inline}
+[data-dot]{fill:#55585F;transition:fill .35s ease}
+[data-dot][data-on]{fill:#FFFFFF}
+[data-cell]{display:block;flex:1 1 0;height:2px;background:#22242A;transition:background .35s ease}
+[data-cell][data-on]{background:#E9E9E4}
+[data-stage-label]{color:#74777F;transition:color .35s ease}
+[data-stage-label]:hover{color:#B9BBC0}
+[data-stage-label][data-on]{color:#E9E9E4}
+[data-tier] path{fill:none;stroke:#30333B;stroke-width:1;transition:stroke .45s ease}
+[data-tier][data-on] path{stroke:#E9E9E4}
+[data-tier] text{fill:#5E616A;transition:fill .45s ease}
+[data-tier][data-on] text{fill:#F2F2EE}
+[data-tier] circle{fill:#4A4D55;transition:fill .45s ease}
+[data-tier][data-on] circle{fill:#E9E9E4}
+@media (prefers-reduced-motion: reduce){.nfo-rise,.nfo-cue{animation:none!important}[data-at],[data-at][data-on]{transition:none}}
+@media (min-width: 901px) and (max-height: 600px){
+.nfo-hero p{display:none}
+}
+@media (max-width: 900px){
+.nfo-root,.nfo-grid{min-height:100vh;min-height:100svh}
+.nfo-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);padding:22px 20px 18px;gap:10px}
+.nfo-left{justify-content:flex-start;gap:18px}
+.nfo-mid{gap:16px}
+.nfo-hero h1{font-size:clamp(25px,7vw,34px)}
+.nfo-hero h1 br{display:none}
+.nfo-hero p{display:none}
+.nfo-stage{min-height:0;font-size:15px}
+.nfo-stage>[data-at]{gap:8px}
+.nfo-bar span{display:none}
+.nfo-bar>[data-go]{gap:0}
+.nfo-cta{gap:8px 22px;font-size:13px}
+.nfo-cta code{display:none}
+.nfo-dial{width:min(100%,max(220px,calc(100svh - 360px)))}
+.nfo-foot{display:none}
+}
+@media (max-width: 900px) and (max-height: 560px) and (orientation: landscape){
+.nfo-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:none;padding:16px 24px 14px;gap:24px}
+.nfo-left{justify-content:space-between;gap:12px}
+.nfo-mid{gap:12px}
+.nfo-hero h1{font-size:clamp(22px,6.6vh,28px)}
+.nfo-stage{font-size:14px}
+.nfo-dial{width:min(100%,calc(100svh - 40px))}
+}
+</style>
+</head>
+<body>
+<div data-nf-root="orbit" class="nfo-root" tabindex="0" role="region" aria-label="neuroflow — scroll, swipe or use the arrow keys to turn the cycle">
+<div class="nfo-grid">
+
+<div class="nfo-left nfo-rise">
+<div class="nfo-brand"><b>neuroflow</b><span>{{ config.extra.version }} · open source</span></div>
+
+<div class="nfo-mid">
+<div class="nfo-hero">
+<h1>A complete research system <br>for neuroscience teams.</h1>
+<p>Nineteen phases from the first question to the published paper, and on to the next. Memory, tasks and deadlines for you, the project and the team — plain files, inside Claude Code.</p>
+</div>
+
+<div class="nfo-stack nfo-stage">
+<div data-at="s0"><div class="nfo-sk">01 / 08 — QUESTION</div><div class="nfo-st">It starts with a question. The literature is searched and read with you; hypotheses and the analysis plan are frozen before any data exist.</div></div>
+<div data-at="s1"><div class="nfo-sk">02 / 08 — FUNDING</div><div class="nfo-st">The grant and the budget are written from the same record as the plan, so all three say the same thing.</div></div>
+<div data-at="s2"><div class="nfo-sk">03 / 08 — INSTRUMENTS</div><div class="nfo-st">Paradigms are audited for timing before anyone sits down. Analysis tools are built for their job and checked against known answers.</div></div>
+<div data-at="s3"><div class="nfo-sk">04 / 08 — DATA</div><div class="nfo-st">Recordings land in BIDS and raw stays raw. Every preprocessing step is on record; confirmatory tests run on the frozen plan.</div></div>
+<div data-at="s4"><div class="nfo-sk">05 / 08 — MODELS</div><div class="nfo-st">Computational models pass a smoke test before the first long run. Parameter searches and cluster jobs are registered and tracked.</div></div>
+<div data-at="s5"><div class="nfo-sk">06 / 08 — WRITING</div><div class="nfo-st">Paper, reviews, poster and reports are written against the project's own record, then read sentence by sentence.</div></div>
+<div data-at="s6"><div class="nfo-sk">07 / 08 — SHARING</div><div class="nfo-st">Exports and archives leave with local files held back. Notes taken along the way become the next question.</div></div>
+<div data-at="l0"><div class="nfo-sk">08 / 08 — MEMORY · YOU</div><div class="nfo-st">Your profile and writing style, your ideas, a board for your own tasks and a personal wiki — in a private repository that follows you from project to project.</div></div>
+<div data-at="l1"><div class="nfo-sk">08 / 08 — MEMORY · PROJECT</div><div class="nfo-st">Each project keeps one memory in its own git: objectives, deadlines, a task board, meetings that turn into tasks, and every decision with its reason.</div></div>
+<div data-at="l2"><div class="nfo-sk">08 / 08 — MEMORY · TEAM</div><div class="nfo-st">A hive connects the lab's projects: members, research directions, a team board and a shared wiki. Nothing personal leaves without a yes.</div></div>
+<div data-at="sagain"><div class="nfo-sk">THE NEXT STUDY</div><div class="nfo-st">The end of one study is the start of the next — and it begins with everything you, the project and the team have learned.</div></div>
+</div>
+
+<div class="nfo-bar">
+<div data-go="0" data-stage-label="" style="flex: 2 1 auto"><div><i data-cell=""></i><i data-cell=""></i></div><span>QUESTION</span></div>
+<div data-go="2" data-stage-label="" style="flex: 2 1 auto"><div><i data-cell=""></i><i data-cell=""></i></div><span>FUNDING</span></div>
+<div data-go="4" data-stage-label="" style="flex: 3 1 auto"><div><i data-cell=""></i><i data-cell=""></i><i data-cell=""></i></div><span>INSTRUMENTS</span></div>
+<div data-go="7" data-stage-label="" style="flex: 3 1 auto"><div><i data-cell=""></i><i data-cell=""></i><i data-cell=""></i></div><span>DATA</span></div>
+<div data-go="10" data-stage-label="" style="flex: 3 1 auto"><div><i data-cell=""></i><i data-cell=""></i><i data-cell=""></i></div><span>MODELS</span></div>
+<div data-go="13" data-stage-label="" style="flex: 4 1 auto"><div><i data-cell=""></i><i data-cell=""></i><i data-cell=""></i><i data-cell=""></i></div><span>WRITING</span></div>
+<div data-go="17" data-stage-label="" style="flex: 2 1 auto"><div><i data-cell=""></i><i data-cell=""></i></div><span>SHARING</span></div>
+<div data-go="19" data-stage-label="" style="flex: 3 1 auto"><div><i data-cell=""></i><i data-cell=""></i><i data-cell=""></i></div><span>MEMORY</span></div>
+</div>
+</div>
+
+<div class="nfo-cta">
+<code>/plugin install neuroflow --marketplace stanislavjiricek/neuroflow</code>
+<a class="nfo-docs" href="{{ 'overview/' | url }}">Documentation</a>
+<a class="nfo-src" href="https://github.com/stanislavjiricek/neuroflow">Source</a>
+</div>
+</div>
+
+<div class="nfo-right nfo-rise">
+<div class="nfo-dial">
+<svg viewBox="0 0 440 440" width="100%" height="100%" role="img" aria-label="Nineteen phases on a ring around three levels of memory: you, the project and the team. Scrolling turns the ring; the phase at the top is the current one.">
+<defs><path id="nfo-loop" d="M 220 70 A 150 150 0 1 1 220 370 A 150 150 0 1 1 220 70"></path></defs>
+<g data-inner="" aria-hidden="true" style="transform-box: view-box; transform-origin: 220px 220px"><text font-family="DM Mono, monospace" font-size="7.5" fill="#43464E"><textPath href="#nfo-loop" textLength="942" lengthAdjust="spacing">THE END OF ONE STUDY IS THE START OF THE NEXT&#160;·&#160;THE END OF ONE STUDY IS THE START OF THE NEXT&#160;·&#160;</textPath></text></g>
+<g data-tiers="" aria-hidden="true" style="opacity: 0">
+<g data-tier="0">
+<path data-tier-arc="" data-len="341.26" d="M 230.58 108.50 A 112 112 0 0 1 220 332" style="stroke-dasharray: 341.26 341.26; stroke-dashoffset: 341.26"></path>
+<path data-tier-arc="" data-len="341.26" d="M 209.42 108.50 A 112 112 0 0 0 220 332" style="stroke-dasharray: 341.26 341.26; stroke-dashoffset: 341.26"></path>
+<text x="220" y="108" text-anchor="middle" dominant-baseline="central" font-family="DM Mono, monospace" font-size="6" letter-spacing="1.2" style="opacity: 0">YOU</text>
+<circle data-tier-dot="" r="1.8" cx="220" cy="332" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="332" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="332" style="opacity: 0"></circle>
+</g>
+<g data-tier="1">
+<path data-tier-arc="" data-len="375.64" d="M 240.07 95.61 A 126 126 0 0 1 220 346" style="stroke-dasharray: 375.64 375.64; stroke-dashoffset: 375.64"></path>
+<path data-tier-arc="" data-len="375.64" d="M 199.93 95.61 A 126 126 0 0 0 220 346" style="stroke-dasharray: 375.64 375.64; stroke-dashoffset: 375.64"></path>
+<text x="220" y="94" text-anchor="middle" dominant-baseline="central" font-family="DM Mono, monospace" font-size="6" letter-spacing="1.2" style="opacity: 0">PROJECT</text>
+<circle data-tier-dot="" r="1.8" cx="220" cy="346" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="346" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="346" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="346" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="346" style="opacity: 0"></circle>
+</g>
+<g data-tier="2">
+<path data-tier-arc="" data-len="426.82" d="M 232.99 80.60 A 140 140 0 0 1 220 360" style="stroke-dasharray: 426.82 426.82; stroke-dashoffset: 426.82"></path>
+<path data-tier-arc="" data-len="426.82" d="M 207.01 80.60 A 140 140 0 0 0 220 360" style="stroke-dasharray: 426.82 426.82; stroke-dashoffset: 426.82"></path>
+<text x="220" y="80" text-anchor="middle" dominant-baseline="central" font-family="DM Mono, monospace" font-size="6" letter-spacing="1.2" style="opacity: 0">TEAM</text>
+<circle data-tier-dot="" r="1.8" cx="220" cy="360" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="360" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="360" style="opacity: 0"></circle><circle data-tier-dot="" r="1.8" cx="220" cy="360" style="opacity: 0"></circle>
+</g>
+</g>
+<circle cx="220" cy="220" r="176" fill="none" stroke="#1A1C22" stroke-width="1"></circle>
+<circle data-arc="" cx="220" cy="220" r="176" fill="none" stroke="#E9E9E4" stroke-width="1.25" stroke-opacity=".5" style="transform-box: view-box; transform-origin: 220px 220px; transform: scaleX(-1) rotate(-90deg); stroke-dasharray: 1105.84; stroke-dashoffset: 1105.84"></circle>
+<g data-ring="" style="transform-box: view-box; transform-origin: 220px 220px">
+<path d="M220.0 24.0L220.0 16.0M236.2 24.7L236.5 20.7M252.3 26.7L252.9 22.7M268.1 30.0L269.1 26.1M283.6 34.6L286.2 27.1M298.7 40.5L300.3 36.8M313.3 47.6L315.2 44.1M327.2 55.9L329.4 52.6M340.4 65.3L345.3 59.0M352.7 75.8L355.5 72.9M364.2 87.3L367.1 84.5M374.7 99.6L377.8 97.2M384.1 112.8L390.8 108.4M392.4 126.7L395.9 124.8M399.5 141.3L403.2 139.7M405.4 156.4L409.2 155.1M410.0 171.9L417.8 169.9M413.3 187.7L417.3 187.1M415.3 203.8L419.3 203.5M416.0 220.0L420.0 220.0M415.3 236.2L423.3 236.8M413.3 252.3L417.3 252.9M410.0 268.1L413.9 269.1M405.4 283.6L409.2 284.9M399.5 298.7L406.8 301.9M392.4 313.3L395.9 315.2M384.1 327.2L387.4 329.4M374.7 340.4L377.8 342.8M364.2 352.7L370.1 358.2M352.7 364.2L355.5 367.1M340.4 374.7L342.8 377.8M327.2 384.1L329.4 387.4M313.3 392.4L317.1 399.4M298.7 399.5L300.3 403.2M283.6 405.4L284.9 409.2M268.1 410.0L269.1 413.9M252.3 413.3L253.6 421.2M236.2 415.3L236.5 419.3M220.0 416.0L220.0 420.0M203.8 415.3L203.5 419.3M187.7 413.3L186.4 421.2M171.9 410.0L170.9 413.9M156.4 405.4L155.1 409.2M141.3 399.5L139.7 403.2M126.7 392.4L122.9 399.4M112.8 384.1L110.6 387.4M99.6 374.7L97.2 377.8M87.3 364.2L84.5 367.1M75.8 352.7L69.9 358.2M65.3 340.4L62.2 342.8M55.9 327.2L52.6 329.4M47.6 313.3L44.1 315.2M40.5 298.7L33.2 301.9M34.6 283.6L30.8 284.9M30.0 268.1L26.1 269.1M26.7 252.3L22.7 252.9M24.7 236.2L16.7 236.8M24.0 220.0L20.0 220.0M24.7 203.8L20.7 203.5M26.7 187.7L22.7 187.1M30.0 171.9L22.2 169.9M34.6 156.4L30.8 155.1M40.5 141.3L36.8 139.7M47.6 126.7L44.1 124.8M55.9 112.8L49.2 108.4M65.3 99.6L62.2 97.2M75.8 87.3L72.9 84.5M87.3 75.8L84.5 72.9M99.6 65.3L94.7 59.0M112.8 55.9L110.6 52.6M126.7 47.6L124.8 44.1M141.3 40.5L139.7 36.8M156.4 34.6L153.8 27.1M171.9 30.0L170.9 26.1M187.7 26.7L187.1 22.7M203.8 24.7L203.5 20.7" stroke="#2C2F37" stroke-width="1" fill="none"></path>
+<g data-go="0" style="cursor: pointer"><circle cx="220.0" cy="44.0" r="13" fill="transparent"></circle><circle data-dot="" cx="220.0" cy="44.0" r="4"></circle></g>
+<g data-go="1" style="cursor: pointer"><circle cx="277.1" cy="53.5" r="13" fill="transparent"></circle><circle data-dot="" cx="277.1" cy="53.5" r="4"></circle></g>
+<g data-go="2" style="cursor: pointer"><circle cx="328.1" cy="81.1" r="13" fill="transparent"></circle><circle data-dot="" cx="328.1" cy="81.1" r="4"></circle></g>
+<g data-go="3" style="cursor: pointer"><circle cx="367.3" cy="123.7" r="13" fill="transparent"></circle><circle data-dot="" cx="367.3" cy="123.7" r="4"></circle></g>
+<g data-go="4" style="cursor: pointer"><circle cx="390.6" cy="176.8" r="13" fill="transparent"></circle><circle data-dot="" cx="390.6" cy="176.8" r="4"></circle></g>
+<g data-go="5" style="cursor: pointer"><circle cx="395.4" cy="234.5" r="13" fill="transparent"></circle><circle data-dot="" cx="395.4" cy="234.5" r="4"></circle></g>
+<g data-go="6" style="cursor: pointer"><circle cx="381.2" cy="290.7" r="13" fill="transparent"></circle><circle data-dot="" cx="381.2" cy="290.7" r="4"></circle></g>
+<g data-go="7" style="cursor: pointer"><circle cx="349.5" cy="339.2" r="13" fill="transparent"></circle><circle data-dot="" cx="349.5" cy="339.2" r="4"></circle></g>
+<g data-go="8" style="cursor: pointer"><circle cx="303.8" cy="374.8" r="13" fill="transparent"></circle><circle data-dot="" cx="303.8" cy="374.8" r="4"></circle></g>
+<g data-go="9" style="cursor: pointer"><circle cx="249.0" cy="393.6" r="13" fill="transparent"></circle><circle data-dot="" cx="249.0" cy="393.6" r="4"></circle></g>
+<g data-go="10" style="cursor: pointer"><circle cx="191.0" cy="393.6" r="13" fill="transparent"></circle><circle data-dot="" cx="191.0" cy="393.6" r="4"></circle></g>
+<g data-go="11" style="cursor: pointer"><circle cx="136.2" cy="374.8" r="13" fill="transparent"></circle><circle data-dot="" cx="136.2" cy="374.8" r="4"></circle></g>
+<g data-go="12" style="cursor: pointer"><circle cx="90.5" cy="339.2" r="13" fill="transparent"></circle><circle data-dot="" cx="90.5" cy="339.2" r="4"></circle></g>
+<g data-go="13" style="cursor: pointer"><circle cx="58.8" cy="290.7" r="13" fill="transparent"></circle><circle data-dot="" cx="58.8" cy="290.7" r="4"></circle></g>
+<g data-go="14" style="cursor: pointer"><circle cx="44.6" cy="234.5" r="13" fill="transparent"></circle><circle data-dot="" cx="44.6" cy="234.5" r="4"></circle></g>
+<g data-go="15" style="cursor: pointer"><circle cx="49.4" cy="176.8" r="13" fill="transparent"></circle><circle data-dot="" cx="49.4" cy="176.8" r="4"></circle></g>
+<g data-go="16" style="cursor: pointer"><circle cx="72.7" cy="123.7" r="13" fill="transparent"></circle><circle data-dot="" cx="72.7" cy="123.7" r="4"></circle></g>
+<g data-go="17" style="cursor: pointer"><circle cx="111.9" cy="81.1" r="13" fill="transparent"></circle><circle data-dot="" cx="111.9" cy="81.1" r="4"></circle></g>
+<g data-go="18" style="cursor: pointer"><circle cx="162.9" cy="53.5" r="13" fill="transparent"></circle><circle data-dot="" cx="162.9" cy="53.5" r="4"></circle></g>
+</g>
+<line x1="220" y1="4" x2="220" y2="31" stroke="#FFFFFF" stroke-width="1.25"></line>
+<circle cx="220" cy="44" r="11.5" fill="none" stroke="#FFFFFF" stroke-width="1.25"></circle>
+</svg>
+
+<div class="nfo-center">
+<div class="nfo-stack nfo-c" aria-live="polite">
+<div data-at="p0"><div class="nfo-ck"><span class="nfo-k-first">PHASE 01 / 19</span><span class="nfo-k-again">NEXT STUDY · 01 / 19</span></div><div class="nfo-ct">ideation</div><div class="nfo-cd">A question, its literature and the gap — searched, downloaded, summarised.</div><div class="nfo-cc">/neuroflow:ideation</div></div>
+<div data-at="p1"><div class="nfo-ck">PHASE 02 / 19</div><div class="nfo-ct">preregistration</div><div class="nfo-cd">Hypotheses and analyses written down, then frozen by a person's key press.</div><div class="nfo-cc">/neuroflow:preregistration</div></div>
+<div data-at="p2"><div class="nfo-ck">PHASE 03 / 19</div><div class="nfo-ct">grant-proposal</div><div class="nfo-cd">Aims and methods that say the same thing as the plan.</div><div class="nfo-cc">/neuroflow:grant-proposal</div></div>
+<div data-at="p3"><div class="nfo-ck">PHASE 04 / 19</div><div class="nfo-ct">finance</div><div class="nfo-cd">The budget, line by line.</div><div class="nfo-cc">/neuroflow:finance</div></div>
+<div data-at="p4"><div class="nfo-ck">PHASE 05 / 19</div><div class="nfo-ct">experiment</div><div class="nfo-cd">Paradigms written and audited for timing before anyone sits down.</div><div class="nfo-cc">/neuroflow:experiment</div></div>
+<div data-at="p5"><div class="nfo-ck">PHASE 06 / 19</div><div class="nfo-ct">tool-build</div><div class="nfo-cd">Analysis tools built against what they must do.</div><div class="nfo-cc">/neuroflow:tool-build</div></div>
+<div data-at="p6"><div class="nfo-ck">PHASE 07 / 19</div><div class="nfo-ct">tool-validate</div><div class="nfo-cd">Tools checked against answers known in advance.</div><div class="nfo-cc">/neuroflow:tool-validate</div></div>
+<div data-at="p7"><div class="nfo-ck">PHASE 08 / 19</div><div class="nfo-ct">data</div><div class="nfo-cd">Recordings in BIDS. Raw data stays as it was recorded.</div><div class="nfo-cc">/neuroflow:data</div></div>
+<div data-at="p8"><div class="nfo-ck">PHASE 09 / 19</div><div class="nfo-ct">data-preprocess</div><div class="nfo-cd">Pipelines with every parameter on record.</div><div class="nfo-cc">/neuroflow:data-preprocess</div></div>
+<div data-at="p9"><div class="nfo-ck">PHASE 10 / 19</div><div class="nfo-ct">data-analyze</div><div class="nfo-cd">Confirmatory tests on the frozen plan; exploration in its own ledger.</div><div class="nfo-cc">/neuroflow:data-analyze</div></div>
+<div data-at="p10"><div class="nfo-ck">PHASE 11 / 19</div><div class="nfo-ct">brain-build</div><div class="nfo-cd">Models with a smoke test before the first long run.</div><div class="nfo-cc">/neuroflow:brain-build</div></div>
+<div data-at="p11"><div class="nfo-ck">PHASE 12 / 19</div><div class="nfo-ct">brain-optimize</div><div class="nfo-cd">Parameter searches behind a smoke gate.</div><div class="nfo-cc">/neuroflow:brain-optimize</div></div>
+<div data-at="p12"><div class="nfo-ck">PHASE 13 / 19</div><div class="nfo-ct">brain-run</div><div class="nfo-cd">Long runs and cluster jobs, registered and tracked.</div><div class="nfo-cc">/neuroflow:brain-run</div></div>
+<div data-at="p13"><div class="nfo-ck">PHASE 14 / 19</div><div class="nfo-ct">paper</div><div class="nfo-cd">Written against its own record, then read sentence by sentence.</div><div class="nfo-cc">/neuroflow:paper</div></div>
+<div data-at="p14"><div class="nfo-ck">PHASE 15 / 19</div><div class="nfo-ct">review</div><div class="nfo-cd">Peer review under the journal's rules, hidden text surfaced.</div><div class="nfo-cc">/neuroflow:review</div></div>
+<div data-at="p15"><div class="nfo-ck">PHASE 16 / 19</div><div class="nfo-ct">poster</div><div class="nfo-cd">A poster checked at print size.</div><div class="nfo-cc">/neuroflow:poster</div></div>
+<div data-at="p16"><div class="nfo-ck">PHASE 17 / 19</div><div class="nfo-ct">write-report</div><div class="nfo-cd">Progress reports from what actually happened.</div><div class="nfo-cc">/neuroflow:write-report</div></div>
+<div data-at="p17"><div class="nfo-ck">PHASE 18 / 19</div><div class="nfo-ct">output</div><div class="nfo-cd">Exports and archives, with local files held back.</div><div class="nfo-cc">/neuroflow:output</div></div>
+<div data-at="p18"><div class="nfo-ck">PHASE 19 / 19</div><div class="nfo-ct">notes</div><div class="nfo-cd">Notes and ideas captured any time — the seeds of the next question.</div><div class="nfo-cc">/neuroflow:notes</div></div>
+<div data-at="t0"><div class="nfo-ck">MEMORY · 1 / 3</div><div class="nfo-ct">you</div><div class="nfo-cd">Private, and with you in every project.</div><div class="nfo-cc">/neuroflow:flowie</div></div>
+<div data-at="t1"><div class="nfo-ck">MEMORY · 2 / 3</div><div class="nfo-ct">the project</div><div class="nfo-cd">Tasks, deadlines and decisions, shared with everyone on it.</div><div class="nfo-cc">/neuroflow:dashboard</div></div>
+<div data-at="t2"><div class="nfo-ck">MEMORY · 3 / 3</div><div class="nfo-ct">the team</div><div class="nfo-cd">One hive for the whole lab, across its projects.</div><div class="nfo-cc">/neuroflow:hive</div></div>
+</div>
+</div>
+</div>
+
+<div class="nfo-foot">
+<span class="nfo-hint"><span>SCROLL TO TURN THE CYCLE</span><span class="nfo-cueline"><span class="nfo-cue"></span></span></span>
+<span data-study="">STUDY 01</span>
+</div>
+</div>
+
+</div>
+</div>
+<script>
+(() => {
+  const scene = (root) => {
+    // One screen. Wheel, touch and keys move a target position (in steps); a frame loop eases the
+    // shown position toward it and paints. A study is nineteen phases and then three
+    // memory steps (you, the project, the team); after the team the next study begins, so the cycle
+    // has no end. During the memory steps the ring turns by one phase only and the memory draws in;
+    // from the second study on it stays faintly in view.
+    const PHASES = 19;
+    const CYCLE = 22;
+    const PER_STEP = 150;
+    const CIRCUMFERENCE = 1105.84;
+    const RESIDUE = 0.45;
+    const STAGE_OF = [0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 7, 7, 7];
+    // Radius, half-width of the label gap at the top (radians), and where the small dots start and how
+    // far they travel per step (degrees).
+    const ORBITS = [
+      { r: 112, gap: 0.0946, from: 40, turn: 4 },
+      { r: 126, gap: 0.1603, from: 15, turn: -3 },
+      { r: 140, gap: 0.0929, from: 70, turn: 2.2 },
+    ];
+    const clamp = (value) => Math.max(0, Math.min(1, value));
+    const still = Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const ring = root.querySelector('[data-ring]');
+    const inner = root.querySelector('[data-inner]');
+    const arc = root.querySelector('[data-arc]');
+    const layer = root.querySelector('[data-tiers]');
+    const study = root.querySelector('[data-study]');
+    const dots = Array.from(root.querySelectorAll('[data-dot]'));
+    const cells = Array.from(root.querySelectorAll('[data-cell]'));
+    const labels = Array.from(root.querySelectorAll('[data-stage-label]'));
+    const items = Array.from(root.querySelectorAll('[data-at]')).map((el) => ({ el, at: el.getAttribute('data-at').split(' ') }));
+    const tiers = Array.from(root.querySelectorAll('[data-tier]')).map((el, i) => ({
+      el,
+      orbit: ORBITS[i],
+      arcs: Array.from(el.querySelectorAll('[data-tier-arc]')).map((path) => ({ path, len: Number(path.getAttribute('data-len')) })),
+      label: el.querySelector('text'),
+      moons: Array.from(el.querySelectorAll('[data-tier-dot]')),
+    }));
+    let pos = 0;
+    let target = 0;
+    let dir = 1;
+    let frame = 0;
+    let last = 0;
+    let settle = 0;
+    let shownMarks = -1;
+    let shownText = -1;
+    let touchY = null;
+
+    // Marks (dots, progress cells, stage labels, the lit memory level) follow every step, even in a
+    // long jump; the texts change only once the motion is close to where it stops, so a jump across
+    // the ring does not flash every phase on the way.
+    const paintMarks = (at) => {
+      const step = at % CYCLE;
+      const round = Math.floor(at / CYCLE);
+      const again = step === 0 && round > 0;
+      dots.forEach((dot, i) => dot.toggleAttribute('data-on', i === step));
+      cells.forEach((cell, i) => cell.toggleAttribute('data-on', again || i <= step));
+      labels.forEach((label, i) => label.toggleAttribute('data-on', again || i === STAGE_OF[step]));
+      tiers.forEach((tier, i) => tier.el.toggleAttribute('data-on', step === PHASES + i));
+      if (study) study.textContent = 'STUDY ' + String(round + 1).padStart(2, '0');
+    };
+    const paintText = (at) => {
+      const step = at % CYCLE;
+      const round = Math.floor(at / CYCLE);
+      const again = step === 0 && round > 0;
+      const keys = step < PHASES
+        ? ['p' + step, again ? 'sagain' : 's' + STAGE_OF[step]]
+        : ['t' + (step - PHASES), 'l' + (step - PHASES)];
+      items.forEach((item) => {
+        const on = item.at.some((key) => keys.includes(key));
+        item.el.toggleAttribute('data-on', on);
+        // Screen readers get the current step only; the centre stack announces it (aria-live).
+        item.el.setAttribute('aria-hidden', on ? 'false' : 'true');
+      });
+      root.toggleAttribute('data-again', again);
+    };
+    const paint = () => {
+      const p = Math.max(0, pos);
+      const round = Math.floor(p / CYCLE);
+      const u = p - round * CYCLE;
+      // u runs 0..22 within a study: 0..18 are the phases, 18..22 close the study through the memory.
+      const closing = clamp((u - (PHASES - 1)) / 4);
+      const memory = clamp(u - (PHASES - 1)) * clamp(CYCLE - u);
+      const phase = u <= PHASES - 1 ? u : PHASES - 1 + closing;
+      const deg = ((round * PHASES + phase) * 360) / PHASES;
+      if (ring) {
+        ring.style.transform = 'rotate(' + (-deg).toFixed(3) + 'deg)';
+        ring.style.opacity = (1 - 0.55 * memory).toFixed(3);
+      }
+      if (inner) inner.style.transform = 'rotate(' + (deg * 0.25).toFixed(3) + 'deg)';
+      if (arc) {
+        arc.style.strokeDashoffset = (CIRCUMFERENCE * (1 - phase / PHASES)).toFixed(2);
+        arc.style.opacity = (1 - clamp((u - (PHASES - 1)) / 3.75)).toFixed(3);
+      }
+      if (layer) {
+        const base = round > 0 ? RESIDUE : 1;
+        let alpha = base;
+        if (u > PHASES - 1 && u < PHASES) alpha = base + (1 - base) * (u - (PHASES - 1));
+        else if (u >= PHASES && u <= CYCLE - 1) alpha = 1;
+        else if (u > CYCLE - 1) alpha = 1 + (RESIDUE - 1) * (u - (CYCLE - 1));
+        layer.style.opacity = alpha.toFixed(3);
+        tiers.forEach((tier, i) => {
+          const { r, gap, from, turn } = tier.orbit;
+          const drawn = round > 0 ? 1 : clamp((u - (PHASES - 1)) * 1.6 - i * 0.3);
+          tier.arcs.forEach(({ path, len }) => {
+            path.style.strokeDashoffset = (len * (1 - drawn)).toFixed(2);
+          });
+          if (tier.label) tier.label.style.opacity = memory.toFixed(3);
+          const reach = gap + drawn * (Math.PI + 0.25 - gap);
+          tier.moons.forEach((moon, j) => {
+            const angle = ((((from + (j * 360) / tier.moons.length + p * turn) % 360) + 360) % 360) * (Math.PI / 180);
+            const fromTop = Math.min(angle, 2 * Math.PI - angle);
+            const shown = clamp((reach - fromTop) / 0.12) * clamp((fromTop - gap - 0.04) / 0.14);
+            moon.setAttribute('cx', (220 + r * Math.sin(angle)).toFixed(2));
+            moon.setAttribute('cy', (220 - r * Math.cos(angle)).toFixed(2));
+            moon.style.opacity = shown.toFixed(3);
+          });
+        });
+      }
+      const at = Math.max(0, Math.round(p));
+      if (at !== shownMarks) {
+        shownMarks = at;
+        paintMarks(at);
+      }
+      if (at !== shownText && Math.abs(target - pos) < 0.75) {
+        shownText = at;
+        paintText(at);
+      }
+    };
+    const tick = (now) => {
+      const dt = last ? Math.min(0.5, (now - last) / 1000) : 1 / 60;
+      last = now;
+      const gap = target - pos;
+      if (still || Math.abs(gap) < 0.0005) {
+        pos = target;
+        frame = 0;
+        last = 0;
+        paint();
+        return;
+      }
+      pos += gap * (1 - Math.exp(-dt / 0.11));
+      paint();
+      frame = requestAnimationFrame(tick);
+    };
+    const go = (to) => {
+      target = Math.max(0, to);
+      root.setAttribute('data-moved', '');
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+    const settleSoon = () => {
+      clearTimeout(settle);
+      settle = setTimeout(() => go(dir > 0 ? Math.ceil(target - 0.1) : Math.floor(target + 0.1)), 140);
+    };
+    const nudge = (amount) => {
+      if (!amount) return;
+      dir = amount > 0 ? 1 : -1;
+      go(target + amount);
+      settleSoon();
+    };
+    // When the window is too short for the scene, the page scrolls before the ring turns: going
+    // forward first brings the end of the page (the install line and the links) into view, and going
+    // back turns the ring to its start before the page scrolls up again.
+    const pageFirst = (forward) => {
+      const page = document.scrollingElement || document.documentElement;
+      if (forward) return page.scrollHeight - page.clientHeight - page.scrollTop > 1;
+      return page.scrollTop > 1 && target <= 0;
+    };
+    const onWheel = (e) => {
+      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      if (pageFirst(e.deltaY > 0)) return;
+      e.preventDefault();
+      const unit = e.deltaMode === 1 ? 32 : e.deltaMode === 2 ? 600 : 1;
+      nudge(Math.max(-120, Math.min(120, e.deltaY * unit)) / PER_STEP);
+    };
+    // One finger turns the ring; two or more are left to the browser, so the page can be zoomed.
+    const onTouchStart = (e) => {
+      touchY = e.touches.length === 1 ? e.touches[0].clientY : null;
+    };
+    const onTouchMove = (e) => {
+      if (e.touches.length > 1) {
+        touchY = null;
+        return;
+      }
+      if (touchY === null || !e.touches.length) return;
+      e.preventDefault();
+      const y = e.touches[0].clientY;
+      const delta = touchY - y;
+      touchY = y;
+      if (delta && pageFirst(delta > 0)) window.scrollBy(0, delta);
+      else nudge(delta / (PER_STEP * 0.6));
+    };
+    const onTouchEnd = () => {
+      touchY = null;
+    };
+    const onKey = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented) return;
+      const from = e.target && e.target.closest ? e.target : null;
+      if (from && from.closest('input, textarea, select, [contenteditable]')) return;
+      if (from && (e.key === ' ' || e.key === 'Enter') && from.closest('a, button')) return;
+      const forward = e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey);
+      const back = e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey);
+      if (!forward && !back && e.key !== 'Home') return;
+      if (e.key === 'Home') {
+        // The ring goes back to the first phase; a scrolled page goes back to its top as usual.
+        clearTimeout(settle);
+        go(0);
+        return;
+      }
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && pageFirst(forward)) return;
+      e.preventDefault();
+      clearTimeout(settle);
+      dir = forward ? 1 : -1;
+      go(Math.round(target) + dir);
+    };
+    const onClick = (e) => {
+      const hit = e.target && e.target.closest ? e.target.closest('[data-go]') : null;
+      if (!hit || !root.contains(hit)) return;
+      const want = Number(hit.getAttribute('data-go'));
+      const at = Math.round(target);
+      let step = want - (at % CYCLE);
+      if (step > CYCLE / 2) step -= CYCLE;
+      if (step < -CYCLE / 2) step += CYCLE;
+      if (at + step < 0) step += CYCLE;
+      clearTimeout(settle);
+      dir = step >= 0 ? 1 : -1;
+      go(at + step);
+    };
+    // A press focuses the scene without the keyboard focus ring, which is kept for Tab.
+    const onPress = () => {
+      if (document.activeElement !== root) root.focus({ preventScroll: true, focusVisible: false });
+    };
+
+
+    root.setAttribute('data-armed', '');
+    root.addEventListener('wheel', onWheel, { passive: false });
+    root.addEventListener('touchstart', onTouchStart, { passive: true });
+    root.addEventListener('touchmove', onTouchMove, { passive: false });
+    root.addEventListener('touchend', onTouchEnd);
+    root.addEventListener('click', onClick);
+    root.addEventListener('pointerdown', onPress);
+    document.addEventListener('keydown', onKey);
+    paint();
+    return () => {
+      root.removeEventListener('wheel', onWheel);
+      root.removeEventListener('touchstart', onTouchStart);
+      root.removeEventListener('touchmove', onTouchMove);
+      root.removeEventListener('touchend', onTouchEnd);
+      root.removeEventListener('click', onClick);
+      root.removeEventListener('pointerdown', onPress);
+      document.removeEventListener('keydown', onKey);
+      cancelAnimationFrame(frame);
+      clearTimeout(settle);
+    };
+  };
+  const start = () => document.querySelectorAll('[data-nf-root="orbit"]').forEach((root) => scene(root));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
+</script>
+</body>
+</html>

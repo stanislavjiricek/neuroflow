@@ -29,7 +29,39 @@ jobs:
             python scripts/automation/validate_pr.py
           fi
 
+      - name: Unit tests (scripts, repo checks, hook smoke test)
+        if: ${{ !cancelled() }}
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
       - name: Docs build (strict)
         run: |
           pip install -r requirements.txt
           mkdocs build --strict
+
+  mod:
+    name: neuroflow mod (validate, tests, policy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code (the version the mod is tested from)
+        run: npm install -g @anthropic-ai/claude-code@2.1.292
+
+      - name: Validate the plugin and its hooks module
+        run: claude plugin validate .
+
+      - name: Mod tests
+        if: ${{ !cancelled() }}
+        run: claude plugin test .
+
+      - name: Mod policy (hooks/mod/policy.json)
+        if: ${{ !cancelled() }}
+        run: python scripts/automation/mod_policy.py

@@ -12,11 +12,14 @@ writes:
   - .neuroflow/finance/
   - .neuroflow/finance/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: full
+produces:
+  - .neuroflow/finance/
 ---
 
 # /finance
 
-Read the `neuroflow:phase-finance` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/finance/flow.md` before starting. Also read `.neuroflow/grant-proposal/flow.md` if it exists — load any funder, scheme, or budget figures from there.
+Read the `neuroflow:phase-finance` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/finance/flow.md` before starting. Also read `.neuroflow/grant-proposal/flow.md` if it exists — load any funder, scheme, or budget figures from there.
 
 ## What this command does
 
@@ -38,7 +41,7 @@ Ask the user for:
 - Funding period (start and end dates)
 - Budget lines: personnel (names/roles/FTE), equipment, consumables, travel, indirect/overhead rate
 
-Build a structured budget table covering the full funding period. Show annual breakdowns where the period is multi-year. Save as `budget-[funder]-[date].md` in `.neuroflow/finance/`.
+Build a structured budget table covering the full funding period. Show annual breakdowns where the period is multi-year. Save as `budget-[funder]-[date].md` in `.neuroflow/finance/`, including the machine-readable `## Budget lines` table (phase-finance → Expense log format).
 
 ### Expense log
 
@@ -48,12 +51,15 @@ Ask for the expense to record:
 - Date incurred
 - Description and justification
 - Budget line it maps to
+- Receipt or invoice reference
 
-Append the entry to `expenses-[year].md` in `.neuroflow/finance/`. If an expense would exceed its budget line, flag it immediately and ask the user how to proceed.
+Every expense comes from the person, with a receipt or invoice — never book AI usage figures (`/cost`, token counts, a share of a subscription) as an expense.
+
+Append the entry as one row of the expense table in `expenses-[year].md` in `.neuroflow/finance/` (phase-finance → Expense log format), then run `python <phase-finance base dir>/scripts/ledger.py .neuroflow/finance/ --budget {budget file}` (Claude Code shows the base directory when the `neuroflow:phase-finance` skill loads; exit codes as in phase-finance → Ledger script). If it reports an overspent line (exit 1), flag it immediately and ask the user how to proceed; fix any malformed-row finding with them.
 
 ### Financial report
 
-Produce a structured financial report covering:
+Run `ledger.py` (with `--budget`, `--grant` and `--from`/`--to` for the reporting period) and take every figure from its output — no hand-computed totals. Use `--csv` when the funder wants a spreadsheet. Produce a structured financial report covering:
 - Total budget vs total expenditure to date
 - Breakdown by category
 - Remaining balance per budget line
@@ -64,7 +70,7 @@ Save as `financial-report-[funder]-[date].md` in `.neuroflow/finance/`.
 
 ### Grant compliance
 
-Check the current expense log against the grant conditions:
+Check the current expense log against the grant conditions (start from `ledger.py --budget` findings):
 - Are all expenses within approved categories?
 - Are personnel costs within the approved headcount and FTE?
 - Are any budget reallocations needed (and does the grant allow them without prior approval)?
@@ -78,4 +84,4 @@ Produce a short compliance checklist saved as `compliance-check-[date].md` in `.
 
 - Update `.neuroflow/finance/flow.md` with any new files created
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
-- Update `project_config.md` if the active phase changed
+- Update `active_phase` in `project_config.md` if the phase changed

@@ -16,13 +16,16 @@ writes:
   - .neuroflow/fails/science.md
   - .neuroflow/fails/ux.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: light
+produces:
+  - .neuroflow/fails/
 ---
 
 # /fails
 
 Capture and triage dissatisfaction. When something doesn't work the way it should — an analysis was wrong, a phase behaved strangely, or the interaction was confusing — this command records it and optionally opens a GitHub issue.
 
-Read the `neuroflow:phase-fails` skill first. Then follow the neuroflow-core lifecycle.
+Read the `neuroflow:phase-fails` skill first. Then follow the neuroflow-core lifecycle — open with its version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3).
 
 ---
 
@@ -82,13 +85,13 @@ If the file has only its header comment, write the first entry directly below it
 
 ## Step 4 — Update flow.md
 
-Update `.neuroflow/fails/flow.md` to reflect the current state of each file (description: number of entries, last date). If `fails/` was just created, also update the root `.neuroflow/flow.md`.
+Update the `Last changed` date of the file's row in `.neuroflow/fails/flow.md` — no entry counts or other running totals: the `fails/*.md` files are merged by union (`neuroflow:neuroflow-core` → **Merge safety**). If `fails/` was just created, also update the root `.neuroflow/flow.md`.
 
 ---
 
 ## Step 5 — Offer to report to GitHub
 
-Ask: *"Do you want to report this to the neuroflow GitHub repo as an issue?"*
+Ask with `AskUserQuestion`: *"Do you want to report this to the neuroflow GitHub repo as an issue?"* (**Draft an issue** / **No**)
 
 - If **no**: confirm the entry was saved, append to the session log, and stop.
 - If **yes**: proceed to Step 6.
@@ -112,7 +115,7 @@ Read the entry just written and any relevant context from `project_config.md`. C
 ## Context
 Phase: <context>
 Date: <date>
-Plugin version: <plugin_version from project_config.md, if present>
+Plugin version: <running plugin version, else plugin_version from project_config.md, if present>
 ```
 
 Construct the GitHub new-issue URL by URL-encoding the title and body. Follow this order exactly — probe once, then act:
@@ -133,13 +136,14 @@ Once the URL is built:
 https://github.com/stanislavjiricek/neuroflow/issues/new?title=<encoded_title>&body=<encoded_body>
 ```
 
-Attempt to open the URL in the system browser:
-- macOS / Linux: `open "<url>"`
-- Windows: `start "" "<url>"`
+Show the drafted title and body, then ask with `AskUserQuestion`: **Open in my browser** / **Just show the URL** / **Cancel**. Opening a URL sends data out, so open it only on an explicit yes (`neuroflow:neuroflow-core` → **Sharing tiers**):
+- macOS: `open "<url>"`
+- Linux: `xdg-open "<url>"`
+- Windows: `start "" "<url>"` (the empty `""` is the window title — without it `start` treats the quoted URL as the title and opens nothing)
 
 If the open command succeeds, confirm to the user that the browser was opened and remind them to review and submit the issue.
 
-If the open command fails or is unavailable, print the full URL so the user can paste it into a browser manually.
+If the open command fails or is unavailable, or the person chose **Just show the URL**, print the full URL so they can paste it into a browser.
 
 ---
 
@@ -148,16 +152,17 @@ If the open command fails or is unavailable, print the full URL so the user can 
 Append a brief entry to `.neuroflow/sessions/YYYY-MM-DD.md`:
 
 ```
-[HH:MM] /fails — Logged a <category> fail: <one-line summary>. GitHub issue: [opened in browser / not reported].
+## HH:MM — [fails] Logged a <category> fail: <one-line summary>. GitHub issue: <opened in browser / URL shown / not reported>.
 ```
 
 ---
 
 ## Passive monitoring
 
-neuroflow passively monitors every user message for frustration or problem signals (as defined in `neuroflow:neuroflow-core`). When a signal fires:
+neuroflow passively monitors every user message for frustration or problem signals (as defined in `neuroflow:neuroflow-core` → **Passive issue monitoring**), in whatever language the person writes. When a signal fires:
 
-- If `auto_issue_reporting: yes`: a GitHub issue is opened automatically in the background.
-- Always: a one-liner is appended to the appropriate `fails/` file silently.
+- Always: a one-line, paraphrased entry is appended to the appropriate `fails/` file silently.
+- If the person opted in (`auto_issue_reporting: yes` in their own `~/.neuroflow/user.yaml`): an issue is drafted and offered in one line — it is opened only after their yes, never automatically.
+- Never during a quiet command such as `/idk`.
 
 Use `/fails` when you want to describe an issue in detail, review past fails, or file a structured GitHub report manually. The passive system is a low-friction supplement — not a replacement.

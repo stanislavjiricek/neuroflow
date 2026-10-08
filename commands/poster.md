@@ -11,19 +11,27 @@ reads:
   - .neuroflow/preregistration/flow.md
 writes:
   - poster/poster-YYYY-MM-DD.tex
+  - poster/build/                    # compile by-products and preview images
   - .neuroflow/poster/critic-log.md
   - .neuroflow/poster/flow.md
   - .neuroflow/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: full
+produces:
+  - poster/poster-YYYY-MM-DD.tex
+  - .neuroflow/poster/critic-log.md
+next:
+  - slideshow
+  - paper
 ---
 
 # /poster
 
-Read the `neuroflow:phase-poster` skill first, and follow the `neuroflow:neuroflow-core` lifecycle — including session logging throughout (start milestone, one `##` entry per critic iteration verdict, completion milestone).
+Read the `neuroflow:phase-poster` skill first, and follow the `neuroflow:neuroflow-core` lifecycle — open with its version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3), and log the session throughout (start milestone, one `##` entry per critic iteration verdict, completion milestone).
 
-Generate a publication-ready academic conference poster as a LaTeX `.tex` file from the project's `.neuroflow/` memory. The poster goes through an iterative critic loop (up to 3 revision cycles) before final output.
+Generate a publication-ready academic conference poster as a LaTeX `.tex` file from the project's `.neuroflow/` memory. The poster goes through an iterative critic loop (up to 3 revision cycles) before final output; before every round it is compiled and rendered, so the critic judges what will be printed.
 
-Apply `neuroflow:humanizer` to all text blocks (Introduction, Methods, Results, Discussion, Conclusions) before passing the poster to the critic — strip AI signatures, fix rhythm, and calibrate register.
+**Style editing is opt-in.** Run `neuroflow:humanizer` on the text blocks only when the person asks for it — a style edit, never a way to hide that AI helped write the text.
 
 ---
 
@@ -44,7 +52,7 @@ Apply `neuroflow:humanizer` to all text blocks (Introduction, Methods, Results, 
 
 Ask the user (if not already specified as arguments):
 
-1. **Conference name** — e.g. "SfN 2025", "OHBM 2025", "Bernstein Conference"
+1. **Conference name** — e.g. "SfN 2025", "OHBM 2025", "FENS Forum 2026"
 2. **Poster size** — offer the template catalogue:
    - `A` — A0 Portrait (841 × 1189 mm) — most European conferences
    - `B` — A0 Landscape (1189 × 841 mm) — wide-format boards
@@ -108,7 +116,16 @@ Once the user confirms, activate the worker-critic loop following `neuroflow:wor
 **Critic:** the `poster-critic` agent
 **Max iterations:** 3
 
-**Iteration 1:** Pass the generated `.tex` source to `poster-critic` with the rubric:
+**Before every critic round — compile and look.** Write the current source to `{output_path}/poster-YYYY-MM-DD.tex` (default `poster/`; version suffix as in Step 6) and render it, so the critic judges pixels, not only source:
+
+1. **Compile** in `{output_path}`: `latexmk -pdf -interaction=nonstopmode -halt-on-error -outdir=build poster-YYYY-MM-DD.tex`. Without latexmk (it needs Perl): `pdflatex -interaction=nonstopmode -halt-on-error -output-directory=build poster-YYYY-MM-DD.tex`, run twice. MiKTeX can stall on a package-install prompt — install missing packages first.
+2. **Summarise the log** for the critic: the lines with `!` (errors), `Overfull`, `not found` and `Missing`.
+3. **Render page 1** to `build/preview-round-N.png` with the first tool available: `pdftoppm -png -r 40 -f 1 -l 1 -singlefile build/poster-YYYY-MM-DD.pdf build/preview-round-N`, `mutool draw -r 40 -o build/preview-round-N.png build/poster-YYYY-MM-DD.pdf 1`, or `magick -density 40 "build/poster-YYYY-MM-DD.pdf[0]" build/preview-round-N.png`.
+4. **No TeX or no renderer:** tell the person once and run the loop on the source alone; the critic says so in its verdict.
+
+If the References block carries DOIs, run `python <phase-poster skill base dir>/../phase-paper/scripts/cite_check.py <the .tex>` once before round 1 and pass any flagged DOI to the critic ("DOI resolves", "does not resolve", "retraction notice" — never "verified").
+
+**Iteration 1:** Pass the `.tex` source, the log summary and the preview path to `poster-critic` with the rubric:
 - Content accuracy vs project memory
 - Section balance and column proportions
 - Poster legibility (font sizes, colour contrast, title prominence)
@@ -117,18 +134,18 @@ Once the user confirms, activate the worker-critic loop following `neuroflow:wor
 - References present
 - No blank or placeholder sections visible in the poster except explicitly noted ones
 
-**On REJECTED:** Apply the critic's specific feedback bullets to the `.tex` source and resubmit.
+**On REJECTED:** Apply the critic's specific feedback bullets to the `.tex` source, compile and render again, and send the new source, log summary and preview path to the same `poster-critic` agent with `SendMessage`. If resuming fails, spawn a fresh critic with the previous feedback (`neuroflow:worker-critic` → Revision mode).
 
 **On APPROVED** (or after 3 iterations): proceed to Step 6.
 
-Write the critic loop state to `.neuroflow/poster/critic-log.md` after each iteration.
+Write the critic loop state to `.neuroflow/poster/critic-log.md` after each iteration, and a session line per verdict: `## HH:MM — [poster] Critic round N: APPROVED | REJECTED`.
 
 ---
 
 ## Step 6 — Save and report
 
 1. Create `.neuroflow/poster/` if it does not exist, with its own `flow.md` index (`| File | Description | Last changed |`) carrying an `output_path:` line (default `poster/`).
-2. Write the final `.tex` to `{output_path}/poster-YYYY-MM-DD.tex` (default `poster/` in the project root — the poster is a deliverable and never lives inside `.neuroflow/`). If the file exists, use `-v2`, `-v3`, etc.
+2. The `.tex` written during the loop is the deliverable: `{output_path}/poster-YYYY-MM-DD.tex` (default `poster/` in the project root — the poster is a deliverable and never lives inside `.neuroflow/`). The version suffix was chosen when it was first written in Step 5: if the file already existed, `-v2`, `-v3`, etc. The compiled PDF of the last round is in `{output_path}/build/`, next to the previews (by-products, safe to delete).
 3. Write `.neuroflow/poster/critic-log.md` with the full loop history (memory stays in `.neuroflow/`).
 4. List the critic log in `.neuroflow/poster/flow.md` (with the `.tex` path noted in its description), and update the root `.neuroflow/flow.md` — add a `poster` entry with date and output path.
 5. Append a completion milestone to `.neuroflow/sessions/YYYY-MM-DD.md`: `## HH:MM — [poster] Poster saved: {output_path}/poster-YYYY-MM-DD.tex ([APPROVED after N iterations | draft, max iterations reached])`.

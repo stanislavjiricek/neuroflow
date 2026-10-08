@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Interactive credential wizard for neuroflow MCP integrations. Checks Miro, Google Workspace CLI credentials, and custom LLM provider settings, prompts for missing values, and saves them to .neuroflow/integrations.json (per-project) or ~/.neuroflow/integrations.json (global, device-wide).
+description: Interactive setup wizard for neuroflow integrations. Checks Miro, Google Workspace CLI and custom LLM gateway settings, guides the missing ones without ever asking for a secret in chat, and saves non-secret settings to .neuroflow/integrations.json (per-project) or ~/.neuroflow/integrations.json (global, device-wide).
 phase: utility
 reads:
   - ~/.neuroflow/integrations.json
@@ -11,11 +11,16 @@ writes:
   - ~/.neuroflow/integrations.json
   - ~/.neuroflow/user.yaml
   - .neuroflow/integrations.json
+  - ~/.neuroflow/flowie/integrations.json
+  - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: light
 ---
 
 # /setup
 
-Guide the user through connecting the neuroflow MCP integrations. This command can be run at any time — on first run, after skipping during `/neuroflow`, or to update existing credentials.
+Guide the user through connecting the neuroflow integrations. This command can be run at any time — on first run, after skipping during `/neuroflow`, or to update existing settings.
+
+**Never ask for a secret in chat.** Tokens, API keys and client secrets never pass through the conversation: the person puts them where they belong in their own terminal — Miro's token into Claude Code's MCP configuration, a gateway key into their launch setup, Google OAuth into `gws`. Never read a secret back or print one; `integrations.json` holds non-secret settings only.
 
 ---
 
@@ -35,13 +40,13 @@ Global config path:
 ### Credential scope
 
 Ask once at the start:
-> "Save credentials for **this project only** (`.neuroflow/integrations.json`) or **globally on this machine** (`~/.neuroflow/integrations.json`, shared by all projects)?"
+> "Save settings for **this project only** (`.neuroflow/integrations.json`) or **globally on this machine** (`~/.neuroflow/integrations.json`, shared by all projects)?"
 >
 > **Recommended: global** — so you don't repeat setup on every new project.
 
 - Choices: **(1) Global (recommended)**  **(2) This project only**
 
-Store the choice as `save_global` (boolean) — use it in Step 5 when writing credentials.
+Store the choice as `save_global` (boolean) — use it in Step 5 when writing settings.
 
 If either file already exists, read both and merge (per-project overrides global).
 
@@ -49,11 +54,11 @@ If either file already exists, read both and merge (per-project overrides global
 
 ## Step 1 — Read current state
 
-Check whether both `~/.neuroflow/integrations.json` (global) and `.neuroflow/integrations.json` (per-project) exist. Read whichever are present. Per-project keys override global. Note which credentials are already set.
+Check whether `~/.neuroflow/integrations.json` (global) and `.neuroflow/integrations.json` (per-project) exist. Read **key names only** — never print values into the conversation — e.g. `python -c "import json,sys; d=json.load(open(sys.argv[1])); print({k: sorted(v) if isinstance(v, dict) else '-' for k, v in d.items()})" <file>`. Per-project keys override global. Note which settings are already present. If an older file still holds a secret (`miro.MIRO_ACCESS_TOKEN`, `custom_llm.api_key`, `google_workspace.GOOGLE_WORKSPACE_CLI_CLIENT_SECRET`), tell the user and offer to delete that key — secrets no longer live there.
 
-Also check whether the environment variables `MIRO_ACCESS_TOKEN` and `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` are set in the current shell. If they are already set via env vars, note that for the user.
+Miro is connected when any tool whose name contains `miro` is available in this session (`claude mcp list` also shows server names and status). Never run `claude mcp get miro`: it prints the token.
 
-Run `gws --version 2>/dev/null` (Unix) or `where gws 2>nul` (Windows) to detect whether the Google Workspace CLI is installed.
+Check whether `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` is set in the current shell, and run `gws --version 2>/dev/null` (Unix) or `where gws 2>nul` (Windows) to detect whether the Google Workspace CLI is installed.
 
 Display a status table:
 
@@ -61,38 +66,38 @@ Display a status table:
 Integration              Status
 ──────────────────────   ──────
 PubMed / bioRxiv         ✅ no credentials needed
-Miro                     ✅ configured  (or ❌ not configured)
 Context7                 ✅ no credentials needed
+Miro (optional)          ✅ connected  (or — not added)
 Google Workspace CLI     ✅ installed  (or ❌ not installed)
   └─ OAuth credentials   ✅ configured  (or ❌ not configured)
-Custom LLM               ✅ configured (provider: einfra)  (or ❌ not configured)
+Custom LLM gateway       ✅ configured (provider: my-gateway)  (or — not configured)
 Zotero MCP (optional)    ✅ connected  (or — not set up)
 ```
 
-**Zotero (optional):** if the user asks about Zotero (or `/ideation` sent them here), guide them to add a community Zotero MCP server — e.g. `zotero-mcp`: install per its README (typically `claude mcp add zotero -- uvx zotero-mcp` with the Zotero desktop app running for the local API, or a `ZOTERO_API_KEY` + library ID for the web API). Once the server's tools are visible, `/ideation` automatically offers library-first search and saving results into Zotero collections. No credentials are stored in `integrations.json` for this — the MCP server holds its own config.
+**Zotero (optional):** if the user asks about Zotero (or `/ideation` sent them here), guide them to add a community Zotero MCP server — e.g. `zotero-mcp`: install per its README (typically `claude mcp add zotero -- uvx zotero-mcp` with the Zotero desktop app running for the local API; for the web API the server needs a `ZOTERO_API_KEY` and library ID, which the user adds with `-e` in their own terminal — never in this chat). Once the server's tools are visible, `/ideation` automatically offers library-first search and saving results into Zotero collections. No credentials are stored in `integrations.json` for this — the MCP server holds its own config.
 
 ---
 
-## Step 2 — Miro setup
+## Step 2 — Miro (optional)
 
-**If Miro is already configured:** ask "Miro token is already set. Update it? (y/N)". If no, skip to Step 3.
+neuroflow does not start a Miro server itself: Miro's many tools take context in every session, and its token belongs to the user. The user adds Miro once, at user scope (all their projects).
 
-**If Miro is not configured:**
+**If Miro is already connected:** say so and skip to Step 3.
 
-Tell the user:
-> **Miro** requires a personal access token. To get one:
-> 1. Go to https://miro.com/app/settings/user-profile/apps
-> 2. Click **Create new app** (or use an existing one)
-> 3. Under **Token**, click **Create token** — copy the token shown
+**Otherwise** ask whether they want Miro at all (mind maps, experiment diagrams, visual collaboration). If not, skip to Step 3.
+
+If yes, tell the user:
+> 1. Create a personal access token at https://miro.com/app/settings/user-profile/apps → **Create new app** (or open an existing one) → **Token** → **Create token**, and copy it.
+> 2. In a **separate terminal** — not in this chat — run:
+>    ```bash
+>    claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<your-token> -- npx -y @k-jarzyna/mcp-miro
+>    ```
+>    On native Windows, if the server later fails to connect, use `-- cmd /c npx -y @k-jarzyna/mcp-miro` as the command part.
+> 3. Restart Claude Code (or check `/mcp`); the Miro tools then appear in every project.
 >
-> The token starts with `eyJ…` and is long. Miro does not support OAuth from the terminal — you must paste a token you create in the browser.
+> Please don't paste the token here, and don't run the command with `!` inside Claude Code: `!` commands and their output are recorded in the conversation, so the token would enter it.
 
-Ask: "Paste your Miro access token (or press Enter to skip):"
-
-- If the user enters a value:
-  - Validate: must be non-empty and at least 20 characters. If the token starts with `eyJ`, treat that as a good sign (JWT format); otherwise accept any non-empty value of sufficient length.
-  - On valid input, store it.
-- If the user presses Enter / types "skip" / types "s": skip Miro and note it was skipped.
+Never ask for the token, never read it back, and never store it in `integrations.json`. If the user pastes it anyway, do not repeat or store it; suggest revoking it in Miro and creating a new one.
 
 ---
 
@@ -168,114 +173,98 @@ gws auth login
 ```
 This opens the browser for OAuth consent automatically. On success, `gws auth status` should show the authenticated account.
 
-**Alternative — env vars (no file download needed):** the user can paste the Client ID and Client Secret directly from the GCP Console instead of downloading the file:
-> From the GCP Console OAuth credential page, copy the **Client ID** and **Client Secret** values and set:
+**Alternative — env vars (no file download needed):** the user sets the Client ID and Client Secret from the GCP Console as environment variables themselves — in their shell profile, not in this chat:
+> From the GCP Console OAuth credential page, copy the **Client ID** and **Client Secret** values into your shell profile:
 > ```bash
 > export GOOGLE_WORKSPACE_CLI_CLIENT_ID="<client-id>"
 > export GOOGLE_WORKSPACE_CLI_CLIENT_SECRET="<client-secret>"
 > ```
-> Then run `gws auth login`.
+> Open a new terminal, then run `gws auth login`.
 
 **If credentials are already configured** (client_secret.json exists at the platform path, or `GOOGLE_WORKSPACE_CLI_CLIENT_ID` env var is set):
 - Run `gws auth status 2>&1` to check. If authenticated, ask "Google Workspace is already authenticated. Re-authenticate? (y/N)". If no, skip to Step 4.
 
 **If credentials are not configured:**
-- Ask: "Which auth method? (1) I'll save client_secret.json  (2) Paste Client ID + Secret  (3) Skip"
+- Ask: "Which auth method? (1) I'll save client_secret.json  (2) I'll set Client ID + Secret as environment variables myself  (3) Skip"
 - **Option 1:** open GCP Console URL, wait for confirmation, run `gws auth login` (opens browser).
-- **Option 2:** ask for Client ID and Client Secret; store both; run `gws auth login` (opens browser).
+- **Option 2:** show the two `export` lines with placeholders (PowerShell: `$env:…` or the User environment variables dialog); the user sets them outside the conversation; then run `gws auth login` (opens browser). Never ask for the values.
 - **Option 3:** note it was skipped.
 
 ---
 
-## Step 4 — Custom LLM provider (optional)
+## Step 4 — Custom LLM gateway (optional)
 
 This step is **optional**. If the user presses Enter or types "skip" / "s", skip to Step 5.
 
 **Check existing configuration:**
 If `custom_llm` already exists in `integrations.json`, ask:
-> "Custom LLM is already configured (provider: {provider}, model: {model}). Update it? (y/N)"
+> "A custom LLM gateway is already configured (provider: {provider}, model: {model}). Update it? (y/N)"
 If no, skip to Step 5.
 
 **If not configured (or user wants to update), ask:**
-> "Do you want to configure a custom LLM provider for Claude Code? This lets you use alternative LLM APIs instead of Anthropic's API. (y/N)"
+> "Do you want to run Claude Code through a custom LLM gateway — an Anthropic-compatible endpoint from your institution or another provider — instead of Anthropic's API? (y/N)"
 
 If no / Enter, skip to Step 5.
 
-**Note:** e-INFRA CZ (`https://llm.ai.e-infra.cz`) is available to Czech academic researchers via Metacentrum/e-INFRA CZ membership (https://metavo.metacentrum.cz). For other providers, enter your own base URL.
+Say once before collecting anything: with a gateway, every prompt, file the model reads and tool result goes to the gateway operator — the project's ethics approval and data agreements must allow that route.
 
-**If yes, collect the following:**
+**If yes, collect the following (no secrets):**
 
-1. "Enter the provider name (e.g. einfra, openai-compat, other):"
-2. "Enter the API base URL (e.g. https://llm.ai.e-infra.cz/v1 for e-INFRA):"
-3. "Enter your API key for this provider:"
-4. "Enter preferred model name (or press Enter to skip):"
-5. "Legacy proxy mode only (OpenAI-compat providers): enter proxy port (or press Enter to skip — not needed for e-INFRA):"
+1. "A short name for the provider (e.g. my-gateway):"
+2. "The base URL your provider documents for Anthropic-compatible clients (e.g. https://llm.example.org):"
+3. "Preferred model name (or press Enter to choose later):" — help choose with the model-selection steps in the `neuroflow:setup-guide` skill
+4. "Legacy proxy only (providers with an OpenAI-compatible API and no Anthropic endpoint): proxy port, or Enter to skip:"
 
-If the user mentions **e-INFRA** or **Czech** at any point during this step, surface the `neuroflow:setup` skill and direct them to `skills/setup/references/einfra-cc.md` for detailed instructions including the proxy mode terminal workflow.
+**Never ask for the API key.** Tell the user where it goes instead: a file only they can read inside the gateway's isolated config folder (e.g. `~/.claude-gateway/gateway-key`), or the OS credential store, read by the launch command — outside this conversation. For the launch command, model aliases, context window, rate limits and the legacy proxy, surface the `neuroflow:setup-guide` skill and its guide `skills/setup-guide/references/custom-gateway.md`.
 
-**Save:**
-- Non-secrets (`provider`, `base_url`, `model`, `proxy_port`) and the `api_key` all go to the `integrations.json` of the scope chosen in Step 0 (global `~/.neuroflow/integrations.json` or per-project `.neuroflow/integrations.json`) under `custom_llm`:
+**Save** the non-secret fields to the `integrations.json` of the scope chosen in Step 0 (global `~/.neuroflow/integrations.json` or per-project `.neuroflow/integrations.json`) under `custom_llm`:
 
 ```json
 "custom_llm": {
-  "provider": "einfra",
-  "base_url": "https://llm.ai.e-infra.cz/v1",
-  "api_key": "<YOUR_API_KEY>",
-  "model": "agentic"
+  "provider": "my-gateway",
+  "base_url": "https://llm.example.org",
+  "model": "<model-id>"
 }
 ```
 
 (`proxy_port` is only included when the legacy proxy mode is used.)
 
-- `api_key` is always local-only (gitignored). Never sync it.
-- If flowie is linked (check `~/.neuroflow/flowie/sync.json` exists): write non-secrets (`provider`, `base_url`, `model`, `proxy_port` — **never `api_key`**) to `~/.neuroflow/flowie/integrations.json` using this schema:
+- If flowie is linked (check `~/.neuroflow/flowie/sync.json` exists), offer to also save these non-secret settings to `~/.neuroflow/flowie/integrations.json`, where `/flowie --credentials` shows them. On yes, write `provider`, `base_url`, `model` and `proxy_port` there:
 
   ```json
   {
     "custom_llm": {
-      "provider": "einfra",
-      "base_url": "https://llm.ai.e-infra.cz/v1",
-      "model": "agentic"
+      "provider": "my-gateway",
+      "base_url": "https://llm.example.org",
+      "model": "<model-id>"
     }
   }
   ```
 
-  Then commit and push:
-
-  ```bash
-  git -C ~/.neuroflow/flowie add integrations.json && git -C ~/.neuroflow/flowie commit -m "sync: custom_llm settings" && git -C ~/.neuroflow/flowie push || true
-  ```
-
-  Tell the user: "Synced custom LLM settings (no API key) to your flowie profile."
+  That file stays on this machine: it is gitignored in the flowie repo and the auto-sync hook never commits it — never stage or push it. Tell the user that on another machine the settings are entered again (or the file is copied).
 
 ---
 
 ## Step 5 — Save and confirm
 
-**If any credentials were entered:**
+**If any settings were entered:**
 
 1. **Determine save location** based on `save_global` from Step 0:
    - **Global:** `~/.neuroflow/integrations.json` (Unix) or `%USERPROFILE%\.neuroflow\integrations.json` (Windows). Create `~/.neuroflow/` if it does not exist.
-   - **Per-project:** `.neuroflow/integrations.json`. Create `.neuroflow/` if it does not exist.
+   - **Per-project:** `.neuroflow/integrations.json` — only when `.neuroflow/` exists; never create it from here.
 
-2. Write the integrations file with this structure (include only keys that were set):
+2. Write the integrations file with this structure (include only keys that were set — non-secret settings only):
 
 ```json
 {
-  "miro": {
-    "MIRO_ACCESS_TOKEN": "eyJ..."
-  },
   "google_workspace": {
-    "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE": "/home/user/.config/gws/client_secret.json",
-    "GOOGLE_WORKSPACE_CLI_CLIENT_ID": "<optional — alternative to file>",
-    "GOOGLE_WORKSPACE_CLI_CLIENT_SECRET": "<optional — alternative to file>"
+    "GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE": "/home/user/.config/gws/client_secret.json"
   },
   "custom_llm": {
-    "provider": "einfra",
-    "base_url": "https://llm.ai.e-infra.cz/v1",
-    "api_key": "<YOUR_API_KEY>",
-    "model": "qwen3.5-122b",
-    "proxy_port": 3456
+    "provider": "my-gateway",
+    "base_url": "https://llm.example.org",
+    "model": "<model-id>",
+    "proxy_port": 4001
   }
 }
 ```
@@ -286,36 +275,30 @@ If the user mentions **e-INFRA** or **Czech** at any point during this step, sur
 
 **Unix (macOS / Linux):**
 
-> ✅ Credentials saved to `~/.neuroflow/integrations.json` (global) _or_ `.neuroflow/integrations.json` (per-project).
+> ✅ Settings saved to `~/.neuroflow/integrations.json` (global) _or_ `.neuroflow/integrations.json` (per-project). The file holds no secrets and is never committed.
 >
-> **Important:** This file is never committed — credentials stay local to this machine.
->
-> **To activate the MCP servers**, export the env vars in your shell before starting Claude Code:
-> ```bash
-> export MIRO_ACCESS_TOKEN="eyJ..."
-> export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$HOME/.config/gws/client_secret.json"
-> # or, if using env vars instead of file:
-> export GOOGLE_WORKSPACE_CLI_CLIENT_ID="<client-id>"
-> export GOOGLE_WORKSPACE_CLI_CLIENT_SECRET="<client-secret>"
-> ```
-> Or add them to your shell profile (`~/.zshrc`, `~/.bashrc`) so they load automatically.
+> - **Miro** (if you added it in Step 2) is active after you restart Claude Code.
+> - **Google Workspace CLI:** if your `client_secret.json` is not at the default path, add its location to your shell profile (`~/.zshrc`, `~/.bashrc`):
+>   ```bash
+>   export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE="$HOME/.config/gws/client_secret.json"
+>   ```
+> - **Custom LLM gateway:** start Claude Code with the launch command from the gateway guide (the key is read from your key file at launch).
 
 **Windows (PowerShell):**
 
-> ✅ Credentials saved to `%USERPROFILE%\.neuroflow\integrations.json` (global) _or_ `.neuroflow\integrations.json` (per-project).
+> ✅ Settings saved to `%USERPROFILE%\.neuroflow\integrations.json` (global) _or_ `.neuroflow\integrations.json` (per-project). The file holds no secrets and is never committed.
 >
-> **Important:** This file is never committed — credentials stay local to this machine.
->
-> **To activate the MCP servers**, set the env vars in PowerShell before starting Claude Code:
-> ```powershell
-> $env:MIRO_ACCESS_TOKEN = "eyJ..."
-> $env:GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE = "$env:USERPROFILE\.config\gws\client_secret.json"
-> ```
-> For persistence, add these to your PowerShell profile (`notepad $PROFILE`) or set them as User environment variables via Settings → System → Environment Variables.
+> - **Miro** (if you added it in Step 2) is active after you restart Claude Code.
+> - **Google Workspace CLI:** if your `client_secret.json` is not at the default path, set its location:
+>   ```powershell
+>   $env:GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE = "$env:USERPROFILE\.config\gws\client_secret.json"
+>   ```
+>   For persistence, add it to your PowerShell profile (`notepad $PROFILE`) or set it as a User environment variable via Settings → System → Environment Variables.
+> - **Custom LLM gateway:** start Claude Code with the PowerShell launch block from the gateway guide.
 
 **If nothing was configured (all skipped):**
 
-Tell the user: "No credentials saved. You can run `/neuroflow:setup` at any time to configure integrations."
+Tell the user: "No settings saved. You can run `/neuroflow:setup` at any time to configure integrations."
 
 ---
 
@@ -339,7 +322,7 @@ If the user says no, skip silently.
 
 ## Step 7 — Session log and next step
 
-**If `.neuroflow/` exists** (per the neuroflow-core lifecycle — never create it from here): append one milestone to `.neuroflow/sessions/YYYY-MM-DD.md`, e.g. `## HH:MM — [setup] Integrations updated: Miro ✅, gws skipped, custom LLM (einfra) saved to global scope.` Never write credential values into the session log — names and statuses only.
+**If `.neuroflow/` exists** (per the neuroflow-core lifecycle — never create it from here): append one milestone to `.neuroflow/sessions/YYYY-MM-DD.md`, e.g. `## HH:MM — [setup] Integrations updated: Miro added by user, gws skipped, custom LLM gateway (my-gateway) saved to global scope.` Never write credential values into the session log — names and statuses only.
 
 Then suggest the next step:
 - If the user came from `/neuroflow`, tell them to continue with the suggested phase command.

@@ -21,6 +21,8 @@ title: /quiz
 
 ## Three modes
 
+Name a mode when you run the command, or pick one from the menu Claude shows (arrow keys or a click). Throw questions is the default.
+
 === "Flashcards"
 
     Generates a set of 10 question/answer cards (or as many as you request). Cards use precise scientific language calibrated to the chosen subfield.

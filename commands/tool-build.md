@@ -11,11 +11,16 @@ writes:
   - .neuroflow/tool-build/
   - .neuroflow/tool-build/flow.md
   - .neuroflow/sessions/YYYY-MM-DD.md
+lifecycle: full
+produces:
+  - .neuroflow/tool-build/tool-spec.md
+next:
+  - tool-validate
 ---
 
 # /tool-build
 
-Read the `neuroflow:phase-tool-build` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md`, `flow.md`, and `.neuroflow/tool-build/flow.md` before starting.
+Read the `neuroflow:phase-tool-build` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/tool-build/flow.md` before starting.
 
 ## What this command does
 
@@ -39,10 +44,18 @@ Ask:
 
 Save specs and notes (`tool-spec.md`, code plan) in `.neuroflow/tool-build/`. Write the actual tool code to `output_path` (from `.neuroflow/tool-build/flow.md`, default: `tools/`) — not inside `.neuroflow/`.
 
+## Real-time and closed-loop tools
+
+- **A latency budget is a done-criterion.** Write it into `tool-spec.md` as a number, e.g. "p95 end-to-end latency ≤ 50 ms, max ≤ 100 ms".
+- **Make latency measurable.** Push every output with the timestamp of the newest input sample it was computed from (`outlet.push_sample(x, timestamp=source_ts)`), and use `inlet.time_correction()` for streams from other machines; without that, latency numbers are confidently wrong.
+- **Measure it:** `python <phase-tool-validate base dir>/scripts/lsl_check.py --stream <output stream> --duration 60 --budget-ms 50 --log latency.csv` reports p50 / p95 / max against the budget (exit 1 = over budget or stream problems). This is processing and transport latency; stimulus-to-photon latency needs a photodiode (`/tool-validate`).
+- **Recordings do not depend on an agent.** A tool used during participant sessions runs on its own (a script or app the experimenter starts), never inside or driven by a Claude Code session on the acquisition PC.
+- **Stimulation hardware.** For TMS, tES or other stimulators, a person starts stimulation: never write code that triggers it on its own, and never describe a software check, hook or guard as a safety interlock — the device's hardware limits, the approved protocol and the lab's procedures are the protection.
+
 ---
 
 ## At end
 
 - Update `.neuroflow/tool-build/flow.md`
 - Append to `.neuroflow/sessions/YYYY-MM-DD.md`
-- Update `project_config.md` if phase changed
+- Update `active_phase` in `project_config.md` if the phase changed

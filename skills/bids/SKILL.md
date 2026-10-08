@@ -100,14 +100,16 @@ sub-01_ses-01_task-auditory_meg.fif
   "BIDSVersion": "1.11.1",
   "DatasetType": "raw",
   "License": "CC-BY-4.0",
-  "Authors": [{"name": "Jane Doe", "email": "jane@example.com"}],
+  "Authors": ["Jane Doe", "John Smith"],
   "Acknowledgements": "Funded by ...",
   "HowToAcknowledge": "Please cite: ...",
-  "Funding": [{"Funder": "NIH", "Grant": "R01DA123456"}],
-  "EthicsApprovals": [{"Name": "IRB", "Reference": "IRB00012345"}],
+  "Funding": ["Example Research Council, grant GRANT-0001"],
+  "EthicsApprovals": ["University of Example ethics committee, EC-2026-014"],
   "ReferencesAndLinks": ["https://doi.org/10.1038/..."]
 }
 ```
+
+`Authors`, `Funding` and `EthicsApprovals` are arrays of strings, not objects.
 
 For derivatives, add:
 ```json
@@ -144,11 +146,13 @@ sub-02	28	F	patient	L
 | Modality | Required in JSON sidecar |
 |----------|--------------------------|
 | func BOLD | `TaskName`, `RepetitionTime` |
-| EEG | `SamplingFrequency`, `PowerLineFrequency` |
-| MEG | `SamplingFrequency` |
-| iEEG | `SamplingFrequency`, `PowerLineFrequency` |
+| EEG | `TaskName`, `EEGReference`, `SamplingFrequency`, `PowerLineFrequency`, `SoftwareFilters` |
+| MEG | `TaskName`, `SamplingFrequency`, `PowerLineFrequency`, `DewarPosition`, `SoftwareFilters`, `DigitizedLandmarks`, `DigitizedHeadPoints` |
+| iEEG | `TaskName`, `iEEGReference`, `SamplingFrequency`, `PowerLineFrequency`, `SoftwareFilters` |
 | DWI | (needs `.bval` and `.bvec` files, not just JSON) |
 | PET | `Manufacturer`, `BodyPart`, `TracerName`, `InjectedRadioactivity` |
+
+The EEG, MEG and iEEG rows follow BIDS 1.11.2 (checked October 2026 against bids-specification.readthedocs.io, stable). `SoftwareFilters` is required even when no software filter was applied: write `"n/a"`. Take `PowerLineFrequency` and `SamplingFrequency` from the recording itself (`raw.info`) or `recording-setup.md`, never from an assumption about the lab's country. iEEG also requires `*_electrodes.tsv` (with `size`) and `*_coordsystem.json`; `*_channels.tsv` is recommended for all three, and for iEEG its `low_cutoff` and `high_cutoff` columns are required.
 
 For full field lists → `references/metadata.md`
 
@@ -157,17 +161,20 @@ For full field lists → `references/metadata.md`
 ## BIDS validation
 
 ```bash
-# CLI (Node.js)
-npm install -g bids-validator
-bids-validator /path/to/dataset
+# Schema validator (current), either way:
+pip install bids-validator-deno                        # pre-built binary from PyPI
+bids-validator-deno /path/to/dataset
+deno run -ERWN jsr:@bids/validator /path/to/dataset   # with Deno installed
 
-# Web tool
+# Web tool (runs in the browser; data is not uploaded)
 # https://bids-standard.github.io/bids-validator/
 
-# Python
-pip install bids-validator
-python -m bids_validator /path/to/dataset
+# Machine-readable output, then a compact digest (counts per issue code, first locations)
+bids-validator-deno /path/to/dataset --json > bids-validator.json
+python <skill base dir>/scripts/bids_digest.py bids-validator.json   # exit 0 = no errors, 1 = errors, 2 = not validator JSON
 ```
+
+The npm package `bids-validator` (1.x) is the deprecated legacy validator; its JSON has a different layout, which `bids_digest.py` also reads. Keep the full JSON file — the digest names it and never drops an issue code.
 
 Suppress known non-issues with `.bidsignore`:
 ```
@@ -218,9 +225,14 @@ Full derivatives structure → `references/structure.md`
 
 ### /data phase
 1. Inventory the data directory — identify modalities, subjects, sessions
-2. Validate with bids-validator or manual check against this skill
+2. Validate with bids-validator (digest its JSON with `scripts/bids_digest.py`) or manual check against this skill
 3. Convert if needed: raw → BIDS using `mne_bids.write_raw_bids()` (EEG/MEG) or `dcm2niix` + renaming (MRI)
 4. Save `data-inventory.md` to `.neuroflow/data/` noting BIDS compliance status
+
+<!-- nf-rule: RAW-READONLY -->
+**Files under `raw_roots` are never modified.** `raw_roots` (in the `project_config.md` frontmatter) lists the folders with the original recordings, typically `sourcedata/`. Conversion reads from them and writes the BIDS tree or `derivatives/`; nothing is renamed, moved, edited or deleted in place. BrainVision files are the classic trap: the `.vhdr` names its `.vmrk` and `.eeg` inside the header, so renaming any of the three by hand breaks the recording. Let a converter write the BIDS copy (`mne_bids.write_raw_bids()`, or `mne_bids.copyfiles.copyfile_brainvision()` for a plain renamed copy), which rewrites the internal pointers.
+
+**DataLad datasets.** If the dataset has a `.datalad/` folder (OpenNeuro publishes its datasets this way), use its tools instead of building parallel ones: `datalad get` for file content, `datalad run` to record the commands that produce outputs, `datalad unlock` only before a deliberate edit, `datalad rerun` to reproduce. Annexed files are locked on Linux and macOS, but on Windows they sit on an adjusted, unlocked branch, so "locked" is no read-only guarantee there.
 
 ### /data-preprocess phase
 - Load BIDS data: `BIDSLayout` + `layout.get()` or `mne_bids.read_raw_bids()`
@@ -260,6 +272,6 @@ Read the relevant reference file when you need:
 | Validator: "Missing required file" | `dataset_description.json` or `participants.tsv` absent | Create the file |
 | Validator: "JSON_KEY_RECOMMENDED" | Sidecar missing recommended field | Add field or use `.bidsignore` for now |
 | pybids: empty layout | Wrong root path or missing `dataset_description.json` | Check path; ensure root-level JSON exists |
-| MNE-BIDS: wrong channel types | `channels.tsv` type column incorrect | Fix: EEG, EOG, ECG, EMG, STIM, MISC, etc. |
+| MNE-BIDS: wrong channel types | `channels.tsv` type column incorrect | Fix: EEG, EOG, ECG, EMG, TRIG, MISC, etc. (upper case; triggers are `TRIG`, not `STIM`) |
 
 For more validator error codes → `references/tools.md`

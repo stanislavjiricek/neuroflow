@@ -8,20 +8,36 @@ reads:
   - ~/.neuroflow/flowie/profile.md        # optional — only if flowie is set up globally
   - ~/.neuroflow/flowie/sync.json         # optional — only if flowie is set up globally
   - ~/.neuroflow/flowie/integrations.json # optional — only if flowie is set up globally
-  - ~/.neuroflow/user.yaml                # global neuroflow prefs (flowie_handle etc.)
+  - ~/.neuroflow/user.yaml                # personal layer: flowie_handle, preferences, consents
+  - ~/.claude/CLAUDE.md                   # only to find a stale neuroflow block (Step 0)
 writes:
+  - .neuroflow/                           # scaffold: neuroflow-core scripts/scaffold.py
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
+  - .neuroflow/objectives.md
+  - .neuroflow/timeline.md
   - .neuroflow/sessions/YYYY-MM-DD.md
   - .claude/CLAUDE.md
-  - .github/copilot-instructions.md
+  - .gitattributes
+  - .gitignore
+  - ~/.neuroflow/user.yaml                # personal answers (consent, mode, name, writing style)
+  - .claude/settings.json                 # optional, only after the person agrees (Step 5b)
+lifecycle: light
+produces:
+  - .neuroflow/project_config.md
+next:
+  - ideation
+  - phase
+  - setup
 ---
 
 # /neuroflow
 
 ## Greeting
 
-Before doing anything else, display the ASCII welcome logo:
+First load the `neuroflow:neuroflow-core` skill with the Skill tool. Claude Code shows its base directory when it loads; every `<neuroflow-core base dir>` below is that path (`neuroflow:neuroflow-core` → **The plugin's own files**). Never search `~/.claude/plugins` or anywhere else for neuroflow's files: other versions may be cached there.
+
+Then, before anything else, display the ASCII welcome logo:
 
 ```
    ____  ___  __  ___________  / __/ /___ _      __
@@ -32,7 +48,7 @@ Before doing anything else, display the ASCII welcome logo:
   v{version}  ·  agentic neuroscience research, from hypothesis to publication
 ```
 
-Replace `{version}` with the value from `.claude-plugin/plugin.json`. Then pick **one** of the following lines at random and print it directly after the logo block:
+Replace `{version}` with the `version` from the **installed plugin's** manifest: `<neuroflow-core base dir>/../../.claude-plugin/plugin.json` (Claude Code shows the base directory when the `neuroflow:neuroflow-core` skill loads). Never read a `.claude-plugin/plugin.json` relative to the working directory — user projects have none. If the version cannot be read, print the line without `v{version}  ·  `. Then pick **one** of the following lines at random and print it directly after the logo block:
 
 - *let's do some magic today*
 - *let's go hack some stuff*
@@ -44,7 +60,7 @@ Print the logo, version, tagline, and the selected one-liner together as one blo
 
 ## Step 0 — Check for existing project
 
-Check whether `.neuroflow/` exists in the current working directory.
+Look for an existing project with the walk-up rule (`neuroflow:neuroflow-core` → **Finding the project**): `.neuroflow/project_config.md` in the working directory or a parent folder, up to the git repository root, never at or above the home directory. If one is found in a parent folder, that folder is the project — say so and work there; never scaffold a second `.neuroflow/` inside it.
 
 **If `.neuroflow/project_config.md` exists and `active_phase` is `setup`:**
 The setup was started but not completed. Print:
@@ -54,13 +70,13 @@ It looks like neuroflow setup was started but not finished. Let's complete it no
 Skip Step 0d (the folder already exists) and continue directly to Step 1 to run the interview.
 
 **If `.neuroflow/project_config.md` exists and `active_phase` is anything other than `setup`:**
-1. Read `project_config.md`
+1. Read `project_config.md` — facts from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**). If it uses a legacy dialect (no `nf_schema` frontmatter), say so in one line and offer `/neuroflow:migrate`. Otherwise, if its `plugin_version` is missing or older than the version printed in the logo, say the version notice in one line (`neuroflow:neuroflow-core` → **Command lifecycle**, step 3) — it names `/neuroflow:migrate`.
 2. Read `flow.md`
 3. Print a brief status: current phase(s), research question (if set), last session date (from `sessions/` folder)
-4. Ask if the user wants to continue, switch phase, or do something specific
-5. Run the journal check (Step 0b) before stopping
-5b. Run the integration check (Step 0c) before stopping
-6. Stop — do not run the interview
+4. Run the journal check (Step 0b) and the integration check (Step 0c)
+5. **Global instruction check:** if `~/.claude/CLAUDE.md` contains a `## neuroflow` block, show that block exactly and ask with `AskUserQuestion` (**Remove it** / **Keep it**) whether to remove it — an older neuroflow version wrote it there, and it pushes one project's phase into every session on this machine. On yes, delete only that block (from `## neuroflow` to the next level-1 or level-2 heading, or the end of the file) and keep everything else. Never edit that file without the yes.
+6. Ask what to do next with `AskUserQuestion`: **Continue with {active_phase}** (first), **Switch phase** (runs `/neuroflow:phase`), **Something else**
+7. Stop — do not run the interview
 
 ---
 
@@ -70,12 +86,12 @@ Run this check whenever Step 0 finds an existing project. Skip entirely when **b
 
 **Trigger condition:** `paper` is the active phase, or appears in `recommended_phases`.
 
-1. Look for a `target_journal:` field in `project_config.md`.
+1. Look for `target_journal` in the `project_config.md` frontmatter.
 2. If not found there, check `.neuroflow/paper/flow.md` for a line that starts with `target_journal:`.
 3. **If a journal is already set:** print it as part of the status line — e.g. `Target journal: NeuroImage` — and continue. No further action needed.
 4. **If no journal is set:**
    - Print: `No target journal has been set for your manuscript.`
-   - Ask: `Would you like a journal recommendation? (Y/n)`
+   - Ask with `AskUserQuestion`: **Recommend journals** / **Not now**
    - **If yes:** run the journal recommendation workflow below.
    - **If no:** note it briefly — `"You can set the target journal when you run /neuroflow:paper."` — and continue.
 
@@ -102,16 +118,16 @@ When the user asks for a recommendation:
    - Why it fits this project specifically
    - Any notable constraints (page limits, OA fees, data sharing policy)
 
-6. Ask: `Which journal should I set as the target? (Enter number or type a name, or "skip" to decide later)`
+6. Ask with `AskUserQuestion`: the top three journals as options plus **Decide later**; "Other" lets the person type a name.
 
-7. If the user picks a journal (by number or name):
-   - Write `target_journal: <journal name>` to `project_config.md`
+7. If the user picks a journal (by option or name):
+   - Set `target_journal: <journal name>` in the `project_config.md` frontmatter
    - If `.neuroflow/paper/` exists, also write `target_journal: <journal name>` to `.neuroflow/paper/flow.md`; do not create the folder or file if they do not exist yet
    - Confirm: `Target journal set to <journal name>.`
 
 8. If the user says skip: note it and continue without writing.
 
-**If `.neuroflow/` does not exist:**
+**If no project is found here or above (Step 0):**
 Run Step 0d immediately, then continue to Step 1.
 
 ---
@@ -146,90 +162,46 @@ Do not prompt the user to set anything up here. This is informational only.
 
 ## Step 0d — Scaffold .neuroflow/ immediately
 
-**Run this step as soon as Step 0 confirms `.neuroflow/` does not exist — before the interview, before any questions.**
+**Run this step as soon as Step 0 confirms there is no project here or above — before the interview, before any questions.**
 
-Create the following structure in the current working directory:
+Run the scaffold script that ships with the `neuroflow:neuroflow-core` skill (Claude Code shows its base directory when the skill loads):
 
-```
-.neuroflow/
-├── project_config.md
-├── flow.md
-├── sessions/
-│   └── .gitkeep
-├── tasks/
-│   ├── inbox/
-│   ├── ready/
-│   ├── active/
-│   ├── review/
-│   ├── meeting/
-│   ├── done/
-│   └── archive/
-├── wiki/
-│   ├── index.md
-│   ├── log.md
-│   ├── schema.md
-│   ├── raw/
-│   └── pages/
-│       ├── concepts/
-│       ├── entities/
-│       ├── sources/
-│       ├── synthesis/
-│       └── methods/
-└── reasoning/
-    ├── flow.md
-    └── general.json
+```bash
+python <neuroflow-core base dir>/scripts/scaffold.py --root .
 ```
 
-**`project_config.md`** — write a minimal placeholder:
+Use `python3` where `python` is not on the PATH. The script is idempotent and never overwrites an existing file. It creates:
 
-```
-# Project config
+- `.neuroflow/project_config.md` with the contract frontmatter (`nf_schema: 1`, `project_name`, `active_phase: setup`, `plugin_version`), `.neuroflow/flow.md`, `sessions/`, `tasks/` (one file per task — `/tasks` owns the format), the `wiki/` skeleton (`index.md`, `log.md`, `schema.md`, `raw/`, `pages/{concepts,entities,sources,synthesis,methods}/`), `reasoning/flow.md` and an empty `reasoning/general.jsonl`
+- the merge-safety lines in `.gitattributes` and the local-tier lines in `.gitignore` (`neuroflow:neuroflow-core` → **Merge safety**, **Sharing tiers**)
+- the static neuroflow block in `.claude/CLAUDE.md` (`neuroflow:neuroflow-core` → **Project instruction block**) — never in `~/.claude/CLAUDE.md`, and no `.github/copilot-instructions.md` or `AGENTS.md` mirrors
 
-project_name: (setup in progress)
-active_phase: setup
-plugin_version: {version from plugin.json}
-auto_issue_reporting: no
-```
+| Exit code | What to do |
+|---|---|
+| `0` | Print its one-line summary and continue to Step 1. |
+| `1` | Scaffold done, but it found a legacy `project_config.md` or an older block in `.claude/CLAUDE.md` — say so in one line, offer `/neuroflow:migrate` after setup, and continue. |
+| `2` | Refused (home directory, a folder inside another project, a config written by a newer neuroflow) — show its message and stop. Never work around a refusal. |
 
-**`flow.md`** — write the initial index:
+**If Python is unavailable**, create the same files by hand, skipping any that exist:
 
-```
-| File / Folder | Description | Last changed |
-|---|---|---|
-| project_config.md | Project overview and current phase. | YYYY-MM-DD |
-| sessions/ | Daily session logs. | YYYY-MM-DD |
-| reasoning/ | Structured per-phase decision logs (JSON: statement, source, reasoning). | YYYY-MM-DD |
-```
+- `.neuroflow/project_config.md`:
+  ```
+  ---
+  nf_schema: 1
+  project_name: (setup in progress)
+  active_phase: setup
+  plugin_version: {version of the installed plugin, if known}
+  ---
 
-**`sessions/`** — create a `.gitkeep` file. Remind the user to add `sessions/` to `.gitignore`.
+  # Project config
+  ```
+- `.neuroflow/flow.md` — the index table with rows for `project_config.md`, `sessions/`, `reasoning/`, `tasks/` and `wiki/` (today's date)
+- `.neuroflow/sessions/.gitkeep`, `.neuroflow/tasks/.gitkeep`, the `wiki/` skeleton above (empty files and `.gitkeep`s)
+- `.neuroflow/reasoning/general.jsonl` (empty) and `.neuroflow/reasoning/flow.md` with one row for `general.jsonl`
+- the missing `.gitattributes` and `.gitignore` lines, appended — never replacing what is there
+- `.claude/CLAUDE.md` with the static block (appended if the file exists without one)
 
-**`tasks/`** — create each column folder (`inbox/`, `ready/`, `active/`, `review/`, `meeting/`, `done/`, `archive/`) with a `.gitkeep` file. This is the shared project-level Kanban board — git-tracked and visible to all collaborators. Update `.neuroflow/flow.md` to include a `tasks/` row.
-
-**`wiki/`** — create the scaffold for the project-level shared wiki (`index.md`, `log.md`, `schema.md` as empty placeholders, `raw/`, `pages/concepts/`, `pages/entities/`, `pages/sources/`, `pages/synthesis/`, `pages/methods/`). The wiki is initialized properly on first `/wiki` run. Update `.neuroflow/flow.md` to include a `wiki/` row.
-
-**`reasoning/`** — create the folder with:
-- `general.json` — an empty JSON array (`[]`)
-- `flow.md` — minimal index with this content:
-
-```
-| File / Folder | Description | Last changed |
-|---|---|---|
-| general.json | Project-level decision log. | YYYY-MM-DD |
-```
-
-**`.claude/CLAUDE.md`**, **`.github/copilot-instructions.md`**, and **`AGENTS.md`** — create or update all three files in the project root with the neuroflow block (use `setup` as the active phase placeholder; this will be updated to the real phase in Step 4):
-
-```markdown
-## neuroflow
-
-This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
-
-- Active phase: setup
-- Config: `.neuroflow/project_config.md`
-- Start any session by reading `project_config.md` and `flow.md` first.
-```
-
-Do not wait for user input. Do not ask for confirmation. Create all files silently and continue immediately to Step 1.
+Do not wait for user input. Do not ask for confirmation — the person ran `/neuroflow` to set up. Continue immediately to Step 1.
 
 ---
 
@@ -265,17 +237,18 @@ Summarise what you found in one sentence before the first question. Use it to sk
 
 ## Step 1b — Check for existing profiles
 
-Before asking any interview questions, ask the user this as the **first question**:
+Before asking any interview questions, ask the user this as the **first question**, with `AskUserQuestion`:
 
-> **Do you have a flowie or hive profile I can read to pre-fill the setup?** (Y/n)
+> **Do you have a flowie or hive profile I can read to pre-fill the setup?**
 >
 > - **Flowie** — your personal research identity (stored in a private GitHub repo named `flowie`)
 > - **Hive** — your team's shared research profile (stored in a team GitHub org repo)
-> - **Neither / not sure** — press Enter to start the interview from scratch
+> - **Both**
+> - **Neither** — start the interview from scratch
 
-**If the user says no or presses Enter:** skip to Step 2 (full interview, unchanged).
+**If the user picks Neither:** skip to Step 2 (full interview, unchanged).
 
-**If the user says yes:** ask which type(s) of profile they have — Flowie, Hive, or both — then follow the relevant sub-section(s) below. After reading all available profiles, go to the **Confirmation summary** sub-section instead of running Step 2.
+**Otherwise:** follow the relevant sub-section(s) below. After reading all available profiles, go to the **Confirmation summary** sub-section instead of running Step 2.
 
 ---
 
@@ -287,23 +260,23 @@ Before asking any interview questions, ask the user this as the **first question
 
 Since flowie repositories are always private, use the following fetch order:
 
-1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch `profile.md`. Also fetch `integrations.json` with `gh api /repos/{username}/flowie/contents/integrations.json --jq '.content' | base64 -d 2>/dev/null` (ignore if missing). If `profile.md` succeeds, proceed to the field mapping table.
-2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` and `integrations.json` (if it exists) from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
-3. **Only if both of the above fail**, ask the user for a GitHub Personal Access Token (PAT) with `repo` scope. Use it in the Authorization header to call `GET https://api.github.com/repos/{username}/flowie/contents/profile.md`. Decode the base64 `content` field. Also attempt `GET .../integrations.json` in the same request batch (ignore 404).
+1. **Check `gh auth status` (one command).** If it succeeds, run `gh api /repos/{username}/flowie/contents/profile.md --jq '.content' | base64 -d` to fetch `profile.md`. If `profile.md` succeeds, proceed to the field mapping table.
+2. **If `gh` is unavailable or not authenticated**, immediately try a shallow clone: `git clone --depth 1 https://github.com/{username}/flowie.git /tmp/.flowie-fetch-{username}`, then read `profile.md` from the cloned directory. Clean up the temp directory after reading. If this succeeds, proceed to the field mapping table.
+3. **If both of the above fail**, never ask for a token in chat. Suggest that the person signs in with `gh auth login` in their own terminal (or stores a GitHub credential for git themselves, e.g. with `git credential approve`), then retry steps 1–2 once.
 4. **If none of the above works**: fall back to the full interview (Step 2).
 
 Do not attempt additional `gh` commands (config file paths, env var checks, etc.) between steps 1 and 2. One `gh auth status` check is sufficient — if it fails, move directly to the git clone attempt.
 
-**After reading the flowie repo:** if flowie was fetched remotely (not already cloned locally), clone it into `~/.neuroflow/flowie/` so it's available globally. Copy `integrations.json` into `~/.neuroflow/flowie/integrations.json`. This makes flowie's integrations available across all projects so Step 5 does not need to repeat the setup.
+**After reading the flowie repo:** if flowie was fetched remotely (not already cloned locally), clone it into `~/.neuroflow/flowie/` so it's available globally.
 
 If the profile is found, extract the following fields and map them to interview answers:
 
 | Profile field | Maps to |
 |---|---|
-| `name` | Researcher / PI name — stored in `project_config.md` |
+| `name` | Researcher name — personal: stored as `name` in `~/.neuroflow/user.yaml`, never in `project_config.md` |
 | `research_domain` | Context for "What are you working on?" |
 | Methodological preferences (tools, paradigms) | Neuroscience modality and programming tools |
-| Writing style | Stored as `writing_style` in `project_config.md` |
+| Writing style | Personal: stored as `writing_style` in `~/.neuroflow/user.yaml` |
 
 If the profile cannot be fetched, report the cause clearly:
 
@@ -323,7 +296,7 @@ Ask: *"What is your team's Hive repo? (e.g. my-lab/hive-research)"*
 
 **Check locally first:** if `~/.neuroflow/hives/` contains a cache for this org/repo, read the index files from there directly.
 
-**If no local hive data:** fetch the Hive index using the same authentication approach as for flowie above (`gh` CLI preferred, PAT as fallback). Try the following locations in order:
+**If no local hive data:** fetch the Hive index using the same authentication approach as for flowie above (`gh api` preferred, a shallow `git clone` as fallback — never a token in chat). Try the following locations in order:
 
 1. Root `README.md`: `GET https://api.github.com/repos/{org}/{repo}/contents/README.md`
 2. `directions.md` at the repo root: `GET https://api.github.com/repos/{org}/{repo}/contents/directions.md`
@@ -362,8 +335,8 @@ After the user confirms, ask **only** the Step 2 questions that could not be pre
 | Programming language and tools? | Skip if tools were confirmed |
 | Phase-specific questions (ethics, BIDS, target journal, etc.) | Always ask — profile does not contain project-specific phase data |
 | "Anything else to add?" | Always ask |
-| Consent question (auto issue reporting) | Always ask |
-| Personality mode question | Always ask |
+| Consent question (issue drafts) | Skip if `auto_issue_reporting` is already in `~/.neuroflow/user.yaml` |
+| Personality mode question | Skip if `default_mode` is already in `~/.neuroflow/user.yaml` |
 
 Then continue directly to Step 2b.
 
@@ -375,7 +348,7 @@ Ask conversationally — one or two questions at a time:
 
 1. What are you working on? (one or two sentences)
 2. Project name and institution?
-3. Neuroscience modality or modalities? (EEG, fMRI, iEEG, eye tracking, ECG, other)
+3. Neuroscience modality or modalities? — ask with `AskUserQuestion` (multi-select), offering the likeliest modalities from the Step 1 scan (e.g. EEG, fMRI, MEG / iEEG, eye tracking); "Other" covers ECG and the rest
 4. Programming language and tools? (Python + MNE, MATLAB, R, etc.)
 
 Then ask phase-specific questions based on what they described:
@@ -404,32 +377,28 @@ Finally: "Is there anything else useful to add — collaborators, deadlines, con
 - Distill the interview into `.neuroflow/objectives.md` — one numbered sentence per aim/objective (typically 2–5). Read it back to the user in one line for confirmation ("Your objectives, as I understood them: …"). This file is the cross-phase cornerstone every command reads at session start.
 - If any deadline, milestone, or date was mentioned anywhere in the interview (conference, funder call, thesis date, data-collection window, ethics expiry), write it to `.neuroflow/timeline.md` as `| YYYY-MM-DD | what | phase it gates |`. If none were mentioned, create the file with just the header row — `/ethics`, `/meeting`, and `/paper` append to it later. `/phase` renders upcoming entries.
 
-Then ask the following consent question (always, regardless of phase):
+Then the consent question — only if `auto_issue_reporting` is not yet set in `~/.neuroflow/user.yaml` (consent is personal and covers all your projects). Ask with `AskUserQuestion` (**Yes, offer drafts** / **No**):
 
-> neuroflow is in active development. If you run into a bug or something feels off, it can automatically file an anonymous issue on GitHub to help improve the plugin — no personal data, just the plugin version, phase, and a brief description of what went wrong.
+> neuroflow is in active development. When something seems off, it can draft a short GitHub issue for the developers — plugin version, phase and a one-line description, no personal data — and offer to open it in your browser. Nothing is opened or sent without your yes each time.
 >
-> **Do you allow neuroflow to automatically report issues to the developers? (y/n)**
+> **Should neuroflow offer issue drafts when it notices a problem?**
 
-Record the answer as `auto_issue_reporting: yes` or `auto_issue_reporting: no` in `project_config.md`. If the user does not answer clearly, default to `no`.
+Record the answer as `auto_issue_reporting: yes` or `auto_issue_reporting: no` in `~/.neuroflow/user.yaml` — merge it in, keep every other line, create the file if missing. Never write it into `project_config.md`. No clear answer means `no`.
 
-Then ask the personality mode question:
+Then the personality mode question — only if `default_mode` is not yet set in `~/.neuroflow/user.yaml`. Ask with `AskUserQuestion`:
 
-> **How would you like me to work on this project?**
-> 1. 🧐 **Teacher** — I’ll explain each step, check my assumptions, and wait for your go-ahead before changing anything.
-> 2. ⚡ **Executor** — I’ll just do it. Less talk, more action. I’ll self-critique my work.
-> 3. 🔍 **Critic** — I’ll interrogate your assumptions and surface hard questions before we proceed.
->
-> (Enter 1, 2, or 3, or press Enter to skip and decide later)
+> **How would you like me to work with you?**
+> - 🧐 **Teacher** — I’ll explain each step, check my assumptions, and wait for your go-ahead before changing anything.
+> - ⚡ **Executor** — I’ll just do it. Less talk, more action. I’ll self-critique my work.
+> - 🔍 **Critic** — I’ll interrogate your assumptions and surface hard questions before we proceed.
+> - **Decide later**
 
-Map the answer to a mode:
-| Answer | `default_mode` value |
+| Answer | Write |
 |---|---|
-| 1 | `teacher` |
-| 2 | `executor` |
-| 3 | `critic` |
-| Skip / Enter | — omit the key from `project_config.md` |
+| Teacher / Executor / Critic | `default_mode: teacher` / `executor` / `critic` in `~/.neuroflow/user.yaml` — your personal default across projects |
+| Decide later | nothing |
 
-Record the answer as `default_mode: teacher` / `default_mode: executor` / `default_mode: critic` in `project_config.md`. If the user skips, do not write the key.
+A team that wants one mode for everyone may set `default_mode` in the `project_config.md` frontmatter instead; a personal value overrides it (`neuroflow:neuroflow-core` → **Personality modes**). Any single message can switch with `mode: <name>`.
 
 ---
 
@@ -466,7 +435,7 @@ Based on what you described, here is the expected phase sequence for this projec
 You can always run /neuroflow:phase to see your position in this sequence or adjust it.
 ```
 
-Save the list as `recommended_phases` in `project_config.md` (a simple comma-separated or YAML list). This list is read by `/phase` to render the phase map.
+Save the list as `recommended_phases` in the `project_config.md` frontmatter — canonical phase ids in order, e.g. `recommended_phases: [ideation, experiment, data, data-analyze, paper]`. This list is read by `/phase` to render the phase map.
 
 ---
 
@@ -474,61 +443,48 @@ Save the list as `recommended_phases` in `project_config.md` (a simple comma-sep
 
 The `.neuroflow/` folder was already created in Step 0d. Now update it with the full content from the interview.
 
-**`project_config.md`** — overwrite the placeholder with a short dense summary using what you learned. Include: project name, institution, active phase, research question (if given), modality, tools, `plugin_version` (from `plugin.json`), `auto_issue_reporting` (from the consent question in Step 2 — `yes` or `no`), `recommended_phases` (the ordered list of phases suggested in Step 2b), an `## Output paths` table mapping each relevant phase to its detected or default output path, (if the user linked a flowie profile during Step 1b) a `flowie_profiles:` list with one entry `- handle: {username}\n  repo: {username}/flowie`, and a `collaborators:` list. Ask: *"Who else is working on this project? (name, email — one per line, or press Enter to skip)"* — add each person as `- name: {name}\n  email: {email}\n  handle: {github-handle or omit}`. This list is used by `/meeting` to pull attendee emails for calendar invites. This file is read by every command and agent — keep it concise.
+**`project_config.md`** — replace the scaffold placeholder, keeping the contract (`neuroflow:neuroflow-core` → **project_config.md — the config contract**):
+
+- **Frontmatter:** `nf_schema: 1`, `project_name`, `active_phase` (a canonical phase id), `recommended_phases` (Step 2b), `target_journal` if known, `hive_repo` if connected, `plugin_version` exactly as the scaffold wrote it (only the scaffold and `/neuroflow:migrate` write it), and — if the user linked a flowie profile in Step 1b — `flowie_profiles` with one entry (`handle: {username}`, `repo: {username}/flowie`). Ask: *"Who else is working on this project? (name, email — one per line, or press Enter to skip)"* — add each person to `collaborators` (`name`, `email`, `handle` if known). Write only what the person gives you; never guess an email or handle. `/meeting` uses this list for calendar invites.
+- **Body:** institution, research question (if given), modality, tools, and an `## Output paths` table mapping each relevant phase to its detected or default output path.
+- **Never here:** consent, researcher name, writing style or a personal mode — those live in `~/.neuroflow/user.yaml` (Step 2).
+
+This file is read by every command and agent — keep it concise.
 
 **Collaborator note:** Remind the user that flowie lives at `~/.neuroflow/flowie/` (global, per-user) — it is never inside the project repo, so no `.gitignore` entry is needed. Each collaborator sets up their own flowie independently.
 
 **`flow.md`** — update the index to reflect only the folders that actually exist (the structure is the same as what Step 0d wrote; update the `Last changed` dates).
 
-> **Do not create `decisions.md`** — this is a legacy artifact superseded by `reasoning/general.json`. Use `reasoning/general.json` for all project-level decision logging.
+> **Do not create `decisions.md`** — this is a legacy artifact superseded by `reasoning/general.jsonl`. Use `reasoning/general.jsonl` for all project-level decision logging (`neuroflow:neuroflow-core` → **Reasoning log**).
 
 ---
 
-## Step 4 — Update .claude/CLAUDE.md, .github/copilot-instructions.md, and AGENTS.md
+## Step 4 — Check the project instruction block
 
-All three files were already created with a placeholder phase (`setup`) in Step 0d. Now update them with the real active phase determined from the interview.
+The scaffold (Step 0d) wrote the static neuroflow block into `.claude/CLAUDE.md` in the project root — the file Claude Code loads when the folder is opened. The block names no phase and points at `project_config.md`, so the interview changes nothing in it (`neuroflow:neuroflow-core` → **Project instruction block**). Only verify that it is there; if the file had other content, the block was appended after it.
 
-Update **all three** of the following files in the **project root** (i.e. the user's current working directory):
+The block lives in the project's `.claude/CLAUDE.md` only:
 
-- `.claude/CLAUDE.md` — loaded automatically by Claude Code / Claude.ai when the folder is opened
-- `.github/copilot-instructions.md` — loaded automatically by GitHub Copilot (VS Code extension, Copilot CLI, and GitHub Copilot Chat) when working in the project
-- `AGENTS.md` — loaded automatically by the π (PI) coding agent harness when working in the project
-
-**All three files must contain identical content.** Update the neuroflow block in each to replace `Active phase: setup` with the real active phase:
-
-```markdown
-## neuroflow
-
-This project uses the neuroflow workflow. Project memory is in `.neuroflow/`.
-
-- Active phase: {phase}
-- Config: `.neuroflow/project_config.md`
-- Start any session by reading `project_config.md` and `flow.md` first.
-```
-
-If `.github/copilot-instructions.md` already contains other project instructions, append the neuroflow block at the end (do not overwrite the whole file). If it already contains a neuroflow block, update the block in place. Identify the neuroflow block by the header line `## neuroflow` — the block runs from that header to the next `##`-level header (or end of file).
-
-Apply the same append/update-in-place logic to `AGENTS.md` if it already contains other content.
-
-If `~/.claude/CLAUDE.md` also exists, optionally add the block there too — but the **local** `.claude/CLAUDE.md` in the project root is required. Without it, Claude has no automatic project context when the folder is opened.
+- never in `~/.claude/CLAUDE.md` — a block there leaks this project's state into every session on the machine (if you find one, offer its removal as in Step 0, step 5)
+- never mirrored into `.github/copilot-instructions.md` or `AGENTS.md` — neuroflow is a Claude Code plugin
 
 ---
 
 ## Step 5 — Integration setup
 
-Ask the user whether they want to connect the MCP integrations now:
+Ask the user with `AskUserQuestion` whether they want to connect the MCP integrations now:
 
 > **Set up integrations?**
-> neuroflow can connect to Miro (visual collaboration) and custom LLM providers. Would you like to set them up now? (Y/n)
+> neuroflow can connect to Miro (visual collaboration — you add it yourself, in your own terminal) and a custom LLM gateway.
 >
-> - **Y / yes** — run the setup wizard (takes ~1 minute)
-> - **n** — skip for now; you can run `/neuroflow:setup` at any time
+> - **Set up now** — run the setup wizard (takes ~1 minute)
+> - **Skip** — you can run `/neuroflow:setup` at any time
 
-**If the user says yes:** run the full `/setup` flow inline (follow every step in `commands/setup.md`). When done, return here and continue to Step 6.
+**If the user picks Set up now:** run the full `/setup` flow inline (follow every step in `commands/setup.md`). When done, return here and continue to Step 5b.
 
-**If the user says no or skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 6.
+**If the user picks Skip:** note it briefly — "Skipping integrations. You can run `/neuroflow:setup` at any time." — then continue to Step 5b.
 
-**If `~/.neuroflow/integrations.json` (global credentials) already exists with the relevant keys set:** skip this step entirely — integrations are managed globally on this device. (A per-project `.neuroflow/integrations.json` override also counts. `~/.neuroflow/flowie/integrations.json` holds non-secret settings only and is not a credentials store.)
+**If integrations are already set up on this device** — a tool whose name contains `miro` is available in this session (Miro is not a key in any `integrations.json`), or `~/.neuroflow/integrations.json` (global, non-secret settings; a per-project `.neuroflow/integrations.json` override also counts) already holds `custom_llm` — skip this step entirely. `~/.neuroflow/flowie/integrations.json` stays on this machine and is not a credentials store.
 
 **Google Workspace (gws) option:**
 Also offer gws CLI setup as part of the integration wizard:
@@ -543,9 +499,42 @@ If the user skips gws: write `gws_setup: skipped` to `~/.neuroflow/user.yaml`.
 
 ---
 
-## Step 6 — Confirm and suggest next step
+## Step 5b — Bookkeeping permissions (optional, offered once)
 
-Tell the user what was created. Then suggest the logical next command based on their phase:
+neuroflow writes session logs, decision logs and `flow.md` indexes often, and each write can raise a permission prompt. Offer — once, during setup — to allow exactly those writes. Show the rules, then ask with `AskUserQuestion` (**Add these rules** / **Skip**):
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Edit(.neuroflow/sessions/**)",
+      "Edit(.neuroflow/reasoning/**)",
+      "Edit(.neuroflow/**/flow.md)"
+    ]
+  }
+}
+```
+
+On yes, merge them into the project's `.claude/settings.json` — keep every existing setting and rule, create the file if missing. `Edit(...)` rules cover every file-writing tool. `.claude/settings.json` is shared with collaborators; a person who wants the rules only for themselves puts them in `.claude/settings.local.json` instead. Never add a blanket `.neuroflow/**` rule, a rule for `.neuroflow/integrations.json` or anything under `~/.neuroflow/`, or any `Bash` rule.
+
+---
+
+## Step 6 — Confirm, checklist and next step
+
+Tell the user what was created, then print the post-setup checklist — `[x]` done, `[ ]` still open:
+
+```
+Setup checklist
+  [x] .neuroflow/ project memory (scaffold)
+  [x] .gitignore keeps sessions/, review/ and credentials out of git
+  [x] .gitattributes merges append-only logs without conflicts
+  [ ] objectives.md: 2–5 numbered aims
+  [ ] timeline.md: deadlines and milestones
+  [ ] Integrations (/neuroflow:setup)
+  [ ] Personal settings in ~/.neuroflow/user.yaml (issue drafts, mode)
+```
+
+Tick each line from what actually exists now; skip lines that do not apply. Then suggest the logical next command based on their phase and close with `Next: /neuroflow:<name>`:
 
 | Phase | Suggested next step |
 |---|---|

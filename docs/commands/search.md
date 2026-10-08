@@ -8,6 +8,9 @@ title: /search
 
 `/search` lets you quickly find information without leaving your current workflow. It uses `flow.md` files as a fast index so it only reads what is relevant — no full directory scans.
 
+!!! note "Looking for papers?"
+    `/search` does not search the literature. Use [`/ideation`](ideation.md) → Explore literature; queries you want to keep following are pinned in `.neuroflow/ideation/watch.md`, with free PubMed / bioRxiv alerts recommended for them.
+
 ---
 
 ## Syntax
@@ -47,7 +50,7 @@ If no tag is supplied, the search defaults to `memory` and notifies you.
 
 Found in:
   • .neuroflow/data-preprocess/preprocessing-notes.md — ICA run and artifact components manually rejected
-  • .neuroflow/reasoning/data-preprocess.json — decision: kept 58/64 components after visual inspection
+  • .neuroflow/reasoning/data-preprocess.jsonl — decision: kept 58/64 components after visual inspection
 
 Summary: ICA artifact rejection was completed during the data-preprocess phase. Notes are in
 preprocessing-notes.md; the reasoning log records the decision and the number of components kept.

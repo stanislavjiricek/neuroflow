@@ -19,6 +19,13 @@ title: /experiment
 
 ---
 
+## Ground rules
+
+- **Ethics gate.** Designing, setting up and bench-testing need no approval. Anything with participants — sessions, pilots with volunteers, allocating participants — waits until [`/ethics`](ethics.md) records an approval you confirmed, still in date.
+- **Participants only ever see validated software.** Paradigms, questionnaires and consent run in PsychoPy (or what your protocol names), never in Claude Code.
+- **No agent on the acquisition PC during a recording.** Claude Code writes and checks the paradigm; participant sessions run without it.
+- **No software check is a stimulation-safety interlock.** For TMS, tES and other stimulators, a person starts stimulation; hardware limits, the approved protocol and the lab's procedures are the protection.
+
 ## Three areas
 
 Claude asks which area you want to work on:
@@ -35,7 +42,13 @@ Claude asks which area you want to work on:
     - Timing requirements (ISI, SOA, jitter)
     - Markers needed — which events must be tagged
 
-    **Output:** `paradigm-[name].py` saved to your `paradigm/` folder (or the path detected by `/neuroflow`), following neuroscience paradigm best practices.
+    **Output:** `paradigm-[name].py` saved to your `paradigm/` folder (or the path detected by `/neuroflow`), following neuroscience paradigm best practices: visual durations in frames, markers sent with `win.callOnFlip()`, the refresh rate measured at start-up, frame intervals recorded.
+
+    **Checks and helpers:**
+
+    - `psychopy_audit.py` audits the script (Coder `.py` or Builder `.psyexp`) without running it: time-based instead of frame-based timing, markers sent outside `callOnFlip`, trigger codes never reset, hard-coded refresh rates, blocking calls in the frame loop, missing logs. It also prints the marker map that [`/tool-validate`](tool-validate.md) checks against the recording.
+    - `allocation.py` builds condition orders (Williams or Latin square, full permutation) or group allocation (randomised blocks) once from a recorded seed, and hands out one slot per participant from an append-only ledger. For non-clinical studies — a clinical trial uses its trial unit's validated randomisation system.
+    - An optional `preflight()` block for the top of the paradigm checks refresh rate, disk space, LSL streams, trigger port and ethics expiry before each session and logs the result.
 
     **Example:**
     ```
@@ -60,6 +73,7 @@ Claude asks which area you want to work on:
     - Modality and hardware (EEG amplifier, eye tracker, etc.)
     - Number of channels and electrode placement
     - Sampling rate, reference, and ground
+    - Mains (power-line) frequency and the display's refresh rate
     - File format and storage location
 
     **Output:** `recording-setup.md` saved to `.neuroflow/experiment/`
@@ -83,6 +97,7 @@ Claude asks which area you want to work on:
     - Trigger box wiring and timing verification
     - Synchronization between multiple streams (EEG + eye tracker, EEG + ECG)
     - Latency measurement and compensation
+    - Stream health: `lsl_check.py` lists the LSL streams on the network and measures rate, gaps, clock offset and latency for the ones you name
 
 ---
 
@@ -90,7 +105,7 @@ Claude asks which area you want to work on:
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/experiment/flow.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/experiment/flow.md`, `.neuroflow/ethics/status.md` |
 | Writes | `.neuroflow/experiment/`, `.neuroflow/experiment/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md`, `paradigm/` (code output) |
 
 ---

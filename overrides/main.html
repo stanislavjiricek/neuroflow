@@ -1,112 +1,60 @@
+{#-
+  The documentation layout: no top bar and no tabs. The left column opens with the brand (back to
+  the landing page), a search field that filters the index and searches the text of every page,
+  then the index itself; the right column is the page outline. On narrow screens a small button
+  opens the index as a drawer; nf.js makes that label a keyboard button (role, tabindex,
+  aria-expanded, Enter and Space). The header element stays, empty and hidden, because the theme's
+  scripts measure it.
+-#}
 {% extends "base.html" %}
 
-{% block scripts %}
-{{ super() }}
-<script>
-  document$.subscribe(function () {
-    document.querySelectorAll('.nf-header-version').forEach(function (el) { el.remove(); });
-    var inner = document.querySelector('.md-header__inner');
-    if (!inner) return;
-    var badge = document.createElement('span');
-    badge.className = 'nf-header-version';
-    badge.textContent = 'v{{ config.extra.version }}';
-    inner.appendChild(badge);
-  });
+{% block fonts %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,200..600;1,300..500&amp;family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&amp;display=swap">
+  <style>:root{--md-text-font:"Albert Sans";--md-code-font:"DM Mono"}</style>
+{% endblock %}
 
-  /* ── Self-assessment bar: fix at very top and push header below ──────────── */
-  document$.subscribe(function () {
-    var bar = document.querySelector('.sa-bar');
-    if (bar) {
-      document.body.classList.add('has-sa-bar');
-      /* Use measured height; fall back to 20px (typical thin-bar height) */
-      var h = bar.getBoundingClientRect().height || 20;
-      document.documentElement.style.setProperty('--sa-bar-height', h + 'px');
-    } else {
-      document.body.classList.remove('has-sa-bar');
-      document.documentElement.style.removeProperty('--sa-bar-height');
-    }
-  });
+{% block header %}
+  <header class="md-header nf-header" data-md-component="header" hidden></header>
+  <label class="nf-menu" for="__drawer" aria-controls="nf-index" aria-label="Documentation index"><span></span><span></span></label>
+{% endblock %}
 
-  /* ── Quote bubbles on homepage ───────────────────────────────────────────── */
-  document$.subscribe(function () {
-    var container = document.getElementById('nf-quotes');
-    if (!container) return;
+{% block tabs %}{% endblock %}
 
-    var quotes = [
-      "Hey you, please colab. Lets build a brain together.",
-      "Somewhere between a spike train and a dissertation, neuroflow has your back.",
-      "The best experiment is the one you didn't abandon halfway through.",
-      "Preregistration: committing to your hypothesis before the data talks back.",
-      "Good science is 10% insight and 90% making sure the preprocessing didn't break.",
-      "Your p-value is only as trustworthy as your analysis plan.",
-      "The brain generates ~20 watts. Your research pipeline runs on determination.",
-      "Every ICA component you remove is a story about artifact rejection.",
-      "From raw signal to peer review — one command at a time.",
-      "Reproducibility isn't a bonus feature. It's the whole point.",
-      "I will jump to version 1.0.0 once I manage to publish the first paper.",
-      "We will probably be the first ones to understand the brain.",
-      "When I said we, I meant you as well, are you in?",
-      "Can you collect some brain data for me?",
-      "I am ready for you to teach me new skills."
-    ];
-
-    /* Horizontal anchor positions (% from left), cycling through so each
-       quote appears at a slightly different spot — the bubble effect. */
-    var positions = [48, 52, 45, 55, 50, 43, 57, 47, 53, 46, 51, 44];
-
-    var bubble = document.createElement('span');
-    bubble.className = 'nf-quote-bubble';
-    container.appendChild(bubble);
-
-    var idx = 0;
-
-    var FADE_MS = 650; /* must match the CSS transition duration on .nf-quote-bubble */
-
-    function showQuote() {
-      bubble.classList.remove('nf-quote-visible');
-
-      setTimeout(function () {
-        bubble.textContent = '\u201c' + quotes[idx] + '\u201d'; /* " … " */
-        bubble.style.left = positions[idx % positions.length] + '%';
-        bubble.classList.add('nf-quote-visible');
-        idx = (idx + 1) % quotes.length;
-      }, FADE_MS);
-    }
-
-    showQuote();
-    setInterval(showQuote, 10000);
-  });
-  /* ── Self-assessment bar: floating tooltip (escapes overflow context) ─────── */
-  document$.subscribe(function () {
-    /* Guard: create the shared tooltip element only once */
-    var tip = document.getElementById('sa-float-tip-singleton');
-    if (!tip) {
-      tip = document.createElement('div');
-      tip.id = 'sa-float-tip-singleton';
-      tip.className = 'sa-float-tip';
-      document.body.appendChild(tip);
-    }
-
-    /* Event delegation on the bar — one listener set, guarded against re-subscription */
-    var bar = document.querySelector('.sa-items');
-    if (!bar || bar.dataset.saListening) return;
-    bar.dataset.saListening = '1';
-
-    bar.addEventListener('mouseover', function (e) {
-      var item = e.target.closest('.sa-item[data-tip]');
-      if (!item) return;
-      var r = item.getBoundingClientRect();
-      tip.textContent = item.getAttribute('data-tip');
-      tip.style.left = (r.left + r.width / 2) + 'px';
-      tip.style.top = (r.bottom + 9) + 'px';
-      tip.classList.add('sa-float-tip--visible');
-    });
-
-    bar.addEventListener('mouseout', function (e) {
-      var item = e.target.closest('.sa-item[data-tip]');
-      if (!item) return;
-      tip.classList.remove('sa-float-tip--visible');
-    });
-  });
-</script>
+{% block site_nav %}
+  {% if nav %}
+    {% if page.meta and page.meta.hide %}
+      {% set hidden = "hidden" if "navigation" in page.meta.hide %}
+    {% endif %}
+    <div class="md-sidebar md-sidebar--primary" id="nf-index" data-md-component="sidebar" data-md-type="navigation" {{ hidden }}>
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner">
+          <div class="nf-side">
+            <a class="nf-brand" href="{{ nav.homepage.url | url }}"><b>neuroflow</b><span>{{ config.extra.version }} · docs</span></a>
+            <label class="nf-search">
+              <span>Search</span>
+              <input type="search" data-nf-search placeholder="commands, phases, rules…" aria-label="Search the documentation" autocomplete="off" spellcheck="false">
+            </label>
+            <div class="nf-results" data-nf-results hidden></div>
+            <p class="nf-sr" role="status" aria-live="polite" data-nf-status></p>
+          </div>
+          {% include "partials/nav.html" %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% if "toc.integrate" not in features %}
+    {% if page.meta and page.meta.hide %}
+      {% set hidden = "hidden" if "toc" in page.meta.hide %}
+    {% endif %}
+    <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" {{ hidden }}>
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner">
+          {% include "partials/toc.html" %}
+          <a class="nf-back" href="{{ nav.homepage.url | url }}">← neuroflow</a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 {% endblock %}

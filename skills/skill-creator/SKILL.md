@@ -64,7 +64,7 @@ Check available MCPs - if useful for research (searching docs, finding similar s
 Based on the user interview, fill in these components:
 
 - **name**: Skill identifier
-- **description**: When to trigger, what it does. This is the primary triggering mechanism - include both what the skill does AND specific contexts for when to use it. All "when to use" info goes here, not in the body. Note: currently Claude has a tendency to "undertrigger" skills -- to not use them when they'd be useful. To combat this, please make the skill descriptions a little bit "pushy". So for instance, instead of "How to build a simple fast dashboard to display internal Anthropic data.", you might write "How to build a simple fast dashboard to display internal Anthropic data. Make sure to use this skill whenever the user mentions dashboards, data visualization, internal metrics, or wants to display any kind of company data, even if they don't explicitly ask for a 'dashboard.'"
+- **description**: When to trigger, what it does. This is the primary triggering mechanism - include both what the skill does AND specific contexts for when to use it. All "when to use" info goes here, not in the body. Note: currently Claude has a tendency to "undertrigger" skills -- to not use them when they'd be useful. To combat this, please make the skill descriptions a little bit "pushy". So for instance, instead of "How to build a simple fast dashboard to display internal company data.", you might write "How to build a simple fast dashboard to display internal company data. Make sure to use this skill whenever the user mentions dashboards, data visualization, internal metrics, or wants to display any kind of company data, even if they don't explicitly ask for a 'dashboard.'"
 - **compatibility**: Required tools, dependencies (optional, rarely needed)
 - **the rest of the skill :)**
 
@@ -208,7 +208,7 @@ Update the `eval_metadata.json` files and `evals/evals.json` with the assertions
 
 ### Step 3: As runs complete, capture timing data
 
-When each subagent task completes, you receive a notification containing `total_tokens` and `duration_ms`. Save this data immediately to `timing.json` in the run directory:
+When each subagent task completes, its notification carries a `<usage>` block with the token count (`subagent_tokens`; some builds say `total_tokens`) and `duration_ms`. Save it to `timing.json` in the run directory as each notification arrives:
 
 ```json
 {
@@ -218,7 +218,7 @@ When each subagent task completes, you receive a notification containing `total_
 }
 ```
 
-This is the only opportunity to capture this data — it comes through the task notification and isn't persisted elsewhere. Process each notification as it arrives rather than trying to batch them.
+If a notification was missed, the numbers are not lost: Claude Code keeps every task notification in the session transcript (`~/.claude/projects/<project folder>/<session id>.jsonl`, one JSON object per line). Find the `<task-notification>` entry for the run and copy its `<usage>` values. Recording each one as it arrives is still simpler than reconstructing them afterwards.
 
 ### Step 4: Grade, aggregate, and launch the viewer
 
@@ -245,7 +245,7 @@ Once all runs are done:
    ```
    For iteration 2+, also pass `--previous-workspace <workspace>/iteration-<N-1>`.
 
-   **Cowork / headless environments:** If `webbrowser.open()` is not available or the environment has no display, use `--static <output_path>` to write a standalone HTML file instead of starting a server. Feedback will be downloaded as a `feedback.json` file when the user clicks "Submit All Reviews". After download, copy `feedback.json` into the workspace directory for the next iteration to pick up.
+   **Headless environments:** If `webbrowser.open()` is not available or the environment has no display (a remote server, for example), use `--static <output_path>` to write a standalone HTML file instead of starting a server. Feedback will be downloaded as a `feedback.json` file when the user clicks "Submit All Reviews". After download, copy `feedback.json` into the workspace directory for the next iteration to pick up.
 
    Note: please use generate_review.py to create the viewer; there's no need to write custom HTML.
 
@@ -346,7 +346,7 @@ Create 20 eval queries — a mix of should-trigger and should-not-trigger. Save 
 ]
 ```
 
-The queries must be realistic and something a Claude Code or Claude.ai user would actually type. Not abstract requests, but requests that are concrete and specific and have a good amount of detail. For instance, file paths, personal context about the user's job or situation, column names and values, company names, URLs. A little bit of backstory. Some might be in lowercase or contain abbreviations or typos or casual speech. Use a mix of different lengths, and focus on edge cases rather than making them clear-cut (the user will get a chance to sign off on them).
+The queries must be realistic and something a Claude Code user would actually type. Not abstract requests, but requests that are concrete and specific and have a good amount of detail. For instance, file paths, personal context about the user's job or situation, column names and values, company names, URLs. A little bit of backstory. Some might be in lowercase or contain abbreviations or typos or casual speech. Use a mix of different lengths, and focus on edge cases rather than making them clear-cut (the user will get a chance to sign off on them).
 
 Bad: `"Format this data"`, `"Extract text from PDF"`, `"Create a chart"`
 
@@ -406,54 +406,11 @@ Take `best_description` from the JSON output and update the skill's SKILL.md fro
 
 ---
 
-### Package and Present (only if `present_files` tool is available)
+## Updating an existing skill
 
-Check whether you have access to the `present_files` tool. If you don't, skip this step. If you do, package the skill and present the .skill file to the user:
-
-```bash
-python -m scripts.package_skill <path/to/skill-folder>
-```
-
-After packaging, direct the user to the resulting `.skill` file path so they can install it.
-
----
-
-## Claude.ai-specific instructions
-
-In Claude.ai, the core workflow is the same (draft → test → review → improve → repeat), but because Claude.ai doesn't have subagents, some mechanics change. Here's what to adapt:
-
-**Running test cases**: No subagents means no parallel execution. For each test case, read the skill's SKILL.md, then follow its instructions to accomplish the test prompt yourself. Do them one at a time. This is less rigorous than independent subagents (you wrote the skill and you're also running it, so you have full context), but it's a useful sanity check — and the human review step compensates. Skip the baseline runs — just use the skill to complete the task as requested.
-
-**Reviewing results**: If you can't open a browser (e.g., Claude.ai's VM has no display, or you're on a remote server), skip the browser reviewer entirely. Instead, present results directly in the conversation. For each test case, show the prompt and the output. If the output is a file the user needs to see (like a .docx or .xlsx), save it to the filesystem and tell them where it is so they can download and inspect it. Ask for feedback inline: "How does this look? Anything you'd change?"
-
-**Benchmarking**: Skip the quantitative benchmarking — it relies on baseline comparisons which aren't meaningful without subagents. Focus on qualitative feedback from the user.
-
-**The iteration loop**: Same as before — improve the skill, rerun the test cases, ask for feedback — just without the browser reviewer in the middle. You can still organize results into iteration directories on the filesystem if you have one.
-
-**Description optimization**: This section requires the `claude` CLI tool (specifically `claude -p`) which is only available in Claude Code. Skip it if you're on Claude.ai.
-
-**Blind comparison**: Requires subagents. Skip it.
-
-**Packaging**: The `package_skill.py` script works anywhere with Python and a filesystem. On Claude.ai, you can run it and the user can download the resulting `.skill` file.
-
-**Updating an existing skill**: The user might be asking you to update an existing skill, not create a new one. In this case:
-- **Preserve the original name.** Note the skill's directory name and `name` frontmatter field -- use them unchanged. E.g., if the installed skill is `research-helper`, output `research-helper.skill` (not `research-helper-v2`).
-- **Copy to a writeable location before editing.** The installed skill path may be read-only. Copy to `/tmp/skill-name/`, edit there, and package from the copy.
-- **If packaging manually, stage in `/tmp/` first**, then copy to the output directory -- direct writes may fail due to permissions.
-
----
-
-## Cowork-Specific Instructions
-
-If you're in Cowork, the main things to know are:
-
-- You have subagents, so the main workflow (spawn test cases in parallel, run baselines, grade, etc.) all works. (However, if you run into severe problems with timeouts, it's OK to run the test prompts in series rather than parallel.)
-- You don't have a browser or display, so when generating the eval viewer, use `--static <output_path>` to write a standalone HTML file instead of starting a server. Then proffer a link that the user can click to open the HTML in their browser.
-- For whatever reason, the Cowork setup seems to disincline Claude from generating the eval viewer after running the tests, so just to reiterate: whether you're in Cowork or in Claude Code, after running tests, you should always generate the eval viewer for the human to look at examples before revising the skill yourself and trying to make corrections, using `generate_review.py` (not writing your own boutique html code). Sorry in advance but I'm gonna go all caps here: GENERATE THE EVAL VIEWER *BEFORE* evaluating inputs yourself. You want to get them in front of the human ASAP!
-- Feedback works differently: since there's no running server, the viewer's "Submit All Reviews" button will download `feedback.json` as a file. You can then read it from there (you may have to request access first).
-- Packaging works — `package_skill.py` just needs Python and a filesystem.
-- Description optimization (`run_loop.py` / `run_eval.py`) should work in Cowork just fine since it uses `claude -p` via subprocess, not a browser, but please save it until you've fully finished making the skill and the user agrees it's in good shape.
-- **Updating an existing skill**: The user might be asking you to update an existing skill, not create a new one. Follow the update guidance in the claude.ai section above.
+The user might be asking you to update an existing skill, not create a new one. In this case:
+- **Preserve the original name.** Keep the skill's directory name and its `name` frontmatter field unchanged — `research-helper` stays `research-helper`, not `research-helper-v2`.
+- **Edit the source, not an installed copy.** Change the skill where it is developed (for a plugin skill, `skills/<name>/` in the plugin's repository). An installed plugin's folder changes with every plugin update, so edits made there are lost.
 
 ---
 
@@ -479,9 +436,9 @@ Repeating one more time the core loop here for emphasis:
   - Create benchmark.json and run `eval-viewer/generate_review.py` to help the user review them
   - Run quantitative evals
 - Repeat until you and the user are satisfied
-- Package the final skill and return it to the user.
+- Keep the finished skill in its `skills/<name>/` folder — a plugin ships its skills, so there is nothing to package (see **No Packaging Needed** below).
 
-Please add steps to your TodoList, if you have such a thing, to make sure you don't forget. If you're in Cowork, please specifically put "Create evals JSON and run `eval-viewer/generate_review.py` so human can review test cases" in your TodoList to make sure it happens.
+Please add steps to your TodoList, if you have such a thing, to make sure you don't forget — in particular "Create evals JSON and run `eval-viewer/generate_review.py` so human can review test cases". Generate the eval viewer before you evaluate the outputs yourself: get them in front of the human as soon as possible.
 
 Good luck!
 
@@ -699,12 +656,7 @@ Working examples in `examples/`:
 7. **Validate examples**: Examples are complete and correct
 8. **Test scripts**: Scripts are executable and work correctly
 
-**Use the skill-reviewer agent:**
-```
-Ask: "Review my skill and check if it follows best practices"
-```
-
-The skill-reviewer agent will check description quality, content organization, and progressive disclosure.
+**Ask for a review:** a fresh session (or a subagent without this conversation) asked to review the skill against this checklist catches what the author no longer sees: description quality, content organization and progressive disclosure.
 
 ### Step 6: Iterate
 

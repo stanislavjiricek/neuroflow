@@ -1,6 +1,7 @@
 ---
 name: phase-fails
 description: Phase guidance for the neuroflow /fails command. Orients agent approach for logging user dissatisfaction, categorising complaints accurately, and preparing GitHub issue reports.
+user-invocable: false
 ---
 
 # phase-fails
@@ -56,8 +57,13 @@ When composing the issue:
 - Keep the description factual and specific — avoid emotive language
 - Include the plugin version if available in `project_config.md`
 - **URL-encode the title and body using Node.js** (`node -e "process.stdout.write(encodeURIComponent('...'))"`) — probe once; if unavailable, encode manually (space→`%20`, newline→`%0A`, `#`→`%23`, `&`→`%26`, `=`→`%3D`, `?`→`%3F`, `+`→`%2B`, `/`→`%2F`, `:`→`%3A`). **Never use `gh` CLI** — it requires authentication and is not needed here.
-- Open the URL using `open` (macOS/Linux) or `start "" "<url>"` (Windows) rather than presenting it as text — the user should be one click from submitting
-- If the browser open fails, print the full URL so the user can paste it manually
+- Show the drafted issue first; open the URL only after the user explicitly says yes (`neuroflow:neuroflow-core` → **Sharing tiers**) — `open "<url>"` (macOS), `xdg-open "<url>"` (Linux), `start "" "<url>"` (Windows). After that yes, the user is one click from submitting
+- If the browser open fails, or the user prefers it, print the full URL so they can paste it manually
+- Complaints may come in any language. Paraphrase them in the `fails/` files (they are shared with collaborators) and write GitHub issues in English
+
+## Never during /idk
+
+`/idk` is a quiet command: nothing said there becomes a fail entry or an issue, even if it sounds like a complaint. If the person wants to log something afterwards, they run `/fails` themselves.
 
 ## Relevant skills
 

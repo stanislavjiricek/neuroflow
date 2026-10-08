@@ -41,7 +41,7 @@ Every deck follows a fixed spine regardless of length:
 |---|---|
 | Title | Project name, presenter, affiliation, date, venue |
 | Agenda | Section list — one line per topic |
-| Per-phase sections | Section title slide + content slides (background, methods, results, limitations) |
+| Per-phase sections | Section title slide + content slides (background, methods, results, limitations — from preregistration deviations and recorded analysis limitations, never from the team-internal `fails/` log) |
 | Summary | 3–5 take-home bullet points |
 | Future directions | Next steps (talks > 10 min) |
 | Acknowledgements | Funding and collaborators |
@@ -139,7 +139,9 @@ Copy each `[SLIDE]` block into a new slide in PowerPoint or Keynote.
 
 ## Output
 
-The slide deck is saved as `slideshow-YYYY-MM-DD.md` in `.neuroflow/slideshow/`. If a file with the same date already exists, a version suffix is added (`-v2`, `-v3`, etc.).
+The slide deck is a deliverable: it is saved as `slides/slideshow-YYYY-MM-DD.md` in the project root, while the working outline and speaker notes stay in `.neuroflow/slideshow/`. If a file with the same date already exists, a version suffix is added (`-v2`, `-v3`, etc.).
+
+A deck is shown outside the team, so it never carries local-only memory (sessions, referee reviews), the `fails/` or `finance/` logs, or participant-identifying details.
 
 ---
 
@@ -147,8 +149,8 @@ The slide deck is saved as `slideshow-YYYY-MM-DD.md` in `.neuroflow/slideshow/`.
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/{phase}/flow.md` (for each selected phase), `.neuroflow/fails/` |
-| Writes | `.neuroflow/slideshow/slideshow-YYYY-MM-DD.md`, `.neuroflow/slideshow/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/{phase}/flow.md` (for each selected phase) |
+| Writes | `slides/slideshow-YYYY-MM-DD.md`, `.neuroflow/slideshow/` (outline, notes, `flow.md`), `.neuroflow/sessions/YYYY-MM-DD.md` |
 
 ---
 

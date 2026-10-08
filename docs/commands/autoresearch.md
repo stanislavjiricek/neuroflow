@@ -4,9 +4,9 @@ title: /autoresearch
 
 # `/neuroflow:autoresearch`
 
-**Infinite improvement loop — point it at any file(s) and one managing agent improves them indefinitely, keeping or reverting each change based on whether it improved the artifact. Its memory is a per-loop wiki it reads before and writes after every move.**
+**Open-ended improvement loop — point it at any file(s) and one managing agent keeps improving them, keeping or reverting each change based on whether it improved the artifact. Its memory is a per-loop wiki it reads before and writes after every move.**
 
-Inspired by Andrej Karpathy's autoresearch. Runs until you interrupt it.
+Inspired by Andrej Karpathy's autoresearch. Runs until it reaches the caps you set — or until you stop it.
 
 ---
 
@@ -23,18 +23,19 @@ Inspired by Andrej Karpathy's autoresearch. Runs until you interrupt it.
 
 ### One agent, one brain
 
-A **single managing agent** runs the whole loop and holds the thread of all iterations — it makes the change and judges it, no subagent fan-out. Its long-term memory is a **per-loop wiki** that it reads before deciding every move and writes after every move. The wiki is what lets a single agent run an infinite loop and *compound* — without it the agent would re-tread dead ends forever. Failures are recorded as deliberately as wins, because knowing what fails is what prunes the search.
+A **single managing agent** runs the whole loop and holds the thread of all iterations — it makes the change and judges it, no subagent fan-out. Its long-term memory is a **per-loop wiki** that it reads before deciding every move and writes after every move. The wiki is what lets a single agent run a long loop and *compound* — without it the agent would re-tread dead ends forever. Failures are recorded as deliberately as wins, because knowing what fails is what prunes the search.
 
 ### First run — initialization
 
 1. Claude determines the active phase from `project_config.md`
 2. You name the files to improve (or use `--target path/to/file.py`)
-3. You confirm the **loop name and location** — the folder defaults to sitting next to the artifact (e.g. `scripts/analysis/connectivity_autoresearch/`), overridable
-4. Criteria are built in three layers: phase defaults → context-inferred → your additions
-5. A **configuration interview** sets the loop's behaviour, one option at a time: branching, parameter sweep (scan a parameter's values within a single iteration; default on), literature search, evaluation mode, outputs, answer channel, wiki promotion. The full config is shown back to you for explicit sign-off — **no iteration runs until you confirm it**
-6. The wiki is initialized, a baseline snapshot saved to `history/v000/`, and a pointer added to `.neuroflow/{phase}/autoresearch-loops.md`
+3. **Integrity gate** — if the files compute results from your study data, you choose what the loop is for: **confirmatory** or **exploratory** (see [Research integrity](#research-integrity)). There is no default
+4. You confirm the **loop name and location** — the folder defaults to sitting next to the artifact (e.g. `scripts/analysis/connectivity_autoresearch/`), overridable
+5. Criteria are built in three layers: phase defaults → context-inferred → your additions
+6. A **configuration interview** sets the loop's behaviour, one option at a time: **caps** (the most iterations and the longest wall-clock time per run, plus a cost limit where usage can be measured — no defaults; a loop without a cap is never started), branching, parameter sweep (scan a parameter's values within a single iteration; default on, off for confirmatory loops), literature search, evaluation mode, outputs, answer channel, wiki promotion. The full config is shown back to you for explicit sign-off — **no iteration runs until you confirm it**
+7. The wiki is initialized, a baseline snapshot saved to `history/v000/`, and a pointer added to `.neuroflow/{phase}/autoresearch-loops.md`
 
-### The loop — never stops until you interrupt
+### The loop — runs until a cap, or until you stop it
 
 Each iteration:
 1. **Recall** — read the wiki (current thesis, prior attempts on this criterion) so the next move is informed, not blind
@@ -44,9 +45,43 @@ Each iteration:
 5. **Keep or revert** — BETTER archives to `history/vNNN/`; otherwise restore the best
 6. **Record** — write an attempt page to the wiki (what, why, outcome, reasoning), update the report and results table
 
+The bookkeeping — snapshots, restores, the results table, the iteration counters, the caps check — is done by a small tested script that ships with the skill (`ar.py`), so it cannot drift; without Python, the agent does the same steps by hand.
+
+### When it stops
+
+The loop never stops on its own judgement: a plateau (five reverts in a row) makes it change approach, not quit. It always stops when:
+
+- a **cap** is reached — the iteration or wall-clock limit for this run (or the cost limit, where usage can be measured)
+- **you stop it** — press Esc, or tell it to stop, in any language
+- **tool errors** keep happening — several in a row (3 by default)
+
+It leaves the best version in place, puts the reason at the top of `report.md`, and waits for you. It never restarts on its own — `/autoresearch` resumes it with a fresh budget.
+
 ### Steering it while it runs
 
 The agent asks you questions without ever stopping. Open questions sit at the top of `report.md`. Answer them in the session (`A3: eLife`) or via the `answers.md` inbox — the agent picks up the answer on the next iteration, acts on it, and removes the question. Because every state is a snapshot, it can re-branch from an earlier best if you steer it elsewhere.
+
+### Driving it one iteration per turn (with the neuroflow mod)
+
+With the [neuroflow mod](../concepts/mods.md) set to `runtime: on`, `/autoresearch drive {name}` hands a registered loop
+to the mod: each turn runs exactly one iteration, and between turns the mod checks the loop's caps with `ar.py status`
+before it starts the next one. The band above the prompt shows `↻ driving autoresearch "{name}" · turn N` with a stop
+key (`s`); Esc interrupts the current turn and ends the drive; `/autoresearch stop` ends it too. Short turns keep the
+context small and make every iteration a clean point to stop at. The dashboard's loop tab (`/dashboard loop`) shows the
+quality curve and the open questions.
+
+---
+
+## Research integrity
+
+A loop that edits analysis code, scores each version by its results, and keeps the winner would be automated p-hacking. So when a loop touches code that computes results from your study data, it first asks which job it has:
+
+| Mode | What the loop may do | What it never does |
+|---|---|---|
+| **Confirmatory** | Improve the correctness, robustness, and reproducibility of a fixed analysis — running it only on simulated data, label-shuffled data, or an excluded pilot subset | Run on your real labelled data, score effect sizes or p-values, or touch anything the preregistration or analysis plan fixes |
+| **Exploratory** | Search over analysis choices, on a fork of any confirmatory script, with outputs in `exploratory/` folders | Edit a confirmatory script, or hide a specification — every one it tries is logged with its result to `.neuroflow/data-analyze/multiverse.md` |
+
+Exploratory reports carry an `EXPLORATORY — N specifications tried` header, and `/data-analyze` and `/paper` treat anything from the ledger as exploratory. If a preregistration exists, every loop — analysis or not — keeps the preregistered hypotheses, primary outcomes, and confirmatory/exploratory labels unchanged.
 
 ---
 
@@ -99,13 +134,13 @@ Each surface has one job; all are optional except `report.md`.
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, the pointer registry, tracked external files, the loop's `program.md` / `wiki/` / `results.md` / `history/` |
-| Writes | the loop folder next to the artifact, tracked external files (on KEPT), `history/vNNN/`, the pointer registry, session log |
+| Writes | the loop folder next to the artifact, tracked external files (on KEPT), `history/vNNN/`, the pointer registry, session log, the integrity decision in `.neuroflow/reasoning/`, and — exploratory loops only — `.neuroflow/data-analyze/multiverse.md` |
 
 ---
 
 ## Related
 
-- [`neuroflow:autoresearch` skill](../skills/autoresearch/SKILL.md) — full protocol, wiki format, criteria, dashboard template
-- [`neuroflow:wiki`](../skills/wiki/SKILL.md) — the page format the loop wiki uses; durable findings are promoted here
+- [`neuroflow:autoresearch-protocol` skill](../skills/autoresearch-protocol/SKILL.md) — full protocol, wiki format, criteria, dashboard template
+- [`neuroflow:wiki-protocol`](../skills/wiki-protocol/SKILL.md) — the page format the loop wiki uses; durable findings are promoted here
 - [`/paper`](paper.md) — uses the worker-critic loop (bounded, 3 iterations) for section drafting
 - [`/pipeline`](pipeline.md) — multi-step orchestration across phases

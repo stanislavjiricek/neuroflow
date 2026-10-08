@@ -28,12 +28,30 @@ Skills give Claude phase-specific expertise without you having to instruct it ma
 
 ## Available skills
 
-### Core skills
+### Core skills and protocols
 
 | Skill | What it does |
 |---|---|
-| `neuroflow:neuroflow-core` | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, command lifecycle, frontmatter standard |
+| `neuroflow:neuroflow-core` | Core rules and lifecycle for all commands and agents — `.neuroflow/` folder spec, the `project_config.md` contract, shared formats (decision logs, integrity markers, merge safety, sharing tiers), command lifecycle and frontmatter standard. Ships `scripts/scaffold.py` (used by `/neuroflow`) and `scripts/migrate.py` (used by `/migrate`) |
+| `neuroflow:worker-critic` | Worker-critic loop protocol — a worker agent and a critic agent across up to 3 revision cycles; used by `/paper` and `/poster` |
+| `neuroflow:autoresearch-protocol` | The improvement-loop protocol — the single-agent loop, its per-loop wiki, caps, the integrity gate and `ar.py` bookkeeping; used by `/autoresearch` |
+| `neuroflow:wiki-protocol` | Knowledge-base protocol for the LLM-maintained wikis at three levels (flowie, project, hive) — ingest, query, lint and add workflows; used by `/wiki`, `/flowie --wiki-*`, `/hive --wiki-*` and `/autoresearch` |
+
+### Domain skills
+
+| Skill | What it does |
+|---|---|
 | `neuroflow:review-neuro` | Rigorous eight-area peer review of a neuroscience manuscript — invoked by `/review` |
+| `neuroflow:bids` | Brain Imaging Data Structure — folder hierarchy, entities, required files per modality, sidecars, derivatives, the validator, pybids and MNE-BIDS; loaded in the data phases |
+| `neuroflow:humanizer` | Style editing on request — cuts filler, varies rhythm and matches the register while keeping every fact, number, citation and hedge; never a way to hide AI use, which is always disclosed |
+| `neuroflow:pupil-labs-neon-realtime` | Real-time data streams (video, gaze, IMU, events) from Pupil Labs Neon eye-tracking glasses through the Real-time API |
+
+### Integration skills
+
+| Skill | What it does |
+|---|---|
+| `neuroflow:setup-guide` | Configure integrations — Google Workspace, optional Miro and Anthropic-compatible LLM gateways — without ever asking for a secret in chat; used by `/setup` |
+| `neuroflow:notebooklm` | Google NotebookLM through the `notebooklm-py` CLI — notebooks, sources (each upload confirmed first), generated artifacts and downloads |
 
 ### Phase skills
 
@@ -54,16 +72,21 @@ Each research phase has a corresponding skill that orients Claude's approach, su
 | `neuroflow:phase-data-analyze` | `/data-analyze` |
 | `neuroflow:phase-paper` | `/paper` |
 | `neuroflow:phase-review` | `/review` |
+| `neuroflow:phase-poster` | `/poster` |
 | `neuroflow:phase-notes` | `/notes` |
 | `neuroflow:phase-write-report` | `/write-report` |
+| `neuroflow:phase-slideshow` | `/slideshow` |
 | `neuroflow:phase-brain-build` | `/brain-build` |
 | `neuroflow:phase-brain-optimize` | `/brain-optimize` |
 | `neuroflow:phase-brain-run` | `/brain-run` |
 | `neuroflow:phase-quiz` | `/quiz` |
 | `neuroflow:phase-fails` | `/fails` |
-| `neuroflow:phase-export` | `/export` |
+| `neuroflow:phase-output` | `/output` |
 | `neuroflow:phase-pipeline` | `/pipeline` |
 | `neuroflow:phase-search` | `/search` |
+| `neuroflow:phase-flowie` | `/flowie` |
+| `neuroflow:phase-hive` | `/hive` |
+| `neuroflow:phase-meeting` | `/meeting` |
 
 ### Development skills
 

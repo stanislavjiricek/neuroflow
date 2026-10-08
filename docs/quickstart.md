@@ -10,18 +10,12 @@ Get from zero to a running neuroflow project in under five minutes.
 
 ## Step 1 — Install
 
-=== "Claude Code"
+neuroflow is a Claude Code plugin:
 
-    ```bash
-    claude plugin marketplace add stanislavjiricek/neuroflow
-    claude plugin install neuroflow@neuroflow
-    ```
-
-=== "GitHub Copilot CLI"
-
-    ```bash
-    copilot plugin install stanislavjiricek/neuroflow
-    ```
+```bash
+claude plugin marketplace add stanislavjiricek/neuroflow
+claude plugin install neuroflow@neuroflow
+```
 
 → [Full installation guide](installation.md)
 
@@ -29,21 +23,12 @@ Get from zero to a running neuroflow project in under five minutes.
 
 ## Step 2 — Open your project
 
-Navigate to your project folder (or any empty folder to start fresh) and open your AI assistant:
+Navigate to your project folder (or any empty folder to start fresh) and start Claude Code:
 
-=== "Claude Code"
-
-    ```bash
-    cd ~/my-eeg-study
-    claude
-    ```
-
-=== "GitHub Copilot CLI"
-
-    ```bash
-    cd ~/my-eeg-study
-    copilot
-    ```
+```bash
+cd ~/my-eeg-study
+claude
+```
 
 ---
 
@@ -57,11 +42,11 @@ Type this in Claude Code:
 
 If this is a **new project**, neuroflow will:
 
-1. Scan your folder for signals (BIDS data, scripts, manuscript files, etc.)
-2. Ask you a few short questions about your project
-3. Create `.neuroflow/` — the shared project memory
+1. Create `.neuroflow/` — the shared project memory — in one step, without touching files that already exist
+2. Scan your folder for signals (BIDS data, scripts, manuscript files, etc.)
+3. Ask you a few short questions about your project; fixed choices appear as a menu you answer with the arrow keys or a click
 
-If you already have a `.neuroflow/` folder, it will show your current phase and status instead.
+If you already have a `.neuroflow/` folder (here or in a folder above), it will show your current phase and status instead.
 
 !!! example "Example session"
     ```
@@ -87,13 +72,13 @@ If you already have a `.neuroflow/` folder, it will show your current phase and 
 
 ## Step 4 — Set up integrations (optional)
 
-neuroflow can search PubMed and use Miro for visual collaboration. Run the setup wizard:
+neuroflow searches PubMed and bioRxiv without any setup. For Miro boards or a custom LLM gateway, run the setup wizard:
 
 ```
 /neuroflow:setup
 ```
 
-This stores credentials in `~/.neuroflow/integrations.json` (global, device-wide) or `.neuroflow/integrations.json` (per-project override, git-ignored) — the wizard asks which scope you want.
+The wizard never asks for a token or key in the chat: it shows you how to add Miro in your own terminal, and it stores only settings, not credentials, in `~/.neuroflow/integrations.json` (global, device-wide) or `.neuroflow/integrations.json` (per-project override, git-ignored) — it asks which scope you want.
 
 ---
 

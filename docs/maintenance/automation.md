@@ -4,7 +4,7 @@ title: Maintenance Automation
 
 # Maintenance Automation
 
-Three scheduled GitHub Actions workflows provide automated repo maintenance for **neuroflow**. Each workflow reads the repo's own specification files (skills, commands, agents, docs) as its ground truth ("Option A"), so the output is always grounded in what the repo actually contains.
+Six GitHub Actions workflows maintain **neuroflow**. Three scheduled ones post reports to GitHub Discussions, a weekly canary tests the neuroflow mod against the newest Claude Code release, one validates every pull request and push to `main`, and one deploys the documentation site. The three report workflows read the repo's own specification files (skills, commands, agents, docs) as their ground truth ("Option A"), so their output is always grounded in what the repo actually contains.
 
 ---
 
@@ -15,6 +15,9 @@ Three scheduled GitHub Actions workflows provide automated repo maintenance for 
 | Daily Maintainer Report | Daily 20:00 UTC | [#167](https://github.com/stanislavjiricek/neuroflow/discussions/167) | No |
 | Sentinel-dev | Daily 20:00 UTC | [#168](https://github.com/stanislavjiricek/neuroflow/discussions/168) | Yes (auto-fixable only) |
 | Research Radar | Weekly, Friday 20:00 UTC | [#169](https://github.com/stanislavjiricek/neuroflow/discussions/169) | No |
+| Mod canary | Weekly, Monday 05:17 UTC | — (opens an issue when the mod breaks) | No |
+| Validate | Every pull request and push to `main` | — | No |
+| Deploy documentation | Every push to `main` | — | No |
 
 All report comments begin with a status banner so you can stop reading immediately:
 
@@ -67,28 +70,39 @@ Change `--discussion-number 167` in the workflow's `run:` step.
 
 ## 2 — Sentinel-dev (`.github/workflows/sentinel-dev.yml`)
 
-**Purpose:** Enforce internal consistency invariants in the plugin repo. Auto-fixes simple issues by opening a PR; reports everything else.
+**Purpose:** Enforce internal consistency invariants in the plugin repo. Auto-fixes version drift by opening a PR; reports everything else.
 
-**Repo context read:** All of `commands/`, `skills/`, `agents/`, `hooks/hooks.json`, `mkdocs.yml`, `.claude-plugin/plugin.json`, `README.md`.
+**Repo context read:** All of `commands/`, `skills/`, `agents/`, `hooks/`, `docs/`, `mkdocs.yml`, `.claude-plugin/`, `README.md`, `.neuroflow/`.
 
-**Script:** `scripts/automation/sentinel_check.py`
+**Script:** `scripts/automation/sentinel_check.py` — it runs the check registry in `scripts/automation/repo_checks.py`, the same one the per-PR validation runs. Each check is implemented once and keeps its id; the `sentinel-dev` agent cites the ids and adds the checks that need judgement.
 
 ### Checks performed
 
-| Check | What it verifies |
+| Id | What it verifies |
 |---|---|
-| Check 1 | `name:` frontmatter matches folder/filename in `skills/`, `agents/`, `commands/` |
-| Check 3 | `plugin.json` version matches `## What's new in X.Y.Z` heading in `README.md` |
-| Check 4 | `neuroflow:some-skill` references in `SKILL.md` files point to real skills/commands |
-| Check 6 | Every `commands/*.md` has required frontmatter fields (`name`, `description`) |
-| Check 8 | `hooks/hooks.json` is valid JSON with required fields (`matcher`, `type`, `command`) |
-| Check 9a | `mkdocs.yml` version matches `plugin.json` |
-| Check 9b | Every `commands/*.md` has a corresponding `docs/commands/<name>.md` |
-| Check 9c | Every `mkdocs.yml` nav entry points to a file that exists under `docs/` |
+| V1 | `plugin.json`, `marketplace.json` and `hooks/hooks.json` are valid JSON |
+| V2 | Version sync across `plugin.json`, `marketplace.json`, `mkdocs.yml` `extra.version` and `.neuroflow/project_config.md` |
+| V3 | Command frontmatter: `name`, `description`, canonical `phase`, `reads`, `writes`, `lifecycle`; `requires` / `produces` / `next` lists |
+| V4 | Every `commands/*.md` has a `docs/commands/<name>.md` page |
+| V5 | Skill and agent `name:` fields match their folder or file |
+| V6 | `hooks/hooks.json`: structure, silent failure (`; true`), at most one hooks module and its path |
+| V7 | Version bumped when substantive files changed (pull requests only) |
+| V8 | Rule markers (`<!-- nf-rule: ID -->`) use known ids; every rule a mod guard enforces has one |
+| V9 | No skill folder shares a command's name |
+| V10 | Every command, skill and agent is in the README tables and the docs nav, each page listed once; no dead links |
+| V11 | No dead `neuroflow:<name>` references in `SKILL.md` files |
+| V12 | Release notes match the version (warning) |
+| V13 | The repo's own `.neuroflow/` holds only `reasoning/` and `sessions/` (warning) |
+| V14 | No private keys; emails and hardcoded secrets flagged for review |
+| V15 | No stale flowie/hive paths or legacy field names (warning) |
 
 ### Auto-fixable issues (will create a PR)
 
-- **Check 9a:** `mkdocs.yml` version out of sync with `plugin.json` — updated automatically.
+- **V2:** `marketplace.json`, `mkdocs.yml` and `.neuroflow/project_config.md` out of sync with `plugin.json` — synced automatically (the same code as `bump_version.py --sync`). Only those files are committed.
+
+### Running it locally
+
+`python scripts/automation/sentinel_check.py --report-only` prints the report and never touches git or GitHub. Outside GitHub Actions the script refuses to commit, push or post.
 
 ### PR behaviour
 
@@ -102,7 +116,7 @@ Same pattern as Daily Maintainer: edit `cron` and `--discussion-number` in the w
 
 ### Required permissions
 
-The sentinel-dev workflow requires more permissions than the others:
+The sentinel-dev workflow requires more permissions than the other report workflows:
 
 ```yaml
 permissions:
@@ -142,11 +156,49 @@ schedule:
 
 ---
 
+## 4 — Per-PR validation (`.github/workflows/validate.yml`)
+
+**Purpose:** Catch structural mistakes before they merge. Runs on every pull request and every push to `main`, in two jobs.
+
+**`validate` job:**
+
+1. `python scripts/automation/validate_pr.py --base origin/<base branch>` — all checks V1–V15 from `repo_checks.py`. Findings marked `fail` fail the job; `warn` findings are printed for review. Exit codes: `0` no failures, `1` failures, `2` usage or internal error.
+2. `python -m unittest discover -s tests -p "test_*.py" -v` — unit tests for the repo checks, `bump_version.py`, the pre-push hook, a smoke test that feeds simulated tool events into the `hooks/hooks.json` commands, and the skills' portable scripts. Runs even when step 1 failed.
+3. `mkdocs build --strict` — the docs site builds without broken links.
+
+**`mod` job** (the neuroflow mod): installs Claude Code 2.1.292, the version the mod is tested from, then runs
+
+1. `claude plugin validate .` — the plugin manifest and its hooks module;
+2. `claude plugin test .` — the mod's tests in `hooks/mod/tests/`;
+3. `python scripts/automation/mod_policy.py` — compares the events the module hooks and the calls, environment variables and state the validator reports with the allowlist in `hooks/mod/policy.json`; anything new fails until a reviewer adds it.
+
+Steps 2 and 3 run even when an earlier step failed.
+
+The same validation runs locally from the repo root. To bump the version in all four places at once: `python scripts/automation/bump_version.py` (`--dry-run`, `--sync`, `--check`).
+
+---
+
+## 5 — Mod canary (`.github/workflows/mod-canary.yml`)
+
+**Purpose:** Find out when a new Claude Code release breaks the neuroflow mod — function hooks are an early-access API that changes between releases — before users do.
+
+**Schedule:** weekly, Monday 05:17 UTC (`cron: "17 5 * * 1"`).
+
+**Steps:** installs the newest Claude Code (`@anthropic-ai/claude-code@latest`) and runs the `mod` job's three checks. When one fails, it opens an issue titled `mod canary: the neuroflow mod fails on Claude Code <version>`, unless an open issue with that title already exists.
+
+---
+
+## 6 — Deploy documentation (`.github/workflows/deploy-docs.yml`)
+
+**Purpose:** Publish the documentation site. On every push to `main` it installs `requirements.txt`, runs `mkdocs build --strict` and deploys the result to GitHub Pages.
+
+---
+
 ## Shared posting script
 
 **File:** `scripts/automation/post_discussion.py`
 
-All three workflows use this script to post comments to GitHub Discussions via the GraphQL API.
+The three report workflows use this script to post comments to GitHub Discussions via the GraphQL API.
 
 **Usage:**
 
@@ -174,13 +226,14 @@ python scripts/automation/post_discussion.py \
 - No secrets are stored in the repo — only `GITHUB_TOKEN` (auto-provided by Actions) is used.
 - The `daily-maintenance` and `research-radar` workflows use minimal permissions (`contents: read`, `discussions: write`).
 - The `sentinel-dev` workflow additionally needs `contents: write` and `pull-requests: write` to create fix branches and open PRs.
-- No external services are called except `api.github.com`.
+- `validate` only reads (`contents: read`); `mod-canary` adds `issues: write` to open its issue; `deploy-docs` needs `pages: write` and `id-token: write` to publish the site.
+- Every workflow installs its tools first — Python packages from PyPI, and Claude Code from npm where it is needed. At run time the report workflows call no external service except `api.github.com`, and the docs deploy publishes to GitHub Pages.
 
 ---
 
 ## Running workflows manually
 
-All three workflows support `workflow_dispatch` so you can trigger them from the GitHub Actions UI without waiting for the schedule:
+Every workflow supports `workflow_dispatch`, so you can trigger it from the GitHub Actions UI without waiting for its schedule or a push:
 
 1. Go to **Actions** in the repo
 2. Click the workflow name
@@ -188,6 +241,6 @@ All three workflows support `workflow_dispatch` so you can trigger them from the
 
 ---
 
-## Adding new checks to sentinel-dev
+## Adding a new repo check
 
-Add a new function following the `check<N>_name()` pattern in `scripts/automation/sentinel_check.py` that returns `list[Issue]`. Then call it in `main()` alongside the existing checks. Mark issues as `fixable=True` and provide a `fix_description` if there's a straightforward programmatic fix to apply.
+Add a function to `scripts/automation/repo_checks.py` that takes a `Context` and returns a list of `Finding`s, and register it in `CHECKS` under the next free id — never renumber or reuse an id, retire it instead. Add a test to `tests/automation/test_repo_checks.py` and a row to the check table in `agents/sentinel-dev.md`. `validate_pr.py` (every PR) and `sentinel_check.py` (daily) pick it up automatically. Use `severity=WARN` for heuristics that need a human, and `fix="version-sync"` only for drift the daily job may repair on its own.

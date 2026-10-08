@@ -1,7 +1,7 @@
 {
   "name": "neuroflow",
-  "version": "0.2.21",
-  "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and other neuroscience modalities.",
+  "version": "0.2.22",
+  "description": "A Claude Code plugin for neuroscience research — from hypothesis to publication, with project memory, research-integrity rules, and an optional mod for live project views and guard-rails. Supports EEG, iEEG, fMRI, eye tracking, ECG and other modalities.",
   "author": {
     "name": "Stanislav Jiricek"
   },
@@ -25,25 +25,71 @@
     "analysis",
     "publication"
   ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "runtime": {
+      "type": "string",
+      "title": "neuroflow mod",
+      "description": "off: the mod does nothing. observe: views, status and warnings only. on: also fills bookkeeping gaps and may enforce guards.",
+      "options": [
+        "off",
+        "observe",
+        "on"
+      ],
+      "default": "observe"
+    },
+    "guards": {
+      "type": "string",
+      "title": "Guards",
+      "description": "warn: say what a guard would block. enforce: deny (only with the mod set to on).",
+      "options": [
+        "warn",
+        "enforce"
+      ],
+      "default": "warn"
+    },
+    "band": {
+      "type": "string",
+      "title": "Band above the prompt",
+      "description": "off, quiet (only what needs attention), or normal.",
+      "options": [
+        "off",
+        "quiet",
+        "normal"
+      ],
+      "default": "quiet"
+    },
+    "citations": {
+      "type": "boolean",
+      "title": "Citation checks",
+      "description": "After the model writes a manuscript, grant, poster or report, check that its new DOIs resolve; re-check notices weekly. Needs runtime on.",
+      "default": false
+    }
+  },
   "mcpServers": {
     "biorxiv": {
       "command": "npx",
-      "args": ["-y", "paper-search-mcp-nodejs"]
-    },
-    "miro": {
-      "command": "npx",
-      "args": ["-y", "@k-jarzyna/mcp-miro"],
+      "args": [
+        "-y",
+        "paper-search-mcp-nodejs@0.3.3"
+      ],
       "env": {
-        "MIRO_ACCESS_TOKEN": "${MIRO_ACCESS_TOKEN}"
+        "SCIHUB_ENABLED": "false"
       }
     },
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@4.1.3"
+      ]
     },
     "sequentialthinking": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking@2026.8.31"
+      ]
     }
   }
 }

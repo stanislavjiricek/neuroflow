@@ -12,7 +12,7 @@ title: /poster
 
 ## When to use it
 
-- Before a conference (SfN, OHBM, Bernstein, COSYNE, NeurIPS…)
+- Before a conference (SfN, OHBM, FENS, COSYNE, NeurIPS…)
 - For a lab retreat or departmental poster session
 - When you want a print-ready poster tied directly to your project data
 
@@ -36,7 +36,7 @@ Then Claude reads the relevant `.neuroflow/` phase files, populates the template
 
 | Option | Size | Orientation | Typical use |
 |---|---|---|---|
-| A | A0 (841 × 1189 mm) | Portrait | Most European conferences; SfN, OHBM, Bernstein |
+| A | A0 (841 × 1189 mm) | Portrait | Most European conferences; SfN, OHBM, FENS |
 | B | A0 (1189 × 841 mm) | Landscape | Wide-format boards; side-by-side figures |
 | C | A1 (594 × 841 mm) | Portrait | Lab retreats, seminars, smaller venues |
 | D | 90 × 120 cm | Portrait | Common European conference custom size |
@@ -61,7 +61,9 @@ Recommended targets:
 
 ## Iterative critic review
 
-The generated `.tex` source is reviewed by the `poster-critic` agent against a five-area rubric before the file is saved:
+Before every review round Claude compiles the poster and renders page 1 as a small preview image, so the critic judges the printed layout, not just the source. It needs a TeX installation (latexmk or pdflatex) and one of `pdftoppm`, `mutool` or `magick`; without them the loop runs on the source alone and says so.
+
+The `.tex` source, the compile log summary and the preview are reviewed by the `poster-critic` agent against a five-area rubric:
 
 1. **Content accuracy** — title, authors, objectives, N, methods, results with numerical values, references
 2. **Visual balance** — column proportions, section density, title prominence
@@ -75,10 +77,10 @@ The loop runs up to 3 iterations. Unresolved issues are logged to `.neuroflow/po
 
 ## Compilation
 
-After saving, compile with:
+The last compiled PDF is in `poster/build/`. To compile again yourself:
 
 ```bash
-cd .neuroflow/poster
+cd poster
 pdflatex poster-YYYY-MM-DD.tex
 ```
 
@@ -99,7 +101,7 @@ latexmk -pdf poster-YYYY-MM-DD.tex
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/ideation/flow.md`, `.neuroflow/data-analyze/flow.md`, `.neuroflow/paper/flow.md`, `.neuroflow/preregistration/flow.md` |
-| Writes | `.neuroflow/poster/poster-YYYY-MM-DD.tex`, `.neuroflow/poster/critic-log.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Writes | `poster/poster-YYYY-MM-DD.tex`, `poster/build/` (compiled PDF, previews), `.neuroflow/poster/critic-log.md`, `.neuroflow/poster/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
 
 If a same-date `.tex` file exists, a version suffix is added (`-v2`, `-v3`, etc.).
 

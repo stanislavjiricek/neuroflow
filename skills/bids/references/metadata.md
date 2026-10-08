@@ -1,5 +1,9 @@
 # BIDS Metadata Reference — JSON Sidecar Fields
 
+The EEG, MEG and iEEG requirement levels below were checked against BIDS 1.11.2
+(bids-specification.readthedocs.io, stable, October 2026). Recheck the spec when a
+new BIDS version is released.
+
 ## MRI — Anatomical (anat/)
 
 ### Required
@@ -130,16 +134,17 @@ Example:
 ### Required
 | Field | Type | Example |
 |-------|------|---------|
+| `TaskName` | string | `"rest"` |
+| `EEGReference` | string | `"Cz"`, `"average"`, `"linked mastoids"` |
 | `SamplingFrequency` | number | `2400` (Hz) |
-| `PowerLineFrequency` | number | `50` or `60` (Hz) |
+| `PowerLineFrequency` | number or `"n/a"` | `50` or `60` (Hz) |
+| `SoftwareFilters` | object or `"n/a"` | `{"Anti-aliasing filter": {"half-amplitude cutoff (Hz)": 500}}`, or `"n/a"` if none |
 
 ### Recommended
 | Field | Type | Example |
 |-------|------|---------|
-| `TaskName` | string | `"rest"` |
 | `TaskDescription` | string | `"5-minute resting state, eyes open"` |
 | `Instructions` | string | `"Look at fixation cross"` |
-| `EEGReference` | string | `"Cz"`, `"average"`, `"linked mastoids"` |
 | `EEGGround` | string | `"AFz"` |
 | `EEGChannelCount` | integer | `64` |
 | `EOGChannelCount` | integer | `4` |
@@ -151,7 +156,6 @@ Example:
 | `RecordingType` | string | `"continuous"` or `"epoched"` |
 | `EpochLength` | number | `2.0` (seconds, if epoched) |
 | `SubjectArtefactDescription` | string | `"Chewing artifact on channels FC1-FC2"` |
-| `SoftwareFilters` | object | `{"Anti-aliasing filter": {"half-amplitude cutoff (Hz)": 500}}` |
 | `HardwareFilters` | object | `{"ADC's decimation filter (hardware bandwidth limit)": {"Cutoff (Hz)": 0}}` |
 | `Manufacturer` | string | `"Brain Products"` |
 | `ManufacturersModelName` | string | `"actiCHamp Plus"` |
@@ -159,19 +163,21 @@ Example:
 | `CapManufacturer` | string | `"EasyCap"` |
 | `CapManufacturersModelName` | string | `"M10"` |
 | `EEGPlacementScheme` | string | `"10-20"` |
-| `CRLFChannelCount` | integer | `0` |
+| `HeadCircumference` | number | `58` (cm) |
 
-### channels.tsv required columns (EEG)
+### channels.tsv columns (EEG)
+The file itself is recommended. `name`, `type` and `units` are required and must be the first three columns, in that order.
+
 | Column | Required | Description |
 |--------|----------|-------------|
 | `name` | Yes | Channel name, e.g. `Fp1` |
-| `type` | Yes | `EEG`, `EOG`, `ECG`, `EMG`, `MISC`, `STIM`, `TRIG`, `HEOG`, `VEOG` |
+| `type` | Yes | Upper case: `EEG`, `EOG`, `HEOG`, `VEOG`, `ECG`, `EMG`, `TRIG`, `MISC`, `REF`, `RESP`, `GSR`, `PPG`, `TEMP`, `AUDIO`, `EYEGAZE`, `PUPIL`, `SYSCLOCK` |
 | `units` | Yes | `µV`, `mV`, `V` |
-| `sampling_frequency` | Recommended | Sampling rate in Hz |
-| `low_cutoff` | Recommended | High-pass filter in Hz |
-| `high_cutoff` | Recommended | Low-pass filter in Hz |
-| `notch` | Recommended | Notch filter frequency |
-| `reference` | Recommended | Reference electrode name |
+| `sampling_frequency` | Optional | Sampling rate in Hz |
+| `low_cutoff` | Optional | High-pass filter in Hz |
+| `high_cutoff` | Optional | Low-pass filter in Hz |
+| `notch` | Optional | Notch filter frequency |
+| `reference` | Optional | Reference electrode name |
 | `description` | Optional | Free-text channel description |
 | `status` | Optional | `good` or `bad` |
 | `status_description` | Optional | Reason for bad status |
@@ -183,13 +189,11 @@ Example:
 ### Required
 | Field | Type | Example |
 |-------|------|---------|
+| `TaskName` | string | `"rest"` |
 | `SamplingFrequency` | number | `600` (Hz) |
-
-### Required (if applicable)
-| Field | Type | Example |
-|-------|------|---------|
-| `PowerLineFrequency` | number | `50` or `60` |
+| `PowerLineFrequency` | number or `"n/a"` | `50` or `60` |
 | `DewarPosition` | string | `"upright"` or `"supine"` |
+| `SoftwareFilters` | object or `"n/a"` | `{"Anti-aliasing filter": {"half-amplitude cutoff (Hz)": 500}}`, or `"n/a"` |
 | `DigitizedLandmarks` | boolean | `true` |
 | `DigitizedHeadPoints` | boolean | `true` |
 
@@ -207,13 +211,13 @@ Example:
 | `ContinuousHeadLocalization` | boolean | `false` |
 | `HeadCoilFrequency` | array | `[293, 307, 314]` |
 | `MaxMovement` | number | `0.5` (mm) |
-| `TaskName` | string | `"rest"` |
-| `Manufacturer` | string | `"Elekta"` |
+| `AssociatedEmptyRoom` | string/array | `"bids::sub-emptyroom/ses-20260101/meg/sub-emptyroom_ses-20260101_task-noise_meg.fif"` (a BIDS URI) |
+| `Manufacturer` | string | `"Neuromag/Elekta/MEGIN"` |
 | `ManufacturersModelName` | string | `"Neuromag-122"` |
 | `SoftwareVersions` | string | `"MaxFilter 2.2.15"` |
-| `SoftwareFilters` | object | — |
 
-### coordsystem.json required fields (MEG)
+### coordsystem.json (MEG)
+The file is optional for MEG. When present, `MEGCoordinateSystem` and `MEGCoordinateUnits` are required (plus `MEGCoordinateSystemDescription` when the system is `Other`); the head-coil and landmark fields are optional.
 ```json
 {
   "MEGCoordinateSystem": "ElektaNeuromag",
@@ -236,17 +240,17 @@ Example:
 ### Required
 | Field | Type | Example |
 |-------|------|---------|
+| `TaskName` | string | `"rest"` |
+| `iEEGReference` | string | `"intracranial"`, `"left mastoid"`, `"bipolar"` |
 | `SamplingFrequency` | number | `30000` (Hz) |
-| `PowerLineFrequency` | number | `60` (Hz) |
+| `PowerLineFrequency` | number or `"n/a"` | `60` (Hz) |
+| `SoftwareFilters` | object or `"n/a"` | `"n/a"` |
 
 ### Recommended
 | Field | Type | Example |
 |-------|------|---------|
-| `iEEGReference` | string | `"intracranial"`, `"mastoid"` |
-| `iEEGChannelCount` | integer | `96` |
 | `ECOGChannelCount` | integer | `64` |
 | `SEEGChannelCount` | integer | `32` |
-| `DCSChannelCount` | integer | `0` |
 | `EEGChannelCount` | integer | `0` |
 | `EOGChannelCount` | integer | `0` |
 | `ECGChannelCount` | integer | `1` |
@@ -261,19 +265,23 @@ Example:
 | `ManufacturersModelName` | string | `"Neuroport"` |
 | `SubjectArtefactDescription` | string | — |
 
-### electrodes.tsv required columns
+### channels.tsv columns (iEEG)
+The file is recommended. When present, `name`, `type`, `units`, `low_cutoff` and `high_cutoff` are required; `reference`, `group`, `sampling_frequency`, `description`, `notch`, `status` and `status_description` are optional. Types are upper case (`ECOG`, `SEEG`, `DBS`, `EEG`, `EOG`, `ECG`, `EMG`, `TRIG`, `MISC`, ...).
+
+### electrodes.tsv columns (iEEG — the file is required, with a `*_coordsystem.json`)
 | Column | Required |
 |--------|----------|
 | `name` | Yes |
 | `x` | Yes |
 | `y` | Yes |
 | `z` | Yes |
-| `size` | Recommended |
+| `size` | Yes (surface area, mm²) |
 | `material` | Recommended |
 | `manufacturer` | Recommended |
 | `group` | Recommended |
 | `hemisphere` | Recommended |
-| `type` | Recommended (`seeg`, `ecog`, `dbs`) |
+| `type` | Optional (type of electrode) |
+| `impedance` | Optional |
 
 ---
 

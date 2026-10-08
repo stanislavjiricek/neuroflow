@@ -8,15 +8,19 @@ reads:
   - .neuroflow/sentinel.md
   - .neuroflow/reasoning/
   - .neuroflow/preregistration/
+  - .neuroflow/ethics/
   - .neuroflow/sessions/
   - .claude/CLAUDE.md
-  - .github/copilot-instructions.md
 writes:
   - .neuroflow/sentinel.md
   - .neuroflow/sentinel-dev.md
   - .neuroflow/project_config.md
   - .claude/CLAUDE.md
-  - .github/copilot-instructions.md
+lifecycle: light
+requires:
+  - .neuroflow/project_config.md
+produces:
+  - .neuroflow/sentinel.md
 ---
 
 # /sentinel
@@ -26,3 +30,7 @@ Check the working directory and route to the correct agent:
 1. If `.claude-plugin/plugin.json` exists → plugin repo. Invoke the **sentinel-dev agent**. Stop here regardless of what else exists.
 2. Otherwise, if `.neuroflow/` exists → project repo. Invoke the **sentinel agent**.
 3. Otherwise → stop and tell the user to run `/neuroflow` first.
+
+Both agents start with a script and spend their own reading only on the judgement checks: sentinel-dev runs `scripts/automation/validate_pr.py` (the checks CI runs on every PR), sentinel runs `${CLAUDE_PLUGIN_ROOT}/skills/neuroflow-core/scripts/nf_check.py` (Claude Code fills in the running plugin's folder; pass that path to the agent).
+
+When the agent has written its report (or applied fixes) and `.neuroflow/sessions/` exists, append one line to `.neuroflow/sessions/YYYY-MM-DD.md`: `## HH:MM — [sentinel] audit: N issues, M fixed (report in .neuroflow/sentinel.md)` — `sentinel-dev.md` in the plugin repo.

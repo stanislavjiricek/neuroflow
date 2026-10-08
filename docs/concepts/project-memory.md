@@ -14,12 +14,14 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 
 ```
 .neuroflow/
-├── project_config.md       ← current phase, research question, modality, tools, plugin_version
+├── project_config.md       ← frontmatter facts (active phase, recommended phases, collaborators) + notes
 ├── flow.md                 ← index of all subfolders
 ├── sentinel.md             ← sentinel audit report
 ├── timeline.md             ← milestones and deadlines (optional)
-├── sessions/               ← one .md per day — add to .gitignore
-├── reasoning/              ← structured per-phase decision logs (JSON)
+├── sessions/               ← one .md per day — local only, gitignored
+├── reasoning/              ← per-phase decision logs (JSON Lines)
+├── tasks/                  ← project task board, one file per task
+├── wiki/                   ← project wiki (its .pending/ review queue is local only)
 ├── ethics/                 ← IRB documents, consent forms
 ├── preregistration/        ← OSF / AsPredicted documents
 ├── finance/                ← grant documents, expense tracking
@@ -42,32 +44,32 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 
 ### `project_config.md`
 
-The most important file in `.neuroflow/`. Every command reads this first. It contains:
+The most important file in `.neuroflow/`. Every command reads this first. It has two parts:
 
-- **Project name and institution**
-- **Active phase** — which pipeline phase is currently in progress
-- **Research question** — the core scientific question
-- **Modality** — EEG, fMRI, iEEG, eye tracking, etc.
-- **Tools** — Python/MNE, MATLAB, R, etc.
-- **`plugin_version`** — tracked by sentinel to flag plugin updates
-- **Output paths** — where each phase writes its files (code, results, figures, manuscripts)
+- **A YAML frontmatter** with the facts commands and scripts read: `nf_schema` (format version), `project_name`, `active_phase`, `recommended_phases`, optional `default_mode`, `target_journal`, `raw_roots`, `hive_repo`, `collaborators`, and `plugin_version` (the neuroflow version the project was last brought up to date to — only the scaffold and `/neuroflow:migrate` write it)
+- **Free markdown notes** — institution, research question, modality, tools, and the output paths each phase writes to
 
 **Example:**
 
 ```markdown
-# project_config.md
-
-project: OddballStudy2026
-institution: Charles University, Prague
-plugin_version: 0.1.2
-
+---
+nf_schema: 1
+project_name: OddballStudy2026
 active_phase: data-preprocess
+recommended_phases: [experiment, data, data-preprocess, data-analyze, paper]
+target_journal: NeuroImage
+raw_roots: [sourcedata/]
+plugin_version: 0.2.22
+---
 
-research_question: Does white noise background (65 dB) reduce P300 amplitude 
-                   in a visual oddball task compared to silence?
+# OddballStudy2026
 
-modality: EEG (BrainProducts actiCHamp, 64 ch)
-tools: Python 3.11, MNE 1.6, PsychoPy 2024
+Institution: University of Example
+
+Research question: Does white noise background (65 dB) reduce P300 amplitude
+in a visual oddball task compared to silence?
+
+Modality: EEG (64 channels). Tools: Python 3.11, MNE 1.6, PsychoPy 2024.
 
 ## Output paths
 
@@ -79,34 +81,38 @@ tools: Python 3.11, MNE 1.6, PsychoPy 2024
 | paper | manuscript/ |
 ```
 
+Projects created by older neuroflow versions use plain `key: value` lines or bold labels instead of the frontmatter. Commands still read them; [`/migrate`](../commands/migrate.md) converts them after showing you the plan.
+
+### Personal settings — `~/.neuroflow/user.yaml`
+
+Some answers are about you, not the project: whether neuroflow may offer issue reports, your preferred working mode, your name and writing style. They live in `~/.neuroflow/user.yaml` on your machine — never in `project_config.md`, which your collaborators share through git.
+
 ### `flow.md`
 
 An index of everything in `.neuroflow/`. Each subfolder has its own `flow.md` too — an index of the files inside it. Commands use `flow.md` to navigate without scanning the whole disk.
 
 ### `reasoning/`
 
-Structured per-phase decision logs in JSON format. Each entry has three fields:
+Per-phase decision logs in JSON Lines format — one file per phase (`data-preprocess.jsonl`, plus `general.jsonl` for project-level decisions), one decision per line, only ever appended to:
 
 ```json
-{
-  "statement": "Using average reference instead of linked mastoids",
-  "source": "data-preprocess session 2026-03-05",
-  "reasoning": "Linked mastoids are not appropriate for this cap layout; average reference is standard for 64-channel EEG"
-}
+{"statement": "Use the average reference instead of linked mastoids", "source": "command:data-preprocess | 2026-03-05", "reasoning": "Linked mastoids do not suit this cap layout; the average reference is standard for 64-channel EEG", "at": "2026-03-05T10:12:00Z"}
 ```
+
+One line per entry means two collaborators can add decisions on the same day and git merges both without a conflict.
 
 ### `sessions/`
 
 One Markdown file per day, automatically appended to by every command. Gives you a chronological log of what was done.
 
-!!! warning "Add to .gitignore"
-    Session logs are local — they may contain personal notes and intermediate thoughts. Add `.neuroflow/sessions/` to your `.gitignore`.
+!!! note "Local only"
+    Session logs may contain personal notes and intermediate thoughts, so they stay on your machine — `/neuroflow` adds `.neuroflow/sessions/` to your `.gitignore`.
 
 ---
 
 ## How commands use project memory
 
-Every command follows the same lifecycle:
+Every command follows the same lifecycle. Started from a subfolder, a command finds `.neuroflow/` in the folder above (up to the repository root).
 
 ```
 1. Read neuroflow-core skill          ← understand the lifecycle rules
@@ -132,10 +138,27 @@ Cross-project context lives at the personal and team levels rather than in per-p
 
 ## Git recommendations
 
+`/neuroflow` (and `/migrate` for older projects) adds these lines to your project's `.gitignore`, so local-only memory never reaches git:
+
 ```gitignore
-# Add to your project .gitignore:
-.neuroflow/sessions/          # local daily logs
-.neuroflow/integrations.json  # credential file (already excluded by neuroflow)
+.neuroflow/sessions/
+.neuroflow/review/
+.neuroflow/integrations.json
+.neuroflow/flowie/
+.neuroflow/paper/xray-*
+.neuroflow/wiki/.pending/
+```
+
+`.neuroflow/review/` holds manuscripts you referee in confidence; `integrations.json` holds credentials; `paper/xray-*` files are the sentence-level critique of your unpublished manuscript (`/paper --xray`); `wiki/.pending/` holds wiki cards waiting for your review (`/wiki --review`). These local-only paths are never exported either: `/output` drops them before anything is copied.
+
+It also adds union-merge rules to `.gitattributes`, so append-only logs (decision logs, session logs, `fails/`, preregistration deviations) merge cleanly when two collaborators add entries on the same day:
+
+```
+.neuroflow/reasoning/*.jsonl merge=union
+.neuroflow/sessions/*.md merge=union
+.neuroflow/fails/*.md merge=union
+.neuroflow/preregistration/deviations.md merge=union
+.neuroflow/data-analyze/multiverse.md merge=union
 ```
 
 Everything else in `.neuroflow/` should be git-tracked — it is the shared memory of your project and should be part of the repo.

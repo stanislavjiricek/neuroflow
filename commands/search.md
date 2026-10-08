@@ -9,17 +9,20 @@ reads:
   - .neuroflow/project_config.md
   - .neuroflow/flow.md
 writes: []
+lifecycle: light
 ---
 
 # /search
 
-Read the `neuroflow:phase-search` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` and `flow.md` if they exist.
+Read the `neuroflow:phase-search` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is missing or older than the running neuroflow's version in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3) and `flow.md` if they exist.
 
 ---
 
 ## What this command does
 
 Performs a lightweight, scoped search across either the project's neuroflow memory (`.neuroflow/`) or the broader project codebase. Uses `flow.md` files as a fast index to avoid reading every file. Returns a brief summary.
+
+This is not a literature search. For papers, use `/ideation` → Explore literature; standing literature queries are pinned in `.neuroflow/ideation/watch.md` (findable here with `memory:`), with free PubMed / bioRxiv alerts recommended for them.
 
 ---
 

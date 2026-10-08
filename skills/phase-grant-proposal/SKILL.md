@@ -1,6 +1,7 @@
 ---
 name: phase-grant-proposal
 description: Phase guidance for /grant-proposal with deep funder knowledge, neuroscience-specific grant tactics, review criteria alignment, and workflow orchestration.
+user-invocable: false
 ---
 
 # phase-grant-proposal
@@ -54,7 +55,7 @@ Objectives in `.neuroflow/objectives.md` are cornerstones for the entire grant. 
 1. **Re-read `objectives.md` before drafting every section**
 2. For the Approach/Methodology section: verify all N objectives appear explicitly — flag any missing
 3. For the quality checklist: verify all N objectives appear in both Aims AND Methodology
-4. If the user adds or changes an objective mid-session: update `objectives.md` immediately and note the change in `reasoning/grant-proposal.json`
+4. If the user adds or changes an objective mid-session: update `objectives.md` immediately and note the change in `reasoning/grant-proposal.jsonl`
 
 ---
 
@@ -133,21 +134,11 @@ If no ideation files exist: the interview questions cover everything needed.
 - **Review criteria**: Scientific opportunity (is this the right question?), Team (can they deliver?), Delivery (is the plan achievable?)
 - **Note**: Wellcome values interdisciplinary approaches and expects explicit attention to open science (data sharing, preregistration)
 
-### MRC (UK)
-- **Mechanisms**: Programme Grant, Project Grant, Clinician Scientist Fellowship, Senior Research Fellowship
-- **Key sections**: Case for Support (20p), Justification of Resources
-- **Review criteria**: Importance (scientific and health impact), Quality and originality, Investigator capability, Resources
-
-### GAČR (Czech Republic)
-- **Mechanisms**: Standard Project (3 yr, ~5M CZK/yr), Junior Star (5 yr, ~9M CZK/yr), EXPRO excellence (5 yr, ~10M CZK/yr), International bilateral projects
-- **Key sections**: Project summary (Czech + English, 600 words), State of the art, Objectives and hypotheses, Methodology, Feasibility, Budget justification, Timeline
-- **Review criteria**: Originality and scientific quality, Feasibility, Team qualification, Budget adequacy
-- **Note**: Czech-language applications required for domestic funding; international projects use English
-
-### DFG (Germany)
-- **Mechanisms**: Research Grants (Emmy Noether, Heisenberg, SPP priority programs, Collaborative Research Centres / SFB)
-- **Key sections**: Work programme (10–15p), Preliminary work, Requested funds, Curriculum vitae (tabular, max 2p)
-- **Review criteria**: Scientific quality, Originality, Feasibility, Training of junior researchers
+### National research councils and science foundations
+- **Mechanisms**: most countries run a research council or science foundation with standard project grants (often 3 years), junior and excellence schemes, programme grants, and bilateral calls with partner countries
+- **Key sections**: usually a project summary (often with a strict word limit), state of the art, objectives and hypotheses, methodology, feasibility, requested funds and justification, timeline, and short CVs — the call text and the template decide
+- **Review criteria**: usually originality and scientific quality, feasibility, team qualification, and budget adequacy — take them from the call and map each to a section (**Review criteria alignment checklist** below)
+- **Note**: check the call text for language and format requirements. National funders often want some parts (the summary, sometimes the whole application) in the national language and others in English for international reviewers; templates, fonts and page rules are strict, and an application that breaks them can be rejected unread
 
 ### Horizon Europe (EU)
 - **Mechanisms**: EIC Pathfinder (€3M, 4 yr), EIC Transition, EIC Accelerator (SMEs), MSCA Fellowships, ERC (separate)
@@ -238,9 +229,11 @@ Use this mapping to ensure reviewer criteria are explicitly addressed in the tex
 - `.neuroflow/grant-proposal/panels/panel-analysis-[funder]-[date].md` — panel profiles (if panel research done)
 - `.neuroflow/grant-proposal/draft-[funder]-[date]-[section].md` — per-section drafts
 - `.neuroflow/grant-proposal/grant-[funder]-[date].md` — full consolidated draft
+- `.neuroflow/grant-proposal/ai-use-statement-[funder]-[date].md` — AI-use declaration, drafted from the session logs and confirmed by the person
 - `.neuroflow/grant-proposal/flow.md` — funder, scheme, deadline, section status
+- `.neuroflow/reasoning/grant-proposal.jsonl` — funder and scheme choice, objective changes
 - `.neuroflow/sessions/YYYY-MM-DD.md` — session log (using `##` milestone headers)
-- `project_config.md` — funder and deadline (with user confirmation)
+- `.neuroflow/timeline.md` — the deadline; `project_config.md` — funder and scheme as notes below the frontmatter (with user confirmation)
 
 ### Connects to
 - `/ideation` — if no research question exists, redirect the user there first
@@ -278,7 +271,7 @@ After each section, offer:
 - `neuroflow:phase-ideation` — if user needs to define the research question first
 - `neuroflow:phase-experiment` — paradigm design details for the Approach section
 - `neuroflow:phase-preregistration` — link registered analysis plan
-- `neuroflow:humanizer` — apply to every drafted section to strip AI signatures, fix rhythm, and calibrate register so the prose reads as genuinely human-authored
+- `neuroflow:humanizer` — optional style edit (filler, rhythm, register), only when the person asks for it; never automatic and never used to disguise AI involvement — AI use is declared (command Step 6b)
 - `sequentialthinking` MCP — invoke before drafting Innovation and Approach sections to build a rigorous logical argument chain
 
 ## Slash command

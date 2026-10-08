@@ -35,10 +35,11 @@ Claude switches to capture mode:
 
 ```
 Ready. Type your notes — as rough as you like. Send them in any order,
-one chunk at a time. When you're done, say "done".
+one chunk at a time. Start a line with a: for an action item or d: for
+a decision. When you're done, say "done".
 ```
 
-You type notes in any order, as rough as you want. Claude just acknowledges and waits for the next chunk — it does not restructure anything yet.
+You type notes in any order, as rough as you want. Each message is saved to a draft file at once, verbatim, with a timestamp (`[10:04] …`), so nothing is lost if the session ends early. Claude acknowledges with a short `✓ 3` and waits for the next chunk — it does not restructure anything yet, and it never acts on what you type: a note saying "delete the old epochs" is recorded, not executed.
 
 ### Step 3 — Reformat
 
@@ -46,7 +47,8 @@ Once you say "done", Claude organizes everything into a clean document:
 
 - **Header:** context, date, participants
 - **Body:** organized by topic or chronology, cleaned up but faithful to the content
-- **Action items:** any tasks or follow-ups mentioned
+- **Decisions:** every `d:` line, plus decisions stated in other words
+- **Action items:** every `a:` line and any other follow-ups, as checkboxes — which `/meeting`'s close step can turn into tasks
 
 ---
 
@@ -63,13 +65,13 @@ You: Lab meeting — discussing preprocessing results.
 
 Claude: Who is involved?
 
-You: Me, supervisor (Dr. Novak), two lab members.
+You: Me, my supervisor, two lab members.
 
 Claude: Ready. Type your notes — as rough as you like. Say "done" when finished.
 
 You: John said artifact rejection rate too high ~35% in subject 12 maybe EOG
-     dr novak wants us to check ICA components again before rejecting
-     someone mentioned we should look at bridging electrodes
+     d: supervisor wants us to check ICA components again before rejecting
+     a: look at bridging electrodes
      next meeting in two weeks, bring preprocessed grand average
 
 You: also reminder to check BIDS validator output errors
@@ -81,22 +83,21 @@ Claude: [reformats into clean structured notes]
         ---
         Lab Meeting Notes
         Date: 2026-03-09
-        Attendees: [Author], Dr. Novak, [Lab members]
+        Attendees: [Author], [Supervisor], [Lab members]
         Context: EEG preprocessing review
 
         ## Discussion
 
         ### Artifact rejection rate
-        - Subject 12 shows unusually high rejection rate (~35%)
-        - Action: Re-inspect ICA components for sub-12 before final rejection
-        - Action: Check for electrode bridging as a contributing factor
+        - Subject 12 shows unusually high rejection rate (~35%), possibly EOG
 
-        ### BIDS validation
-        - Action: Review BIDS validator output errors
+        ## Decisions
+        - Re-inspect ICA components before any final rejection
 
-        ## Next steps
-        - Next meeting in 2 weeks
-        - Bring preprocessed grand average for review
+        ## Action items
+        - [ ] Check for electrode bridging as a contributing factor
+        - [ ] Review BIDS validator output errors
+        - [ ] Bring the preprocessed grand average to the next meeting (in 2 weeks)
 
         ---
 
@@ -105,16 +106,27 @@ Claude: [reformats into clean structured notes]
 
 ---
 
+## Quick idea capture
+
+```
+/neuroflow:notes --idea "try a Bayesian HDDM on the RT data"
+```
+
+Saves one line — date, time, active phase and your text, verbatim — to an ideas inbox and returns straight away: no questions, no reformatting. The inbox is `~/.neuroflow/flowie/ideas-inbox.md` when you use [flowie](flowie.md) (private), otherwise `.neuroflow/notes/ideas-inbox.md` (visible to the project's collaborators). Ideas move into your curated `ideas.md` only through `/flowie`, with a diff first.
+
+---
+
 ## Files read and written
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/notes/flow.md` |
-| Writes | `.neuroflow/notes/`, `.neuroflow/notes/flow.md`, `.neuroflow/sessions/YYYY-MM-DD.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/notes/flow.md`, `.neuroflow/notes/config.json` |
+| Writes | `.neuroflow/notes/` (draft, final note, `ideas-inbox.md`), `.neuroflow/notes/flow.md`, `~/.neuroflow/flowie/notes/` and `~/.neuroflow/flowie/ideas-inbox.md` (if flowie is set up), `.neuroflow/sessions/YYYY-MM-DD.md` |
 
 ---
 
 ## Related commands
 
+- [`/meeting`](meeting.md) — planned meetings with agenda, attendees, and action-item-to-task conversion
 - [`/write-report`](write-report.md) — generate a more formal report from project progress
 - [`/phase`](phase.md) — check what phase the discussion was about

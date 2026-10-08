@@ -1,6 +1,7 @@
 ---
 name: phase-flowie
 description: Phase guidance for the neuroflow /flowie command. Covers how to read and use the flowie profile for personalization, write rules for ~/.neuroflow/flowie/, GitHub sync protocol, and profile-aware assistance across all phases.
+user-invocable: false
 ---
 
 # phase-flowie
@@ -40,6 +41,8 @@ Do not announce that you are reading the profile. Do not quote it back verbatim.
 
 If the profile does not exist or the project is not linked, proceed as normal — flowie is optional.
 
+With the neuroflow mod active and the project linked, a digest of the profile is already in the system prompt (its identity, contact and wellbeing sections left out, capped in length); read `profile.md` itself when a task needs more than the digest.
+
 ## Using the profile in other phases
 
 When assisting in any neuroflow phase, apply the profile as follows:
@@ -74,13 +77,13 @@ When assisting in any neuroflow phase, apply the profile as follows:
 
 ## 3-tier task model
 
-Tasks in neuroflow exist at three levels with identical kanban structure:
+Tasks in neuroflow exist at three levels with one file format and one board spec, both defined in `/tasks` (`commands/tasks.md`): `tasks/{column}/{slug}.md` with `status`, `owner`, `updated` and the other keys listed there.
 
 | Level | Location | Who sees it | When to use |
 |-------|----------|-------------|-------------|
 | `flowie` | `~/.neuroflow/flowie/tasks/` | Owner only | Personal todos, private research tasks |
 | `project` | `.neuroflow/tasks/` | All project collaborators | Sprint work, analysis steps, paper milestones |
-| `hive` | `{hive-repo}/tasks/` | Whole team | Shared deliverables, joint deadlines |
+| `hive` | `~/.neuroflow/hives/{org-repo}/tasks/` | Whole team | Shared deliverables, joint deadlines |
 
 When a user runs `/flowie --tasks`, default to `flowie` level. If they pass `--level project` or `--level hive`, read/write from the corresponding location. Show `[level: flowie|project|hive]` at the bottom of every board display.
 
@@ -94,18 +97,24 @@ These rules apply whenever the `/flowie` command or any other command writes to 
 2. **Always read before writing.** Load the current file content before computing the new version.
 3. **Do not truncate.** When updating a section, preserve all other sections exactly as they are.
 4. **Log every write.** Every file write to `~/.neuroflow/flowie/` must be followed by a session log entry.
-5. **Never write to flowie/ from a non-flowie command.** Other phase commands may read the profile, but only `/flowie` may write to `~/.neuroflow/flowie/`.
+5. **Only documented writers.** Only `/flowie` writes `profile.md`, `ideas.md`, `sync.json` and `projects/` (including the phase sync `/phase` triggers). Other commands write only their own documented flowie paths: `/tasks` and `/meeting` at `--level flowie` (`tasks/`, `meetings/`), `/notes` (`notes/`, and raw ideas to `ideas-inbox.md` via `--idea`), and wiki ingests through `neuroflow:wiki-protocol` (`wiki/`). Every other phase command may read the profile but never writes here.
+6. **No machine-local paths.** Never write absolute local paths (`C:/Users/…`, `/home/…`) into a flowie file — the repo syncs to every machine. Where each project lives on this machine is kept in `~/.neuroflow/local-projects.json`, outside the repo and never synced (written by `/flowie --link`).
 
 ## GitHub sync protocol
 
 The flowie profile is mirrored to a private GitHub repository. The sync protocol is:
 
-1. **Always pull before push.** Never push local changes without first checking for remote updates.
-2. **Show the diff before applying.** When a pull brings in changes, show what changed and ask for confirmation before applying.
+1. **Always pull before push.** `git -C ~/.neuroflow/flowie pull --rebase` before every push. If the rebase stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` at once — never leave the repo mid-rebase — and resolve it with the person (rule 3).
+2. **Show what a pull brought in.** `/flowie --sync` summarises incoming changes before pushing; nothing pulled is ever silently overwritten.
 3. **Handle merge conflicts explicitly.** If local and remote have diverged, show both versions side by side. Do not silently pick one. Ask the user to resolve each conflict.
-4. **Update `last_synced` only on success.** If the push fails (auth error, network issue), do not update the timestamp. Report the error clearly.
-5. **Never push to any repo other than the one in `sync.json`.** Confirm the repo URL before any push operation.
-6. **Respect `gh` CLI availability.** Use the following order for auth and fetch operations: (1) try `gh auth status` — if authenticated, use `gh` CLI; (2) if not, try `git clone --depth 1` directly (works when the user has standard git credentials configured); (3) only fall back to raw git + PAT if both of the above fail. Do not attempt additional `gh` diagnostics between steps 1 and 2.
+<!-- nf-rule: GIT-NO-SECRETS -->
+4. **Stage explicit paths only.** Commit exactly the files the operation changed (`git add -- {paths}`, `git commit -- {paths}`) — never `git add -A`, never `integrations.json` (it is listed in the repo's `.gitignore`).
+5. **Record failures, don't swallow them.** A push or pull that fails for network or auth reasons never blocks the person: say so once per session, keep the local commit (git is the outbox — the next successful push sends everything in order), and do not retry in a loop. The flowie auto-sync hook (below) appends each failure to `~/.neuroflow/flowie-sync.log`; `/flowie --sync` reports the log and empties it once a pull and a push have both succeeded.
+6. **Update `last_synced` only on success.** If the push fails (auth error, network issue), do not update the timestamp. Report the error clearly.
+7. **Never push to any repo other than the one in `sync.json`.** Confirm the repo URL before any push operation.
+8. **Respect `gh` CLI availability.** Use the following order for auth and fetch operations: (1) try `gh auth status` — if authenticated, use `gh` CLI; (2) if not, try `git clone --depth 1` directly (works when the user has standard git credentials configured); (3) if both fail, never ask for a token in chat: the person signs in with `gh auth login` (or stores a GitHub credential for git, e.g. with `git credential approve`) in their own terminal, then retry once. Do not attempt additional `gh` diagnostics between steps 1 and 2.
+
+**Flowie auto-sync hook.** The plugin ships a `PostToolUse` hook for Edit/Write on files under `~/.neuroflow/flowie/`. It commits that one file, pulls with rebase (aborting at once on a conflict), then pushes. It skips `integrations.json`, gitignored files and anything while a rebase or merge is in progress, and it never blocks: each failure becomes one line `{UTC timestamp} {what failed}: {path}` (e.g. `pull failed`, `push failed`, `skipped (rebase or merge in progress)`) in `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The hook is a convenience, not the protocol — commands still run their own Sync step (`/flowie` → Git operations pattern), so everything works with hooks disabled, and changes made through Bash (`git mv`, deletions) are committed only by that step.
 
 ## Privacy rules
 
@@ -116,7 +125,9 @@ The flowie profile is mirrored to a private GitHub repository. The sync protocol
 
 ## Wellbeing tracking
 
-The flowie repo contains a `wellbeing/` folder for daily self-assessments. The feature is opt-in (`collect: false` by default) and enabled either during `--init` or via `/flowie --assess`.
+The flowie repo contains a `wellbeing/` folder for daily self-assessments. The feature is opt-in (`collect: false` by default) and enabled either during `--init` or via `/flowie --assess`. Entries are pushed to the private flowie repo like every other flowie file; they are never shared with collaborators, the hive or any export.
+
+**Self-reported only.** Wellbeing data is what the person types in `--assess` — nothing else. Never infer mood, stress, energy or wellbeing from messages, typing, timing or work patterns; never write an inferred value to `wellbeing/` or anywhere else; never mention scores outside `/flowie --assess` unless the person asks. Passive issue monitoring (neuroflow-core) logs problems with the plugin's behavior — never an assessment of the person.
 
 **Structure:**
 - `wellbeing/config.json` — `collect` flag, metric definitions (anxiety/energy/happiness 1–10), `prompt_on_sync` flag
@@ -130,11 +141,13 @@ The flowie repo contains a `wellbeing/` folder for daily self-assessments. The f
 
 ## Notes sync
 
-After every `/notes` session, the command offers to copy the formatted note to `~/.neuroflow/flowie/notes/` (default: yes, controlled by `sync_to_flowie` in `.neuroflow/notes/config.json`). The existing auto-sync hook pushes to GitHub. The `notes/` folder in flowie acts as a cross-project note archive.
+After every `/notes` session, the command offers to copy the formatted note to `~/.neuroflow/flowie/notes/` (default: yes, controlled by `sync_to_flowie` in `.neuroflow/notes/config.json`). The flowie auto-sync hook commits and pushes it. The `notes/` folder in flowie acts as a cross-project note archive.
+
+`/notes --idea "…"` appends raw ideas to `~/.neuroflow/flowie/ideas-inbox.md` (one timestamped line each). The inbox is not curated: moving an idea into `ideas.md` follows write rule 1 (show the diff, wait for confirmation).
 
 ## Personal wiki
 
-The flowie repo also contains a `wiki/` folder — a Karpathy-style personal knowledge base maintained by the LLM. All wiki operations are handled by the `neuroflow:wiki` skill, which defines page formats, ingest/query/lint/add workflows, and neuroflow-specific integrations.
+The flowie repo also contains a `wiki/` folder — a Karpathy-style personal knowledge base maintained by the LLM. All wiki operations are handled by the `neuroflow:wiki-protocol` skill, which defines page formats, ingest/query/lint/add workflows, and neuroflow-specific integrations.
 
 **When to surface the wiki:** wiki ingest offers and ambient wiki lookups are handled automatically by `neuroflow-core`'s `## Wiki ambient behavior` rules — crystallization detection fires at the end of every command, and pre-query lookup runs silently on domain questions. Do not duplicate those prompts here. The flowie-level wiki is a target for any crystallization that matches the **flowie** routing preconditions (personal insight, cross-project method, insight spanning multiple projects).
 
@@ -154,7 +167,7 @@ The flowie repo also contains a `wiki/` folder — a Karpathy-style personal kno
     └── methods/   ← protocols, pipelines, analysis methods
 ```
 
-For full wiki behavior, always load `neuroflow:wiki` when handling `--wiki-*` modes.
+For full wiki behavior, always load `neuroflow:wiki-protocol` when handling `--wiki-*` modes.
 
 ## Slash command
 
@@ -163,5 +176,5 @@ When this skill is invoked directly (without `/flowie`), run the full `/flowie` 
 ## Relevant skills
 
 - `neuroflow:neuroflow-core` — read first; defines the command lifecycle and `.neuroflow/` write rules
-- `neuroflow:wiki` — full wiki behavior for all `--wiki-*` modes
+- `neuroflow:wiki-protocol` — full wiki behavior for all `--wiki-*` modes
 - `neuroflow:phase-output` — flowie directory is excluded from exports by default
