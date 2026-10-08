@@ -21,7 +21,8 @@
   --nf-hl-name: #C8C9CC;
   --nf-hl-function: #DADCE0;
   --nf-hl-special: #C9B7D8;
-  color-scheme: dark;
+  --nf-scheme: dark;
+  color-scheme: var(--nf-scheme);
 }
 @media (prefers-color-scheme: light) {
   :root {
@@ -42,11 +43,13 @@
     --nf-hl-name: #2E2E30;
     --nf-hl-function: #1F2A44;
     --nf-hl-special: #5B3F75;
-    color-scheme: light;
+    --nf-scheme: light;
   }
 }
 
+/* The theme's palette is "slate", which also sets color-scheme: dark on the body; the system setting wins here. */
 [data-md-color-scheme] {
+  color-scheme: var(--nf-scheme);
   --md-default-bg-color: var(--nf-bg);
   --md-default-bg-color--light: var(--nf-raise);
   --md-default-bg-color--lighter: var(--nf-field);
@@ -74,6 +77,8 @@
   --md-typeset-table-color: var(--nf-line);
   --md-typeset-table-color--light: var(--nf-raise);
   --md-code-bg-color: var(--nf-field);
+  --md-code-bg-color--light: var(--nf-raise);
+  --md-code-bg-color--lighter: var(--nf-field);
   --md-code-fg-color: var(--nf-fg);
   --md-code-hl-color: var(--nf-mark);
   --md-code-hl-color--light: var(--nf-mark);
@@ -222,7 +227,7 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 .md-typeset code { padding: .1em .35em; border-radius: 3px; font-size: .86em; color: var(--nf-fg); background: var(--nf-field); word-break: normal; }
 .md-typeset pre > code { padding: 1rem 1.2rem; border-radius: 6px; border: 1px solid var(--nf-line); font-size: .66rem; line-height: 1.7; }
 .md-typeset .highlight { margin: 1.2rem 0; }
-.md-clipboard { color: var(--nf-dim); }
+.md-clipboard, .md-code__button { color: var(--nf-dim); }
 .md-clipboard:hover, .md-clipboard:focus { color: var(--nf-fg); }
 .md-typeset kbd { font-family: var(--md-code-font-family); }
 .md-typeset mark { color: inherit; }
