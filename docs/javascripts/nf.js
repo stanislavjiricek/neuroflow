@@ -1,7 +1,8 @@
 // The documentation index: the search field filters the index as you type and lists matches from
 // the text of every page (MkDocs' search index). "/" focuses the field, Esc clears it, Enter opens
 // the first match. Each section of the index shows how many pages it holds, and the phases carry a
-// short note on what each one is for.
+// short note on what each one is for. On narrow screens the index is a drawer: its menu control
+// works from the keyboard (Enter or Space), "/" opens the drawer, and Esc closes it.
 (() => {
   const PHASE_NOTES = {
     ideation: 'question & literature',
@@ -36,6 +37,34 @@
   const hasAll = (text, words) => words.every((word) => text.includes(word));
 
   const start = () => {
+    // The drawer is the theme's #__drawer checkbox. Clicking it, as the theme itself does, fires the
+    // change event the theme listens to; the menu label becomes a button for the keyboard.
+    const drawer = document.getElementById('__drawer');
+    const menu = document.querySelector('.nf-menu');
+    const narrow = window.matchMedia('(max-width: 76.234375em)');
+    const drawerOpen = () => Boolean(drawer && drawer.checked && narrow.matches);
+    const setDrawer = (open) => {
+      if (drawer && drawer.checked !== open) drawer.click();
+    };
+    const closeDrawer = () => {
+      setDrawer(false);
+      if (menu) menu.focus();
+    };
+    if (drawer && menu) {
+      menu.setAttribute('role', 'button');
+      menu.tabIndex = 0;
+      const sync = () => menu.setAttribute('aria-expanded', String(drawer.checked));
+      sync();
+      drawer.addEventListener('change', sync);
+      menu.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        // The theme clicks a focused label on Enter too; stopping here toggles the drawer once.
+        event.preventDefault();
+        event.stopPropagation();
+        setDrawer(!drawer.checked);
+      });
+    }
+
     const input = document.querySelector('[data-nf-search]');
     const box = document.querySelector('[data-nf-results]');
     const nav = document.querySelector('.md-sidebar--primary .md-nav--primary');
@@ -182,19 +211,34 @@
     });
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
-        input.value = '';
-        update();
-        input.blur();
+        // Esc clears the field; in an open drawer a second Esc closes the drawer.
+        event.preventDefault();
+        if (input.value) {
+          input.value = '';
+          update();
+          if (!drawerOpen()) input.blur();
+        } else if (drawerOpen()) {
+          closeDrawer();
+        } else {
+          input.blur();
+        }
       } else if (event.key === 'Enter') {
         const first = box.querySelector('a') || pageLinks().find((link) => !link.closest('.nf-hidden'));
         if (first) window.location.href = first.href;
       }
     });
     document.addEventListener('keydown', (event) => {
-      if (event.key !== '/' || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === 'Escape') {
+        if (!event.defaultPrevented && drawerOpen()) closeDrawer();
+        return;
+      }
+      if (event.key !== '/') return;
       const target = event.target;
       if (target && target.closest && target.closest('input, textarea, select, [contenteditable]')) return;
       event.preventDefault();
+      // On a narrow screen the field lives in the drawer, so the drawer opens first.
+      if (narrow.matches) setDrawer(true);
       input.focus();
     });
   };

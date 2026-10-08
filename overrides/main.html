@@ -2,7 +2,9 @@
   The documentation layout: no top bar and no tabs. The left column opens with the brand (back to
   the landing page), a search field that filters the index and searches the text of every page,
   then the index itself; the right column is the page outline. On narrow screens a small button
-  opens the index. The header element stays, empty and hidden, because the theme's scripts measure it.
+  opens the index as a drawer; nf.js makes that label a keyboard button (role, tabindex,
+  aria-expanded, Enter and Space). The header element stays, empty and hidden, because the theme's
+  scripts measure it.
 -#}
 {% extends "base.html" %}
 
@@ -15,7 +17,7 @@
 
 {% block header %}
   <header class="md-header nf-header" data-md-component="header" hidden></header>
-  <label class="nf-menu" for="__drawer" aria-label="Open the documentation index"><span></span><span></span></label>
+  <label class="nf-menu" for="__drawer" aria-controls="nf-index" aria-label="Documentation index"><span></span><span></span></label>
 {% endblock %}
 
 {% block tabs %}{% endblock %}
@@ -25,7 +27,7 @@
     {% if page.meta and page.meta.hide %}
       {% set hidden = "hidden" if "navigation" in page.meta.hide %}
     {% endif %}
-    <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" {{ hidden }}>
+    <div class="md-sidebar md-sidebar--primary" id="nf-index" data-md-component="sidebar" data-md-type="navigation" {{ hidden }}>
       <div class="md-sidebar__scrollwrap">
         <div class="md-sidebar__inner">
           <div class="nf-side">
