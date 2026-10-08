@@ -111,12 +111,12 @@ The same plan-then-apply flow for the folders outside the project: your flowie (
    ```bash
    git -C ~/.neuroflow/flowie status --porcelain --untracked-files=all
    ```
-   (the same with `~/.neuroflow/hives/{org-repo}` for a hive). When it lists anything other than `integrations.json` (never committed; the plan below keeps it out of git):
-   - flowie — the person's own private repository: show the list and ask with `AskUserQuestion`:
+   (the same with `~/.neuroflow/hives/{org-repo}` for a hive). When it lists anything, add `--autostash` to that level's pull below (`git -C ~/.neuroflow/flowie pull --rebase --autostash`): git sets the uncommitted changes aside for the pull and puts them back after it. Before that pull:
+   - flowie — the person's own private repository: show the list and ask with `AskUserQuestion` (nothing to ask when `integrations.json` is all it lists — it is never committed):
      <!-- nf-rule: GIT-NO-SECRETS -->
-     - **Sync these first** (recommended): commit exactly those paths, by path, as `/flowie --sync` does (`/flowie` → **Git operations pattern**): `git -C ~/.neuroflow/flowie add -- "{path}" …`, then `git -C ~/.neuroflow/flowie commit -m "sync: before migrate" -- "{path}" …` — never `git add -A`, never `integrations.json`. Then pull as below, and push (`git -C ~/.neuroflow/flowie push`) once the pull went through.
-     - **Leave them**: pull with `--autostash` added (`git -C ~/.neuroflow/flowie pull --rebase --autostash`), which sets them aside for the pull and puts them back after it. They stay uncommitted and out of the migration commit (5.3 asks first when a planned change would take one along).
-   - hive — the team's shared repository, and the changes may be someone's unfinished work: never commit them unasked. Show them, pull with `--autostash` added (`git -C ~/.neuroflow/hives/{org-repo} pull --rebase --autostash`), leave them as they are, and say so.
+     - **Sync these first** (recommended): commit exactly those paths, by path, as `/flowie --sync` does (`/flowie` → **Git operations pattern**): `git -C ~/.neuroflow/flowie add -- "{path}" …`, then `git -C ~/.neuroflow/flowie commit -m "sync: before migrate" -- "{path}" …` — never `git add -A`, never `integrations.json`. Push the commit (`git -C ~/.neuroflow/flowie push`) once the pull below went through.
+     - **Leave them**: they stay uncommitted and out of the migration commit (5.3 asks first when a planned change would take one along).
+   - hive — the team's shared repository, and the changes may be someone's unfinished work: never commit them unasked. Show them, leave them as they are, and say so.
    - flowie: `git -C ~/.neuroflow/flowie pull --rebase`. If it stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort`, tell the person, point at `/flowie --sync`, and leave the flowie out of this run.
    - each hive clone: `git -C ~/.neuroflow/hives/{org-repo} pull --rebase`; on a conflict, `git -C ~/.neuroflow/hives/{org-repo} rebase --abort`, tell the person, and leave that hive out (`neuroflow:phase-hive` → **`--sync`**).
    - With `--autostash`, the `rebase --abort` of a conflict puts the set-aside changes back too. If instead git says that applying the autostash resulted in conflicts, the pull went through but could not put them back: the files `git status` marks `UU` now hold conflict markers, and the stash keeps the person's uncommitted version (`git stash list` shows `autostash`). Show those files, leave that level out, and resolve them with the person before anything else is written there.
