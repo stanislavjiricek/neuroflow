@@ -85,7 +85,7 @@ export const commandDigest = (
   if (snap.problems.length > 0) lines.push(`- config problems: ${snap.problems.join('; ')}`)
   // The version notice the prose says once per session; /migrate itself is what it points at.
   const behind = command === 'migrate' ? null : versionNotice(snap)
-  if (behind !== null) lines.push(`- version notice, to tell the person once in one line before the command's own work: "${behind}."`)
+  if (behind !== null) lines.push(`- version notice, to tell the person once, verbatim as one sentence, before the command's own work: "${behind}."`)
   if (phaseFlow !== null && phase !== 'utility') {
     const body = phaseFlow
       .split(/\r?\n/)
