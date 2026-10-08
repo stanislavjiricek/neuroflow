@@ -13,6 +13,7 @@ reads:
   - ~/.neuroflow/hives/{org-repo}/tasks/
   - ~/.neuroflow/local-projects.json
   - ~/.neuroflow/flowie/projects/projects.json
+  - ~/.neuroflow/hives/{org-repo}/projects/projects.json
   - ~/.neuroflow/user.yaml
   - .neuroflow/{phase}/autoresearch-loops.md
 writes: []
@@ -30,7 +31,8 @@ Shows the project at a glance. It changes nothing.
 **With the neuroflow mod active**, this command never reaches the model: the mod opens the dashboard as a pane drawn
 by code (tabs `p` phase · `d` deadlines · `i` integrity · `t` tasks · `l` loop, `s` to switch phase, `m` to run
 `/neuroflow:migrate` when the project is behind the installed neuroflow, `c` to close) and
-keeps it current as files change. `/neuroflow:dashboard loop` opens it on a tab. The tasks tab shows the Tasks section
+keeps it current as files change. While a flowie sync of the mod's waits (a wellbeing check-in on the band), `m` puts
+`/neuroflow:migrate` in the prompt instead: sent with Enter, it waits for the sync, so its pull finds the flowie clean. `/neuroflow:dashboard loop` opens it on a tab. The tasks tab shows the Tasks section
 below; `b` opens the boards (`/neuroflow:tasks`) and `r` reads them again. On the integrity tab the person can
 freeze the preregistration (`f`, after an explicit yes), re-check its hashes (`v`) or unfreeze it with a reason (`u`) —
 the same `freeze.py` calls as `/preregistration` → Freeze, recorded as the person's action. The rest of this file is

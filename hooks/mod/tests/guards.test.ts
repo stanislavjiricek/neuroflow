@@ -33,7 +33,6 @@ const snap = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   prereg: { status: 'frozen', setBy: 'person', setAt: null, frozenAt: '2026-10-01', files: { '.neuroflow/preregistration/prereg-osf.md': 'abc' }, plannedN: 48 },
   deadlines: [],
   phasesVisited: [],
-  taskCounts: null,
   loops: [],
   meetings: [],
   wellbeingDue: false,

@@ -9,6 +9,7 @@ reads:
   - ~/.neuroflow/hives/{org-repo}/tasks/
   - ~/.neuroflow/local-projects.json        # which flowie project this repo is (this project's tasks first)
   - ~/.neuroflow/flowie/projects/projects.json
+  - ~/.neuroflow/hives/{org-repo}/projects/projects.json   # which lab project this repo is in that hive
 writes:
   - .neuroflow/tasks/
   - ~/.neuroflow/flowie/tasks/
@@ -35,7 +36,7 @@ Follow the `neuroflow:neuroflow-core` lifecycle (open with its version notice wh
 
 Select with `--level project|flowie|hive`. At hive level, `--hive {org-repo}` names the hive — its folder under `~/.neuroflow/hives/` — when the person joined several; without it, ask which (a single joined hive needs no flag). If the requested level's storage doesn't exist (no flowie linked, no hive joined), say so and point at `/flowie` or `/hive --init` — never scaffold another level's storage from here.
 
-**This project** at flowie and hive level is the flowie project this repo is linked to: the `name` of this folder's entry in `~/.neuroflow/local-projects.json`, else the `projects/projects.json` entry whose `repos` list this folder or its `origin` remote URL. Its tasks are those whose `project:` is that name. Without a link, no task is this project's — never guess one from names.
+**This project** is named per level, by the registry whose names that level's `project:` carries. At flowie level it is the flowie project this repo is linked to: the `name` of this folder's entry in `~/.neuroflow/local-projects.json`, else the entry of the flowie's `projects/projects.json` whose `repos` list this folder or its `origin` remote URL. At hive level, where `project:` names the lab project (`neuroflow:phase-hive` → `--tasks`), it is the entry of that hive's own `projects/projects.json` whose `repos` list this folder or its `origin` remote URL. A level's tasks of this project are those whose `project:` is its name there. Without a link at a level, none of that level's tasks is this project's — never guess one from names, nor carry a name from one level to another.
 
 ## Task file format
 

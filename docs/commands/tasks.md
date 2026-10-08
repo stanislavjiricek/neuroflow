@@ -20,7 +20,7 @@ title: /tasks
 
 Select with `--level project|flowie|hive`; when you joined several hives, `--hive {org-repo}` names one (its folder under `~/.neuroflow/hives/`), otherwise `/tasks` asks which. Flowie and hive levels pull before reading. Flowie writes are pushed by the flowie auto-sync hook; hive pushes happen only after you confirm; project-level changes stay in your working tree until you commit them.
 
-At flowie and hive level, the tasks of **this project** — the flowie project this repo is linked to (`/flowie --link`, or a `projects.json` entry that lists this repo) — come first in each column, marked `◆`.
+At flowie and hive level, the tasks of **this project** come first in each column, marked `◆`. At flowie level that is the flowie project this repo is linked to (`/flowie --link`, or an entry of your flowie's `projects.json` that lists this repo); at hive level, the lab project in that hive's own `projects/projects.json` that lists this repo — a hive task's `project:` names the lab project. Without such a link, nothing is marked: names are never guessed.
 
 ---
 
@@ -42,7 +42,7 @@ Every board display is a rendered ASCII Kanban — never a flat list, except `--
 
 ## With the neuroflow mod
 
-A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
+A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
 
 ---
 

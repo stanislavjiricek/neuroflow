@@ -19,11 +19,13 @@ terminal, or inline above the prompt otherwise. It stays current as files change
 | `p` | **Phase** — the phase map (`●` current, `✔` visited, `○` recommended) and the next step; `s` opens the phase picker |
 | `d` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
 | `i` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
-| `t` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie with this project's share, each hive), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards, `r` reads them again |
+| `t` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards, `r` reads them again |
 | `l` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions; `r` refreshes |
 
 `/neuroflow:dashboard loop` opens it on a tab. The one-line band above the prompt opens it with `d`. When the project is on an
-older neuroflow than the one installed, an `Update` line sits under the title and `m` runs [`/neuroflow:migrate`](migrate.md).
+older neuroflow than the one installed, an `Update` line sits under the title and `m` runs [`/neuroflow:migrate`](migrate.md) —
+or, while a wellbeing check-in still waits to sync to your flowie, puts it in the prompt: press Enter and the sync runs
+first, so the migration finds your flowie clean.
 
 Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader.
 
@@ -39,7 +41,7 @@ with the mod, the band above the prompt and the dashboard pane say the same.
 
 | Direction | Files |
 |---|---|
-| Reads | `.neuroflow/project_config.md`, `.neuroflow/timeline.md`, `.neuroflow/ethics/status.md`, `.neuroflow/preregistration/status.md`, `.neuroflow/tasks/`, `~/.neuroflow/flowie/tasks/` and each `~/.neuroflow/hives/{org-repo}/tasks/` (the local copies, never pulled), `~/.neuroflow/local-projects.json` and `~/.neuroflow/flowie/projects/projects.json` (which flowie project this is), `~/.neuroflow/user.yaml` (hive order), `.neuroflow/{phase}/autoresearch-loops.md` and the loops' `results.md` / `report.md` |
+| Reads | `.neuroflow/project_config.md`, `.neuroflow/timeline.md`, `.neuroflow/ethics/status.md`, `.neuroflow/preregistration/status.md`, `.neuroflow/tasks/`, `~/.neuroflow/flowie/tasks/` and each `~/.neuroflow/hives/{org-repo}/tasks/` (the local copies, never pulled), `~/.neuroflow/local-projects.json` and `~/.neuroflow/flowie/projects/projects.json` (which flowie project this is), each hive's `projects/projects.json` (which lab project it is there), `~/.neuroflow/user.yaml` (hive order), `.neuroflow/{phase}/autoresearch-loops.md` and the loops' `results.md` / `report.md` |
 | Writes | nothing, unless you freeze or unfreeze the preregistration from the integrity tab: then `freeze.py` writes `.neuroflow/preregistration/status.md`, the banners and `deviations.md`, and the mod adds a session line and a reasoning entry |
 
 ## Related

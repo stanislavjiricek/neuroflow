@@ -51,7 +51,7 @@ Current: data-analyze — analysis
 <div class="nf-term"><span class="warn">⚠ Abstract deadline — tomorrow</span>  <span class="dim">+1 more</span>  <span class="nf-key">dashboard <i>d</i></span><span class="nf-key">hide today <i>x</i></span>
 <span class="nf-rule"></span><span class="b">&gt;</span> <span class="nf-caret"></span>
 <span class="nf-rule"></span><span class="dim">neuroflow: ⚠ Abstract deadline tomorrow</span><span class="nf-right dim">neuroflow · data-analyze · critic</span></div>
-<figcaption>The band above the prompt names the most urgent item — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two) — then <code>dashboard d</code> and <code>hide today x</code>. An item's own keys, such as a meeting's <code>prepare p</code> and <code>notes o</code>, appear when it is first; the version notice's <code>migrate m</code> appears whenever the notice is shown. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
+<figcaption>The band above the prompt names the most urgent item — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two) — then <code>dashboard d</code> and <code>hide today x</code>. An item's own keys, such as a meeting's <code>prepare p</code> and <code>notes o</code>, appear when it is first; the version notice's <code>migrate m</code> appears whenever the notice is shown. While a check-in still waits to sync to your flowie, a key puts its command in the prompt instead: press Enter, and the sync runs first. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
 </figure>
 
 <figure class="nf-shot">
@@ -89,10 +89,11 @@ Current: data-analyze — analysis
 | Autoresearch driver | `/neuroflow:autoresearch drive <name>`: one iteration per turn, caps checked between turns, a stop key | `runtime: on` |
 
 The wellbeing check-in on the band and `idea: …` write into your private [flowie](flowie.md). The mod commits those
-files by path, pulls and pushes them — for an idea right away, for the check-in when the next turn ends or the next
-session starts, never from the band's own field — and writes each attempt and its outcome as a line of
-`~/.neuroflow/flowie-sync.log`. A sync that does not go through stays on the band, pointing at
-`/neuroflow:flowie --sync`; it is tried again when something new is saved or a session starts, never in a loop.
+files by path, pulls and pushes them — for an idea right away, for the check-in before your next neuroflow command
+(which pulls your flowie first) or when the next turn ends, never from the band's own field and never while a session
+starts — and writes each attempt and its outcome as a line of `~/.neuroflow/flowie-sync.log`. A sync that does not go
+through stays on the band, pointing at `/neuroflow:flowie --sync`; it is tried again when something new is saved or in
+the next session, never in a loop.
 
 ---
 

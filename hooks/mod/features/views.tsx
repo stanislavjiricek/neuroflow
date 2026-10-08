@@ -79,10 +79,24 @@ export const flowieSyncItem = (sync: NfFlowieSync | null): BandItem | null => {
   const actions = [{ key: 'nf-flowie-sync', label: 'sync', hotkey: 's', command: 'neuroflow:flowie', args: '--sync' }]
   if (sync.failure !== null) return { level: 'warn', glyph: '!', text: `flowie not synced: ${sync.failure} — /neuroflow:flowie --sync`, actions }
   if (sync.pending.length > 0) {
-    return { level: 'warn', glyph: '↻', text: `flowie sync pending (${sync.pending.join(', ')}) — it runs when a turn ends, or /neuroflow:flowie --sync`, actions }
+    return {
+      level: 'warn',
+      glyph: '↻',
+      text: `flowie sync pending (${sync.pending.join(', ')}) — it runs before your next neuroflow command or when a turn ends, or /neuroflow:flowie --sync`,
+      actions,
+    }
   }
   return null
 }
+
+/**
+ * Whether a key's command goes into the prompt instead of running: while a flowie sync of the mod's waits (queued,
+ * not held). A neuroflow command pulls the flowie first, which a check-in's uncommitted files make fail; and a
+ * command a key runs ($.command.run) does not reach the mod's own hooks — so in the engine's test kit, and the types
+ * say only "every hook but the calling one" — so the hook that syncs first (capture.ts) may never see it. Sent with
+ * Enter, the command passes that hook.
+ */
+export const keyFillsPrompt = (sync: NfFlowieSync | null): boolean => sync !== null && sync.pending.length > 0 && !sync.isHeld
 
 /** What the band may show, most urgent first. Quiet mode keeps alerts and warnings only. */
 export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync | null = null): BandItem[] => {
@@ -225,10 +239,13 @@ const label = (id: string | null): string => PHASES.find(phase => phase.id === i
 export const taskLines = (view: NfTaskView | null, max = 5): Line[] => {
   if (view === null) return [{ text: 'Reading the task boards…', dim: true }]
   const cards = topCards(view, max)
-  const marked = cards.some(({ level, card }) => card.isMine && level.kind !== 'project')
+  // This project's name at each level its marked cards come from (the flowie's and a hive's may differ).
+  const names = [...new Set(cards.filter(({ level, card }) => card.isMine && level.kind !== 'project').map(({ level }) => level.project))].filter(
+    (name): name is string => name !== null,
+  )
   const overdue = cards.some(({ card }) => card.overdue)
   const key = [
-    ...(marked && view.linkedProject !== null ? [`${MINE} this project (${view.linkedProject})`] : []),
+    ...(names.length > 0 ? [`${MINE} this project (${names.join(', ')})`] : []),
     ...(overdue ? ['⚠ overdue'] : []),
     '/neuroflow:tasks opens the boards (v switches level)',
   ]
@@ -438,6 +455,25 @@ const hideBandToday = async ($: EngineInterface): Promise<void> => {
   await update($, bandHiddenAtom, () => true)
 }
 
+/**
+ * A key's neuroflow command (the band's, the dashboard's migrate): run at once — or, while a flowie sync of the
+ * mod's waits, put in the prompt for the person to send, so the sync runs before it (keyFillsPrompt). A prompt box
+ * that does not take the text runs the command as before.
+ */
+const runKey = async ($: EngineInterface, command: string, args: string): Promise<void> => {
+  if (keyFillsPrompt(await read($, flowieSyncAtom))) {
+    const filled = await $.prompt.fill({ text: `/${command}${args === '' ? '' : ` ${args}`}` }).then(
+      result => result.isFilled,
+      () => false,
+    )
+    if (filled) {
+      $.ui.toast('neuroflow: press Enter to run it — your flowie sync goes first')
+      return
+    }
+  }
+  await $.command.run({ command, args })
+}
+
 /** Three whole numbers 1–10 and optional notes after them ("3 6 7 slept badly"), or null. */
 export const parseWellbeing = (value: string): { anxiety: number; energy: number; happiness: number; notes: string } | null => {
   const match = /^\s*(\d{1,2})[\s,/]+(\d{1,2})[\s,/]+(\d{1,2})\s*(.*)$/s.exec(value)
@@ -451,12 +487,13 @@ export const parseWellbeing = (value: string): { anxiety: number; energy: number
  * Writes today's self-reported entry exactly as /flowie --assess does, queues its sync to the private flowie
  * repository (the mod's own cache) and returns. Scores go only into the file: never into state, toasts or context.
  *
- * It runs git nowhere: this is the band Input's closure, whose handle the engine keeps only for the lifetime of
- * the drawing, and the band redraws without the field as soon as the entry exists. A closure that ran the sync
- * here could stop between two git calls and leave the entry written, no git run, no log line and the flowie dirty
- * (a dirty flowie also makes /neuroflow:migrate skip it). So the sync is queued in $.store before the entry is
- * written — before anything can redraw the band — and runs from a hook dispatch: the next turn's end or the next
- * session's start (capture.ts, lib/flowiesync.ts). A closure that stops anywhere after that loses nothing; one that
+ * It runs git nowhere. This is the band Input's closure; when an earlier version ran the sync here, the entry was
+ * written once but no git ran and no log line came, which left the flowie dirty (and a dirty flowie makes
+ * /neuroflow:migrate leave it out). Why is a hypothesis, not a fact the engine types state: a synchronous throw
+ * of $.process.run, or the closure's later $ calls stopping or failing after the band redrew without the field
+ * (the host keeps the Input's handle "for the lifetime of the drawing"). So the sync is queued in $.store before
+ * the entry is written and runs from a hook dispatch: before the next neuroflow command's turn, or at a turn's
+ * end (capture.ts, lib/flowiesync.ts). A closure that stops anywhere after the queueing loses nothing; one that
  * goes on queues again once both files are written, in case a sync ran in between.
  */
 const saveWellbeing = async ($: EngineInterface, value: string): Promise<void> => {
@@ -479,7 +516,7 @@ const saveWellbeing = async ($: EngineInterface, value: string): Promise<void> =
     step = 'write'
     await io.write(`${flowie}/wellbeing/${today}.json`, `${JSON.stringify({ date: today, ...entry }, null, 2)}\n`)
     await appendLine(io, `${flowie}/wellbeing/.flow`, `| ${today}.json | wellbeing entry |`)
-    $.ui.toast(`neuroflow: wellbeing logged for ${today} — it syncs to your flowie when a turn ends`)
+    $.ui.toast(`neuroflow: wellbeing logged for ${today} — it syncs to your flowie before your next neuroflow command or when a turn ends`)
     // The band may redraw without the field from here on; the sync queued above already covers the entry.
     step = 'show'
     const queue = enqueue(asQueue(await $.store.get(SYNC_QUEUE)), { ...sync, at: await io.now() })
@@ -662,7 +699,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const board = level.board
     const pick = await read($, boardPickAtom)
     const width = Math.max(14, Math.floor((e.props.bodyColumns - 2) / Math.max(1, board.columns.length)))
-    const marked = level.kind !== 'project' && level.mine > 0 && view.linkedProject !== null
+    const marked = level.kind !== 'project' && level.mine > 0 && level.project !== null
     return (
       <Box flexDirection="column" gap={1}>
         <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
@@ -714,7 +751,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           </Box>
         ) : null}
         <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
-          <Text dimColor>{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${view.linkedProject} (this project)` : ''}`}</Text>
+          <Text dimColor>{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
           <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($)} />
           <Button key="nf-board-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: BOARD })} />
         </Box>
@@ -820,7 +857,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         ))}
         {more > 0 ? <Text dimColor>+{more} more</Text> : null}
         {actions.map(action => (
-          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => $.command.run({ command: action.command, args: action.args }).then(() => undefined)} />
+          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => runKey($, action.command, action.args)} />
         ))}
         <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($)} />
         <Button key="nf-band-hide" label="hide today" hotkey="x" plain onPress={() => hideBandToday($)} />
@@ -873,9 +910,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           ) : null}
           {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-verify" label="verify" hotkey="v" onPress={() => verifyFromDashboard($)} /> : null}
           {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey="u" onPress={() => unfreezeFromDashboard($)} /> : null}
-          {behind !== null ? (
-            <Button key="nf-dash-migrate" label="migrate" hotkey="m" onPress={() => $.command.run({ command: 'neuroflow:migrate', args: '' }).then(() => undefined)} />
-          ) : null}
+          {behind !== null ? <Button key="nf-dash-migrate" label="migrate" hotkey="m" onPress={() => runKey($, 'neuroflow:migrate', '')} /> : null}
           <Button key="nf-dash-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: DASHBOARD })} />
         </Box>
       </Box>

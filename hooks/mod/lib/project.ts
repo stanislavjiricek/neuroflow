@@ -92,8 +92,6 @@ export const parseLoopRegistry = (text: string, phase: string): NfLoop[] => {
   return out
 }
 
-const TASK_COLUMNS = ['inbox', 'ready', 'active', 'review', 'meeting', 'done', 'archive']
-
 /** A meeting file's facts (phase-meeting → file format), or null when it is not a dated meeting. */
 export const parseMeeting = (text: string, slug: string, level: NfMeeting['level'], nowMs: number): NfMeeting | null => {
   const { block, body } = splitFrontmatter(text)
@@ -163,14 +161,6 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
   const nfDir = join(root, '.neuroflow')
   const entries = await io.list(nfDir)
   const phasesVisited = entries.filter(entry => entry.isDir).map(entry => entry.name)
-  let taskCounts: Record<string, number> | null = null
-  if (phasesVisited.includes('tasks')) {
-    taskCounts = {}
-    for (const column of TASK_COLUMNS) {
-      const files = await io.list(join(nfDir, 'tasks', column))
-      taskCounts[column] = files.filter(file => !file.isDir && file.name.endsWith('.md')).length
-    }
-  }
   const loops: NfLoop[] = []
   for (const phase of phasesVisited) {
     const registry = await io.read(join(nfDir, phase, 'autoresearch-loops.md'))
@@ -222,7 +212,6 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     prereg,
     deadlines,
     phasesVisited,
-    taskCounts,
     loops,
     meetings,
     wellbeingDue,

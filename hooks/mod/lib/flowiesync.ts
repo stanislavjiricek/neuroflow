@@ -1,11 +1,14 @@
 // The mod's own flowie syncs (charter: mod-run git only in the mod's own caches).
 //
-// A UI closure never runs git. The wellbeing band's Input closure lives only as long as the drawing that holds
-// it (the engine keeps an Input's handle "for the lifetime of the drawing"), and the band redraws without the
-// field as soon as today's entry exists; so the closure queues the sync, writes the entry and returns. The queue
-// lives in $.store, so a sync a session could not run is not lost, and it is flushed from hook dispatches, which
-// run to their end: the end of a main-loop turn, the session's start, and the zero-turn idea capture right after
-// it queued its own. Every attempt and its outcome is one line of ~/.neuroflow/flowie-sync.log.
+// A UI closure never runs git. Why the band's wellbeing closure once wrote its entry and ran no git is not known
+// for sure, and the engine types narrow it to hypotheses only: $.process.run threw synchronously, which the
+// .catch chained on its promise never sees; or the closure's later $ calls stopped or failed once the band redrew
+// without the field (the host keeps an Input's handle "for the lifetime of the drawing" — whether a closure that
+// is running outlives it, the types do not say). The design holds whichever is true: a closure queues the sync,
+// writes the file and returns. The queue lives in $.store, so a sync a session could not run is not lost, and it
+// is flushed from hook dispatches: before a neuroflow command's turn, when a main-loop turn ends, and in the
+// zero-turn idea capture right after it queued its own. Every attempt and its outcome is one line of
+// ~/.neuroflow/flowie-sync.log; a flush that finds nothing to sync writes none.
 import type { NfFlowieSync, NfFlowieSyncEntry } from '../../../types'
 import type { NfIo, NfRun } from './io'
 import { appendLine } from './memory'
@@ -36,11 +39,14 @@ export const afterFlush = (current: readonly NfFlowieSyncEntry[], done: readonly
 
 /**
  * `synced`: drop the entries. `failed`: keep them and hold — no new attempt until something new is queued or the
- * next session starts (phase-flowie: no retry loop). `skipped`: nothing to sync (the files are gone): drop them.
+ * next session (phase-flowie: no retry loop). `skipped`: nothing to sync (the files are gone, or the flowie is no
+ * repository any more): drop them, log nothing — the log's lines are attempts, and every one but `synced` is a
+ * failure /flowie and /doctor report.
  */
 export type FlushOutcome = 'synced' | 'failed' | 'skipped'
 
-export type FlushResult = { outcome: FlushOutcome; detail: string; line: string }
+/** `line` is what went into flowie-sync.log; null when nothing did (`skipped`). */
+export type FlushResult = { outcome: FlushOutcome; detail: string; line: string | null }
 
 /** The band's state after a flush (or after queueing, with `result` null). */
 export const syncState = (queue: readonly NfFlowieSyncEntry[], result: FlushResult | null): NfFlowieSync => ({
@@ -49,7 +55,18 @@ export const syncState = (queue: readonly NfFlowieSyncEntry[], result: FlushResu
   isHeld: result?.outcome === 'failed',
 })
 
-const firstLine = (run: NfRun): string => (`${run.stderr}\n${run.stdout}`.trim().split(/\r?\n/)[0] ?? '').trim().slice(0, 160)
+/**
+ * Why a git run failed, in git's words: the first error, fatal, CONFLICT or rejected line — not the progress lines
+ * a pull or push prints first (`From …`, `To …`) — else its first line.
+ */
+export const gitReason = (run: NfRun): string => {
+  const lines = `${run.stderr}\n${run.stdout}`
+    .split(/\r?\n/)
+    .map(line => line.trim().replace(/\s+/g, ' '))
+    .filter(line => line !== '')
+  const reason = lines.find(line => /^(error|fatal):|CONFLICT|\[rejected\]|Updates were rejected/i.test(line)) ?? lines[0] ?? ''
+  return reason.slice(0, 160)
+}
 
 /** ISO time to the second, as the auto-sync hook writes it. */
 const stamp = (ms: number): string => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z')
@@ -73,21 +90,22 @@ const git = async (io: NfIo, flowie: string, args: readonly string[], timeoutMs 
  * Commits the queued files by path, pulls with rebase and pushes, as the flowie Sync step does (commands/flowie.md →
  * Git operations pattern), and logs the attempt: `{time} synced: {paths} (mod)`, or what stopped it. Never throws.
  * Not run (failed, kept) when the repository uses git hooks or LFS — $.process.run runs git with repo hooks off — or
- * while a rebase or merge is in progress.
+ * while a rebase or merge is in progress. Nothing to sync (no repository, none of the files) is no attempt: no line.
  */
 export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlowieSyncEntry[]): Promise<FlushResult> => {
   const flowie = flowieOf(home)
   // What the log line names: the queued paths, then the ones actually committed once that is known.
   let paths = [...new Set(queue.flatMap(entry => entry.paths))]
-  /** `what` heads the log line (the auto-sync hook's words); `why` is git's first line; `detail` what the band says. */
+  /** `what` heads the log line (the auto-sync hook's words); `why` is git's reason; `detail` what the band says. */
   const finish = async (outcome: FlushOutcome, what: string, why = '', detail = why === '' ? what : `${what} — ${why}`): Promise<FlushResult> => {
     const line = `${stamp(await io.now())} ${what}: ${paths.join(' ')} (mod)${why === '' ? '' : ` — ${why}`}`
     await appendLine(io, `${home}/.neuroflow/flowie-sync.log`, line)
     return { outcome, detail, line }
   }
+  const nothing = (detail: string): FlushResult => ({ outcome: 'skipped', detail, line: null })
   const inMiddle = async (): Promise<boolean> =>
     (await io.exists(`${flowie}/.git/rebase-merge`)) || (await io.exists(`${flowie}/.git/rebase-apply`)) || (await io.exists(`${flowie}/.git/MERGE_HEAD`))
-  if (!(await io.exists(`${flowie}/.git`))) return finish('skipped', 'skipped (no flowie repository)', '', 'no flowie repository here')
+  if (!(await io.exists(`${flowie}/.git`))) return nothing('no flowie repository here')
   if (await inMiddle()) return finish('failed', 'skipped (rebase or merge in progress)', '', 'a rebase or merge is in progress in your flowie')
   const hooksPath = (await git(io, flowie, ['config', '--get', 'core.hooksPath'], 10_000)).stdout.trim()
   const hooks = (await io.list(`${flowie}/.git/hooks`)).filter(entry => !entry.name.endsWith('.sample'))
@@ -103,20 +121,20 @@ export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlow
     if (present.length === 0) continue
     committed.push(...present.filter(path => !committed.includes(path)))
     const add = await git(io, flowie, ['add', '--', ...present], 15_000)
-    if (add.exitCode !== 0) return finish('failed', 'commit failed', firstLine(add))
+    if (add.exitCode !== 0) return finish('failed', 'commit failed', gitReason(add))
     const commit = await git(io, flowie, ['commit', '-m', entry.message, '--', ...present], 15_000)
-    if (commit.exitCode !== 0 && !NOTHING.test(`${commit.stdout}\n${commit.stderr}`)) return finish('failed', 'commit failed', firstLine(commit))
+    if (commit.exitCode !== 0 && !NOTHING.test(`${commit.stdout}\n${commit.stderr}`)) return finish('failed', 'commit failed', gitReason(commit))
   }
-  if (committed.length === 0) return finish('skipped', 'skipped (no queued file exists)', '', 'the files it queued are gone')
+  if (committed.length === 0) return nothing('the files it queued are gone')
   paths = committed
   const pull = await git(io, flowie, ['pull', '--rebase'])
   if (pull.exitCode !== 0) {
     // Never leave a half-finished rebase (commands/flowie.md → Git operations pattern).
     if (await inMiddle()) await git(io, flowie, ['rebase', '--abort'], 15_000)
-    return finish('failed', 'pull failed', firstLine(pull))
+    return finish('failed', 'pull failed', gitReason(pull))
   }
   const push = await git(io, flowie, ['push'])
-  if (push.exitCode !== 0) return finish('failed', 'push failed', firstLine(push))
+  if (push.exitCode !== 0) return finish('failed', 'push failed', gitReason(push))
   return finish('synced', 'synced')
 }
 

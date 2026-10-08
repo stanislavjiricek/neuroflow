@@ -2,7 +2,9 @@ import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import {
+  DEFAULT_COLUMNS,
   hiveFolderOf,
+  legacyColumn,
   levelArgs,
   levelSummary,
   linkedProject,
@@ -43,7 +45,13 @@ const FILES: Record<string, string> = {
       { id: 'Oddball EEG', repos: [{ url: 'https://github.com/Example-Lab/oddball-eeg', description: 'analysis' }] },
     ],
   }),
-  [`${HOME}/.neuroflow/hives/lab-team/tasks/meeting/agenda-item.md`]: task('Agenda item', 'project: Oddball EEG\nowner: jana\n'),
+  // A hive task's `project:` names the lab project of the hive's own registry, which lists this repo under its own
+  // id; the flowie's name for the project means nothing there.
+  [`${HOME}/.neuroflow/hives/lab-team/projects/projects.json`]: JSON.stringify({
+    projects: [{ id: 'oddball-lab', repos: [{ url: 'https://github.com/example-lab/oddball-eeg.git' }] }, { id: 'other-lab', repos: [] }],
+  }),
+  [`${HOME}/.neuroflow/hives/lab-team/tasks/meeting/agenda-item.md`]: task('Agenda item', 'project: oddball-lab\nowner: jana\n'),
+  [`${HOME}/.neuroflow/hives/lab-team/tasks/inbox/review-poster.md`]: task('Review poster', 'project: Oddball EEG\n'),
   [`${HOME}/.neuroflow/hives/another-team/tasks/inbox/.gitkeep`]: '',
   [`${HOME}/.neuroflow/hives/alpha-team/tasks/done/shipped.md`]: task('Shipped'),
   [`${HOME}/.neuroflow/hives/no-tasks/hive.md`]: '# a hive without a board\n',
@@ -53,10 +61,12 @@ const FILES: Record<string, string> = {
 const TODAY = '2026-10-07'
 
 describe('which levels and in which order', () => {
-  test('user.yaml lists hives as org/repo strings or as maps with a local folder', () => {
+  test('user.yaml lists hives as org/repo strings or as maps with a local folder (neuroflow-core → Personal layer)', () => {
     expect(userHives('hives: [example-lab/hive, "other-org/team-hive"]\n')).toEqual(['example-lab-hive', 'other-org-team-hive'])
     expect(userHives('name: x\nhives:\n  - example-lab/hive\n  - https://github.com/acme/brains.git\nother: 1\n')).toEqual(['example-lab-hive', 'acme-brains'])
     expect(userHives('hives:\n- repo: example-lab/hive\n  local: C:\\Users\\me\\.neuroflow\\hives\\lab-team\n- repo: acme/brains\n')).toEqual(['lab-team', 'acme-brains'])
+    // Keys the contract does not define are not read.
+    expect(userHives('hives:\n  - url: https://github.com/acme/brains\n  - name: lab\n    path: /somewhere/else\n')).toEqual([])
     expect(userHives('hives: []\n')).toEqual([])
     expect(userHives('flowie_handle: me\n')).toEqual([])
     expect(userHives(null)).toEqual([])
@@ -105,9 +115,12 @@ describe('this project', () => {
 describe('the task view', () => {
   test('every level counted; this project first, overdue first, then by due date', async () => {
     const view = await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY)
-    expect(view.linkedProject).toBe('Oddball EEG')
     expect(view.levels.map(level => level.id)).toEqual(['project', 'flowie', 'hive:lab-team', 'hive:alpha-team', 'hive:another-team'])
-    expect(levelSummary(view)).toBe('project 1 · flowie 3 (2 Oddball EEG) · lab-team 1 (1 Oddball EEG) · alpha-team 0 · another-team 0')
+    // This project's name per level: the flowie's link, the lab project of the hive's own registry, none elsewhere.
+    expect(view.levels.map(level => level.project)).toEqual([null, 'Oddball EEG', 'oddball-lab', null, null])
+    expect(levelSummary(view)).toBe('project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0')
+    // At hive level the flowie's name marks nothing: no name guessing across registries.
+    expect(view.levels[2]?.board.columns.find(column => column.id === 'inbox')?.cards.map(card => [card.slug, card.isMine])).toEqual([['review-poster', false]])
     const flowie = view.levels[1]
     expect(flowie.board.done).toBe(2)
     expect(flowie.board.columns.map(column => column.id)).toEqual(['inbox', 'active', 'review'])
@@ -127,8 +140,8 @@ describe('the task view', () => {
     const view = await loadTaskView(memIo(empty, { home: HOME }), ROOT, HOME, TODAY)
     expect(openingLevel(view)).toBe('flowie')
     const unlinked = await loadTaskView(memIo({ ...empty, [`${ROOT}/.git/config`]: '' }, { home: HOME }), ROOT, HOME, TODAY)
-    expect(unlinked.linkedProject).toBe(null)
-    expect(levelSummary(unlinked)).toBe('project 0 · flowie 3 · lab-team 1 · alpha-team 0 · another-team 0')
+    expect(unlinked.levels.every(level => level.project === null)).toBe(true)
+    expect(levelSummary(unlinked)).toBe('project 0 · flowie 3 · lab-team 2 · alpha-team 0 · another-team 0')
     expect(openingLevel(unlinked)).toBe('flowie')
     const alone = await loadTaskView(memIo({ [`${ROOT}/.neuroflow/project_config.md`]: '---\n---\n' }, { home: HOME }), ROOT, HOME, TODAY)
     expect(alone.levels.map(level => level.id)).toEqual(['project'])
@@ -148,16 +161,47 @@ describe('the task view', () => {
     expect(flowie?.board.columns.find(column => column.id === 'active')?.cards[0].title).toBe('Old style')
   })
 
+  test('a legacy file with a closed status is never open, whatever the board calls its closed columns', async () => {
+    const custom = [
+      { id: 'todo', label: 'todo', archive: false },
+      { id: 'doing', label: 'doing', archive: false },
+      { id: 'finished', label: 'finished', archive: true },
+    ]
+    expect(legacyColumn('archived', custom)?.id).toBe('finished')
+    expect(legacyColumn('done', custom)?.id).toBe('finished')
+    expect(legacyColumn('Doing', custom)?.id).toBe('doing')
+    expect(legacyColumn('someday', custom)?.id).toBe('todo')
+    expect(legacyColumn(null, custom)?.id).toBe('todo')
+    expect(legacyColumn('done', DEFAULT_COLUMNS)?.id).toBe('done')
+    expect(legacyColumn('archived', DEFAULT_COLUMNS)?.id).toBe('archive')
+    expect(legacyColumn('archived', custom.slice(0, 2))).toBe(null)
+    const io = memIo({
+      [`${HOME}/.neuroflow/flowie/tasks/config.json`]: JSON.stringify({ columns: custom }),
+      [`${HOME}/.neuroflow/flowie/tasks/todo/new-style.md`]: task('New style'),
+      [`${HOME}/.neuroflow/flowie/tasks/1-open.md`]: '---\ntitle: Open\nstatus: doing\n---\n',
+      [`${HOME}/.neuroflow/flowie/tasks/2-archived.md`]: '---\ntitle: Archived\nstatus: archived\n---\n',
+      [`${HOME}/.neuroflow/flowie/tasks/3-done.md`]: '---\ntitle: Done\nstatus: done\n---\n',
+      // A board with open columns only: a closed legacy file is counted as done, never drawn.
+      [`${HOME}/.neuroflow/hives/lab/tasks/config.json`]: JSON.stringify({ columns: custom.slice(0, 2) }),
+      [`${HOME}/.neuroflow/hives/lab/tasks/4-done.md`]: '---\ntitle: Done too\nstatus: done\n---\n',
+    }, { home: HOME })
+    const view = await loadTaskView(io, ROOT, HOME, TODAY)
+    const flowie = view.levels.find(level => level.kind === 'flowie')
+    expect([flowie?.open, flowie?.board.archived, flowie?.board.done]).toEqual([2, 2, 0])
+    const hive = view.levels.find(level => level.kind === 'hive')
+    expect([hive?.open, hive?.board.done]).toEqual([0, 1])
+  })
+
   test('the tasks tab: a line of counts, then the first cards, each tagged with its level', async () => {
     const lines = taskLines(await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY))
     expect(lines.map(line => line.text)).toEqual([
-      'project 1 · flowie 3 (2 Oddball EEG) · lab-team 1 (1 Oddball EEG) · alpha-team 0 · another-team 0',
+      'project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0',
       '[project] ⚠ Rerun ICA @li due 10-01',
       '[flowie] ◆ ⚠ Check stats due 10-03',
       '[flowie] ◆ Read paper due 10-20',
       '[lab-team] ◆ Agenda item @jana',
       '[flowie] ⚠ Write intro due 10-02',
-      '◆ this project (Oddball EEG) · ⚠ overdue · /neuroflow:tasks opens the boards (v switches level)',
+      '◆ this project (Oddball EEG, oddball-lab) · ⚠ overdue · /neuroflow:tasks opens the boards (v switches level)',
     ])
     expect(lines[1].tone).toBe('warning')
   })
@@ -200,7 +244,7 @@ describe('the boards in a session', () => {
     await $.command.run({ command: 'neuroflow:dashboard', args: 'tasks' } as never)
     const ui = await $.ui.mount(pane('nf-dashboard') as never)
     const drawn = JSON.stringify(await ui.drawn())
-    expect(drawn).toContain('project 1 · flowie 3 (2 Oddball EEG) · lab-team 1 (1 Oddball EEG) · alpha-team 0 · another-team 0')
+    expect(drawn).toContain('project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0')
     expect(drawn).toContain('[flowie] ◆ ⚠ Check stats due 10-03')
     await ui.unmount()
   })
@@ -219,7 +263,12 @@ describe('the boards in a session', () => {
     await ui.press({ key: 'nf-card-check-stats' })
     await ui.press({ key: 'nf-move-done' })
     await ui.press({ key: 'nf-level-next' })
-    expect(JSON.stringify(await ui.drawn())).toContain('level: lab-team')
+    const hive = JSON.stringify(await ui.drawn())
+    expect(hive).toContain('level: lab-team')
+    // The hive names this project by its own registry: the lab project's id, not the flowie's name.
+    expect(hive).toContain('◆ oddball-lab (this project)')
+    expect(hive).toContain('◆ Agenda item @jana')
+    expect(hive).not.toContain('◆ Review poster')
     await ui.press({ key: 'nf-card-agenda-item' })
     await ui.press({ key: 'nf-move-inbox' })
     await ui.press({ key: 'nf-level-project' })

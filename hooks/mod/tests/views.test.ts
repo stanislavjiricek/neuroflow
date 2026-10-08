@@ -23,7 +23,6 @@ const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
   prereg: null,
   deadlines: [],
   phasesVisited: ['ideation', 'preregistration', 'data', 'data-analyze'],
-  taskCounts: null,
   loops: [],
   meetings: [],
   wellbeingDue: false,
@@ -113,7 +112,6 @@ describe('dashboard lines', () => {
   test('every tab has a text form', () => {
     const snap = snapshot({
       ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: null, expires: '2027-06-30', aiProcessing: 'pseudonymised' },
-      taskCounts: { inbox: 2, ready: 1, active: 1, review: 0, meeting: 0, done: 4, archive: 0 },
     })
     expect(tabLines('phase', snap, null)[0].text).toBe('✔ ideation  ✔ preregistration  ✔ data  ● data-analyze  ○ paper')
     expect(tabLines('integrity', snap, null)[0].text).toBe('✔ ethics approved · expires 2027-06-30')

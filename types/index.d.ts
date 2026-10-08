@@ -77,8 +77,6 @@ export type NfSnapshot = {
   deadlines: NfDeadline[]
   /** Phases that have a .neuroflow/<phase>/ folder. */
   phasesVisited: string[]
-  /** Number of task files per board column (.neuroflow/tasks/<column>/), or null without a board. */
-  taskCounts: Record<string, number> | null
   /** Autoresearch loops listed in the phases' pointer registries. */
   loops: NfLoop[]
   /** Meetings from 2 days ago to 2 days ahead, soonest first. */
@@ -175,6 +173,11 @@ export type NfTaskLevel = {
   kind: 'project' | 'flowie' | 'hive'
   /** What the views call it: `project`, `flowie`, or the hive's folder under ~/.neuroflow/hives/. */
   name: string
+  /**
+   * This project's name at this level, the `project:` its tasks carry (commands/tasks.md → Levels): the flowie
+   * project this repo is linked to, or the lab project of the hive's own registry; null at project level or unlinked.
+   */
+  project: string | null
   /** Open tasks: every column but done and the archive ones. */
   open: number
   /** Open tasks that belong to this project (all of them at project level). */
@@ -186,8 +189,6 @@ export type NfTaskLevel = {
 
 /** The task boards of every level, for the dashboard's tasks tab and the board pane. */
 export type NfTaskView = {
-  /** The flowie project this folder is linked to (local-projects.json, else projects.json), or null. */
-  linkedProject: string | null
   /** Project first, then flowie, then the hives (those user.yaml lists first, the rest alphabetically). */
   levels: NfTaskLevel[]
 }
@@ -205,9 +206,12 @@ export type NfFlowieSyncEntry = {
 export type NfFlowieSync = {
   /** Commit messages of the syncs still waiting, oldest first. */
   pending: string[]
-  /** The last attempt's outcome when it did not go through (`push failed: …`); null after a clean sync. */
+  /** The last attempt's outcome when it did not go through (`push failed — …`); null after a clean sync. */
   failure: string | null
-  /** After a failure no new attempt runs until something new is queued, a new session or /neuroflow:flowie. */
+  /**
+   * After a failure no new attempt runs until something new is queued or the next session; meanwhile each flush
+   * point only checks, locally, whether a sync elsewhere (/neuroflow:flowie --sync) settled it.
+   */
   isHeld: boolean
 }
 

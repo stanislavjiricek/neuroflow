@@ -117,6 +117,7 @@ wiki_auto: off                    # optional: ask | off — queue wiki cards fro
 
 - Consent is read **only** from this file. An `auto_issue_reporting` value in a project file is a legacy leftover: ignore it and offer `/neuroflow:migrate`, which moves personal fields here after asking.
 - Per-person notification or wellbeing settings live here too.
+- `hives:` names the team hives the person joined, each as `org/repo` (inline, as above, or one `- org/repo` per line); its clone is `~/.neuroflow/hives/{org-repo}/`. An entry may instead be a map — `repo: org/repo` and `local: {path of the clone}` — for a clone whose folder has another name: the last folder of `local` is then the hive's folder. Readers take both forms; a writer keeps the form the file uses.
 - Team defaults the collaborators agree on (e.g. `default_mode`) may stay in `project_config.md`; a value here overrides them for this person only.
 - Merge, never replace: when writing a key, keep every other line of the file.
 

@@ -37,7 +37,7 @@ const full = {
   recommendedPhases: ['data-analyze', 'paper'], rawRoots: ['sourcedata/'], paperAuto: false,
   ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: 'X-1', expires: '2027-06-30', aiProcessing: 'pseudonymised' },
   prereg: { status: 'frozen', setBy: 'person', setAt: null, frozenAt: '2026-10-01T10:00:00Z', files: { 'a.md': 'h' }, plannedN: 48 },
-  deadlines: [{ date: '2026-10-20', what: 'Abstract', gates: null, daysLeft: 13 }], phasesVisited: [], taskCounts: null, loops: [], meetings: [],
+  deadlines: [{ date: '2026-10-20', what: 'Abstract', gates: null, daysLeft: 13 }], phasesVisited: [], loops: [], meetings: [],
   wellbeingDue: false, ethicsNotApplicable: false, flowieProfiles: [], wikiCapture: null, wikiPending: 0, problems: [], loadedAt: 0,
 } as NfSnapshot
 
