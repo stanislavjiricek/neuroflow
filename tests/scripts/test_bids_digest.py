@@ -92,7 +92,10 @@ class BidsDigestTests(unittest.TestCase):
         self.assertIn("full output:", out)
         self.assertIn("SIDECAR_KEY_REQUIRED x7", out)
         self.assertIn("... 2 more", out)
-        self.assertNotIn("31", out.split("ERRORS")[0])
+        # the temporary folder's random name may contain digits: look at the lines after the "full output" path
+        header = out.split("ERRORS")[0].split("
+", 1)[1]
+        self.assertNotIn("31", header)
 
     def test_legacy_format(self) -> None:
         code, out, _ = run(str(self.write(LEGACY)), "--json")
