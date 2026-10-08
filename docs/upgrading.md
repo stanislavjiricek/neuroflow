@@ -32,6 +32,8 @@ The notice reads the shared `project_config.md`, so once a teammate has migrated
 
 ## Updating the plugin
 
+neuroflow 0.2.22 and later need Claude Code 2.1.271 or later: older versions cannot load the plugin, because its settings offer fixed choices (`userConfig` options). If yours is older, update Claude Code first — see [System requirements](installation.md#system-requirements).
+
 Claude Code updates a plugin by itself only when auto-update is on for its marketplace, and for a marketplace you added yourself, such as neuroflow's, it is off by default. Turn it on in `/plugin` → **Marketplaces** → `neuroflow` → **Enable auto-update**: a new version is then fetched after a session starts and loads in the next one.
 
 To update now, open `/plugin` → **Installed** → `neuroflow` → **Update now**, or run in your shell:
