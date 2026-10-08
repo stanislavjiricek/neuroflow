@@ -215,6 +215,32 @@ describe('engine', () => {
     await ui.unmount()
   })
 
+  test('folders the engine lists (kind "dir") are phases visited on the dashboard', { options: { runtime: 'observe' } }, async ($, on) => {
+    const project = '/work/proj'
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\n---\n',
+      [`${project}/.neuroflow/ideation/flow.md`]: '# ideation\n',
+      [`${project}/.neuroflow/preregistration/flow.md`]: '# preregistration\n',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.status', () => ({ value: undefined }))
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: 'phase' } as never)
+    const ui = await $.ui.mount({
+      plugin: 'neuroflow',
+      surface: 'terminal',
+      component: 'Pane',
+      requestId: 'nf-dashboard',
+      props: { title: 'neuroflow', isFocused: true, bodyColumns: 120, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
+    } as never)
+    expect(JSON.stringify(await ui.drawn())).toContain('✔ ideation  ✔ preregistration  ● data')
+    await ui.unmount()
+  })
+
   test('the dashboard pane carries the Update line and a migrate key, like the prose dashboard', { options: { runtime: 'observe' } }, async ($, on) => {
     const project = '/work/proj'
     fakeFs(on, {

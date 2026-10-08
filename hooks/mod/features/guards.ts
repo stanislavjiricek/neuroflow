@@ -559,7 +559,7 @@ export const afterEdit = (input: EditInput, oldText: string | null): string | nu
 const ioOf = ($: EngineInterface): NfIo => ({
   read: path => $.fs.read(path).then(text => (typeof text === 'string' ? text : null), () => null),
   exists: path => $.fs.exists(path).catch(() => false),
-  list: path => $.fs.list(path).then(entries => entries.map(entry => ({ name: entry.name, isDir: entry.kind === 'directory' })), () => []),
+  list: path => $.fs.list(path).then(entries => entries.map(entry => ({ name: entry.name, isDir: entry.kind === 'dir' || String(entry.kind) === 'directory' })), () => []),
   write: (path, text) => $.fs.write(path, text),
   home: async () => (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE')),
   now: () => $.clock.now(),
