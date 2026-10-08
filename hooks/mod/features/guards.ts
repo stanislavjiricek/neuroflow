@@ -8,8 +8,8 @@
 // Rules this file enforces (validate_pr V8 matches each to its prose marker):
 //   nf-rule: PREREG-FROZEN      writes to a preregistration a person froze; deviations.md stays append-only
 //   nf-rule: RAW-READONLY       changes to existing files under raw_roots (new recordings may be added)
-//   nf-rule: GIT-NO-SECRETS     `git clean -x`, staging local-only files, `git add -A` without the .gitignore lines
-//   nf-rule: GIT-ALIAS-SCOPE    git verbs beyond the running /git alias's endpoint
+//   nf-rule: GIT-NO-SECRETS     `git clean -x`, staging local-only files; asks before `git add -A` without the .gitignore lines
+//   nf-rule: GIT-ALIAS-SCOPE    git verbs beyond the running /git alias's endpoint (listings such as `git branch --show-current` are fine)
 //   nf-rule: PARTICIPANT-ROUTE  the model reading participant data the ethics record keeps from it
 //   nf-rule: LOGIN-NODE         heavy compute on an HPC login node (asks)
 //   nf-rule: INTEGRITY-MARKER   the model writing `set_by: person` into an integrity status file (asks)
@@ -52,8 +52,8 @@ export type Violation = { rule: RuleId; level: 'deny' | 'ask' | 'warn'; message:
 
 export type Structure = { rootFiles: string[]; rootFolders: string[] }
 
-/** Local-only paths (neuroflow-core → sharing tiers) that must never be staged. */
-export const LOCAL_ONLY = ['.neuroflow/sessions/', '.neuroflow/review/', '.neuroflow/integrations.json', '.neuroflow/flowie/', '.neuroflow/paper/xray-', '.neuroflow/wiki/.pending/']
+/** Local-only paths (neuroflow-core → Sharing tiers) that must never be staged, as the scaffold's .gitignore lines. */
+export const LOCAL_ONLY = ['.neuroflow/sessions/', '.neuroflow/review/', '.neuroflow/integrations.json', '.neuroflow/flowie/', '.neuroflow/paper/xray-*', '.neuroflow/wiki/.pending/']
 
 /** Used until nf_check.py --structure has answered (or when no Python is installed). */
 export const DEFAULT_STRUCTURE: Structure = {
@@ -171,30 +171,224 @@ const HEAVY = [
 /** Whether a shell command looks like heavy compute (LOGIN-NODE). */
 export const isHeavy = (command: string): boolean => HEAVY.some(pattern => pattern.test(command))
 
-/** The git subcommand of a shell segment (`git -C dir add …` → add), or null when it runs no git. */
-export const gitVerb = (segment: string): string | null =>
-  /\bgit(?:\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+))*\s+([a-z][a-z-]*)\b/.exec(segment)?.[1] ?? null
+/** A shell segment's git subcommand, after git's own options. */
+const GIT_COMMAND = /\bgit(?:\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)|-c\s+\S+|--no-pager|--git-dir=\S+|--work-tree=\S+))*\s+([a-z][a-z-]*)\b/
 
-/** Git verbs a /git alias may run (commands/git.md → Shorthand aliases; alias scope is final). */
+/** The git subcommand of a shell segment (`git -C dir add …` → add), or null when it runs no git. */
+export const gitVerb = (segment: string): string | null => GIT_COMMAND.exec(segment)?.[1] ?? null
+
+/**
+ * Git verbs a /git alias may run (commands/git.md → Steps; alias scope is final): its endpoint and the
+ * steps its prose takes on the way — unstaging local-only paths (`reset`), the stash offered before a pull.
+ */
 export const ALIAS_ALLOWS: Readonly<Record<string, readonly string[]>> = {
   a: ['add', 'reset', 'status', 'diff'],
-  c: ['commit', 'status', 'diff'],
+  c: ['commit', 'reset', 'status', 'diff'],
   ac: ['add', 'reset', 'commit', 'status', 'diff'],
   acp: ['add', 'reset', 'commit', 'push', 'status', 'diff'],
-  p: ['push', 'pull', 'fetch', 'status'],
-  pl: ['pull', 'fetch', 'status'],
+  p: ['push', 'pull', 'fetch', 'stash', 'status'],
+  pl: ['pull', 'fetch', 'stash', 'status'],
   ps: ['push', 'status'],
   b: ['branch', 'checkout', 'switch', 'status'],
   pr: ['push', 'status', 'diff', 'log'],
 }
 
-/** The verbs alias scope watches: everything that changes the index, history or a remote. */
+/** The verbs alias scope watches: everything that changes the index, history, refs or a remote — not their listings (isGitListing). */
 const GUARDED_VERBS = ['add', 'commit', 'push', 'pull', 'fetch', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'branch', 'tag', 'stash', 'cherry-pick', 'revert']
+
+/** The words of a shell segment (best effort, nothing expanded): quotes removed, output redirections and their targets left out. */
+const shellWords = (segment: string): string[] => {
+  const tokens = segment.match(/(?:"[^"]*"|'[^']*'|[^\s"'])+/g) ?? []
+  const words: string[] = []
+  for (let i = 0; i < tokens.length; i += 1) {
+    const redirect = /^(?:\d*|&|\*)>>?(&?)(.*)$/.exec(tokens[i])
+    if (redirect === null) words.push(tokens[i].replace(/"([^"]*)"|'([^']*)'/g, '$1$2'))
+    else if (redirect[1] === '' && redirect[2] === '') i += 1 // `> file`: the target is the next word
+  }
+  return words
+}
+
+/** The words after a segment's git subcommand. */
+const gitArgs = (segment: string): string[] => {
+  const match = GIT_COMMAND.exec(segment)
+  return match === null ? [] : shellWords(segment.slice(match.index + match[0].length))
+}
+
+/**
+ * The flags of `git branch` and `git tag` that only list or filter. Anything else (-d, -m, -u, -f,
+ * --unset-upstream, -a for a tag…) creates, moves or deletes a ref. `listMode` flags turn the remaining
+ * words into patterns; `valued` flags take the next word as their value.
+ */
+const LISTINGS: Readonly<Record<string, { flags: RegExp; listMode: RegExp; valued: RegExp }>> = {
+  branch: {
+    flags: /^(-[arvlqi]+|--(show-current|list|all|remotes|verbose|quiet|ignore-case|color|no-color|column|no-column|abbrev|no-abbrev|omit-empty|sort|format|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    listMode: /^(-[a-z]*l[a-z]*|--(list|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    valued: /^--(sort|format|points-at)$/,
+  },
+  tag: {
+    flags: /^(-(?=[iln])[il]*(n\d*)?|--(list|ignore-case|color|no-color|column|no-column|omit-empty|sort|format|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    listMode: /^(-[a-z\d]*[ln][a-z\d]*|--(list|contains|no-contains|with|without|merged|no-merged|points-at))$/,
+    valued: /^--(sort|format|points-at)$/,
+  },
+}
+
+/**
+ * Whether a guarded git verb only lists or shows (`args`: the words after it), which is no step beyond any
+ * alias's endpoint: `git branch` and `git tag` with no name to create (bare, or in list mode, where the
+ * words are patterns), `git stash list` and `git stash show`.
+ */
+export const isGitListing = (verb: string, args: readonly string[]): boolean => {
+  // a trailing `)` or backtick closes a command substitution: $(git branch --show-current)
+  const words = args.map(arg => arg.replace(/[)`]+$/, '')).filter(arg => arg !== '')
+  if (verb === 'stash') return words[0] === 'list' || words[0] === 'show'
+  const form = LISTINGS[verb]
+  if (form === undefined) return false
+  let listMode = false
+  let named = false
+  for (let i = 0; i < words.length; i += 1) {
+    const word = words[i]
+    if (word === '--') {
+      named = named || i + 1 < words.length
+      break
+    }
+    if (!word.startsWith('-')) {
+      named = true
+      continue
+    }
+    const cut = word.indexOf('=')
+    const flag = cut < 0 ? word : word.slice(0, cut)
+    if (!form.flags.test(flag)) return false
+    if (form.listMode.test(flag)) listMode = true
+    if (cut < 0 && form.valued.test(flag)) i += 1
+  }
+  return listMode || !named
+}
 
 const escapeRe = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** A pattern for a project-relative folder that matches either slash. */
 const pathPattern = (root: string): string => escapeRe(trimRoot(root)).replace(/\//g, '[\\\\/]')
+
+/**
+ * A raw root inside one shell word, on path boundaries: `sourcedata`, `./sourcedata/x`, `/abs/sourcedata/x`,
+ * `-Path:sourcedata`, `sourcedata*` — never `sourcedata_old/`, nor `draw_plot.png` for a root `raw/`.
+ */
+const rawWord = (root: string): RegExp => new RegExp(`(^|[\\\\/=:*?])${pathPattern(root)}(?=[\\\\/*?[]|$)`, 'i')
+
+type IgnoreRule = { negated: boolean; folderOnly: boolean; pattern: RegExp }
+
+/** A gitignore glob as a regular expression: `*` and `?` stay inside one folder, `**` spans folders, `[…]` is a class. */
+const globSource = (glob: string): string => {
+  let out = ''
+  for (let i = 0; i < glob.length; i += 1) {
+    const char = glob[i]
+    const close = char === '[' ? glob.indexOf(']', i + 2) : -1
+    if (char === '*' && glob[i + 1] === '*' && (i === 0 || glob[i - 1] === '/') && (i + 2 === glob.length || glob[i + 2] === '/')) {
+      // `**/` is any number of folders, none too; a trailing `/**` is everything inside
+      out += i + 2 === glob.length ? '.*' : '(?:.*/)?'
+      i += i + 2 === glob.length ? 1 : 2
+    } else if (char === '*') {
+      out += '[^/]*'
+    } else if (char === '?') {
+      out += '[^/]'
+    } else if (close > 0) {
+      out += `[${glob.slice(i + 1, close).replace(/^!/, '^').replace(/\\/g, '\\\\')}]`
+      i = close
+    } else {
+      if (char === '\\' && i + 1 < glob.length) i += 1
+      out += escapeRe(glob[i])
+    }
+  }
+  return out
+}
+
+/**
+ * The rules of the project's .gitignore, in order (gitignore(5)): comments skipped, `!` negates, a trailing
+ * `/` matches folders only, and a slash before the end anchors a pattern to the project root.
+ */
+const ignoreRules = (text: string): IgnoreRule[] =>
+  text.split(/\r?\n/).flatMap(raw => {
+    let line = raw.trimEnd()
+    if (line === '' || line.startsWith('#')) return []
+    const negated = line.startsWith('!')
+    if (negated) line = line.slice(1)
+    const folderOnly = line.endsWith('/')
+    line = line.replace(/\/+$/, '')
+    const anchored = line.includes('/')
+    line = line.replace(/^\//, '')
+    if (line === '') return []
+    const body = globSource(line)
+    return [{ negated, folderOnly, pattern: new RegExp(anchored ? `^${body}$` : `^(?:.*/)?${body}$`) }]
+  })
+
+/** Whether git ignores the file `path` (project-relative): the last matching rule decides, and nothing inside an ignored folder can be brought back. */
+const isIgnored = (rules: readonly IgnoreRule[], path: string): boolean => {
+  const parts = path.split('/')
+  for (let depth = 1; depth <= parts.length; depth += 1) {
+    const sub = parts.slice(0, depth).join('/')
+    const isFolder = depth < parts.length
+    const last = rules.filter(rule => (isFolder || !rule.folderOnly) && rule.pattern.test(sub)).at(-1)
+    if (last !== undefined && !last.negated) return true
+  }
+  return false
+}
+
+/**
+ * The LOCAL_ONLY lines a .gitignore does not cover. Ignoring a folder above one covers it (`.neuroflow/`,
+ * `/.neuroflow`, `.neuroflow/*`, `.neuroflow/**`); a narrower line (`*.md`, one session file) does not.
+ */
+export const uncoveredLocalOnly = (gitignore: string): string[] => {
+  const rules = ignoreRules(gitignore)
+  // a file name no narrower line would match stands for everything the local-only line names
+  return LOCAL_ONLY.filter(line => !isIgnored(rules, line.endsWith('/') ? `${line}nf-any` : line.replace(/\*$/, 'nf-any')))
+}
+
+/** The files a segment's output redirections write to (`> f`, `2>>f`, `&> "f"`); `2>&1` writes none. */
+const redirectTargets = (segment: string): string[] =>
+  [...segment.matchAll(/(?<!>)>{1,2}\s*("[^"]*"|'[^']*'|[^\s"'<>;&|]+)/g)].map(match => match[1].replace(/^["']|["']$/g, ''))
+
+/** Commands that change, rename or delete the files they name. */
+const CHANGES = /^(rm|rmdir|del|erase|ren|rename|Remove-Item|Rename-Item|Set-Content|Out-File|truncate|shred)$/i
+
+/** Commands that move files: a move takes its sources away and adds at its destination. */
+const MOVES = /^(mv|move|Move-Item)$/i
+
+/** The command a word names: `/bin/rm` → rm, `$(rm` → rm, `move.exe` → move. */
+const commandName = (word: string): string => word.replace(/^[$({`]+/, '').replace(/^.*[\\/]/, '').replace(/\.exe$/i, '')
+
+/** What a move takes away: every path but its destination (`-t`, `--target-directory`, `-Destination`, else the last path). */
+const moveSources = (args: readonly string[]): string[] => {
+  const paths: string[] = []
+  let named = false
+  for (let i = 0; i < args.length; i += 1) {
+    const destination = /^(?:-t|--target-directory)(=.*)?$/.exec(args[i]) ?? /^-Destination(:.*)?$/i.exec(args[i])
+    if (destination !== null) {
+      named = true
+      if (destination[1] === undefined) i += 1 // the destination is the next word
+    } else if (!args[i].startsWith('-')) {
+      paths.push(args[i])
+    }
+  }
+  return named ? paths : paths.slice(0, -1)
+}
+
+/**
+ * Whether a segment changes something under a raw root (`words`: shellWords; `targets`: redirectTargets):
+ * writes into it by redirection, edits, renames or deletes a path in it, moves one out of it, or discards one
+ * through git. A copy, or a move whose only raw-root path is its destination, adds a recording — allowed,
+ * like a new file written there.
+ */
+const changesRaw = (words: readonly string[], targets: readonly string[], inRoot: RegExp, verb: string | null): boolean => {
+  if (targets.some(target => inRoot.test(target))) return true
+  if ((verb === 'clean' || verb === 'checkout' || verb === 'restore') && words.some(word => inRoot.test(word))) return true
+  return words.some((word, at) => {
+    const name = commandName(word)
+    const rest = words.slice(at + 1)
+    if (CHANGES.test(name)) return rest.some(arg => inRoot.test(arg))
+    if (MOVES.test(name)) return moveSources(rest).some(source => inRoot.test(source))
+    return name === 'sed' && rest.some(arg => /^(-[a-zA-Z]*i|--in-place)/.test(arg)) && rest.some(arg => inRoot.test(arg))
+  })
+}
 
 const READ_VERBS = /^(cat|head|tail|less|more|type|Get-Content|gc|xxd|od|strings|bat|zcat)$/i
 
@@ -223,7 +417,7 @@ export const shellViolations = (
     }
     if (gitAlias !== null && verb !== null) {
       const allowed = ALIAS_ALLOWS[gitAlias]
-      if (allowed !== undefined && GUARDED_VERBS.includes(verb) && !allowed.includes(verb)) {
+      if (allowed !== undefined && GUARDED_VERBS.includes(verb) && !allowed.includes(verb) && !isGitListing(verb, gitArgs(segment))) {
         out.push({ rule: 'GIT-ALIAS-SCOPE', level: 'deny', message: `/git ${gitAlias} stops at its endpoint — \`git ${verb}\` is beyond it; ask the person for a new instruction` })
       }
     }
@@ -235,29 +429,30 @@ export const shellViolations = (
       if (named !== null) {
         out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `${named[1]} is local-only (sessions, confidential reviews, paper X-rays, wiki cards awaiting review, personal settings) and must never be committed` })
       } else if (/\sadd\s+(-A\b|--all\b|\.(\s|$)|-u\b)/.test(segment)) {
-        const ignored = context.gitignore ?? ''
-        const missing = LOCAL_ONLY.filter(path => !ignored.includes(path))
+        // An ask, not a denial: /git a stages everything and then takes each local-only path back out.
+        const missing = uncoveredLocalOnly(context.gitignore ?? '')
         if (missing.length > 0) {
-          out.push({ rule: 'GIT-NO-SECRETS', level: 'deny', message: `\`git add -A\` would stage local-only files: .gitignore does not exclude ${missing.join(', ')} — add those lines first (/neuroflow:migrate does it)` })
+          out.push({
+            rule: 'GIT-NO-SECRETS',
+            level: 'ask',
+            message: `\`${segment.slice(0, 80)}\` would stage local-only files: .gitignore does not exclude ${missing.join(', ')} — add those lines (/neuroflow:migrate adds them), or take each one back out after staging (git reset -q -- <path>)`,
+          })
         }
       }
     }
+    const argv = shellWords(segment)
+    const targets = redirectTargets(segment)
     for (const root of rawRootsOf(snap)) {
       if (trimRoot(root) === '') continue
-      const escaped = pathPattern(root)
-      const destructive = new RegExp(`\\b(rm|rmdir|del|erase|mv|move|ren|rename|Remove-Item|Move-Item|Rename-Item|Set-Content|Out-File|truncate|shred)\\b[^;&|]*${escaped}`, 'i')
-      const editInPlace = new RegExp(`\\bsed\\s+-i\\b[^;&|]*${escaped}`, 'i')
-      const redirected = new RegExp(`>{1,2}\\s*["']?${escaped}`, 'i')
-      const gitDiscard = (verb === 'clean' || verb === 'checkout' || verb === 'restore') && new RegExp(escaped, 'i').test(segment)
-      if (destructive.test(segment) || editInPlace.test(segment) || redirected.test(segment) || gitDiscard) {
-        out.push({ rule: 'RAW-READONLY', level: 'deny', message: `this command would change files under ${root}, a read-only raw-data folder (raw_roots)` })
+      if (changesRaw(argv, targets, rawWord(root), verb)) {
+        out.push({ rule: 'RAW-READONLY', level: 'deny', message: `this command would change, move or delete files under ${root}, a read-only raw-data folder (raw_roots) — write derivatives elsewhere; new recordings may be added` })
       }
     }
     if (routeDenied) {
       const words = segment.split(/\s+/).map(word => word.replace(/^["']|["']$/g, ''))
       if (words.length > 1 && READ_VERBS.test(words[0])) {
         for (const root of rawRootsOf(snap)) {
-          const inRoot = new RegExp(`(^|[\\\\/])${pathPattern(root)}([\\\\/]|$)`, 'i')
+          const inRoot = rawWord(root)
           if (words.slice(1).some(word => inRoot.test(word) && !/\.json$/i.test(word))) {
             out.push({ rule: 'PARTICIPANT-ROUTE', level: 'deny', message: `this command would show participant data under ${root} to the model, which the ethics record does not allow — run a script and work from its aggregate output` })
           }
