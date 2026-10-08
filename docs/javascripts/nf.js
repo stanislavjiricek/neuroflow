@@ -33,8 +33,14 @@
     .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, name) => ENTITIES[name])
     .replace(/\s+/g, ' ')
     .trim();
-  const terms = (query) => query.toLowerCase().split(/\s+/).filter(Boolean);
-  const hasAll = (text, words) => words.every((word) => text.includes(word));
+  // Names compare without the command prefix and by their words: "/neuroflow:data-analyze",
+  // "/data-analyze" and "data analyze" are one name.
+  const WORD = /[\p{L}\p{N}]+/gu;
+  const wordsOf = (text) => String(text || '').toLowerCase().match(WORD) || [];
+  const keyOf = (text) => wordsOf(String(text || '').trim().replace(/^(?:\/neuroflow:|\/|neuroflow:)/i, '')).join(' ');
+  const termsOf = (query) => keyOf(query).split(' ').filter(Boolean);
+  // A query word matches where a word starts: "search" finds "Search strategy" but not "research".
+  const startsWord = (word) => new RegExp('(?:^|[^\\p{L}\\p{N}])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u');
 
   const start = () => {
     // The drawer is the theme's #__drawer checkbox. Clicking it, as the theme itself does, fires the
@@ -79,6 +85,8 @@
 
     const pageLinks = () => Array.from(nav.querySelectorAll('a.md-nav__link'))
       .filter((link) => !link.closest('.md-nav--secondary'));
+    // The name a page has in the index, without the phase note that follows it.
+    const navKey = (link) => keyOf((link.querySelector('.md-ellipsis') || link).textContent);
 
     // Section counts and phase notes.
     nav.querySelectorAll(':scope > .md-nav__list > .md-nav__item--section').forEach((section) => {
@@ -115,17 +123,36 @@
             docs.forEach((doc) => {
               if (!String(doc.location).includes('#')) titles.set(doc.location, plain(doc.title));
             });
+            // Where each page sits in the index and the names it has there ("Overview" for a page
+            // titled otherwise); both count for its rank.
+            const root = new URL(base + '/', window.location.href);
+            const inNav = new Map();
+            pageLinks().forEach((link, order) => {
+              const url = link.href.split('#')[0];
+              const entry = inNav.get(url) || { order, names: [] };
+              entry.names.push(navKey(link));
+              inNav.set(url, entry);
+            });
             pages = docs.map((doc) => {
               const location = String(doc.location || '');
               const page = location.split('#')[0];
+              const pageUrl = new URL(page, root).href;
+              const isPage = !location.includes('#');
               const title = plain(doc.title);
+              const listed = (isPage && inNav.get(pageUrl)) || { names: [] };
+              const names = [keyOf(title)].concat(listed.names);
+              const text = plain(doc.text);
               return {
                 location,
                 title,
                 page: titles.get(page) || '',
-                isPage: !location.includes('#'),
-                titleKey: title.toLowerCase(),
-                text: plain(doc.text),
+                pageUrl,
+                isPage,
+                names,
+                words: names.join(' ').split(' ').filter(Boolean),
+                order: (inNav.get(pageUrl) || { order: Infinity }).order,
+                text,
+                textKey: text.toLowerCase(),
               };
             });
             return pages;
@@ -136,10 +163,12 @@
     };
 
     const filterNav = (words) => {
+      const tests = words.map(startsWord);
       nav.classList.toggle('nf-filtering', words.length > 0);
       pageLinks().forEach((link) => {
         const item = link.closest('.md-nav__item');
-        if (item) item.classList.toggle('nf-hidden', words.length > 0 && !hasAll(link.textContent.toLowerCase(), words));
+        const text = link.textContent.toLowerCase();
+        if (item) item.classList.toggle('nf-hidden', words.length > 0 && !tests.every((test) => test.test(text)));
       });
       nav.querySelectorAll('.md-nav__item--nested').forEach((group) => {
         const visible = Array.from(group.querySelectorAll('a.md-nav__link'))
@@ -149,13 +178,54 @@
     };
 
     const snippet = (text, word) => {
-      const at = text.toLowerCase().indexOf(word);
+      const found = startsWord(word).exec(text.toLowerCase());
+      const at = found ? found.index + found[0].length - word.length : -1;
       if (at < 0) return text.slice(0, 110);
       const from = Math.max(0, at - 40);
       return (from > 0 ? '…' : '') + text.slice(from, from + 110) + (from + 110 < text.length ? '…' : '');
     };
 
-    const render = (words) => {
+    // Every query word must start a word of the title, an index name or the text. A page whose name is
+    // the query comes first ("phase" -> /neuroflow:phase); then matches in the title before matches in
+    // the text, pages before their sections, names that start with the query, and whole words before
+    // word starts. Ties keep the order of the index.
+    const rank = (key) => {
+      const words = key.split(' ').filter(Boolean);
+      const tests = words.map(startsWord);
+      const seen = new Set();
+      return pages
+        .map((doc, index) => {
+          let whole = 0;
+          let inTitle = true;
+          for (let i = 0; i < words.length; i += 1) {
+            if (doc.words.includes(words[i])) whole += 1;
+            else if (!doc.words.some((word) => word.startsWith(words[i]))) {
+              inTitle = false;
+              if (!tests[i].test(doc.textKey)) return null;
+            }
+          }
+          const exact = doc.names.includes(key);
+          const lead = doc.names.some((name) => name.startsWith(key));
+          const score = (exact ? (doc.isPage ? 10000 : 300) : 0)
+            + (inTitle ? (doc.isPage ? 2000 : 1000) : (doc.isPage ? 100 : 0))
+            + (lead ? 500 : 0)
+            + whole * 10;
+          return { doc, score, inTitle, index };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score || a.doc.order - b.doc.order || a.index - b.index)
+        .filter(({ doc }) => {
+          // A page can repeat a heading (several "Installation" sections); it is listed once.
+          const id = doc.pageUrl + '\n' + doc.names[0];
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+    };
+
+    const render = (query) => {
+      const key = keyOf(query);
+      const words = key.split(' ').filter(Boolean);
       box.textContent = '';
       if (words.length === 0 || words.join('').length < 2) {
         box.hidden = true;
@@ -168,21 +238,11 @@
         wait.textContent = 'Searching…';
         box.appendChild(wait);
         load().then(() => {
-          if (terms(input.value).join(' ') === words.join(' ')) render(words);
+          if (keyOf(input.value) === key) render(input.value);
         });
         return;
       }
-      const hits = pages
-        .map((doc) => {
-          const inTitle = hasAll(doc.titleKey, words);
-          const inText = inTitle || hasAll(doc.text.toLowerCase(), words);
-          if (!inText) return null;
-          const score = (inTitle ? 4 : 0) + (doc.isPage ? 1 : 0) + (doc.titleKey.startsWith(words[0]) ? 1 : 0);
-          return { doc, score, inTitle };
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, MAX_RESULTS);
+      const hits = rank(key).slice(0, MAX_RESULTS);
       const head = document.createElement('p');
       head.className = 'nf-results__note';
       head.textContent = hits.length === 0 ? 'Nothing matches. Try a phase or a command name.' : 'In the pages';
@@ -201,9 +261,8 @@
     };
 
     const update = () => {
-      const words = terms(input.value);
-      filterNav(words);
-      render(words);
+      filterNav(termsOf(input.value));
+      render(input.value);
     };
     input.addEventListener('input', update);
     input.addEventListener('focus', () => {
@@ -223,7 +282,10 @@
           input.blur();
         }
       } else if (event.key === 'Enter') {
-        const first = box.querySelector('a') || pageLinks().find((link) => !link.closest('.nf-hidden'));
+        // The page whose index name is the query, else the first match, else the first page left.
+        const key = keyOf(input.value);
+        const named = key ? pageLinks().find((link) => navKey(link) === key) : null;
+        const first = named || box.querySelector('a') || pageLinks().find((link) => !link.closest('.nf-hidden'));
         if (first) window.location.href = first.href;
       }
     });
