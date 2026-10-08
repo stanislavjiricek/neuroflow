@@ -516,11 +516,11 @@ If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort`
 Check for local uncommitted changes and unpushed commits:
 
 ```bash
-git -C ~/.neuroflow/flowie status --short
+git -C ~/.neuroflow/flowie -c core.quotepath=off status --short
 git -C ~/.neuroflow/flowie rev-list --count @{u}..HEAD
 ```
 
-If files changed, list them for the person, then Sync exactly those paths (`sync: {YYYY-MM-DD HH:MM}`) — never `add -A`, never `integrations.json`. If only unpushed commits remain, push them.
+If files changed, list them for the person, then Sync exactly those paths (`sync: {YYYY-MM-DD HH:MM}`) — never `add -A`, never `integrations.json`. `core.quotepath=off` shows a name with accents as it is; a path with a space comes inside double quotes, which are not part of its name. If only unpushed commits remain, push them.
 
 Update `last_synced` in `sync.json` to the current ISO 8601 timestamp, then Sync `sync.json` (`sync: update last_synced`).
 

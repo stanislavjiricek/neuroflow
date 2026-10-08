@@ -109,9 +109,9 @@ The same plan-then-apply flow for the folders outside the project: your flowie (
 
 1. **Pull each level first**, so the plan is made against the current state. Only a level whose pull succeeded is in this run. A pull with rebase refuses to start while tracked files hold uncommitted changes, so before pulling a level that is a git repository, list what is not committed there:
    ```bash
-   git -C ~/.neuroflow/flowie status --porcelain --untracked-files=all
+   git -C ~/.neuroflow/flowie -c core.quotepath=off status --porcelain --untracked-files=all
    ```
-   (the same with `~/.neuroflow/hives/{org-repo}` for a hive). When it lists anything, add `--autostash` to that level's pull below (`git -C ~/.neuroflow/flowie pull --rebase --autostash`): git sets the uncommitted changes aside for the pull and puts them back after it. Before that pull:
+   (the same with `~/.neuroflow/hives/{org-repo}` for a hive). Each line is a two-letter state and a path (a rename: `old -> new`, two paths). `core.quotepath=off` shows a name with accents or other non-ASCII letters as it is; a path with a space comes inside double quotes, which are not part of its name. When it lists anything, add `--autostash` to that level's pull below (`git -C ~/.neuroflow/flowie pull --rebase --autostash`): git sets the uncommitted changes aside for the pull and puts them back after it. Before that pull:
    - flowie — the person's own private repository: show the list and ask with `AskUserQuestion` (nothing to ask when `integrations.json` is all it lists — it is never committed):
      <!-- nf-rule: GIT-NO-SECRETS -->
      - **Sync these first** (recommended): commit exactly those paths, by path, as `/flowie --sync` does (`/flowie` → **Git operations pattern**): `git -C ~/.neuroflow/flowie add -- "{path}" …`, then `git -C ~/.neuroflow/flowie commit -m "sync: before migrate" -- "{path}" …` — never `git add -A`, never `integrations.json`. Push the commit (`git -C ~/.neuroflow/flowie push`) once the pull below went through.
