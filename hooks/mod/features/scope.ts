@@ -6,6 +6,7 @@
 // Pattern every feature file follows: `$` never leaves the file it is used in (the validator
 // follows it only into functions declared in the same file), so each file builds its own NfIo
 // with an `ioOf($)` like the one below and hands that to the shared helpers in ../lib.
+// `$.fs.list` names a folder `dir` (FsEntry.kind); `directory` is read as one too.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
@@ -37,7 +38,7 @@ export const isQuiet = (since: number | null, nowMs: number): boolean => since !
 const ioOf = ($: EngineInterface): NfIo => ({
   read: path => $.fs.read(path).then(text => (typeof text === 'string' ? text : null), () => null),
   exists: path => $.fs.exists(path).catch(() => false),
-  list: path => $.fs.list(path).then(entries => entries.map(entry => ({ name: entry.name, isDir: entry.kind === 'directory' })), () => []),
+  list: path => $.fs.list(path).then(entries => entries.map(entry => ({ name: entry.name, isDir: entry.kind === 'dir' || String(entry.kind) === 'directory' })), () => []),
   write: (path, text) => $.fs.write(path, text),
   home: async () => (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE')),
   now: () => $.clock.now(),

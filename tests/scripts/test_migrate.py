@@ -831,6 +831,166 @@ class FlowieHiveTest(unittest.TestCase):
         self.assertNotIn("id:", self.read(tasks / "active" / "plan.md"))
         self.assertIn("blocked_by: [plan]\n", self.read(tasks / "ready" / "after.md"), "the dropped id follows")
 
+    # -- uncommitted changes in a level (git status) ---------------------------
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_local_changes_are_listed_and_a_change_to_one_is_flagged(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "t-1-plan.md", "---\nid: t-1\ntitle: Plan\nstatus: active\n---\n\nNotes.\n")
+        self.write(tasks / "t-2-draft.md", "---\nid: t-2\ntitle: Draft\nstatus: inbox\n---\n")
+        self.write(self.flowie / "profile.md", "# Research Profile\n")
+        self.write(self.flowie / ".gitignore", ".DS_Store\n")
+        self.repo(self.flowie)
+        with open(tasks / "t-1-plan.md", "a", encoding="utf-8", newline="") as fh:
+            fh.write("A local note, not synced yet.\n")  # a tracked file the plan moves
+        with open(self.flowie / ".gitignore", "a", encoding="utf-8", newline="") as fh:
+            fh.write("*.tmp\n")  # a tracked file the plan rewrites
+        with open(self.flowie / "profile.md", "a", encoding="utf-8", newline="") as fh:
+            fh.write("Edited here.\n")  # a tracked file the plan does not touch
+        self.write(self.flowie / "wellbeing" / "2026-10-08.json", "{}\n")  # untracked, as the mod leaves it
+        self.write(self.flowie / "notes" / "my idea.md", "# Idea\n")
+
+        code, result = self.levels("--flowie")
+        self.assertEqual(code, 1)
+        level = result["levels"][0]
+        self.assertEqual(sorted(level["uncommitted"]), [
+            ".gitignore", "notes/my idea.md", "profile.md", "tasks/t-1-plan.md", "wellbeing/2026-10-08.json"])
+        self.assertEqual({c["path"]: c.get("local_changes", False) for c in level["changes"]}, {
+            "tasks/t-1-plan.md": True, "tasks/t-2-draft.md": False, ".gitignore": True})
+        self.assertEqual((level["blocking"], level["report"]), ([], []))
+        code, text = self.levels("--flowie", as_json=False)
+        flagged = [line for line in text.splitlines() if "has local changes" in line]
+        self.assertEqual(len(flagged), 2, text)
+        self.assertTrue(any("tasks/t-1-plan.md -> tasks/active/plan.md" in line for line in flagged), text)
+        self.assertIn('"notes/my idea.md"', next(line for line in text.splitlines() if "not committed (uncommitted" in line))
+
+        code, result = self.levels("--flowie", "--apply")  # the person agreed to include them (commands/migrate.md 5.3)
+        self.assertEqual(code, 0, result)
+        paths = result["levels"][0]["commit_paths"]
+        self.assertEqual(paths, ["tasks/t-1-plan.md", "tasks/active/plan.md", "tasks/t-2-draft.md",
+                                 "tasks/inbox/draft.md", ".gitignore"])
+        run_git(self.flowie, "commit", "-q", "-m", "migrate: current task format", "--", *paths)
+        self.assertIn("A local note, not synced yet.", run_git(self.flowie, "show", "HEAD:tasks/active/plan.md"))
+        left = sorted(line[3:] for line in run_git(self.flowie, "status", "--porcelain", "-uall").splitlines())
+        self.assertEqual(left, ['"notes/my idea.md"', "profile.md", "wellbeing/2026-10-08.json"],
+                         "local changes outside the plan never join the migration commit")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_task_staged_but_never_committed_still_commits_by_path(self) -> None:
+        # A file staged but never committed - new, or the new name of a staged rename - is in neither HEAD nor the
+        # index after git mv: as a commit path, it would stop `git commit -- <paths>` and commit nothing.
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "t-1-plan.md", "---\nid: t-1\ntitle: Plan\nstatus: active\n---\n")
+        self.write(tasks / "t-3-old.md", "---\nid: t-3\ntitle: Review\nstatus: review\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        self.repo(self.flowie)
+        self.write(tasks / "t-7-new.md", "---\nid: t-7\ntitle: New\nstatus: inbox\n---\n")
+        run_git(self.flowie, "add", "--", "tasks/t-7-new.md")
+        run_git(self.flowie, "mv", "--", "tasks/t-3-old.md", "tasks/t-3-review.md")
+
+        code, result = self.levels("--flowie")
+        self.assertEqual({c["path"] for c in result["levels"][0]["changes"] if c.get("local_changes")},
+                         {"tasks/t-3-review.md", "tasks/t-7-new.md"})
+        code, result = self.levels("--flowie", "--apply")  # the person agreed to include them (commands/migrate.md 5.3)
+        self.assertEqual(code, 0, result)
+        paths = result["levels"][0]["commit_paths"]
+        self.assertEqual(sorted(paths), ["tasks/active/plan.md", "tasks/inbox/new.md", "tasks/review/review.md",
+                                         "tasks/t-1-plan.md"])
+        run_git(self.flowie, "commit", "-q", "-m", "migrate: current task format", "--", *paths)
+        tree = run_git(self.flowie, "ls-tree", "-r", "--name-only", "HEAD").splitlines()
+        for path in ("tasks/active/plan.md", "tasks/inbox/new.md", "tasks/review/review.md"):
+            self.assertIn(path, tree)
+        self.assertNotIn("tasks/t-1-plan.md", tree)
+        self.assertEqual(run_git(self.flowie, "status", "--porcelain", "-uall").splitlines(), ["D  tasks/t-3-old.md"],
+                         "the old name of the person's own staged rename is no part of the plan: it stays theirs")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_level_with_only_local_changes_is_current(self) -> None:
+        self.write(self.flowie / "tasks" / "active" / "plan.md",
+                   "---\ntitle: Plan\nstatus: active\ncreated: 2026-04-01\nupdated: 2026-04-02\n---\n")
+        self.write(self.flowie / "profile.md", "# Research Profile\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        self.repo(self.flowie)
+        self.write(self.flowie / "profile.md", "# Research Profile\n\nEdited.\n")
+        self.write(self.flowie / "wellbeing" / "2026-10-08.json", "{}\n")
+        for args in (("--flowie",), ("--flowie", "--apply")):
+            code, result = self.levels(*args)
+            self.assertEqual(code, 0, "local changes alone are no finding: the exit-code contract stays")
+            self.assertFalse(result["applied"])
+            level = result["levels"][0]
+            self.assertEqual((level["changes"], level["commit_paths"]), ([], []))
+            self.assertEqual(sorted(level["uncommitted"]), ["profile.md", "wellbeing/2026-10-08.json"])
+        self.assertEqual(run_git(self.flowie, "diff", "--cached", "--name-only"), "", "nothing is staged")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_hives_pending_changes_stay_out_of_the_migration_commit(self) -> None:
+        hive = self.hives / "example-lab"
+        self.write(hive / "ideas.md", "# Ideas\n")
+        self.write(hive / ".gitignore", "sync.json\n")
+        self.write(hive / "tasks" / "t-4-pipeline.md", "---\nid: t-4\ntitle: Pipeline\nstatus: ready\nassignee: li\n---\n")
+        self.repo(hive)
+        self.write(hive / "ideas.md", "# Ideas\n\n- a teammate's idea, not pushed yet\n")
+        self.write(hive / "tasks" / "inbox" / "new-idea.md", "---\ntitle: New idea\nstatus: inbox\n---\n")
+        code, result = self.levels("--hive", "example-lab", "--apply")
+        self.assertEqual(code, 0, result)
+        level = result["levels"][0]
+        self.assertEqual(sorted(level["uncommitted"]), ["ideas.md", "tasks/inbox/new-idea.md"])
+        self.assertFalse(any(change.get("local_changes") for change in level["changes"]))
+        self.assertEqual(level["commit_paths"], ["tasks/t-4-pipeline.md", "tasks/ready/pipeline.md"])
+        run_git(hive, "commit", "-q", "-m", "migrate: current task format", "--", *level["commit_paths"])
+        self.assertEqual(sorted(line[3:] for line in run_git(hive, "status", "--porcelain", "-uall").splitlines()),
+                         ["ideas.md", "tasks/inbox/new-idea.md"], "pending hive changes are left as they are")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_unresolved_conflicts_block_the_level(self) -> None:
+        # What a pull with --autostash leaves when it cannot put the local changes back: UU files, no MERGE_HEAD.
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "active" / "plan.md", "---\ntitle: Plan\nstatus: active\n---\n\nv1\n")
+        legacy = "---\nid: t-1\ntitle: Old\nstatus: inbox\n---\n"
+        self.write(tasks / "t-1-old.md", legacy)
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        self.repo(self.flowie)
+        self.write(tasks / "active" / "plan.md", "---\ntitle: Plan\nstatus: active\n---\n\nlocal\n")
+        run_git(self.flowie, "stash", "-q")
+        self.write(tasks / "active" / "plan.md", "---\ntitle: Plan\nstatus: active\n---\n\nupstream\n")
+        run_git(self.flowie, "commit", "-q", "-am", "upstream")
+        proc = subprocess.run(["git", "-c", "core.autocrlf=false", "stash", "apply"], cwd=self.flowie,
+                              capture_output=True, text=True)
+        self.assertNotEqual(proc.returncode, 0, "the stash must conflict for this test")
+        self.assertFalse((self.flowie / ".git" / "MERGE_HEAD").exists())
+
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 1)
+        self.assertFalse(result["applied"])
+        level = result["levels"][0]
+        self.assertEqual(level["blocking"], ["unresolved conflicts in tasks/active/plan.md; resolve them first "
+                                             "(/flowie --sync)"])
+        self.assertEqual(level["changes"], [])
+        self.assertEqual(self.read(tasks / "t-1-old.md"), legacy, "nothing is written while it blocks")
+
+    def test_git_status_output_is_parsed_exactly(self) -> None:
+        text = "R  new name.md\0old.md\0 M a.md\0?? nested/\0UU c.md\0C  copy.md\0src.md\0AA both.md\0"
+        self.assertEqual(migrate.parse_status(text), (
+            ["new name.md", "old.md", "a.md", "nested/", "c.md", "copy.md", "both.md"], ["c.md", "both.md"]))
+        self.assertEqual(migrate.parse_status(""), ([], []))
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_git_status_that_fails_is_a_failure(self) -> None:
+        self.write(self.flowie / "tasks" / "t-1-x.md", "---\nid: t-1\ntitle: X\n---\n")
+        self.repo(self.flowie)
+        real = migrate.git
+
+        def broken(root, *args):
+            if "status" in args:
+                return subprocess.CompletedProcess(args, 128, "", "fatal: detected dubious ownership in repository")
+            return real(root, *args)
+
+        with mock.patch.object(migrate, "git", broken):
+            code, result = self.levels("--flowie", "--apply")
+        self.assertEqual(code, 2)
+        self.assertIn("git status failed", result["error"])
+        self.assertTrue((self.flowie / "tasks" / "t-1-x.md").exists(), "nothing is written")
+
     def test_task_paths_survive_a_legacy_code_page(self) -> None:
         # The prose commits the paths it reads from --json: a name outside the ANSI code page must reach it.
         self.write(self.flowie / "tasks" / "t-2-日本語.md", "---\nid: t-2\ntitle: 日本語\nstatus: active\n---\n")

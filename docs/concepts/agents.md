@@ -22,6 +22,8 @@ Searches PubMed and bioRxiv in parallel for a given topic — with CrossRef / Se
 
 **Invoked by:** ad-hoc literature searches outside the ideation workflow, and `/neuroflow` (journal recommendation step). Note: `/neuroflow:ideation` runs its literature searches **inline** — it does not spawn this agent.
 
+**Full definition:** [`scholar`](../agents/scholar.md)
+
 **What it does:**
 
 1. Runs PubMed and bioRxiv in parallel, then the fallbacks one at a time when bioRxiv returns little
@@ -78,6 +80,8 @@ Audits `.neuroflow/` for internal consistency and drift. Called by the `/neurofl
 
 **Invoked by:** `/neuroflow:sentinel` (when `.neuroflow/` exists)
 
+**Full definition:** [`sentinel`](../agents/sentinel.md)
+
 **What it checks:** it runs `nf_check.py` first — the deterministic checks NF1–NF8 — then the judgement checks a script cannot make:
 
 - `flow.md` completeness — files listed vs files on disk
@@ -101,6 +105,8 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 
 **Invoked by:** `/neuroflow:sentinel` (when `.claude-plugin/plugin.json` exists)
 
+**Full definition:** [`sentinel-dev`](../agents/sentinel-dev.md)
+
 **What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (README hooks documentation, real names and institutions, guards versus prose):
 
 - Command folder names vs frontmatter `name:` fields
@@ -120,6 +126,8 @@ Runs 12 analytical protocols on the papers in `.neuroflow/ideation/papers/`, fro
 
 **Invoked by:** `/neuroflow:ideation`, after papers are retrieved
 
+**Full definition:** [`literature-review`](../agents/literature-review.md)
+
 ---
 
 ### `paper-writer`
@@ -129,6 +137,8 @@ Runs 12 analytical protocols on the papers in `.neuroflow/ideation/papers/`, fro
 Drafts neuroscience manuscript sections from upstream project memory, the target journal's guidelines and the analysis results, citing only from the project library. It works inside the write→critique loop with `paper-critic` and revises until the critic approves or the loop runs out. It returns outlines, drafts and open questions instead of waiting for answers.
 
 **Invoked by:** `/neuroflow:paper`
+
+**Full definition:** [`paper-writer`](../agents/paper-writer.md)
 
 ---
 
@@ -140,6 +150,8 @@ Applies the full eight-area `neuroflow:review-neuro` methodology to every sectio
 
 **Invoked by:** `/neuroflow:paper`, inside the write→critique loop
 
+**Full definition:** [`paper-critic`](../agents/paper-critic.md)
+
 ---
 
 ### `poster-critic`
@@ -149,6 +161,8 @@ Applies the full eight-area `neuroflow:review-neuro` methodology to every sectio
 Judges the poster's LaTeX source, its compile log, a rendered preview and, when it exists, the compiled PDF against design, content and communication standards, including the QR code and LaTeX correctness. Returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with actionable feedback.
 
 **Invoked by:** `/neuroflow:poster`, in its worker-critic loop (at most 3 cycles)
+
+**Full definition:** [`poster-critic`](../agents/poster-critic.md)
 
 ---
 
@@ -160,6 +174,8 @@ Makes one focused change to a research artifact per iteration, judges it against
 
 **Invoked by:** `/neuroflow:autoresearch`
 
+**Full definition:** [`autoresearch`](../agents/autoresearch.md)
+
 ---
 
 ### `flowie`
@@ -169,6 +185,8 @@ Makes one focused change to a research artifact per iteration, judges it against
 Reads your flowie profile (`~/.neuroflow/flowie/profile.md`) and shapes the work to who you are: your research stances, writing style and methodological preferences. At the start of a session it surfaces your active tasks for the current project and notes a stale sync. Profile data never appears verbatim in external-facing outputs such as manuscripts, grants or reports.
 
 **Invoked by:** Claude, when a linked flowie profile should shape the work; see [Your profile](flowie.md)
+
+**Full definition:** [`flowie`](../agents/flowie.md)
 
 !!! note "Per-phase agents were removed"
     Earlier versions listed one agent per research phase. Those agent files were never spawned by commands and have been removed: each command follows its phase skill directly.

@@ -173,6 +173,16 @@ class FlowieTest(unittest.TestCase):
         self.log.write_text("\n", encoding="utf-8")
         self.assertEqual(flowie_checks(self.home), {})
 
+    def test_the_mods_synced_lines_are_no_failure(self):
+        self.flowie.mkdir(parents=True)
+        self.log.write_text("2026-10-07T07:30:00Z synced: wellbeing/2026-10-07.json wellbeing/.flow (mod)\n", encoding="utf-8")
+        self.assertEqual(flowie_checks(self.home), {})
+        with self.log.open("a", encoding="utf-8") as log:
+            log.write("2026-10-08T07:30:00Z push failed: ideas-inbox.md (mod) — fatal: could not resolve host\n")
+            log.write("2026-10-08T08:00:00Z synced: ideas-inbox.md (mod)\n")
+        found = flowie_checks(self.home)
+        self.assertIn("1 flowie auto-sync failure(s) since 2026-10-08T07:30:00Z", found["flowie-sync-log"]["message"])
+
 
 @unittest.skipUnless(shutil.which("git"), "needs git")
 class FlowieGitTest(unittest.TestCase):
@@ -222,6 +232,31 @@ class FlowieGitTest(unittest.TestCase):
         self.assertEqual(found["status"], "warn")
         self.assertIn("2 flowie commit(s) not pushed", found["message"])
         self.assertIn("/neuroflow:flowie --sync", found["message"])
+
+    def test_uncommitted_changes_are_counted_with_up_to_three_paths(self):
+        self.assertNotIn("flowie-uncommitted", flowie_checks(self.home), "a clean flowie says nothing")
+        (self.flowie / "integrations.json").write_text('{"token": "x"}\n', encoding="utf-8")
+        self.assertNotIn("flowie-uncommitted", flowie_checks(self.home), "integrations.json is never committed")
+
+        (self.flowie / "profile.md").write_text("# profile.md\n\nA private line.\n", encoding="utf-8")
+        found = flowie_checks(self.home)["flowie-uncommitted"]
+        self.assertEqual(found["status"], "warn")
+        self.assertEqual(found["message"], "1 uncommitted change(s) in your flowie (profile.md) — run /neuroflow:flowie --sync")
+
+        (self.flowie / "wellbeing").mkdir()
+        (self.flowie / "wellbeing" / "2026-10-08.json").write_text('{"mood": 2}\n', encoding="utf-8")
+        (self.flowie / "tasks" / "inbox").mkdir(parents=True)
+        for name in ("a.md", "b.md"):
+            (self.flowie / "tasks" / "inbox" / name).write_text("---\ntitle: Secret plan\n---\n", encoding="utf-8")
+        found = flowie_checks(self.home)["flowie-uncommitted"]
+        self.assertEqual(found["message"], "4 uncommitted change(s) in your flowie (profile.md, tasks/inbox/a.md, "
+                                           "tasks/inbox/b.md and 1 more) — run /neuroflow:flowie --sync")
+        for content in ("private line", "mood", "Secret plan", "token"):
+            self.assertNotIn(content, found["message"], "paths only, never file contents")
+        project = self.base / "project"
+        project.mkdir()
+        code, checks = report(project, self.home)
+        self.assertEqual((code, checks["flowie-uncommitted"]["status"]), (1, "warn"))
 
 
 if __name__ == "__main__":

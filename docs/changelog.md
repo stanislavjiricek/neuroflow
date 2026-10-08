@@ -6,6 +6,17 @@ title: Changelog
 
 ---
 
+## 0.2.23
+
+- Tasks at every level in the mod: the dashboard's tasks tab sums up the project board, your flowie and each hive you joined (this project's share where a level links it), and the bare `/neuroflow:tasks` pane switches between their boards with `v`, this project's cards first and marked; a move fills the prompt with one `/tasks` command, which gains `--hive {org-repo}`. Read-only: the mod never pulls or moves task files
+- Fix: the mod read every folder as a file (the engine lists folders as `kind: 'dir'`), so in real sessions it found no task board, visited phases, loop registries or hive wikis
+- `/neuroflow:migrate` brings a level with uncommitted changes along instead of leaving it out: for your flowie it offers to sync them first, for a hive it pulls with `--autostash` and leaves them as they are; a planned change to a file with local edits is named in the plan and included only with your yes. `migrate.py --json` lists each level's `uncommitted` paths
+- `/doctor` reports uncommitted changes in your flowie and lists the version check
+- The mod's flowie syncs (the wellbeing check-in on the band, `idea: …`) are queued and run before your next neuroflow command or when a turn ends, never from the band's own field; every attempt is logged in `~/.neuroflow/flowie-sync.log`, and a sync that did not go through stays on the band
+- The version notice is said verbatim, as one sentence; `/setup` skips it with the mod too, and the band offers `m` whenever it shows the notice
+- Site: the search field stays at the top of the index on every page (`/` focuses it), content tabs and command titles fit on phones, no empty bands while filtering, the landing fits the smallest phones, About agents links each agent, and the old addresses of the renamed skills redirect
+- CI runs Claude Code on Node 22; the upgrade notes say neuroflow 0.2.22 and later need Claude Code 2.1.271 or later
+
 ## 0.2.22
 
 **Site, docs and upgrading**

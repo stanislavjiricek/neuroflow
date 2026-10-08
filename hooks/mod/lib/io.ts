@@ -15,8 +15,8 @@ export type NfIo = {
   /** The user's home folder (HOME, or USERPROFILE on Windows), if set. */
   home: () => Promise<string | undefined>
   now: () => Promise<number>
-  /** Runs a host command by argv; rejects when the program cannot start. */
-  run: (argv: readonly string[], init: { cwd?: string; timeoutMs?: number }) => Promise<NfRun>
+  /** Runs a host command by argv; rejects when the program cannot start (callers also guard a synchronous throw). */
+  run: (argv: readonly string[], init: { cwd?: string; timeoutMs?: number; env?: Record<string, string> }) => Promise<NfRun>
   /** The plugin's own folder (holding .claude-plugin/plugin.json), absolute. */
   pluginRoot: string
 }

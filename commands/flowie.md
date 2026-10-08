@@ -98,7 +98,7 @@ Read `.neuroflow/project_config.md` and `.neuroflow/flow.md`.
 Check whether `~/.neuroflow/flowie/` exists:
 
 - **If it does not exist** — this is first run. Go to Step 2.
-- **If it exists** — pull latest from GitHub (Git operations pattern), then read `sync.json` to confirm the linked GitHub repo and last sync time. If `~/.neuroflow/flowie-sync.log` exists and is not empty, tell the person once: *"{N} flowie auto-sync failure(s) since {first timestamp} — run `/flowie --sync` to resolve."* Go to Step 3 (mode menu).
+- **If it exists** — pull latest from GitHub (Git operations pattern), then read `sync.json` to confirm the linked GitHub repo and last sync time. If `~/.neuroflow/flowie-sync.log` holds failure lines (every line but the neuroflow mod's `{time} synced: …` lines), tell the person once: *"{N} flowie auto-sync failure(s) since {first timestamp} — run `/flowie --sync` to resolve."* Go to Step 3 (mode menu).
 
 ---
 
@@ -516,17 +516,17 @@ If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort`
 Check for local uncommitted changes and unpushed commits:
 
 ```bash
-git -C ~/.neuroflow/flowie status --short
+git -C ~/.neuroflow/flowie -c core.quotepath=off status --short
 git -C ~/.neuroflow/flowie rev-list --count @{u}..HEAD
 ```
 
-If files changed, list them for the person, then Sync exactly those paths (`sync: {YYYY-MM-DD HH:MM}`) — never `add -A`, never `integrations.json`. If only unpushed commits remain, push them.
+If files changed, list them for the person, then Sync exactly those paths (`sync: {YYYY-MM-DD HH:MM}`) — never `add -A`, never `integrations.json`. `core.quotepath=off` shows a name with accents as it is; a path with a space comes inside double quotes, which are not part of its name. If only unpushed commits remain, push them.
 
 Update `last_synced` in `sync.json` to the current ISO 8601 timestamp, then Sync `sync.json` (`sync: update last_synced`).
 
 ### Auto-sync log
 
-If `~/.neuroflow/flowie-sync.log` has lines, show them (newest last). Once the pull and the push above have both succeeded, the failures it records are resolved: empty the file. If either step failed, leave the log as it is.
+If `~/.neuroflow/flowie-sync.log` has failure lines, show them (newest last; the neuroflow mod's `synced` lines record syncs that went through). Once the pull and the push above have both succeeded, the failures it records are resolved: empty the file. If either step failed, leave the log as it is.
 
 ### Wellbeing check
 

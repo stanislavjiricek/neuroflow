@@ -20,6 +20,12 @@
 ---
 
 <a id="whats-new"></a>
+## What's new in 0.2.23
+
+- **Your tasks from every level** — with the mod, the [dashboard](commands/dashboard.md)'s tasks tab and the [`/neuroflow:tasks`](commands/tasks.md) pane show the project board, your flowie and every hive you joined (`v` switches the level); this project's tasks come first, and a move goes into the prompt as one `/tasks` command (new `--hive {org-repo}`). A bug that made the mod see no folders at all (so no task board, phases or loops) is fixed
+- **`/neuroflow:migrate` no longer skips a level with unsynced files** — it lists them and offers to sync them first (flowie) or carries them along untouched (hive); [`/doctor`](commands/doctor.md) reports uncommitted flowie changes. The mod's wellbeing check-in and idea capture now sync your flowie before your next neuroflow command and log every attempt
+- **Docs and notice fixes** — the docs search stays in view on every page, phone layouts fit, old skill addresses redirect; the update notice is said verbatim as one sentence, and the band offers `m` (migrate) whenever it shows it
+
 ## What's new in 0.2.22
 
 - **A new site and one command after every update** — the [landing page](https://stanislavjiricek.github.io/neuroflow/) turns the research cycle as you scroll, and the [documentation](docs/overview.md) has no top bar: one index with search holds every phase, command, agent and skill, a [Memory & team](docs/concepts/memory.md) section explains the three levels (you, the project, the team), and [the mod page](docs/concepts/mods.md) shows the harness as it looks. After an update, the first neuroflow command names [`/neuroflow:migrate`](commands/migrate.md), which brings the project, your flowie and the team hive up to date ([upgrading](docs/upgrading.md)). Three skills that shared a command's name are renamed: `autoresearch-protocol`, `wiki-protocol`, `setup-guide`

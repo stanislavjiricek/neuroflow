@@ -4,20 +4,22 @@
 //  - /neuroflow:phase answered in code (M163, M011): a picker — arrows and Enter, or a click
 //  - /neuroflow:dashboard opens the pane; its integrity tab freezes, verifies and unfreezes a
 //    preregistration on a person's key press and confirmation (M018), through freeze.py
-// Without the mod, commands/phase.md and commands/dashboard.md do the same in prose.
+//  - /neuroflow:tasks opens the task boards of every level — project, flowie, each hive (M070, M163)
+// Without the mod, commands/phase.md, commands/dashboard.md and commands/tasks.md do the same in prose.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { NfCard, NfDashboardTab, NfLoopView, NfSnapshot } from '../../../types'
+import type { NfDashboardTab, NfFlowieSync, NfLoopView, NfSnapshot, NfTaskView } from '../../../types'
 import { setActivePhase } from '../lib/config'
+import { NO_SYNC, SYNC_QUEUE, asQueue, enqueue, syncState } from '../lib/flowiesync'
 import type { NfIo } from '../lib/io'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
-import { join, resolveFrom } from '../lib/paths'
+import { join, resolveFrom, toSlash } from '../lib/paths'
 import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
-import { buildBoard, cardLine, columnsFromConfig, parseTask } from '../lib/tasks'
+import { MINE, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
 import { isQuiet } from './scope'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -30,9 +32,11 @@ const pickerNoteAtom = atom({ plugin: 'neuroflow', key: 'pickerNote' } as const,
 const draftAtom = atom({ plugin: 'neuroflow', key: 'draftedDecision' } as const, null)
 const driveAtom = atom({ plugin: 'neuroflow', key: 'drive' } as const, null)
 const captureAtom = atom({ plugin: 'neuroflow', key: 'capture' } as const, null)
-const boardAtom = atom({ plugin: 'neuroflow', key: 'board' } as const, null)
+const taskViewAtom = atom({ plugin: 'neuroflow', key: 'taskView' } as const, null)
+const boardLevelAtom = atom({ plugin: 'neuroflow', key: 'boardLevel' } as const, null)
 const boardPickAtom = atom({ plugin: 'neuroflow', key: 'boardPick' } as const, null)
 const quietAtom = atom({ plugin: 'neuroflow', key: 'quietSince' } as const, null)
+const flowieSyncAtom = atom({ plugin: 'neuroflow', key: 'flowieSync' } as const, NO_SYNC)
 
 const DASHBOARD = 'nf-dashboard'
 const PICKER = 'nf-phase'
@@ -69,8 +73,33 @@ export const meetingWhen = (minutes: number, date: string, nowMs: number): strin
   return `${sameDay ? 'today' : 'tomorrow'}${time ? ` ${time}` : ''}`
 }
 
+/** The band's line for a flowie sync the mod queued that is still waiting or did not go through; null when none. */
+export const flowieSyncItem = (sync: NfFlowieSync | null): BandItem | null => {
+  if (sync === null) return null
+  const actions = [{ key: 'nf-flowie-sync', label: 'sync', hotkey: 's', command: 'neuroflow:flowie', args: '--sync' }]
+  if (sync.failure !== null) return { level: 'warn', glyph: '!', text: `flowie not synced: ${sync.failure} — /neuroflow:flowie --sync`, actions }
+  if (sync.pending.length > 0) {
+    return {
+      level: 'warn',
+      glyph: '↻',
+      text: `flowie sync pending (${sync.pending.join(', ')}) — it runs before your next neuroflow command or when a turn ends, or /neuroflow:flowie --sync`,
+      actions,
+    }
+  }
+  return null
+}
+
+/**
+ * Whether a key's command goes into the prompt instead of running: while a flowie sync of the mod's waits (queued,
+ * not held). A neuroflow command pulls the flowie first, which a check-in's uncommitted files make fail; and a
+ * command a key runs ($.command.run) does not reach the mod's own hooks — so in the engine's test kit, and the types
+ * say only "every hook but the calling one" — so the hook that syncs first (capture.ts) may never see it. Sent with
+ * Enter, the command passes that hook.
+ */
+export const keyFillsPrompt = (sync: NfFlowieSync | null): boolean => sync !== null && sync.pending.length > 0 && !sync.isHeld
+
 /** What the band may show, most urgent first. Quiet mode keeps alerts and warnings only. */
-export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
+export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync | null = null): BandItem[] => {
   const items: BandItem[] = []
   const ethics = snap.ethics
   if (ethics !== null && (ethics.status === 'expired' || ethics.status === 'withdrawn')) {
@@ -108,6 +137,10 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
       actions: [{ key: 'nf-meet-close', label: 'close', hotkey: 'c', command: 'neuroflow:meeting', args: `--close ${unclosed.slug}` }],
     })
   }
+  // A flowie sync the mod queued (wellbeing, ideas) that has not gone through yet; ahead of the version notice,
+  // because /neuroflow:migrate skips a flowie with uncommitted changes.
+  const syncing = flowieSyncItem(sync)
+  if (syncing !== null) items.push(syncing)
   // After a plugin update, until /neuroflow:migrate has run (neuroflow-core → Command lifecycle, version notice).
   // It waits behind the time-bound items: a meeting within two hours keeps the one quiet-band seat and its keys.
   const behind = versionNotice(snap)
@@ -137,6 +170,20 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
   const rank = { alert: 0, warn: 1, info: 2 } as const
   const sorted = [...items].sort((a, b) => rank[a.level] - rank[b.level])
   return quiet ? sorted.filter(item => item.level !== 'info') : sorted
+}
+
+/**
+ * The keys the band offers for the items it shows: the first item's own, and the version notice's migrate key
+ * wherever the notice stands among them (a key already taken is not offered twice).
+ */
+export const bandActions = (shown: readonly BandItem[]): BandAction[] => {
+  const actions = [...(shown[0]?.actions ?? [])]
+  for (const item of shown.slice(1)) {
+    for (const action of item.actions ?? []) {
+      if (action.key === 'nf-migrate' && !actions.some(taken => taken.key === action.key || taken.hotkey === action.hotkey)) actions.push(action)
+    }
+  }
+  return actions
 }
 
 const BARS = '▁▂▃▄▅▆▇█'
@@ -184,8 +231,35 @@ export const parseOpenQuestions = (reportMd: string, max = 3): string[] => {
 
 const label = (id: string | null): string => PHASES.find(phase => phase.id === id)?.label ?? ''
 
+/**
+ * The tasks tab (commands/dashboard.md → Tasks): open tasks per level on one line, this project's share in
+ * brackets, then the first open cards across levels — this project's first, overdue first, then by due date —
+ * each tagged with its level. Every mark has a word in the last line.
+ */
+export const taskLines = (view: NfTaskView | null, max = 5): Line[] => {
+  if (view === null) return [{ text: 'Reading the task boards…', dim: true }]
+  const cards = topCards(view, max)
+  // This project's name at each level its marked cards come from (the flowie's and a hive's may differ).
+  const names = [...new Set(cards.filter(({ level, card }) => card.isMine && level.kind !== 'project').map(({ level }) => level.project))].filter(
+    (name): name is string => name !== null,
+  )
+  const overdue = cards.some(({ card }) => card.overdue)
+  const key = [
+    ...(names.length > 0 ? [`${MINE} this project (${names.join(', ')})`] : []),
+    ...(overdue ? ['⚠ overdue'] : []),
+    '/neuroflow:tasks opens the boards (v switches level)',
+  ]
+  return [
+    { text: levelSummary(view) },
+    ...(cards.length === 0
+      ? [{ text: 'No open tasks.', dim: true }]
+      : cards.map(({ level, card }) => ({ text: `[${level.name}] ${levelCardLine(card, level.kind)}`, tone: card.overdue ? ('warning' as Tone) : undefined }))),
+    { text: key.join(' · '), dim: true },
+  ]
+}
+
 /** The dashboard body for one tab, as plain lines (the text form every surface can show). */
-export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView | null): Line[] => {
+export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView | null, tasks: NfTaskView | null = null): Line[] => {
   if (tab === 'phase') {
     const map = phaseMap(snap.phase, snap.phasesVisited, snap.recommendedPhases)
     const next = nextPhase(snap.phase, snap.recommendedPhases)
@@ -229,11 +303,7 @@ export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView
     for (const problem of snap.problems) lines.push({ text: `! ${problem}`, tone: 'warning' })
     return lines
   }
-  if (tab === 'tasks') {
-    if (snap.taskCounts === null) return [{ text: 'No task board yet — /neuroflow:tasks', dim: true }]
-    const counts = Object.entries(snap.taskCounts).map(([column, count]) => `${column} ${count}`).join(' · ')
-    return [{ text: counts }, { text: 'Work the board with /neuroflow:tasks', dim: true }]
-  }
+  if (tab === 'tasks') return taskLines(tasks)
   if (loop === null) return [{ text: snap.loops.length === 0 ? 'No autoresearch loops.' : 'Loading the loop…', dim: true }]
   const last = loop.running.length > 0 ? loop.running[loop.running.length - 1] : null
   return [
@@ -251,7 +321,7 @@ export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView
 const ioOf = ($: EngineInterface): NfIo => ({
   read: path => $.fs.read(path).then(text => (typeof text === 'string' ? text : null), () => null),
   exists: path => $.fs.exists(path).catch(() => false),
-  list: path => $.fs.list(path).then(entries => entries.map(entry => ({ name: entry.name, isDir: entry.kind === 'directory' })), () => []),
+  list: path => $.fs.list(path).then(entries => entries.map(entry => ({ name: entry.name, isDir: entry.kind === 'dir' || String(entry.kind) === 'directory' })), () => []),
   write: (path, text) => $.fs.write(path, text),
   home: async () => (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE')),
   now: () => $.clock.now(),
@@ -321,15 +391,33 @@ const loadLoopView = async ($: EngineInterface): Promise<void> => {
   await update($, loopViewAtom, () => view)
 }
 
+/**
+ * Reads every level's task board (commands/tasks.md → Levels) into state: the project's, the flowie's and each
+ * hive clone's, as the local files are — the mod never pulls, writes or moves a task file.
+ */
+const loadTasks = async ($: EngineInterface): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  if (scope?.root === null || scope === null) return
+  const io = ioOf($)
+  const home = await io.home()
+  const view = await loadTaskView(io, scope.root, home ? toSlash(home) : null, isoDate(await io.now()))
+  await update($, taskViewAtom, () => view)
+}
+
 const selectTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
   await update($, tabAtom, () => tab)
   if (tab === 'loop') await loadLoopView($)
+  if (tab === 'tasks') await loadTasks($)
 }
 
 const openDashboard = async ($: EngineInterface, tab?: string): Promise<void> => {
   const wanted = TABS.find(item => item.id === tab)
   if (wanted !== undefined) await selectTab($, wanted.id)
-  else if ((await read($, tabAtom)) === 'loop') await loadLoopView($)
+  else {
+    const current = await read($, tabAtom)
+    if (current === 'loop') await loadLoopView($)
+    if (current === 'tasks') await loadTasks($)
+  }
   await $.ui.open({ id: DASHBOARD, title: 'neuroflow' })
 }
 
@@ -340,29 +428,50 @@ const openPicker = async ($: EngineInterface): Promise<void> => {
 
 const isPersonThere = async ($: EngineInterface): Promise<boolean> => (await $.session.surfaces()).length > 0
 
-/** Reads the project board from .neuroflow/tasks/ (commands/tasks.md format) into state. */
-const loadBoard = async ($: EngineInterface): Promise<void> => {
-  const scope = await read($, scopeAtom)
-  if (scope?.root === null || scope === null) return
-  const io = ioOf($)
-  const dir = join(scope.root, '.neuroflow/tasks')
-  const columns = columnsFromConfig(await io.read(join(dir, 'config.json')))
-  const today = isoDate(await io.now())
-  const cards: Record<string, NfCard[]> = {}
-  for (const column of columns) {
-    cards[column.id] = []
-    for (const entry of await io.list(join(dir, column.id))) {
-      if (entry.isDir || !entry.name.endsWith('.md')) continue
-      const text = await io.read(join(dir, column.id, entry.name))
-      if (text !== null) cards[column.id].push(parseTask(text, entry.name.replace(/\.md$/, ''), today, column.id === 'done' || column.archive))
-    }
-  }
-  await update($, boardAtom, () => buildBoard(columns, cards))
+/**
+ * Opens the board pane on the level commands/tasks.md names: the project's when it has open tasks, else the first
+ * level with open tasks of this project, else the first with any open tasks.
+ */
+const openBoard = async ($: EngineInterface): Promise<void> => {
+  await loadTasks($)
+  const view = await read($, taskViewAtom)
+  await update($, boardPickAtom, () => null)
+  await update($, boardLevelAtom, () => (view === null ? null : openingLevel(view)))
+  await $.ui.open({ id: BOARD, title: 'tasks' })
+}
+
+/** The board pane's level switch: the next level after the shown one, back to the first after the last. */
+const nextLevel = async ($: EngineInterface): Promise<void> => {
+  const view = await read($, taskViewAtom)
+  if (view === null || view.levels.length === 0) return
+  const shown = await read($, boardLevelAtom)
+  const at = view.levels.findIndex(level => level.id === shown)
+  await update($, boardPickAtom, () => null)
+  await update($, boardLevelAtom, () => view.levels[(at + 1) % view.levels.length].id)
 }
 
 const hideBandToday = async ($: EngineInterface): Promise<void> => {
   await $.store.set(BAND_HIDDEN_ON, isoDate(await $.clock.now()))
   await update($, bandHiddenAtom, () => true)
+}
+
+/**
+ * A key's neuroflow command (the band's, the dashboard's migrate): run at once — or, while a flowie sync of the
+ * mod's waits, put in the prompt for the person to send, so the sync runs before it (keyFillsPrompt). A prompt box
+ * that does not take the text runs the command as before.
+ */
+const runKey = async ($: EngineInterface, command: string, args: string): Promise<void> => {
+  if (keyFillsPrompt(await read($, flowieSyncAtom))) {
+    const filled = await $.prompt.fill({ text: `/${command}${args === '' ? '' : ` ${args}`}` }).then(
+      result => result.isFilled,
+      () => false,
+    )
+    if (filled) {
+      $.ui.toast('neuroflow: press Enter to run it — your flowie sync goes first')
+      return
+    }
+  }
+  await $.command.run({ command, args })
 }
 
 /** Three whole numbers 1–10 and optional notes after them ("3 6 7 slept badly"), or null. */
@@ -375,8 +484,17 @@ export const parseWellbeing = (value: string): { anxiety: number; energy: number
 }
 
 /**
- * Writes today's self-reported entry exactly as /flowie --assess does and syncs the private flowie
- * repository (the mod's own cache). Scores go only into the file: never into state, toasts or context.
+ * Writes today's self-reported entry exactly as /flowie --assess does, queues its sync to the private flowie
+ * repository (the mod's own cache) and returns. Scores go only into the file: never into state, toasts or context.
+ *
+ * It runs git nowhere. This is the band Input's closure; when an earlier version ran the sync here, the entry was
+ * written once but no git ran and no log line came, which left the flowie dirty (and a dirty flowie makes
+ * /neuroflow:migrate leave it out). Why is a hypothesis, not a fact the engine types state: a synchronous throw
+ * of $.process.run, or the closure's later $ calls stopping or failing after the band redrew without the field
+ * (the host keeps the Input's handle "for the lifetime of the drawing"). So the sync is queued in $.store before
+ * the entry is written and runs from a hook dispatch: before the next neuroflow command's turn, or at a turn's
+ * end (capture.ts, lib/flowiesync.ts). A closure that stops anywhere after the queueing loses nothing; one that
+ * goes on queues again once both files are written, in case a sync ran in between.
  */
 const saveWellbeing = async ($: EngineInterface, value: string): Promise<void> => {
   const entry = parseWellbeing(value)
@@ -384,29 +502,31 @@ const saveWellbeing = async ($: EngineInterface, value: string): Promise<void> =
     $.ui.toast('neuroflow: three whole numbers from 1 to 10, e.g. 3 6 7 (notes may follow)')
     return
   }
-  const io = ioOf($)
-  const home = (await io.home()) ?? ''
-  const flowie = `${home}/.neuroflow/flowie`
-  if (home === '' || !(await io.exists(`${flowie}/.git`))) return
-  const today = isoDate(await io.now())
-  await io.write(`${flowie}/wellbeing/${today}.json`, `${JSON.stringify({ date: today, ...entry }, null, 2)}\n`)
-  await appendLine(io, `${flowie}/wellbeing/.flow`, `| ${today}.json | wellbeing entry |`)
-  const git = (args: readonly string[]) => $.process.run(['git', '-C', flowie, ...args], { timeoutMs: 30_000 }).catch(() => ({ exitCode: 1, stdout: '', stderr: '' }))
-  const hooksPath = (await git(['config', '--get', 'core.hooksPath'])).stdout.trim()
-  const hooks = (await io.list(`${flowie}/.git/hooks`)).filter(item => !item.name.endsWith('.sample'))
-  let synced = hooksPath === '' && hooks.length === 0
-  if (synced) {
-    for (const args of [['add', '--', `wellbeing/${today}.json`, 'wellbeing/.flow'], ['commit', '-m', `wellbeing: ${today}`, '--', `wellbeing/${today}.json`, 'wellbeing/.flow'], ['pull', '--rebase'], ['push']]) {
-      if ((await git(args)).exitCode !== 0) {
-        synced = false
-        await appendLine(io, `${home}/.neuroflow/flowie-sync.log`, `${new Date(await io.now()).toISOString()} git ${args[0]} failed (wellbeing ${today})`)
-        break
-      }
-    }
+  let step: 'read' | 'queue' | 'write' | 'show' = 'read'
+  try {
+    const io = ioOf($)
+    const home = toSlash((await io.home()) ?? '')
+    const flowie = `${home}/.neuroflow/flowie`
+    if (home === '' || !(await io.exists(`${flowie}/.git`))) return
+    const now = await io.now()
+    const today = isoDate(now)
+    const sync = { paths: [`wellbeing/${today}.json`, 'wellbeing/.flow'], message: `wellbeing: ${today}`, at: now }
+    step = 'queue'
+    await $.store.set(SYNC_QUEUE, enqueue(asQueue(await $.store.get(SYNC_QUEUE)), sync))
+    step = 'write'
+    await io.write(`${flowie}/wellbeing/${today}.json`, `${JSON.stringify({ date: today, ...entry }, null, 2)}\n`)
+    await appendLine(io, `${flowie}/wellbeing/.flow`, `| ${today}.json | wellbeing entry |`)
+    $.ui.toast(`neuroflow: wellbeing logged for ${today} — it syncs to your flowie before your next neuroflow command or when a turn ends`)
+    // The band may redraw without the field from here on; the sync queued above already covers the entry.
+    step = 'show'
+    const queue = enqueue(asQueue(await $.store.get(SYNC_QUEUE)), { ...sync, at: await io.now() })
+    await $.store.set(SYNC_QUEUE, queue)
+    await update($, flowieSyncAtom, () => syncState(queue, null))
+    await update($, snapshotAtom, snap => (snap === null ? snap : { ...snap, wellbeingDue: false }))
+  } catch (error) {
+    const why = (error instanceof Error ? error.message : String(error)).slice(0, 120)
+    if (step !== 'show') $.ui.toast(`neuroflow: wellbeing not saved — ${step === 'write' ? 'the entry could not be written' : step === 'queue' ? 'its sync could not be queued' : 'the flowie folder could not be read'} (${why}); /neuroflow:flowie --assess records it`)
   }
-  const scope = await read($, scopeAtom)
-  if (scope?.root) await reload($, scope.root)
-  $.ui.toast(`neuroflow: wellbeing logged for ${today}${synced ? '' : ' — sync pending (/neuroflow:flowie --sync)'}`)
 }
 
 /** Keep (a person's press) writes the drafted decision to the reasoning log; drop discards it. Both are counted. */
@@ -559,24 +679,44 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     return { text: 'Dashboard open — p phase · d deadlines · i integrity · t tasks · l loop.' }
   }).catch(($, e, next) => next(e))
 
-  // /neuroflow:tasks — bare: the project board as a pane (M070, M163); anything else: the prose flow.
+  // /neuroflow:tasks — bare: the task boards of every level as a pane (M070, M163); anything else: the prose flow.
   on('command.run', { command: 'neuroflow:tasks' }, async ($, e, next) => {
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || e.args.trim() !== '' || !(await isPersonThere($))) return next(e)
-    await loadBoard($)
-    await update($, boardPickAtom, () => null)
-    await $.ui.open({ id: BOARD, title: 'tasks' })
-    return { text: 'Task board open — pick a card, then the column to move it to. (Any argument runs the full /tasks flow: --list, --add, --move, --level.)' }
+    await openBoard($)
+    return {
+      text: 'Task boards open — project, flowie and each hive, v switches the level; pick a card, then the column to move it to. (Any argument runs the full /tasks flow: --list, --add, --move, --level, --hive.)',
+    }
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: BOARD }, async ($, e) => {
     const { Box, Button, Text } = $.ui.resolve(e)
-    const board = await read($, boardAtom)
-    if (board === null) return <Text dimColor>No task board in this project yet — /neuroflow:tasks --add "title" starts one.</Text>
+    const view = await read($, taskViewAtom)
+    if (view === null) return <Text dimColor>Reading the task boards…</Text>
+    const shown = await read($, boardLevelAtom)
+    const level = view.levels.find(item => item.id === shown) ?? view.levels[0]
+    if (level === undefined) return <Text dimColor>No task board here yet — /neuroflow:tasks --add "title" starts one.</Text>
+    const board = level.board
     const pick = await read($, boardPickAtom)
     const width = Math.max(14, Math.floor((e.props.bodyColumns - 2) / Math.max(1, board.columns.length)))
+    const marked = level.kind !== 'project' && level.mine > 0 && level.project !== null
     return (
       <Box flexDirection="column" gap={1}>
+        <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
+          <Text>level:</Text>
+          {view.levels.map(item => (
+            <Button
+              key={`nf-level-${item.id}`}
+              label={item.id === level.id ? `[${item.name} ${item.open}]` : `${item.name} ${item.open}`}
+              variant={item.id === level.id ? 'primary' : 'secondary'}
+              onPress={async () => {
+                await update($, boardPickAtom, () => null)
+                await update($, boardLevelAtom, () => item.id)
+              }}
+            />
+          ))}
+          {view.levels.length > 1 ? <Button key="nf-level-next" label="next level" hotkey="v" onPress={() => nextLevel($)} /> : null}
+        </Box>
         <Box flexDirection="row">
           {board.columns.map(column => (
             <Box key={`nf-col-${column.id}`} flexDirection="column" width={width} borderStyle="single" paddingX={1}>
@@ -584,7 +724,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
               {column.cards.map(card => (
                 <Button
                   key={`nf-card-${card.slug}`}
-                  label={cardLine(card).slice(0, width - 4)}
+                  label={levelCardLine(card, level.kind).slice(0, width - 4)}
                   plain
                   variant={pick === card.slug ? 'primary' : 'secondary'}
                   onPress={() => update($, boardPickAtom, () => (pick === card.slug ? null : card.slug))}
@@ -602,7 +742,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
                 key={`nf-move-${target}`}
                 label={target}
                 onPress={async () => {
-                  await $.prompt.fill({ text: `/neuroflow:tasks --move ${pick} ${target}` })
+                  await $.prompt.fill({ text: moveCommand(level, pick, target) })
                   await update($, boardPickAtom, () => null)
                   $.ui.toast('neuroflow: press Enter to move it — /tasks moves the file and records it')
                 }}
@@ -610,13 +750,21 @@ export const registerViews = (on: On, opts: NfOptions): void => {
             ))}
           </Box>
         ) : null}
-        <Box flexDirection="row" columnGap={1}>
-          <Text dimColor>done: {board.done} · archived: {board.archived} · level: project</Text>
-          <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadBoard($)} />
+        <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
+          <Text dimColor>{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
+          <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($)} />
           <Button key="nf-board-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: BOARD })} />
         </Box>
       </Box>
     )
+  }).catch(($, e, next) => next(e))
+
+  // The boards and the tasks tab follow the files: once read this session, they are read again as each turn
+  // ends (a /tasks --move the board filled in has run by then). Only the local files are read, never pulled.
+  on('turn.complete', { reason: ['answer', 'aborted', 'error', 'refusal'] }, async ($, e, next) => {
+    const result = await next(e)
+    if (e.agentId === undefined && (await read($, taskViewAtom)) !== null) await loadTasks($).catch(() => undefined)
+    return result
   }).catch(($, e, next) => next(e))
 
   // The band: one line of what needs attention; nothing when nothing does.
@@ -682,7 +830,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     if (isHidden) return next(e)
     const snap = await read($, snapshotAtom)
     if (snap === null) return next(e)
-    const items = bandItems(snap, opts.band === 'quiet')
+    const items = bandItems(snap, opts.band === 'quiet', await read($, flowieSyncAtom))
     // Self-reported wellbeing (M146, opt-in in flowie): one field, no scores kept anywhere but the file.
     const idle = (await read($, activeCommandAtom)) === null
     if (snap.wellbeingDue && idle && e.surface !== 'mobile' && items[0]?.level !== 'alert') {
@@ -698,7 +846,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     if (items.length === 0) return next(e)
     const shown = items.slice(0, opts.band === 'quiet' ? 1 : 2)
     const more = items.length - shown.length
-    const actions = shown[0]?.actions ?? []
+    const actions = bandActions(shown)
     const { Box, Button, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
@@ -709,7 +857,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         ))}
         {more > 0 ? <Text dimColor>+{more} more</Text> : null}
         {actions.map(action => (
-          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => $.command.run({ command: action.command, args: action.args }).then(() => undefined)} />
+          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => runKey($, action.command, action.args)} />
         ))}
         <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($)} />
         <Button key="nf-band-hide" label="hide today" hotkey="x" plain onPress={() => hideBandToday($)} />
@@ -725,7 +873,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       return <Text dimColor>neuroflow: {scope === null ? 'not started yet' : scope.reason}</Text>
     }
     const tab = await read($, tabAtom)
-    const lines = tabLines(tab, snap, await read($, loopViewAtom))
+    const lines = tabLines(tab, snap, await read($, loopViewAtom), tab === 'tasks' ? await read($, taskViewAtom) : null)
     const frozenByPerson = snap.prereg?.status === 'frozen' && snap.prereg.setBy === 'person'
     const title = `${snap.projectName ?? 'neuroflow project'} · ${snap.phase ?? 'no phase'}${snap.mode ? ` · ${snap.mode}` : ''}`
     // The prose dashboard's Update line (commands/dashboard.md): here too, also after the band was hidden for today.
@@ -755,14 +903,14 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         <Box flexDirection="row" columnGap={1}>
           {tab === 'phase' ? <Button key="nf-dash-switch" label="switch phase" hotkey="s" onPress={() => openPicker($)} /> : null}
           {tab === 'loop' ? <Button key="nf-dash-refresh" label="refresh" hotkey="r" onPress={() => loadLoopView($)} /> : null}
+          {tab === 'tasks' ? <Button key="nf-dash-boards" label="boards" hotkey="b" onPress={() => openBoard($)} /> : null}
+          {tab === 'tasks' ? <Button key="nf-dash-tasks-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($)} /> : null}
           {tab === 'integrity' && !frozenByPerson ? (
             <Button key="nf-dash-freeze" label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'} hotkey="f" onPress={() => freezeFromDashboard($)} />
           ) : null}
           {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-verify" label="verify" hotkey="v" onPress={() => verifyFromDashboard($)} /> : null}
           {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey="u" onPress={() => unfreezeFromDashboard($)} /> : null}
-          {behind !== null ? (
-            <Button key="nf-dash-migrate" label="migrate" hotkey="m" onPress={() => $.command.run({ command: 'neuroflow:migrate', args: '' }).then(() => undefined)} />
-          ) : null}
+          {behind !== null ? <Button key="nf-dash-migrate" label="migrate" hotkey="m" onPress={() => runKey($, 'neuroflow:migrate', '')} /> : null}
           <Button key="nf-dash-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: DASHBOARD })} />
         </Box>
       </Box>

@@ -1,7 +1,9 @@
 {#-
   The documentation layout: no top bar and no tabs. The left column opens with the brand (back to
   the landing page), a search field that filters the index and searches the text of every page,
-  then the index itself; the right column is the page outline. On narrow screens a small button
+  then the index itself; the right column is the page outline. Brand and search stay at the top of
+  the column while the index scrolls under them (the theme scrolls the index to the current page on
+  load); the search results sit below them, above the index. On narrow screens a small button
   opens the index as a drawer; nf.js makes that label a keyboard button (role, tabindex,
   aria-expanded, Enter and Space). The header element stays, empty and hidden, because the theme's
   scripts measure it.
@@ -34,11 +36,11 @@
             <a class="nf-brand" href="{{ nav.homepage.url | url }}"><b>neuroflow</b><span>{{ config.extra.version }} · docs</span></a>
             <label class="nf-search">
               <span>Search</span>
-              <input type="search" data-nf-search placeholder="commands, phases, rules…" aria-label="Search the documentation" autocomplete="off" spellcheck="false">
+              <input type="search" data-nf-search placeholder="press / · commands, phases" aria-label="Search the documentation" aria-keyshortcuts="/" autocomplete="off" spellcheck="false">
             </label>
-            <div class="nf-results" data-nf-results hidden></div>
-            <p class="nf-sr" role="status" aria-live="polite" data-nf-status></p>
           </div>
+          <div class="nf-results" data-nf-results hidden></div>
+          <p class="nf-sr" role="status" aria-live="polite" data-nf-status></p>
           {% include "partials/nav.html" %}
         </div>
       </div>

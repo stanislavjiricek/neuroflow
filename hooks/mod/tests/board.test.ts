@@ -13,7 +13,7 @@ describe('task board', () => {
     const late = parseTask('---\ntitle: "Rerun ICA"\nowner: li\ndue: 2026-10-01\n---\n', 'rerun-ica', today, false)
     const fine = parseTask('---\ntitle: Spin tests\ndue: 2026-10-20\n---\n', 'spin-tests', today, false)
     const legacy = parseTask('---\ntitle: QC report\nassignee: jana\n---\n', 'qc-report', today, false)
-    expect(late).toEqual({ slug: 'rerun-ica', title: 'Rerun ICA', owner: 'li', due: '2026-10-01', overdue: true })
+    expect(late).toEqual({ slug: 'rerun-ica', title: 'Rerun ICA', owner: 'li', due: '2026-10-01', overdue: true, project: null, isMine: false })
     expect(legacy.owner).toBe('jana')
     const board = buildBoard(columns, { active: [fine, late], review: [legacy], done: [fine, fine] })
     expect(board.columns.map(column => column.id)).toEqual(['inbox', 'active', 'review'])
@@ -57,7 +57,7 @@ describe('meetings and wellbeing in the band', () => {
     on('ui.open', () => ({ value: { isPlaced: true } }))
     await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
     const answer = await $.command.run({ command: 'neuroflow:tasks', args: '' })
-    expect(answer.text).toContain('Task board open')
+    expect(answer.text).toContain('Task boards open')
     const pane = await $.ui.mount({
       plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-board',
       props: { title: 'tasks', isFocused: true, bodyColumns: 90, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },

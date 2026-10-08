@@ -364,7 +364,7 @@ warning, kept as a rule of the mod's charter.
 | M067 | Branded greeting with live version and research vocabulary | X | Not built | No greeting: the mod stays quiet by default. |
 | M068 | End-of-command decision band | X | Not built | It only swaps typing Y for pressing a digit and adds a stray-digit hazard; the prose prompt is kept. |
 | M069 | On-demand project dashboard pane | T1 | In the mod | `/neuroflow:dashboard`: phase map, deadlines, integrity, tasks and the autoresearch loop. |
-| M070 | Native Kanban board pane | T2 | In the mod | `/neuroflow:tasks` opens the project board as a pane; cards move by key press. |
+| M070 | Native Kanban board pane | T2 | In the mod | `/neuroflow:tasks` opens the boards of the project, the flowie and each hive as a pane, `v` switching the level; a picked card and column put the move in the prompt as one `/tasks` command. |
 | M071 | Grant word counts and section board | X | Built differently | Grant word counts come from a tool (wc -w), page limits are checked in the funder template, and section drafts are saved to draft-*.md. |
 | M072 | Writing boards for worker-critic loops | X | Built differently | critic-log gets one block per section (worker-critic format); /paper already asks the person after the third rejection. |
 | M073 | Research-aware transcript rows | X | Not built | It re-skins rows the engine already annotates, and collapsed receipts cannot honour ctrl+o. |

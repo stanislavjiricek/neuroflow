@@ -74,7 +74,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.22"
+  version: "0.2.23"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -91,6 +91,15 @@ plugins:
   - search:
       lang: en
   - tags
+  # Pages of renamed skills keep their old addresses (the protocol skills were renamed in 0.2.22).
+  - redirects:
+      redirect_maps:
+        skills/autoresearch/SKILL.md: skills/autoresearch-protocol/SKILL.md
+        skills/autoresearch/references/integrity.md: skills/autoresearch-protocol/references/integrity.md
+        skills/autoresearch/references/phase-criteria.md: skills/autoresearch-protocol/references/phase-criteria.md
+        skills/wiki/SKILL.md: skills/wiki-protocol/SKILL.md
+        skills/setup/SKILL.md: skills/setup-guide/SKILL.md
+        skills/setup/references/custom-gateway.md: skills/setup-guide/references/custom-gateway.md
 
 nav:
   - Home: index.md
