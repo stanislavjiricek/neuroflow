@@ -25,7 +25,7 @@ produces:
 
 Capture and triage dissatisfaction. When something doesn't work the way it should — an analysis was wrong, a phase behaved strangely, or the interaction was confusing — this command records it and optionally opens a GitHub issue.
 
-Read the `neuroflow:phase-fails` skill first. Then follow the neuroflow-core lifecycle — its version notice included (**Command lifecycle**, step 3).
+Read the `neuroflow:phase-fails` skill first. Then follow the neuroflow-core lifecycle — open with its version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3).
 
 ---
 

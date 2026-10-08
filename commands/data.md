@@ -23,7 +23,7 @@ next:
 
 # /data
 
-Read the `neuroflow:phase-data` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/data/flow.md` before starting. Invoke `neuroflow:bids` whenever BIDS structure, validation, or conversion is involved.
+Read the `neuroflow:phase-data` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/data/flow.md` before starting. Invoke `neuroflow:bids` whenever BIDS structure, validation, or conversion is involved.
 
 ## Before you start — ethics and data access
 

@@ -20,7 +20,7 @@ produces:
 
 # /write-report
 
-Read the `neuroflow:phase-write-report` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3) and `flow.md` before starting.
+Read the `neuroflow:phase-write-report` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3) and `flow.md` before starting.
 
 **Style editing is opt-in.** Run `neuroflow:humanizer` on the report only when the person asks for it — a style edit, never a way to hide that AI helped write the text.
 

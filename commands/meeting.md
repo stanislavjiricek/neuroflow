@@ -35,7 +35,7 @@ next:
 
 First-class meeting management for neuroflow. Distinct from `/notes` (which captures unstructured live input) — `/meeting` is for planned meetings with agenda, attendees, calendar integration, and action-item-to-task conversion.
 
-Read the `neuroflow:phase-meeting` skill first. Then follow the neuroflow-core lifecycle — its version notice included (**Command lifecycle**, step 3). Action items are converted to tasks following the canonical board spec in `/tasks` (`commands/tasks.md`) — `/tasks` owns the 3-tier task model.
+Read the `neuroflow:phase-meeting` skill first. Then follow the neuroflow-core lifecycle — open with its version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3). Action items are converted to tasks following the canonical board spec in `/tasks` (`commands/tasks.md`) — `/tasks` owns the 3-tier task model.
 
 ---
 

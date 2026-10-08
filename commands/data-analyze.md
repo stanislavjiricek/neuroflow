@@ -33,7 +33,7 @@ next:
 
 # /data-analyze
 
-Read the `neuroflow:phase-data-analyze` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/data-analyze/flow.md` before starting. Also check `.neuroflow/ideation/` for the research question and hypothesis, and `.neuroflow/data-preprocess/` for the preprocessing report.
+Read the `neuroflow:phase-data-analyze` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3), `flow.md`, and `.neuroflow/data-analyze/flow.md` before starting. Also check `.neuroflow/ideation/` for the research question and hypothesis, and `.neuroflow/data-preprocess/` for the preprocessing report.
 
 **Earlier runs first:** if `.neuroflow/data-analyze/runs.md` exists, check it (`python <skill base dir>/../phase-brain-run/scripts/runs.py check --file .neuroflow/data-analyze/runs.md`; exit 1 = something finished or failed) and inspect finished runs before starting new ones.
 

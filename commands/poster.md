@@ -27,7 +27,7 @@ next:
 
 # /poster
 
-Read the `neuroflow:phase-poster` skill first, and follow the `neuroflow:neuroflow-core` lifecycle — including the version notice (**Command lifecycle**, step 3) and session logging throughout (start milestone, one `##` entry per critic iteration verdict, completion milestone).
+Read the `neuroflow:phase-poster` skill first, and follow the `neuroflow:neuroflow-core` lifecycle — open with its version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3), and log the session throughout (start milestone, one `##` entry per critic iteration verdict, completion milestone).
 
 Generate a publication-ready academic conference poster as a LaTeX `.tex` file from the project's `.neuroflow/` memory. The poster goes through an iterative critic loop (up to 3 revision cycles) before final output; before every round it is compiled and rendered, so the critic judges what will be printed.
 

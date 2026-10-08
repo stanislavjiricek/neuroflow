@@ -29,7 +29,7 @@ produces:
 
 # /autoresearch
 
-Read the `neuroflow:autoresearch-protocol` skill first. Then follow the neuroflow-core lifecycle — its version notice included (**Command lifecycle**, step 3).
+Read the `neuroflow:autoresearch-protocol` skill first. Then follow the neuroflow-core lifecycle — open with its version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (**Command lifecycle**, step 3).
 
 ## What this command does
 

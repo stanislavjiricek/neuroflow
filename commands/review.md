@@ -16,7 +16,7 @@ produces:
 
 # /review
 
-Read the `neuroflow:phase-review` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3) and `flow.md` before starting.
+Read the `neuroflow:phase-review` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3) and `flow.md` before starting.
 
 > **This command is for when YOU are the reviewer** — a colleague has sent you their paper and you need to produce a formal referee report. This is not for reviewing your own manuscript before submission (use `/neuroflow:paper` for that).
 

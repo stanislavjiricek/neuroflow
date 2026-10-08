@@ -20,7 +20,7 @@ produces:
 
 Pack and move project data out of the current workspace. Useful for sharing with collaborators, handing off to a supervisor, archiving before a major change, or backing up project state.
 
-Read the `neuroflow:phase-output` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and say the version notice when it is due — **Command lifecycle**, step 3) and `flow.md` before starting.
+Read the `neuroflow:phase-output` skill first. Then follow the neuroflow-core lifecycle: read `project_config.md` (and open with the version notice when the project's `plugin_version` is behind the running neuroflow, whose version is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` — **Command lifecycle**, step 3) and `flow.md` before starting.
 
 **`--archive` mode** — publication archiving (dataset/code to a public repository with a DOI) is a different job from backup; its spec is at the end of this file. A zip in a folder is a backup; archiving is what journals and funders mean by "data availability".
 
