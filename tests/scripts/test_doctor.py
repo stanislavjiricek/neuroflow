@@ -57,6 +57,18 @@ class DoctorTest(unittest.TestCase):
             self.assertEqual(checks["gitignore"]["status"], "ok")
             self.assertEqual(checks["gitattributes"]["status"], "ok")
 
+    def test_an_ignored_project_memory_covers_the_local_only_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            (project / ".neuroflow").mkdir()
+            (project / ".neuroflow" / "project_config.md").write_text("---\nnf_schema: 1\nactive_phase: data\n---\n", encoding="utf-8")
+            (project / ".gitignore").write_text("# memory stays local\n.neuroflow/\n", encoding="utf-8")
+            _, checks = report(project)
+            self.assertEqual(checks["gitignore"]["status"], "ok")
+            (project / ".gitignore").write_text("# .neuroflow/\n.neuroflow/sessions/x\n", encoding="utf-8")
+            _, checks = report(project)
+            self.assertEqual(checks["gitignore"]["status"], "warn", "a comment or a longer path covers nothing")
+
     def test_synced_folder_warns(self):
         checks: list = []
         doctor.check_location(checks, Path("C:/Users/me/OneDrive/projects/study"))

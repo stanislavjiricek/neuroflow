@@ -52,5 +52,5 @@ jobs:
           if gh issue list --state open --search "${title} in:title" --json number --jq 'length' | grep -qx 0; then
             gh issue create --title "${title}" --body "The weekly canary failed on Claude Code ${version}: ${run_url}
 
-          Until it is fixed, users on that release can set the mod's runtime to off (/plugin → neuroflow → configure); the plugin keeps working without it." || true
+          Until it is fixed, users on that release can set the mod's runtime to off (/plugin → Installed → neuroflow → Configure options); the plugin keeps working without it." || true
           fi

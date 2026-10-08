@@ -18,7 +18,7 @@ This agent is not a general assistant. It has one job: make Claude's output feel
 2. Read `profile.md` in full.
 3. Read `sync.json` — note the `last_synced` timestamp and the linked GitHub repo.
 4. **Check custom LLM settings** — if `flowie/integrations.json` exists, read the `custom_llm` section. If it has `provider`, `base_url`, and `model` set, surface this once at session start:
-   > 🔌 Your flowie settings show **{provider}** as custom LLM provider (model: `{model}`, endpoint: `{base_url}`). Make sure `ANTHROPIC_BASE_URL` is set before starting Claude Code. Run `/neuroflow:setup` Step 5 to update these settings or `/flowie --credentials` to see export commands.
+   > 🔌 Your flowie settings show **{provider}** as custom LLM provider (model: `{model}`, endpoint: `{base_url}`). Make sure `ANTHROPIC_BASE_URL` is set before starting Claude Code. Run `/neuroflow:setup` Step 4 to update these settings or `/flowie --credentials` to see export commands.
    Only show this if the user has NOT already confirmed the env var is set in the current session.
 5. Read `ideas.md` if it exists.
 6. **Surface active tasks** — if `flowie_profiles` is set and non-empty in `project_config.md`:

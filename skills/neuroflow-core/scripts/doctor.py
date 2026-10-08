@@ -47,7 +47,9 @@ nfc = _load_nf_check()
 
 VERSION_FLOOR = (2, 1, 292)
 KNOWN_SCHEMA = nfc.SUPPORTED_NF_SCHEMA
-LOCAL_ONLY = [".neuroflow/sessions/", ".neuroflow/review/", ".neuroflow/integrations.json", ".neuroflow/flowie/", ".neuroflow/paper/xray-", ".neuroflow/wiki/.pending/"]
+LOCAL_ONLY = [".neuroflow/sessions/", ".neuroflow/review/", ".neuroflow/integrations.json", ".neuroflow/flowie/", ".neuroflow/paper/xray-*", ".neuroflow/wiki/.pending/"]
+# A .gitignore line that ignores the whole project memory covers every local-only path in it.
+WHOLE_MEMORY = {".neuroflow", ".neuroflow/", "/.neuroflow", "/.neuroflow/", ".neuroflow/*", ".neuroflow/**", "/.neuroflow/*", "/.neuroflow/**"}
 UNION_FILES = [".neuroflow/reasoning/*.jsonl", ".neuroflow/sessions/*.md"]
 SYNCED_MARKERS = ("onedrive", "dropbox", "icloud", "google drive", "googledrive", "my drive", "box sync", "nextcloud", "owncloud")
 
@@ -151,7 +153,8 @@ def check_config(checks: list[dict], project: Path) -> None:
 def check_git_files(checks: list[dict], project: Path) -> None:
     ignore = project / ".gitignore"
     ignored = ignore.read_text(encoding="utf-8", errors="replace") if ignore.exists() else ""
-    missing = [path for path in LOCAL_ONLY if path not in ignored]
+    rules = {line.strip() for line in ignored.splitlines() if line.strip() and not line.lstrip().startswith("#")}
+    missing = [] if rules & WHOLE_MEMORY else [path for path in LOCAL_ONLY if path not in rules]
     if missing:
         check(checks, "gitignore", "warn", f".gitignore does not exclude {', '.join(missing)} — local-only files could be committed (/neuroflow:migrate adds them)")
     else:
