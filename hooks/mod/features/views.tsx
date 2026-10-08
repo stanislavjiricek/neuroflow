@@ -139,6 +139,20 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean): BandItem[] => {
   return quiet ? sorted.filter(item => item.level !== 'info') : sorted
 }
 
+/**
+ * The keys the band offers for the items it shows: the first item's own, and the version notice's migrate key
+ * wherever the notice stands among them (a key already taken is not offered twice).
+ */
+export const bandActions = (shown: readonly BandItem[]): BandAction[] => {
+  const actions = [...(shown[0]?.actions ?? [])]
+  for (const item of shown.slice(1)) {
+    for (const action of item.actions ?? []) {
+      if (action.key === 'nf-migrate' && !actions.some(taken => taken.key === action.key || taken.hotkey === action.hotkey)) actions.push(action)
+    }
+  }
+  return actions
+}
+
 const BARS = '▁▂▃▄▅▆▇█'
 
 /** A text sparkline of the last `width` values (works on every surface, read aloud as numbers). */
@@ -698,7 +712,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     if (items.length === 0) return next(e)
     const shown = items.slice(0, opts.band === 'quiet' ? 1 : 2)
     const more = items.length - shown.length
-    const actions = shown[0]?.actions ?? []
+    const actions = bandActions(shown)
     const { Box, Button, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="row" flexWrap="wrap" columnGap={2}>

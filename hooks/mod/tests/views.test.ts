@@ -4,7 +4,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { NfMeeting, NfSnapshot } from '../../../types'
 import { setActivePhase } from '../lib/config'
 import { nextPhase, phaseMap, pickerOrder } from '../lib/phases'
-import { bandItems, freezeCandidates, parseOpenQuestions, parseRunning, sparkline, tabLines } from '../features/views'
+import { bandActions, bandItems, freezeCandidates, parseOpenQuestions, parseRunning, sparkline, tabLines } from '../features/views'
 import { fakeFs } from './fakefs'
 
 const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
@@ -83,6 +83,19 @@ describe('band items', () => {
     // A meeting later in the day is information: the notice takes the seat again.
     const later = bandItems(snapshot({ pluginVersion: '0.2.21', meetings: [{ ...soon, startsIn: 180 }], loadedAt: now }), true)
     expect(later.map(item => item.actions?.[0]?.key)).toEqual(['nf-migrate'])
+  })
+
+  test('the migrate key comes with the version notice wherever the band shows it', () => {
+    const now = new Date(2026, 9, 7, 13, 0).getTime()
+    const soon: NfMeeting = { level: 'project', slug: 'lab-2026-10-07', title: 'Lab meeting', date: '2026-10-07T14:00:00', startsIn: 60, closed: false, openActions: 0 }
+    const items = bandItems(snapshot({ pluginVersion: '0.2.21', meetings: [soon], loadedAt: now }), false)
+    // Second in a normal band: the meeting's keys first, then m.
+    expect(bandActions(items.slice(0, 2)).map(action => `${action.key} ${action.hotkey}`)).toEqual(['nf-meet-prepare p', 'nf-meet-notes o', 'nf-migrate m'])
+    // Not shown (the quiet band's one seat is the meeting's): no m.
+    expect(bandActions(items.slice(0, 1)).map(action => action.key)).toEqual(['nf-meet-prepare', 'nf-meet-notes'])
+    // Other items' keys still come only with the first item.
+    const wiki = bandItems(snapshot({ wikiPending: 2, deadlines: [{ date: '2026-10-08', what: 'Abstract', gates: null, daysLeft: 1 }] }), false)
+    expect(bandActions(wiki.slice(0, 2))).toEqual([])
   })
 })
 
@@ -212,6 +225,37 @@ describe('engine', () => {
     expect(drawn).not.toContain('is installed')
     await ui.press({ key: 'nf-meet-prepare' })
     expect(ran).toEqual(['neuroflow:meeting --prepare lab-2026-10-07'])
+    await ui.unmount()
+  })
+
+  test('a normal band showing the version notice second still offers m', { options: { runtime: 'observe', band: 'normal' } }, async ($, on) => {
+    const project = '/work/proj'
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\nplugin_version: 0.2.21\n---\n',
+      [`${project}/.neuroflow/timeline.md`]: '| Date | What | Gates |\n|---|---|---|\n| 2026-10-08 | Abstract deadline | paper |\n',
+      '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    const ran: string[] = []
+    on('command.run', ($, e) => {
+      ran.push(e.command)
+      return { text: '' }
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const ui = await $.ui.mount({
+      plugin: 'neuroflow',
+      surface: 'terminal',
+      component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 160, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    const drawn = JSON.stringify(await ui.drawn())
+    expect(drawn).toContain('Abstract deadline — tomorrow')
+    expect(drawn).toContain('this project is on 0.2.21')
+    await ui.press({ key: 'nf-migrate' })
+    expect(ran).toEqual(['neuroflow:migrate'])
     await ui.unmount()
   })
 

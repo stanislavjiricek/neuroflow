@@ -51,7 +51,7 @@ Current: data-analyze — analysis
 <div class="nf-term"><span class="warn">⚠ Abstract deadline — tomorrow</span>  <span class="dim">+1 more</span>  <span class="nf-key">dashboard <i>d</i></span><span class="nf-key">hide today <i>x</i></span>
 <span class="nf-rule"></span><span class="b">&gt;</span> <span class="nf-caret"></span>
 <span class="nf-rule"></span><span class="dim">neuroflow: ⚠ Abstract deadline tomorrow</span><span class="nf-right dim">neuroflow · data-analyze · critic</span></div>
-<figcaption>The band above the prompt names the most urgent item — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two) — then <code>dashboard d</code> and <code>hide today x</code>. An item's own keys, such as a meeting's <code>prepare p</code> and <code>notes o</code> or the version notice's <code>migrate m</code>, appear when it is first. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
+<figcaption>The band above the prompt names the most urgent item — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two) — then <code>dashboard d</code> and <code>hide today x</code>. An item's own keys, such as a meeting's <code>prepare p</code> and <code>notes o</code>, appear when it is first; the version notice's <code>migrate m</code> appears whenever the notice is shown. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
 </figure>
 
 <figure class="nf-shot">
