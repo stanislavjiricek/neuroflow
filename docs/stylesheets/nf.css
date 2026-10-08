@@ -295,6 +295,13 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 .md-typeset .tabbed-labels > label:hover { color: var(--nf-fg); }
 .md-typeset .tabbed-set > input:checked + label, .js .md-typeset .tabbed-labels::before { color: var(--nf-fg); }
 .js .md-typeset .tabbed-labels::before { background: var(--nf-fg); }
+/* On phones the theme pulls the tab strip .8rem into the page margin; with the wider margin here it
+   ran 4px past the screen. The strip and its scroll buttons stay inside the content column. */
+@media screen and (max-width: 44.984375em) {
+  [dir] .md-content__inner > .tabbed-set .tabbed-labels { max-width: 100%; margin: 0; padding: 0; scroll-padding-inline-start: 0; }
+  [dir] .md-content__inner > .tabbed-set .tabbed-labels::after { content: none; }
+  [dir] .md-content__inner > .tabbed-set .tabbed-labels ~ .tabbed-control { width: 1.2rem; margin: 0; padding: 0; }
+}
 .md-typeset .md-button { padding: .5em 1.1em; border: 1px solid var(--nf-line); border-radius: 4px; color: var(--nf-fg); font-weight: 400; text-decoration: none; }
 .md-typeset .md-button:hover, .md-typeset .md-button--primary { background: var(--nf-fg); border-color: var(--nf-fg); color: var(--nf-bg); }
 .md-typeset .md-button--primary:hover { background: var(--nf-strong); }
