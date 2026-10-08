@@ -28,6 +28,10 @@ Your flowie (--flowie) and team hives (--hive NAME, --hives), instead of the pro
   With --apply in a git repository, tracked task files move with `git mv` (history follows
   them) and every changed path is staged; the result lists the paths to commit. It never
   commits or pushes.
+  In a git repository it also lists what is not committed there (`git status`): the paths with
+  local changes (`uncommitted`), and each planned change to one of them is marked
+  (`local_changes`), since applying it carries those changes into the migration commit.
+  Unmerged files (a conflict not yet resolved) block the level.
 
 Usage:
   python <neuroflow-core base dir>/scripts/migrate.py [--root DIR] [--apply]
@@ -940,6 +944,8 @@ TRACKED = {
              "`git -C {root} rm --cached sync.json`, commit, and push after your yes"),
 }
 SYNC_HINT = {"flowie": "/flowie --sync", "hive": "/hive --sync"}
+# The two-letter states of `git status --porcelain` that mark a conflict not yet resolved.
+UNMERGED = {"DD", "AU", "UD", "UA", "DU", "AA", "UU"}
 
 
 class GitError(OSError):
@@ -1146,6 +1152,7 @@ class LevelPlan:
         self.report: list[dict] = []
         self.notes: list[str] = []
         self.commit_paths: list[str] = []
+        self.uncommitted: list[str] = []  # paths with local changes before this run (git status)
 
     def rel(self, path: Path) -> str:
         return path.relative_to(self.root).as_posix()
@@ -1303,6 +1310,48 @@ def is_ignored(plan: LevelPlan, name: str) -> bool:
     return ignore.is_file() and not sc.missing_lines(ignore, [name])
 
 
+def parse_status(text: str) -> tuple[list[str], list[str]]:
+    """The paths `git status --porcelain -z` lists (a rename's old path too), and those of them still unmerged."""
+    fields = text.split("\0")
+    paths: list[str] = []
+    unmerged: list[str] = []
+    i = 0
+    while i < len(fields):
+        entry, i = fields[i], i + 1
+        if len(entry) < 4:
+            continue
+        xy, path = entry[:2], entry[3:]
+        paths.append(path)
+        if xy in UNMERGED:
+            unmerged.append(path)
+        if "R" in xy or "C" in xy:  # the source path follows: a rename changes it too, a copy leaves it as it is
+            if "R" in xy and i < len(fields) and fields[i]:
+                paths.append(fields[i])
+            i += 1
+    return paths, unmerged
+
+
+def local_changes(plan: LevelPlan) -> tuple[list[str], list[str]]:
+    """What is not committed in the level's clone: every path with local changes (untracked files one by one), and
+    the unmerged ones. Read before anything is written, so the plan can say which of its changes would carry them.
+    --no-optional-locks: a dry run does not even refresh the index, so it never holds a lock another git process
+    (the flowie auto-sync hook) could run into."""
+    proc = git(plan.root, "--no-optional-locks", "status", "--porcelain", "-z", "--untracked-files=all")
+    if proc.returncode != 0:
+        raise GitError(f"git status failed in {plan.root}: {(proc.stderr or proc.stdout).strip()}")
+    return parse_status(proc.stdout)
+
+
+def flag_local_changes(plan: LevelPlan) -> None:
+    """Mark each planned change to a path with local changes: applying it puts them in the migration commit."""
+    def local(rel: str) -> bool:  # a folder git lists whole (a nested repository) ends with "/"
+        return any(rel == path or (path.endswith("/") and rel.startswith(path)) for path in plan.uncommitted)
+
+    for change in plan.changes:
+        if any(local(rel) for rel in (change["path"], change.get("to")) if rel):
+            change["local_changes"] = True
+
+
 def plan_level(plan: LevelPlan, today: str) -> None:
     if plan.level == "hive" and not plan.is_repo:
         # An older cache of copied files (phase-hive → Local hive cache): read-only here, and /hive --init
@@ -1318,6 +1367,11 @@ def plan_level(plan: LevelPlan, today: str) -> None:
         if any((git_dir / marker).exists() for marker in ("rebase-merge", "rebase-apply", "MERGE_HEAD")):
             plan.blocking.append(f"a rebase or merge is in progress; finish or abort it first ({SYNC_HINT[plan.level]})")
             return
+        plan.uncommitted, unmerged = local_changes(plan)
+        if unmerged:  # e.g. a pull with --autostash that could not put the local changes back: git cannot commit now
+            plan.blocking.append(f"unresolved conflicts in {', '.join(unmerged)}; resolve them first "
+                                 f"({SYNC_HINT[plan.level]})")
+            return
     plan_tasks(plan, today)
     name, header = KEEP_LOCAL[plan.level]
     if not is_ignored(plan, name):
@@ -1330,6 +1384,7 @@ def plan_level(plan: LevelPlan, today: str) -> None:
                        f"add {name}: it stays on this machine")
     if plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", name).returncode == 0:
         plan.report.append({"path": name, "message": TRACKED[plan.level].format(root=plan.shown)})
+    flag_local_changes(plan)
 
 
 def build_levels(home: Path, flowie: bool, hive_names: list[str], all_hives: bool,
@@ -1386,7 +1441,11 @@ def apply_level(plan: LevelPlan) -> None:
 def level_summary(plan: LevelPlan) -> dict:
     return {"level": plan.level, "name": plan.name, "root": str(plan.root), "shown": plan.shown, "git": plan.git,
             "changes": plan.changes, "blocking": plan.blocking, "report": plan.report, "notes": plan.notes,
-            "commit_paths": plan.commit_paths}
+            "commit_paths": plan.commit_paths, "uncommitted": plan.uncommitted}
+
+
+def shell_paths(paths: list[str]) -> str:
+    return " ".join(f'"{path}"' if " " in path else path for path in paths)
 
 
 def print_levels(result: dict) -> None:
@@ -1399,9 +1458,11 @@ def print_levels(result: dict) -> None:
         print(f"  {title} ({level['shown']}):")
         if level["changes"]:
             print("    changes:" if result["applied"] else "    planned changes:")
+            carried = "are staged with it" if result["applied"] else "would go into the migration commit too"
             for change in level["changes"]:
                 target = f" -> {change['to']}" if change.get("to") else ""
-                print(f"      - {change['path']}{target}: {change['summary']}")
+                local = f" (has local changes: they {carried})" if change.get("local_changes") else ""
+                print(f"      - {change['path']}{target}: {change['summary']}{local}")
         else:
             print("    no changes needed")
         for item in level["blocking"]:
@@ -1410,9 +1471,12 @@ def print_levels(result: dict) -> None:
             print(f"    report only: {item['path']}: {item['message']}")
         for note in level["notes"]:
             print(f"    note: {note}")
+        if level["uncommitted"]:
+            print(f"    local changes before this run, not committed (uncommitted in --json): "
+                  f"{shell_paths(level['uncommitted'])}")
         if level["commit_paths"]:
-            paths = " ".join(f'"{path}"' if " " in path else path for path in level["commit_paths"])
-            print(f"    staged, not committed - commit exactly these paths (commit_paths in --json): {paths}")
+            print(f"    staged, not committed - commit exactly these paths (commit_paths in --json): "
+                  f"{shell_paths(level['commit_paths'])}")
     levels = result["levels"]
     if not result["applied"] and any(lv["changes"] for lv in levels) and not any(lv["blocking"] for lv in levels):
         print("  run again with --apply to write these changes (git changes are staged, never committed or pushed)")
