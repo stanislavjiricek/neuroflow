@@ -391,6 +391,18 @@ class MigrateTest(unittest.TestCase):
         self.assertEqual(config.read_bytes(), data, "never rewritten")
         self.assertFalse((self.project / ".gitignore").exists(), "nothing is written while it blocks")
 
+    def test_a_current_instruction_block_in_another_encoding_blocks_nothing(self) -> None:
+        self.write(".neuroflow/project_config.md", "active_phase: data\n")
+        claude = self.project / ".claude" / "CLAUDE.md"
+        claude.parent.mkdir(parents=True, exist_ok=True)
+        data = "# Poznámky k projektu\n\n".encode("cp1250") + migrate.sc.CLAUDE_BLOCK.encode("utf-8")
+        claude.write_bytes(data)
+        code, result = self.migrate("--apply")
+        self.assertEqual(result["blocking"], [])
+        self.assertTrue(result["applied"])
+        self.assertIn("nf_schema: 1", self.read(".neuroflow/project_config.md"))
+        self.assertEqual(claude.read_bytes(), data, "nothing to change there, so it is never rewritten")
+
     def test_project_config_is_written_last(self) -> None:
         # It records plugin_version: a run that stops part-way must leave the version notice in place.
         self.write(".neuroflow/project_config.md", KEY_VALUE_CONFIG)
@@ -776,6 +788,26 @@ class FlowieHiveTest(unittest.TestCase):
                          f"---\ntitle: Check\nstatus: review\nowner: li\nupdated: {self.today}\n---\n")
         self.assertEqual(self.read(tasks / "inbox" / "nobody.md"),
                          f"---\ntitle: Nobody\nstatus: inbox\nowner:\nupdated: {self.today}\n---\n", "nobody invented")
+
+    def test_a_yaml_null_owner_is_nobody(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "active" / "plan.md", "---\ntitle: Plan\nowner: null\nassignee: alice\n---\n")
+        self.write(tasks / "inbox" / "tilde.md", "---\ntitle: Tilde\nowner: ~\nlevel: flowie\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        self.assertEqual((code, result["levels"][0]["report"]), (0, []))
+        self.assertEqual(self.read(tasks / "active" / "plan.md"),
+                         f"---\ntitle: Plan\nstatus: active\nowner: alice\nupdated: {self.today}\n---\n")
+
+    def test_a_task_held_for_an_unknown_status_learns_where_its_blocked_by_moved(self) -> None:
+        tasks = self.flowie / "tasks"
+        self.write(tasks / "T1-setup.md", "---\nid: T1\ntitle: Setup\nstatus: ready\n---\n")
+        self.write(tasks / "T2-write.md", "---\nid: T2\ntitle: Write\nstatus: doing\nblocked_by: [T1]\n---\n")
+        self.write(self.flowie / ".gitignore", "integrations.json\n")
+        code, result = self.levels("--flowie", "--apply")
+        messages = [item["message"] for item in result["levels"][0]["report"] if item["path"] == "tasks/T2-write.md"]
+        self.assertTrue(any("is not a column" in message for message in messages), messages)
+        self.assertTrue(any("T1 -> setup" in message for message in messages), messages)
 
     def test_a_level_gitignore_that_is_not_utf8_is_reported_never_rewritten(self) -> None:
         data = "# Poznámky k souborům\n.DS_Store\n".encode("cp1250")

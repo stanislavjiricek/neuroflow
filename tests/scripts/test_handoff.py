@@ -220,6 +220,12 @@ class OpenTaskTests(unittest.TestCase):
                                           "erin": ["handover-plan"], "frank": ["handover-plan"],
                                           "bob": ["shared-figure"]})
 
+    def test_a_readme_or_a_file_without_frontmatter_is_no_task(self):
+        write(self.tasks / "README.md", "# The board\n\nOne file per task.\n")
+        write(self.tasks / "inbox" / "notes.md", "Loose notes, no frontmatter.\n")
+        self.task("inbox/fix-marker.md", "title: Fix marker", "owner: alice")
+        self.assertEqual(self.grouped(), {"alice": ["fix-marker"]})
+
     def test_the_folder_is_the_column(self):
         self.task("done/finished.md", "title: Finished", "status: active", "owner: alice")
         self.task("archive/old.md", "title: Old", "status: archive", "owner: alice")

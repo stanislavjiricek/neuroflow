@@ -48,8 +48,17 @@ nfc = _load_nf_check()
 VERSION_FLOOR = (2, 1, 292)
 KNOWN_SCHEMA = nfc.SUPPORTED_NF_SCHEMA
 LOCAL_ONLY = [".neuroflow/sessions/", ".neuroflow/review/", ".neuroflow/integrations.json", ".neuroflow/flowie/", ".neuroflow/paper/xray-*", ".neuroflow/wiki/.pending/"]
-# A .gitignore line that ignores the whole project memory covers every local-only path in it.
-WHOLE_MEMORY = {".neuroflow", ".neuroflow/", "/.neuroflow", "/.neuroflow/", ".neuroflow/*", ".neuroflow/**", "/.neuroflow/*", "/.neuroflow/**"}
+# One file under each local-only line, as git would see it there (git check-ignore answers for these).
+PROBES = {
+    ".neuroflow/sessions/": ".neuroflow/sessions/nf-probe.md",
+    ".neuroflow/review/": ".neuroflow/review/nf-probe.md",
+    ".neuroflow/integrations.json": ".neuroflow/integrations.json",
+    ".neuroflow/flowie/": ".neuroflow/flowie/nf-probe.md",
+    ".neuroflow/paper/xray-*": ".neuroflow/paper/xray-nf-probe.jsonl",
+    ".neuroflow/wiki/.pending/": ".neuroflow/wiki/.pending/nf-probe.md",
+}
+# Without git: a .gitignore line that ignores the whole project memory covers every local-only path in it.
+WHOLE_MEMORY = {".neuroflow", ".neuroflow/", ".neuroflow/*", ".neuroflow/**"}
 UNION_FILES = [".neuroflow/reasoning/*.jsonl", ".neuroflow/sessions/*.md"]
 SYNCED_MARKERS = ("onedrive", "dropbox", "icloud", "google drive", "googledrive", "my drive", "box sync", "nextcloud", "owncloud")
 
@@ -148,13 +157,48 @@ def check_config(checks: list[dict], project: Path) -> None:
         check(checks, "config", "warn", f"project_config.md has nf_schema {schema}, newer than this plugin knows ({KNOWN_SCHEMA}) — update neuroflow")
     else:
         check(checks, "config", "ok", f"project_config.md uses the current contract (nf_schema {schema})")
+    # The version notice (neuroflow-core -> Command lifecycle, step 3): plugin_version is raised only by /migrate.
+    running = nfc.plugin_version(nfc.PLUGIN_ROOT)
+    recorded = str(frontmatter.get("plugin_version") or "").strip()
+    behind = nfc._vtuple(running) is not None and (nfc._vtuple(recorded) is None or nfc._vtuple(recorded) < nfc._vtuple(running))
+    if behind:
+        check(checks, "version", "warn", f"neuroflow {running} is installed; this project is on {recorded or 'an older version'} — "
+              "run /neuroflow:migrate to bring the project, your flowie and the team hive up to date")
+
+
+def git_ignored(project: Path, paths: list[str]) -> set[str] | None:
+    """The paths git ignores in this project (`git check-ignore --no-index`); None when git cannot answer here."""
+    if shutil.which("git") is None:
+        return None
+    try:
+        proc = subprocess.run(["git", "-C", str(project), "check-ignore", "--no-index", "--stdin"],
+                              input=("\n".join(paths) + "\n").encode("utf-8"), capture_output=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode not in (0, 1):
+        return None  # not a git repository, or git failed
+    return {line.strip() for line in proc.stdout.decode("utf-8", "replace").splitlines() if line.strip()}
+
+
+def uncovered_local_only(project: Path, gitignore: str) -> list[str]:
+    """The local-only lines the project's ignore rules leave uncovered: git decides when it can (anchored lines,
+    `**`, negations, a folder above), else the .gitignore is read line by line."""
+    ignored = git_ignored(project, list(PROBES.values()))
+    if ignored is not None:
+        return [line for line, probe in PROBES.items() if probe not in ignored]
+    rules = [line.strip() for line in gitignore.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+    plain = {rule.lstrip("/") for rule in rules if not rule.startswith("!")}
+    brought_back = any(rule.lstrip("!/").startswith(".neuroflow") for rule in rules if rule.startswith("!"))
+    if plain & WHOLE_MEMORY and not brought_back:
+        return []
+    return [line for line in LOCAL_ONLY if line not in plain and line.rstrip("/") not in plain
+            and not any(rule.rstrip("*") == line for rule in plain if rule.endswith("/*") or rule.endswith("/**"))]
 
 
 def check_git_files(checks: list[dict], project: Path) -> None:
     ignore = project / ".gitignore"
     ignored = ignore.read_text(encoding="utf-8", errors="replace") if ignore.exists() else ""
-    rules = {line.strip() for line in ignored.splitlines() if line.strip() and not line.lstrip().startswith("#")}
-    missing = [] if rules & WHOLE_MEMORY else [path for path in LOCAL_ONLY if path not in rules]
+    missing = uncovered_local_only(project, ignored)
     if missing:
         check(checks, "gitignore", "warn", f".gitignore does not exclude {', '.join(missing)} — local-only files could be committed (/neuroflow:migrate adds them)")
     else:

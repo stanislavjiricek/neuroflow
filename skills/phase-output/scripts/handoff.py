@@ -280,9 +280,11 @@ def section_tasks(root: Path, today: date) -> dict:
     inbox = "inbox" if "inbox" in columns else columns[0]
     headings: dict[str, str] = {}  # one heading per person: handles compare without case
     for path in sorted(folder.rglob("*.md")):
-        if path.name == "flow.md":
+        if path.name.lower() in ("flow.md", "readme.md", "index.md"):
             continue
         fm = _frontmatter(path)
+        if not fm:  # not a task file: the board does not show it either
+            continue
         parts = path.relative_to(folder).parts
         status = (parts[0] if len(parts) > 1 else str(fm.get("status") or inbox)).strip().lower()
         if status == "archived":

@@ -68,6 +68,38 @@ class DoctorTest(unittest.TestCase):
             (project / ".gitignore").write_text("# .neuroflow/\n.neuroflow/sessions/x\n", encoding="utf-8")
             _, checks = report(project)
             self.assertEqual(checks["gitignore"]["status"], "warn", "a comment or a longer path covers nothing")
+            (project / ".gitignore").write_text(".neuroflow/*\n!.neuroflow/sessions/\n", encoding="utf-8")
+            _, checks = report(project)
+            self.assertEqual(checks["gitignore"]["status"], "warn", "a negation brings a local-only folder back")
+
+    def test_a_project_behind_the_installed_neuroflow_is_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            (project / ".neuroflow").mkdir()
+            config = project / ".neuroflow" / "project_config.md"
+            config.write_text("---\nnf_schema: 1\nactive_phase: data\nplugin_version: 0.0.1\n---\n", encoding="utf-8")
+            _, checks = report(project)
+            self.assertEqual(checks["version"]["status"], "warn")
+            self.assertIn("this project is on 0.0.1", checks["version"]["message"])
+            self.assertIn("/neuroflow:migrate", checks["version"]["message"])
+            config.write_text("---\nnf_schema: 1\nactive_phase: data\nplugin_version: 999.0.0\n---\n", encoding="utf-8")
+            _, checks = report(project)
+            self.assertNotIn("version", checks, "a newer recorded version is a teammate's newer neuroflow, not an update")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_git_decides_what_the_gitignore_covers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(project)], check=True)
+            (project / ".neuroflow").mkdir()
+            (project / ".neuroflow" / "project_config.md").write_text("---\nnf_schema: 1\nactive_phase: data\n---\n", encoding="utf-8")
+            anchored = "".join(f"/{line}\n" for line in doctor.LOCAL_ONLY)
+            globbed = ".neuroflow/sessions/*\n.neuroflow/review/**\n.neuroflow/integrations.json\n.neuroflow/flowie/\n.neuroflow/paper/xray-*\n.neuroflow/wiki/.pending/\n"
+            for gitignore, expected in ((anchored, "ok"), (globbed, "ok"), (".neuroflow/*\n!.neuroflow/sessions/\n", "warn")):
+                (project / ".gitignore").write_text(gitignore, encoding="utf-8")
+                _, checks = report(project)
+                self.assertEqual((gitignore, checks["gitignore"]["status"]), (gitignore, expected))
+            self.assertIn(".neuroflow/sessions/", checks["gitignore"]["message"])
 
     def test_synced_folder_warns(self):
         checks: list = []

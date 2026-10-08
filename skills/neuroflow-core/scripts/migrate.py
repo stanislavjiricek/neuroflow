@@ -746,12 +746,13 @@ def plan_instruction_blocks(plan: Plan) -> None:
     claude = plan.root / ".claude" / "CLAUDE.md"
     if not claude.exists():
         plan.write(claude, sc.CLAUDE_BLOCK, "create the static neuroflow instruction block")
-    elif (original := read_utf8(claude)) is None:
-        plan.problems.blocking.append(f"{plan.rel(claude)} {NOT_UTF8}.")
     else:
+        original = sc.read_text(claude)  # to find and judge the block, which is ASCII; a rewrite reads it strictly
         text = original.replace("\r\n", "\n")
         span = sc.neuroflow_block_span(text)
-        if span is None:
+        if (span is None or sc.block_is_stale(text[span[0]:span[1]])) and read_utf8(claude) is None:
+            plan.problems.blocking.append(f"{plan.rel(claude)} {NOT_UTF8}.")
+        elif span is None:
             body = text if not text or text.endswith("\n") else text + "\n"
             plan.write(claude, body + ("\n" if body else "") + sc.CLAUDE_BLOCK,
                        "append the static neuroflow instruction block", sc.detect_newline(original),
@@ -1032,7 +1033,7 @@ def handles_in(value) -> list[str]:
     """The people an `owner` / `assignee` / `responsible` value names: roster handles without the @."""
     items = value if isinstance(value, list) else [value]
     handles = [item.strip().lstrip("@").strip() for item in items if isinstance(item, str)]
-    return [handle for handle in handles if handle]
+    return [handle for handle in handles if handle and handle.lower() not in ("null", "~")]  # a YAML null is nobody
 
 
 def task_owners(task: dict) -> list[str]:
@@ -1223,6 +1224,7 @@ def plan_tasks(plan: LevelPlan, today: str) -> None:
             plan.report.append({"path": plan.rel(path), "message": f"status {values.get('status')!r} is not a column "
                                 f"of this board ({', '.join(columns)}); ask which column it belongs in, then "
                                 "/tasks --move moves it"})
+            held.append((path, task))
             continue
         if not one_owner_or_report(plan, path, task):
             held.append((path, task))
