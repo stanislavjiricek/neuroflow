@@ -188,6 +188,9 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 .md-nav__item--nested .md-nav .md-nav__link { padding-left: 1rem; }
 .md-nav__item--nested .md-nav .md-nav__link--active { padding-left: calc(1rem - 1px); }
 .nf-hidden { display: none !important; }
+/* While the search filters the index, results and index read as one list: the first section left
+   in the index draws the rule under the results, so no empty band opens between them. */
+.md-sidebar--primary .md-sidebar__inner:has(.nf-filtering) .nf-results { margin-bottom: .2rem; padding-bottom: 0; border-bottom: 0; }
 /* While the search filters the index, every group is open; the current page's outline stays out of it. */
 .md-nav.nf-filtering .md-nav__toggle ~ .md-nav:not(.md-nav--secondary) { display: block !important; max-height: none !important; opacity: 1 !important; visibility: inherit !important; }
 .md-nav--primary.nf-filtering .md-nav__link[for=__toc], .md-nav--primary.nf-filtering .md-nav__link[for=__toc] ~ .md-nav { display: none; }
@@ -236,7 +239,7 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
   .md-sidebar--primary .md-sidebar__inner:has(.nf-filtering) { overflow-y: auto; overscroll-behavior: contain; }
   .md-sidebar--primary .md-sidebar__inner:has(.nf-filtering) .md-nav__link { scroll-margin-top: 8rem; }
   .md-nav--primary.nf-filtering { flex: none; overflow: visible; }
-  .md-nav--primary.nf-filtering > .md-nav__list { overflow: visible; }
+  .md-nav--primary.nf-filtering > .md-nav__list { overflow: visible; box-shadow: none; }
   .md-nav--primary.nf-filtering .md-nav { position: static; height: auto; transform: none; background: none; transition: none; }
   .md-nav--primary.nf-filtering .md-nav > .md-nav__title { display: none; }
   .md-nav--primary.nf-filtering .md-nav .md-nav__list { overflow: visible; box-shadow: none; background: none; padding-bottom: 0; }
