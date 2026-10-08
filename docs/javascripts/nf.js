@@ -2,7 +2,8 @@
 // the text of every page (MkDocs' search index). "/" focuses the field, Esc clears it, Enter opens
 // the first match. Each section of the index shows how many pages it holds, and the phases carry a
 // short note on what each one is for. On narrow screens the index is a drawer: its menu control
-// works from the keyboard (Enter or Space), "/" opens the drawer, and Esc closes it.
+// works from the keyboard (Enter or Space), "/" opens the drawer, and Esc closes it. A page title
+// may wrap after "neuroflow:" in a command name, so a small screen never breaks the name itself.
 (() => {
   const PHASE_NOTES = {
     ideation: 'question & literature',
@@ -43,7 +44,30 @@
   // A query word matches where a word starts: "search" finds "Search strategy" but not "research".
   const startsWord = (word) => new RegExp('(?:^|[^\\p{L}\\p{N}])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u');
 
+  // A line may break after "neuroflow:" in a title (a <wbr>), so "/neuroflow:preregistration" wraps
+  // as a whole name on the smallest screens instead of breaking inside the word.
+  const NAMESPACE = 'neuroflow:';
+  const breakTitles = () => {
+    document.querySelectorAll('.md-typeset h1').forEach((title) => {
+      const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
+      const found = [];
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!node.parentElement.closest('.headerlink') && node.data.includes(NAMESPACE)) found.push(node);
+      }
+      found.forEach((node) => {
+        let rest = node;
+        let at = rest.data.indexOf(NAMESPACE);
+        while (at >= 0 && at + NAMESPACE.length < rest.data.length) {
+          rest = rest.splitText(at + NAMESPACE.length);
+          rest.parentNode.insertBefore(document.createElement('wbr'), rest);
+          at = rest.data.indexOf(NAMESPACE);
+        }
+      });
+    });
+  };
+
   const start = () => {
+    breakTitles();
     // The drawer is the theme's #__drawer checkbox. Clicking it, as the theme itself does, fires the
     // change event the theme listens to; the menu label becomes a button for the keyboard.
     const drawer = document.getElementById('__drawer');
