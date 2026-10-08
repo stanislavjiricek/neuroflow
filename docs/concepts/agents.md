@@ -12,6 +12,8 @@ Unlike commands (which interact conversationally with you), agents operate semi-
 
 ## Available agents
 
+Nine agents ship with neuroflow: `scholar`, `sentinel`, `sentinel-dev`, `literature-review`, `paper-writer`, `paper-critic`, `poster-critic`, `autoresearch` and `flowie`. Their full definitions are under **Agents** in the navigation.
+
 ### `scholar`
 
 **Academic literature research specialist.**
@@ -83,7 +85,7 @@ Audits `.neuroflow/` for internal consistency and drift. Called by the `/neurofl
 - Reasoning logs (`reasoning/*.jsonl`)
 - Phase consistency — active phase vs session logs vs folder activity
 - Preregistration drift — planned analyses vs what was actually done
-- Plugin version sync — `project_config.md` vs current `plugin.json`
+- Plugin version — an older or missing `plugin_version` in `project_config.md` is reported with a pointer to `/neuroflow:migrate`; sentinel never edits the field
 - Subfolder name validation — no unrecognized or skill-named folders
 - `CLAUDE.md` neuroflow reference check
 
@@ -99,7 +101,7 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 
 **Invoked by:** `/neuroflow:sentinel` (when `.claude-plugin/plugin.json` exists)
 
-**What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (README hooks documentation, real names and institutions, concept-map placement, guards versus prose):
+**What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (README hooks documentation, real names and institutions, guards versus prose):
 
 - Command folder names vs frontmatter `name:` fields
 - Skill folder names vs `SKILL.md` frontmatter
@@ -117,6 +119,56 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 Runs 12 analytical protocols on the papers in `.neuroflow/ideation/papers/`, from landscape mapping to a future research agenda. Each protocol is checked by a rubric critic pass inside the agent (a self-check) and saved as a resumable checkpoint in `.neuroflow/ideation/literature-review-[date]/`; `/ideation` can add an independent critic.
 
 **Invoked by:** `/neuroflow:ideation`, after papers are retrieved
+
+---
+
+### `paper-writer`
+
+**Manuscript writer for the unified paper phase.**
+
+Drafts neuroscience manuscript sections from upstream project memory, the target journal's guidelines and the analysis results, citing only from the project library. It works inside the write→critique loop with `paper-critic` and revises until the critic approves or the loop runs out. It returns outlines, drafts and open questions instead of waiting for answers.
+
+**Invoked by:** `/neuroflow:paper`
+
+---
+
+### `paper-critic`
+
+**Hyper-critical manuscript reviewer.**
+
+Applies the full eight-area `neuroflow:review-neuro` methodology to every section draft and returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific, actionable feedback. It never writes content itself.
+
+**Invoked by:** `/neuroflow:paper`, inside the write→critique loop
+
+---
+
+### `poster-critic`
+
+**Conference poster reviewer.**
+
+Judges the poster's LaTeX source, its compile log, a rendered preview and, when it exists, the compiled PDF against design, content and communication standards, including the QR code and LaTeX correctness. Returns `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with actionable feedback.
+
+**Invoked by:** `/neuroflow:poster`, in its worker-critic loop (at most 3 cycles)
+
+---
+
+### `autoresearch`
+
+**The single managing agent of the improvement loop.**
+
+Makes one focused change to a research artifact per iteration, judges it against the current best itself (no worker or evaluator fan-out), and keeps or reverts it. Its memory is a per-loop wiki it reads before and writes after every move. It never stops on its own judgement: it stops at the caps set in the loop's config, when you stop it, or after repeated errors. The protocol lives in the `neuroflow:autoresearch-protocol` skill.
+
+**Invoked by:** `/neuroflow:autoresearch`
+
+---
+
+### `flowie`
+
+**Personal identity agent.**
+
+Reads your flowie profile (`~/.neuroflow/flowie/profile.md`) and shapes the work to who you are: your research stances, writing style and methodological preferences. At the start of a session it surfaces your active tasks for the current project and notes a stale sync. Profile data never appears verbatim in external-facing outputs such as manuscripts, grants or reports.
+
+**Invoked by:** Claude, when a linked flowie profile should shape the work; see [Your profile](flowie.md)
 
 !!! note "Per-phase agents were removed"
     Earlier versions listed one agent per research phase. Those agent files were never spawned by commands and have been removed: each command follows its phase skill directly.

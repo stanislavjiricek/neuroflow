@@ -151,6 +151,6 @@ Every other write (task add/move/done, project add, wellbeing, phase sync) is sy
 ## Related commands and agents
 
 - [`/neuroflow`](neuroflow.md) — project setup and status; run before `/flowie`
-- [`flowie` agent](../concepts/agents.md) — apply the profile autonomously and surface active tasks at session start
+- [`flowie` agent](../concepts/agents.md#flowie) — apply the profile autonomously and surface active tasks at session start
 - [`/phase`](phase.md) — phase switching; auto-syncs to the flowie project registry when linked
 - [`/output`](output.md) — flowie data is never included in project exports

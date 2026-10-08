@@ -10,7 +10,7 @@ neuroflow is a plugin for [Claude Code](https://claude.ai/code), and only for Cl
 
 ## From the marketplace
 
-In Claude Code, one command adds the marketplace and installs the plugin:
+In Claude Code v2.1.275 or later, one command adds the marketplace and installs the plugin:
 
 ```
 /plugin install neuroflow --marketplace stanislavjiricek/neuroflow
@@ -77,7 +77,7 @@ None needs credentials. Miro and Zotero are optional servers you add yourself �
 
 | Requirement | Notes |
 |---|---|
-| Claude Code | Any recent version |
+| Claude Code | v2.1.271 or later — older versions cannot load the plugin, because its settings offer fixed choices (`userConfig` options). The one-step `/plugin install … --marketplace` needs v2.1.275 or later. The optional mod is tested from v2.1.292; `/neuroflow:doctor` warns on older versions |
 | Node.js | Required for the MCP servers via `npx` |
 | Python 3.10+ | Recommended. `/neuroflow` and `/migrate` run small standard-library scripts; without Python, Claude does the same steps by hand. Also needed for analysis scripts you run |
 

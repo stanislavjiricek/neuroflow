@@ -19,6 +19,7 @@
 
 ---
 
+<a id="whats-new"></a>
 ## What's new in 0.2.22
 
 - **A new site and one command after every update** — the [landing page](https://stanislavjiricek.github.io/neuroflow/) turns the research cycle as you scroll, and the [documentation](docs/overview.md) has no top bar: one index with search holds every phase, command, agent and skill, a [Memory & team](docs/concepts/memory.md) section explains the three levels (you, the project, the team), and [the mod page](docs/concepts/mods.md) shows the harness as it looks. After an update, the first neuroflow command names [`/neuroflow:migrate`](commands/migrate.md), which brings the project, your flowie and the team hive up to date ([upgrading](docs/upgrading.md)). Three skills that shared a command's name are renamed: `autoresearch-protocol`, `wiki-protocol`, `setup-guide`
@@ -155,7 +156,7 @@
 - **Two new fixed quotes added to the homepage hero** — "We will probably be the first ones to understand the brain." and "When I said we, I meant you as well, are you in?" appended as adjacent entries in the [`overrides/main.html`](overrides/main.html) quotes rotation
 - **[`/output`](commands/output.md)** — renamed from `/export` to avoid conflict with Claude's built-in `/export` command (which exports conversations); functionality is identical; skill renamed to [`neuroflow:phase-output`](skills/phase-output/SKILL.md)
 - **New quote** — added "Can you collect some brain data for me?" to the homepage quote carousel in [`overrides/main.html`](overrides/main.html)
-- **[Cognitive Development Probe](docs/probe.html)** — a self-contained interactive diagnostic: 7 neuroscience-inspired yes/no questions (prediction error, model update, uncertainty, decision monitoring, self-model, global integration, subjective experience); Q7 locked until Q1–Q6 are all YES; color-coded status indicators, "Cognitive Level" progress bar, reset button; includes a read-only **Claude's honest self-assessment** section where the model answers each question as of this version — no hedging, no performance
+- **Cognitive Development Probe** (since retired) — a self-contained interactive diagnostic: 7 neuroscience-inspired yes/no questions (prediction error, model update, uncertainty, decision monitoring, self-model, global integration, subjective experience); Q7 locked until Q1–Q6 are all YES; color-coded status indicators, "Cognitive Level" progress bar, reset button; includes a read-only **Claude's honest self-assessment** section where the model answers each question as of this version — no hedging, no performance
 - **[`/grant-proposal`](commands/grant-proposal.md) dramatically improved** — auto-discovers ideation outputs, fetches funder calls from URLs, supports major international and national funders with built-in review criteria, and drafts section by section with word-count tracking and quality checklists
 - **[`grant-proposal` agent](agents/grant-proposal.md) upgraded** — autonomous funder call parsing, neuroscience-aware Approach drafting (EEG/fMRI/iEEG/eye-tracking), and per-section confirmation loop
 - **[`phase-grant-proposal` skill](skills/phase-grant-proposal/SKILL.md) expanded** — deep funder knowledge base, review criteria alignment table, common fatal weaknesses guide, and neuroscience-specific power analysis and preprocessing standards
@@ -166,7 +167,7 @@
 
 ## What's new in 0.1.6
 
-- **[Neuroflow Mind](https://stanislavjiricek.github.io/neuroflow/mind/)** — interactive mind map visualization of the entire neuroflow universe; every command, skill, agent, and concept rendered as a force-directed graph with phase clustering; click any node to explore its connections and open its docs; colored receptor dots on each node surface reveal its domain tags (EEG, fMRI, brain-sim, stats, ML, writing, literature, memory, code, human); accessible from the homepage hero button
+- **Neuroflow Mind** (since retired, with the redesigned site in 0.2.22) — interactive mind map visualization of the entire neuroflow universe; every command, skill, agent, and concept rendered as a force-directed graph with phase clustering; click any node to explore its connections and open its docs; colored receptor dots on each node surface reveal its domain tags (EEG, fMRI, brain-sim, stats, ML, writing, literature, memory, code, human); accessible from the homepage hero button
 - **Visual phase map in [`/phase`](commands/phase.md)** — the phase command now renders a full phase map with four distinct markers: `●` current phase, `◉` visited (`.neuroflow/{phase}/` subfolder exists), `→` recommended by neuroflow after the interview, `○` not started; phases are grouped so active and visited appear first, followed by recommended, then the rest
 - **Phase sequence suggestion in [`/neuroflow`](commands/neuroflow.md)** — after the initial interview (new Step 2b), neuroflow now derives and prints a recommended ordered phase sequence tailored to the project, and saves it as `recommended_phases` in `project_config.md`; `/phase` reads this field to render the `→` markers in the phase map
 - **Phase outlook in [`/interview`](commands/interview.md)** — at the end of any interview session, neuroflow suggests which neuroflow phases are most relevant to where the user is heading, based on the session content and the existing project config
@@ -245,7 +246,7 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 
 | Command | What it does |
 |---|---|
-| [`/ideation`](commands/ideation.md) | Brainstorm a research question, explore literature via scholar (open-access only), formalize an idea, keep a standing-query watch list, or produce a project proposal |
+| [`/ideation`](commands/ideation.md) | Brainstorm a research question, explore literature with the inline literature search (open-access only), formalize an idea, keep a standing-query watch list, or produce a project proposal |
 | [`/preregistration`](commands/preregistration.md) | Pre-register study design and analysis plan on OSF or AsPredicted; review for completeness; **freeze** the plan (hashes, banner, append-only deviations); log deviations; link registered reports |
 | [`/ethics`](commands/ethics.md) | Ethics/IRB workflow — protocol and amendments, versioned consent, approval status with expiry, whether the AI model may read participant data, and participant-erasure requests |
 | [`/grant-proposal`](commands/grant-proposal.md) | Write a grant application — specific aims, significance, innovation, approach, budget, timeline, data management plan, and an AI-use statement |
@@ -435,17 +436,24 @@ Every neuroflow command writes its output to `.neuroflow/` at the root of your p
 
 ## Installation
 
-neuroflow is a Claude Code plugin. In Claude Code:
+neuroflow is a Claude Code plugin. In Claude Code (v2.1.275 or later):
 
 ```
 /plugin install neuroflow --marketplace stanislavjiricek/neuroflow
 ```
 
-Or in two steps, from a terminal or inside Claude Code:
+Or in two steps, from a terminal:
 
 ```bash
 claude plugin marketplace add stanislavjiricek/neuroflow
 claude plugin install neuroflow@neuroflow
+```
+
+or inside Claude Code:
+
+```
+/plugin marketplace add stanislavjiricek/neuroflow
+/plugin install neuroflow@neuroflow
 ```
 
 For local development:
@@ -473,7 +481,7 @@ Optional integrations you add yourself — `/neuroflow:setup` walks you through 
 
 | Integration | How |
 |---|---|
-| Miro | `claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<token> -- npx -y @k-jarzyna/mcp-miro@1.0.11`, typed in your own terminal (or with the `!` prefix) |
+| Miro | `claude mcp add --scope user miro -e MIRO_ACCESS_TOKEN=<token> -- npx -y @k-jarzyna/mcp-miro`, typed in your own terminal — never with the `!` prefix, whose commands and output are recorded in the conversation |
 | Google Workspace CLI (`gws`) | `npm install -g @googleworkspace/cli` (Node.js 18+), then `gws auth login` with an OAuth `client_secret.json` from Google Cloud Console |
 | Anthropic-compatible LLM gateway | base URL and model aliases in `~/.neuroflow/integrations.json`; the key stays in a file you control — see the [custom gateway guide](skills/setup-guide/references/custom-gateway.md) |
 | Zotero | an MCP server of your choice; `/ideation` searches your library first when it is there, and writes notes only when you opt in |

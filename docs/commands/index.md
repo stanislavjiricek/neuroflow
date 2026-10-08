@@ -36,7 +36,7 @@ flowchart LR
 |---|---|
 | [`/neuroflow`](neuroflow.md) | Main entry point — scans your project, sets up `.neuroflow/`, or shows current status |
 | [`/setup`](setup.md) | Integration wizard — Google Workspace, optional Miro (added with `claude mcp add`, never a token in chat), and an Anthropic-compatible LLM gateway |
-| [`/migrate`](migrate.md) | Convert an older project's memory to the current format — plan first, writes after you agree |
+| [`/migrate`](migrate.md) | After a plugin update, convert the project, your flowie and the team hive to the current format — plan first, writes after you agree |
 
 ---
 
@@ -56,6 +56,7 @@ flowchart LR
 | [`/data-analyze`](data-analyze.md) | data-analyze | ERPs, time-frequency, connectivity, decoding, GLM |
 | [`/paper`](paper.md) | paper | Unified manuscript writing — draft section by section, write→critique loop |
 | [`/review`](review.md) | review | Peer review a colleague's paper — structured referee report |
+| [`/poster`](poster.md) | poster | LaTeX conference poster from project memory — template (A0/A1/A2, portrait/landscape, custom sizes), QR code, poster-critic review loop |
 | [`/notes`](notes.md) | notes | Live note-taking — capture rough input, reformat into a clean document |
 | [`/write-report`](write-report.md) | write-report | Generate a structured report from `.neuroflow/` for any phase or the whole project |
 
@@ -71,13 +72,28 @@ flowchart LR
 
 ---
 
+## Memory & team
+
+| Command | What it does |
+|---|---|
+| [`/flowie`](flowie.md) | Personal research OS — a private GitHub repository for your research profile, cross-project task board, project registry and personal wiki |
+| [`/hive`](hive.md) | Team layer — a shared GitHub org repository for research directions, explicit knowledge sharing and team-aware recommendations; never shares personal project data on its own |
+| [`/tasks`](tasks.md) | The 3-tier Kanban task board — view, add, move, complete and archive tasks at project, flowie (personal) or hive (team) level |
+| [`/meeting`](meeting.md) | Meetings — schedule, prepare agendas with project context, send calendar invites, take structured notes, and turn action items into tasks, at project, flowie or hive level |
+| [`/wiki`](wiki.md) | Project-level shared knowledge base — an LLM-maintained wiki at `.neuroflow/wiki/`, git-tracked and shared with collaborators (`/flowie --wiki-*` and `/hive --wiki-*` keep the personal and team wikis) |
+
+---
+
 ## Utility commands
 
 | Command | What it does |
 |---|---|
+| [`/ethics`](ethics.md) | Ethics and IRB workflow — protocol submissions and amendments, versioned consent forms, approval status and expiry; the hard gate before any human data collection |
 | [`/git`](git.md) | Context-aware git utility — smart push/pull, commit message generation, branch management, and PR creation with shorthand aliases |
 | [`/pipeline`](pipeline.md) | Define and run a multi-step research pipeline — one step per invocation from a saved plan; interactive by default, or `--executor` for brutal mode (no questions) |
+| [`/autoresearch`](autoresearch.md) | Open-ended improvement loop for any research artifact — one focused change per iteration, judged against the current best, kept or reverted, with a per-loop wiki as memory; stops at the caps you set or when you stop it |
 | [`/output`](output.md) | Export project memory or the whole project — pack as a zip archive or copy to a folder for sharing, archiving, or handoff |
+| [`/slideshow`](slideshow.md) | Build a presentation from selected areas of the project — pick phases, figures and key findings, get a structured slide deck ready to export |
 | [`/search`](search.md) | Lightweight scoped search — use `memory:` to search `.neuroflow/` or `project:` to search the codebase |
 | [`/interview`](interview.md) | Interview preparation from either side — generate tailored questions, run practice Q&A, evaluate readiness |
 | [`/phase`](phase.md) | Show the phase map and switch phase — a picker with the neuroflow mod |

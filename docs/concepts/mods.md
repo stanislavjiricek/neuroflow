@@ -48,11 +48,10 @@ Current: data-analyze — analysis
 </figure>
 
 <figure class="nf-shot">
-<div class="nf-term"><span class="warn">⚠</span> Abstract deadline — tomorrow
-<span class="dim">▸</span> meeting "Lab meeting" today 14:00  <span class="nf-key">prepare <i>p</i></span><span class="nf-key">notes <i>o</i></span>
+<div class="nf-term"><span class="warn">⚠ Abstract deadline — tomorrow</span>  <span class="dim">+1 more</span>  <span class="nf-key">dashboard <i>d</i></span><span class="nf-key">hide today <i>x</i></span>
 <span class="nf-rule"></span><span class="b">&gt;</span> <span class="nf-caret"></span>
 <span class="nf-rule"></span><span class="dim">neuroflow: ⚠ Abstract deadline tomorrow</span><span class="nf-right dim">neuroflow · data-analyze · critic</span></div>
-<figcaption>The band above the prompt names what needs attention and offers its next step; the status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
+<figcaption>The band above the prompt names the most urgent item — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two) — then <code>dashboard d</code> and <code>hide today x</code>. An item's own keys, such as a meeting's <code>prepare p</code> and <code>notes o</code> or the version notice's <code>migrate m</code>, appear when it is first. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
 </figure>
 
 <figure class="nf-shot">
@@ -92,17 +91,31 @@ Current: data-analyze — analysis
 
 ## Settings
 
-Set them in Claude Code's plugin configuration (`/plugin` → neuroflow → configure, or `/config`) or in your user
-settings (`~/.claude/settings.json`) under `pluginConfigs` → `neuroflow` → `options`; a settings file passed with
-`--settings` works too. Claude Code does not read plugin options from a project's settings. Values are per user;
-per-project facts stay in `.neuroflow/`.
+Set them in Claude Code itself: `/plugin` → **Installed** → neuroflow → **Configure options**, or the neuroflow rows
+in `/config`. Claude Code saves them in your user settings (`~/.claude/settings.json`). To write them by hand, put
+them there under the plugin's marketplace key:
+
+```json
+{
+  "pluginConfigs": {
+    "neuroflow@neuroflow": {
+      "options": { "runtime": "on", "guards": "enforce", "band": "quiet", "citations": true }
+    }
+  }
+}
+```
+
+A copy loaded with `--plugin-dir` (local development) is keyed `neuroflow` (or `neuroflow@inline`) instead. Claude
+Code reads plugin options only from your user settings, a file passed with `--settings` and managed settings — never
+from a project's `.claude/settings.json` or `.claude/settings.local.json`, so a repository you clone cannot change
+them. Values are per user; per-project facts stay in `.neuroflow/`.
 
 | Setting | Values | Default | What it does |
 |---|---|---|---|
 | `runtime` | `off` · `observe` · `on` | `observe` | `off`: the mod does nothing. `observe`: views, status and warnings — it never writes into project memory on its own (only when you press a key or type a command that asks it to) and never blocks. `on`: it also fills bookkeeping gaps and may enforce guards. |
 | `guards` | `warn` · `enforce` | `warn` | `enforce` lets guards deny a tool call (only with `runtime: on`). `warn` says what a guard would have blocked. |
 | `band` | `off` · `quiet` · `normal` | `quiet` | The one-line band above the prompt. `quiet` shows only what needs attention. |
-| `citations` | on · off | off | After a turn that wrote a manuscript, grant, poster or report citing DOIs, look up the new DOIs with `cite_check.py`; once a week, re-check the manuscript's DOIs for retraction and correction notices. Needs `runtime: on` (it keeps a DOI cache in `.neuroflow/paper/`). |
+| `citations` | `true` · `false` | `false` | After a turn that wrote a manuscript, grant, poster or report citing DOIs, look up the new DOIs with `cite_check.py`; once a week, re-check the manuscript's DOIs for retraction and correction notices. Needs `runtime: on` (it keeps a DOI cache in `.neuroflow/paper/`). |
 
 ## When the mod is not running
 
@@ -153,7 +166,10 @@ promise in a research setting.
 10. **A ladder, not a wall.** Observe, warn, ask, and only then deny — reserved for irreversible breaks: frozen
     preregistrations, raw data, secrets, consent. Model judgement never decides enforcement.
 11. **Integrity markers are set by a person.** "Preregistration frozen" or "ethics approved" counts only when a person
-    pressed the button or confirmed in the turn (`set_by: person`); the model's edits to those markers are denied.
+    pressed the button or confirmed in the turn (`set_by: person`). The model writes `set_by: person` only after the
+    person's explicit confirmation in that turn. With `runtime: on` and `guards: enforce` the mod also asks before such a
+    write and lets it through only on "Allow — I confirm this myself" (in a headless run, where nobody can answer, it
+    denies); otherwise it warns.
 12. **Badges name the test.** "DOI resolves", not "citation verified"; "hash matches", not "no drift".
 13. **Records state their blind spots.** The mod sees only Claude Code sessions in which it loaded. Generated records say
     what window they observed and what they cannot see (work done in other tools or by hand).
@@ -221,7 +237,7 @@ done. A guard that would ask denies instead in a headless run, where nobody is t
 |---|---|---|
 | `PREREG-FROZEN` | Writes to the files of a preregistration a person froze; changes to earlier entries of `deviations.md` while it is frozen (new entries are appended) | deny |
 | `RAW-READONLY` | Changing, moving or deleting an existing file under `raw_roots` (`sourcedata/` while unset); new recordings may be added | deny |
-| `PARTICIPANT-ROUTE` | The model reading participant data (recordings, `participants.tsv` rows) when `ai_processing` is `none`, missing, or not set by a person; sidecar JSON and a table's header row are fine | deny — a warning when the project has no ethics record yet |
+| `PARTICIPANT-ROUTE` | The model reading participant data (recordings, `participants.tsv` rows) when `ai_processing` is `none`, missing, or not set by a person; sidecar JSON and a table's header row are fine. Off when `project_config.md` says `ethics: not-applicable` (a project with no participant data to protect) | deny — a warning when the project has no ethics record yet |
 | `GIT-NO-SECRETS` | `git clean -x`, staging local-only files, `git add -A` while `.gitignore` lacks the local-only lines; commands that throw work away (`reset --hard`, force push) | deny — ask for discards |
 | `GIT-ALIAS-SCOPE` | A git verb beyond the endpoint of the running `/git` alias | deny |
 | `INTEGRITY-MARKER` | The model writing `set_by: person` into an ethics or preregistration status file | ask |

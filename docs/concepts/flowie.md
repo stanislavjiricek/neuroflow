@@ -23,7 +23,7 @@ Your intellectual fingerprint:
 - Domain knowledge areas
 - Collaboration style
 
-The [`flowie` agent](../concepts/agents.md) reads this profile silently at the start of every session and applies it without exposing the contents in external-facing outputs.
+The [`flowie` agent](agents.md#flowie) reads this profile silently at the start of every session and applies it without exposing the contents in external-facing outputs.
 
 ### 2. Kanban task board (`tasks/`)
 
