@@ -71,10 +71,13 @@ describe('command digest', () => {
     expect(digest).toContain('marker not set by a person')
   })
 
-  test('after a plugin update the digest carries the version notice, except for /migrate itself', () => {
+  test('after a plugin update the digest carries the version notice, except for /migrate itself and /setup', () => {
     const behind = { ...full, pluginVersion: '0.2.21' } as NfSnapshot
     expect(commandDigest('paper', 'paper', behind, null, null)).toContain('\n- version notice, to tell the person once in one line before the command\'s own work: "neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date."')
     expect(commandDigest('migrate', 'utility', behind, null, null)).not.toContain('is installed')
+    // neuroflow-core → Command lifecycle, step 3: /setup configures integrations, not the project.
+    expect(commandDigest('setup', 'utility', behind, null, null)).not.toContain('is installed')
+    expect(commandDigest('setup', 'utility', behind, null, null)).toContain('neuroflow digest for /neuroflow:setup')
     expect(commandDigest('paper', 'paper', full, null, null)).not.toContain('is installed')
   })
 })

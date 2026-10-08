@@ -52,6 +52,9 @@ export const pluginNote = (root: string, version: string | null): string =>
 
 const DIGEST_MAX = 1600
 
+/** The commands whose digest leaves the version notice out (neuroflow-core → Command lifecycle, step 3). */
+export const NO_VERSION_NOTICE: ReadonlySet<string> = new Set(['migrate', 'setup'])
+
 const clip = (text: string, max: number): string => (text.length <= max ? text : `${text.slice(0, max - 1)}…`)
 
 /** M004 — the facts a command's prose reads first, as one compact note. */
@@ -83,8 +86,10 @@ export const commandDigest = (
   lines.push(`- raw data, read-only: ${snap.rawRoots.length > 0 ? snap.rawRoots.join(', ') : 'raw_roots not set (treat sourcedata/ as raw)'}`)
   if (snap.deadlines.length > 0) lines.push(`- next dates: ${snap.deadlines.slice(0, 2).map(item => `${item.date} ${item.what} (${item.daysLeft} d)`).join('; ')}`)
   if (snap.problems.length > 0) lines.push(`- config problems: ${snap.problems.join('; ')}`)
-  // The version notice the prose says once per session; /migrate itself is what it points at.
-  const behind = command === 'migrate' ? null : versionNotice(snap)
+  // The version notice the prose says once per session (neuroflow-core → Command lifecycle, step 3): /migrate is what
+  // it points at and /setup configures integrations, not the project, so both skip it — as quiet commands do, which
+  // get no digest at all.
+  const behind = NO_VERSION_NOTICE.has(command) ? null : versionNotice(snap)
   if (behind !== null) lines.push(`- version notice, to tell the person once in one line before the command's own work: "${behind}."`)
   if (phaseFlow !== null && phase !== 'utility') {
     const body = phaseFlow
