@@ -21,7 +21,8 @@
   --nf-hl-name: #C8C9CC;
   --nf-hl-function: #DADCE0;
   --nf-hl-special: #C9B7D8;
-  color-scheme: dark;
+  --nf-scheme: dark;
+  color-scheme: var(--nf-scheme);
 }
 @media (prefers-color-scheme: light) {
   :root {
@@ -42,11 +43,13 @@
     --nf-hl-name: #2E2E30;
     --nf-hl-function: #1F2A44;
     --nf-hl-special: #5B3F75;
-    color-scheme: light;
+    --nf-scheme: light;
   }
 }
 
+/* The theme's palette is "slate", which also sets color-scheme: dark on the body; the system setting wins here. */
 [data-md-color-scheme] {
+  color-scheme: var(--nf-scheme);
   --md-default-bg-color: var(--nf-bg);
   --md-default-bg-color--light: var(--nf-raise);
   --md-default-bg-color--lighter: var(--nf-field);
@@ -74,6 +77,8 @@
   --md-typeset-table-color: var(--nf-line);
   --md-typeset-table-color--light: var(--nf-raise);
   --md-code-bg-color: var(--nf-field);
+  --md-code-bg-color--light: var(--nf-raise);
+  --md-code-bg-color--lighter: var(--nf-field);
   --md-code-fg-color: var(--nf-fg);
   --md-code-hl-color: var(--nf-mark);
   --md-code-hl-color--light: var(--nf-mark);
@@ -150,6 +155,7 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 .nf-results a b { font-size: .68rem; font-weight: 400; color: var(--nf-fg); }
 .nf-results a small { font-size: .56rem; line-height: 1.45; color: var(--nf-dim); }
 .nf-results a:hover, .nf-results a:focus-visible { border-left-color: var(--nf-fg); }
+.nf-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 
 .md-nav { font-size: .7rem; }
 .md-sidebar--primary .md-nav__item { padding: 0; }
@@ -174,7 +180,10 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 .md-nav__item--nested .md-nav .md-nav__link { padding-left: 1rem; }
 .md-nav__item--nested .md-nav .md-nav__link--active { padding-left: calc(1rem - 1px); }
 .nf-hidden { display: none !important; }
-.md-nav.nf-filtering .md-nav__toggle ~ .md-nav { display: block !important; max-height: none !important; opacity: 1 !important; visibility: visible !important; }
+/* While the search filters the index, every group is open; the current page's outline stays out of it. */
+.md-nav.nf-filtering .md-nav__toggle ~ .md-nav:not(.md-nav--secondary) { display: block !important; max-height: none !important; opacity: 1 !important; visibility: inherit !important; }
+.md-nav--primary.nf-filtering .md-nav__link[for=__toc], .md-nav--primary.nf-filtering .md-nav__link[for=__toc] ~ .md-nav { display: none; }
+.md-nav--primary.nf-filtering .md-nav__link[for=__toc] + .md-nav__link { display: flex; }
 .md-nav__container > .md-nav__link:first-child { flex-grow: 1; }
 
 /* ── Outline (right) ────────────────────────────────────────────────────────────────────── */
@@ -193,12 +202,36 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
   .nf-menu span { display: block; height: 1px; background: var(--nf-fg); }
   .md-content__inner { margin: 0 1rem 2rem; padding-top: 3.4rem; }
   .md-path { margin: 3.2rem 1rem 0; }
-  [dir] .md-sidebar--primary { left: calc(-1 * min(86vw, 17rem)); width: min(86vw, 17rem); background: var(--nf-bg); border-right: 1px solid var(--nf-line); }
-  .md-sidebar--primary .md-sidebar__inner { padding: 1.2rem 1rem 2rem; }
-  [dir] [data-md-toggle=drawer]:checked ~ .md-container .md-sidebar--primary { transform: translateX(min(86vw, 17rem)); }
+  /* A closed drawer leaves the tab order once it has slid away. */
+  [dir] .md-sidebar--primary { left: calc(-1 * min(86vw, 17rem)); width: min(86vw, 17rem); background: var(--nf-bg); border-right: 1px solid var(--nf-line); visibility: hidden; transition: transform .25s cubic-bezier(.4, 0, .2, 1), box-shadow .25s, visibility 0s .25s; }
+  [dir] [data-md-toggle=drawer]:checked ~ .md-container .md-sidebar--primary { transform: translateX(min(86vw, 17rem)); visibility: visible; transition: transform .25s cubic-bezier(.4, 0, .2, 1), box-shadow .25s; }
+  /* The drawer is a column: brand and search on top, the index below them. The theme lays the index
+     over the whole drawer and slides its sections in as panels; here the panels slide within the index. */
+  .md-sidebar--primary .md-sidebar__inner { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; padding: 1.2rem 1rem 0; }
+  .md-sidebar--primary .nf-side { flex: none; }
+  .md-nav--primary { position: relative; flex: 1 1 auto; min-height: 0; height: auto; overflow: hidden; }
+  .md-nav--primary .md-nav__title ~ .md-nav__list { padding-bottom: 2rem; }
+  /* Closed panels leave the tab order once they have slid away; open ones follow the drawer. */
+  .md-nav--primary .md-nav__toggle ~ .md-nav { visibility: hidden; transition: transform .25s cubic-bezier(.8, 0, .6, 1), opacity 125ms 50ms, visibility 0s .25s; }
+  .md-nav--primary .md-nav__toggle:checked ~ .md-nav { visibility: inherit; transition: transform .25s cubic-bezier(.4, 0, .2, 1), opacity 125ms 125ms; }
   .md-nav--primary .md-nav__link { padding-top: .38rem; padding-bottom: .38rem; }
+  .md-nav--primary .md-nav__link:focus-visible { outline-offset: -2px; }
   .md-nav--primary .md-nav__item, .md-nav--primary .md-nav__title { border-top: 0; }
-  .md-nav--primary .md-nav__title { background: none; color: var(--nf-mute); }
+  /* A panel's title is one line: the way back and the section's name. */
+  .md-nav--primary .md-nav__title { height: auto; padding: .5rem 0 .6rem 1.5rem; background: none; color: var(--nf-mute); font-family: var(--md-code-font-family); font-size: .52rem; font-weight: 400; line-height: 1.5; letter-spacing: .14em; text-transform: uppercase; }
+  .md-nav--primary .md-nav__title .md-nav__icon { top: 50%; left: 0; width: 1rem; height: 1rem; margin: 0; transform: translateY(-50%); }
+  .md-nav--primary .md-nav--secondary > .md-nav__title { font-size: 0; }
+  .md-nav--primary .md-nav__title:hover { color: var(--nf-fg); }
+  /* While the search filters the index, the panels open in place, one after another, and the drawer
+     scrolls as a single column: results first, then the filtered index. */
+  .md-sidebar--primary .md-sidebar__inner:has(.nf-filtering) { overflow-y: auto; overscroll-behavior: contain; }
+  .md-nav--primary.nf-filtering { flex: none; overflow: visible; }
+  .md-nav--primary.nf-filtering > .md-nav__list { overflow: visible; }
+  .md-nav--primary.nf-filtering .md-nav { position: static; height: auto; transform: none; background: none; transition: none; }
+  .md-nav--primary.nf-filtering .md-nav > .md-nav__title { display: none; }
+  .md-nav--primary.nf-filtering .md-nav .md-nav__list { overflow: visible; box-shadow: none; background: none; padding-bottom: 0; }
+  .md-nav--primary.nf-filtering .md-nav__item--nested > label.md-nav__link { pointer-events: none; }
+  .md-nav--primary.nf-filtering .md-nav__item--nested > label.md-nav__link .md-nav__icon { display: none; }
   .md-overlay { background: rgba(0, 0, 0, .5); }
 }
 
@@ -222,7 +255,7 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 .md-typeset code { padding: .1em .35em; border-radius: 3px; font-size: .86em; color: var(--nf-fg); background: var(--nf-field); word-break: normal; }
 .md-typeset pre > code { padding: 1rem 1.2rem; border-radius: 6px; border: 1px solid var(--nf-line); font-size: .66rem; line-height: 1.7; }
 .md-typeset .highlight { margin: 1.2rem 0; }
-.md-clipboard { color: var(--nf-dim); }
+.md-clipboard, .md-code__button { color: var(--nf-dim); }
 .md-clipboard:hover, .md-clipboard:focus { color: var(--nf-fg); }
 .md-typeset kbd { font-family: var(--md-code-font-family); }
 .md-typeset mark { color: inherit; }
