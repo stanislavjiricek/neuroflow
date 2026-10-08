@@ -2,7 +2,11 @@
   The landing page: one screen. Wheel, swipe and the arrow keys turn the research cycle (nineteen
   phases), then the memory chapter (you, the project, the team) and the next study. When a window
   is too short for the scene, the page scrolls first, so the install line and links stay in reach.
-  Built from the Orbit design; docs/index.md selects it with `template: home.html`.
+  On the smallest phones the padding tightens so the scene still fits the screen, and a small dial
+  keeps its centre text inside the ring of dots: on a dial narrower than 320px the text is centred
+  even where the command is wider than its column, and below 290px the description is left to
+  screen readers, so the phase and its command stand alone. Built from the Orbit design;
+  docs/index.md selects it with `template: home.html`.
 -#}
 <!doctype html>
 <html lang="{{ config.theme.language | d('en') }}">
@@ -103,6 +107,16 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
 .nfo-cta code{display:none}
 .nfo-dial{width:min(100%,max(220px,calc(100svh - 360px)))}
 .nfo-foot{display:none}
+}
+@media (max-width: 900px) and (max-height: 600px) and (orientation: portrait){
+.nfo-grid{padding-top:20px;padding-bottom:16px}
+}
+@container (width < 320px){
+.nfo-c{justify-content:center}
+}
+@container (width < 290px){
+.nfo-cd{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.nfo-cc{font-size:min(11px,4.5cqw)}
 }
 @media (max-width: 900px) and (max-height: 560px) and (orientation: landscape){
 .nfo-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:none;padding:16px 24px 14px;gap:24px}
