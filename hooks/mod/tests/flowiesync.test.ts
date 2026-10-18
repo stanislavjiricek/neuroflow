@@ -64,6 +64,7 @@ describe('a flush', () => {
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
       'pull --rebase --autostash',
       'push',
+      'diff --name-only --diff-filter=U',
     ])
     expect(calls.every(call => call.env?.GIT_TERMINAL_PROMPT === '0')).toBe(true)
     expect(io.files[LOG]).toBe('2026-10-07T07:30:00Z synced: wellbeing/2026-10-07.json wellbeing/.flow (mod)\n')
@@ -87,6 +88,19 @@ describe('a flush', () => {
     expect([result.outcome, result.detail]).toEqual(['failed', 'your flowie has an unresolved conflict (wellbeing/.flow)'])
     expect(calls.map(call => call.args[0])).toEqual(['diff'])
     expect(io.files[LOG]).toContain('skipped (unresolved conflict)')
+  })
+
+  test('files the pull could not give back cleanly (an autostash conflict) are logged after the sync', async () => {
+    let diffs = 0
+    const { io } = gitIo(repo, args => {
+      if (args[0] === 'diff') {
+        diffs += 1
+        return { exitCode: 0, stdout: diffs === 1 ? '' : 'notes/x.md\n', stderr: '' }
+      }
+      return args[0] === 'config' ? { exitCode: 1, stdout: '', stderr: '' } : ok
+    })
+    expect((await flushFlowie(io, HOME, [wellbeing])).outcome).toBe('synced')
+    expect(io.files[LOG]).toContain('autostash conflict: notes/x.md (mod) — /flowie --sync')
   })
 
   test('a git call that throws synchronously is a failed step, logged — never an escape', async () => {
@@ -299,6 +313,7 @@ describe('the wellbeing band', () => {
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
       'pull --rebase --autostash',
       'push',
+      'diff --name-only --diff-filter=U',
     ])
     expect(fs.files[LOG]).toMatch(/^\S+Z synced: wellbeing\/2026-10-07\.json wellbeing\/\.flow \(mod\)\n$/)
     expect(asQueue(seen.store.get(SYNC_QUEUE))).toEqual([])
@@ -359,7 +374,7 @@ describe('idea capture and the queue in a session', () => {
     await checkDone()
     const first = await $.prompt.submit({ text: 'idea: try CSD instead', origin: { kind: 'composer' } } as never)
     expect(JSON.stringify(first)).toContain('Idea saved — inbox: 1 · synced')
-    expect(seen.git.slice(-3)).toEqual(['commit -m idea: inbox -- ideas-inbox.md', 'pull --rebase --autostash', 'push'])
+    expect(seen.git.slice(-4)).toEqual(['commit -m idea: inbox -- ideas-inbox.md', 'pull --rebase --autostash', 'push', 'diff --name-only --diff-filter=U'])
     offline = true
     const second = await $.prompt.submit({ text: 'idea: a second cohort', origin: { kind: 'composer' } } as never)
     expect(JSON.stringify(second)).toContain('the sync did not go through (push failed — fatal: could not resolve host) and was logged')
@@ -410,7 +425,7 @@ describe('idea capture and the queue in a session', () => {
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     expect(JSON.stringify(await ui.drawn())).toContain('flowie sync pending (wellbeing: 2026-10-06)')
     await $.turn.complete(TURN as never)
-    expect(seen.git.slice(2)).toEqual(['diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase --autostash', 'push'])
+    expect(seen.git.slice(2)).toEqual(['diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase --autostash', 'push', 'diff --name-only --diff-filter=U'])
     expect(asQueue(seen.store.get(SYNC_QUEUE))).toEqual([])
     expect(fs.files[LOG]).toContain('synced: wellbeing/2026-10-06.json (mod)')
     expect(JSON.stringify(await ui.drawn())).not.toContain('flowie sync pending')
@@ -453,6 +468,7 @@ const SYNC = [
   'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
   'pull --rebase --autostash',
   'push',
+  'diff --name-only --diff-filter=U',
 ]
 const noHooks = (args: readonly string[]): NfRun => (args[0] === 'config' ? { exitCode: 1, stdout: '', stderr: '' } : ok)
 

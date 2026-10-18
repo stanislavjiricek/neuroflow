@@ -174,6 +174,12 @@ export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlow
   }
   const push = await git(io, flowie, ['push'])
   if (push.exitCode !== 0) return finish('failed', 'push failed', gitReason(push))
+  // The pull went through, but the uncommitted files it set aside may not have gone back cleanly: say so in the log,
+  // which /flowie reports and /flowie --sync resolves with the person.
+  const left = await git(io, flowie, ['diff', '--name-only', '--diff-filter=U'], 10_000)
+  if (left.exitCode === 0 && left.stdout.trim() !== '') {
+    await appendLine(io, `${home}/.neuroflow/flowie-sync.log`, `${stamp(await io.now())} autostash conflict: ${left.stdout.trim().split(/\r?\n/).join(' ')} (mod) — /flowie --sync`)
+  }
   return finish('synced', 'synced')
 }
 

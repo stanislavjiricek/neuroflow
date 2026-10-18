@@ -1489,6 +1489,23 @@ def in_head(plan: LevelPlan, path: Path) -> bool:
     return git(plan.root, "cat-file", "-e", f"HEAD:{plan.rel(path)}").returncode == 0
 
 
+def own_state(plan: LevelPlan, path: Path) -> bytes:
+    """This member's values in a tracked sync.json they wrote into: the keys whose value differs from the committed
+    copy (whoever committed it), so another member's member_handle or push history never becomes theirs. The whole
+    file when either side is not a JSON object."""
+    raw = path.read_bytes()
+    committed = git(plan.root, "show", f"HEAD:{plan.rel(path)}")
+    try:
+        mine = json.loads(raw.decode("utf-8-sig"))
+        theirs = json.loads(committed.stdout) if committed.returncode == 0 else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return raw
+    if not isinstance(mine, dict) or not isinstance(theirs, dict):
+        return raw
+    own = {key: value for key, value in mine.items() if theirs.get(key) != value}
+    return (json.dumps(own, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
 def apply_level(plan: LevelPlan) -> None:
     """Writes the plan; in a git repository tracked task files move with git mv and every change is staged."""
     for src, dst, text, newline in plan.moves:
@@ -1507,7 +1524,7 @@ def apply_level(plan: LevelPlan) -> None:
         stage(plan, path)
     for src, dst, restore in plan.local_moves:  # machine-local, never staged
         if restore:
-            dst.write_bytes(src.read_bytes())
+            dst.write_bytes(own_state(plan, src))
             git_ok(plan.root, "checkout", "--", plan.rel(src))
         else:
             src.replace(dst)

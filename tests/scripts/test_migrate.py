@@ -586,16 +586,18 @@ class FlowieHiveTest(unittest.TestCase):
     def test_a_tracked_sync_json_this_member_wrote_into_is_healed(self) -> None:
         hive = self.hives / "example-lab-hive"
         self.write(hive / "hive.md", "# Example Lab\n")
-        self.write(hive / "sync.json", '{"member_handle": "bob"}\n')  # committed by an older neuroflow: bob's state
+        self.write(hive / "sync.json", '{"member_handle": "bob", "pushes": ["2026-09-01"]}\n')  # committed: bob's state
         self.repo(hive)
-        self.write(hive / "sync.json", '{"member_handle": "alice", "last_pull": "2026-10-16"}\n')  # alice's own writes
+        self.write(hive / "sync.json", '{"member_handle": "alice", "pushes": ["2026-09-01"], "last_pull": "2026-10-16"}\n')
         code, result = self.levels("--hive", "example-lab-hive", "--apply")
         level = result["levels"][0]
         self.assertEqual(level["changes"][-1]["to"], ".git/neuroflow-sync.json")
         self.assertNotIn("local_changes", level["changes"][-1], "a machine-local move never goes into a commit")
-        self.assertEqual(self.read(hive / ".git" / "neuroflow-sync.json"),
-                         '{"member_handle": "alice", "last_pull": "2026-10-16"}\n')
-        self.assertEqual(self.read(hive / "sync.json"), '{"member_handle": "bob"}\n', "back to the committed text")
+        # Only alice's own values move: bob's push history never becomes hers.
+        self.assertEqual(json.loads(self.read(hive / ".git" / "neuroflow-sync.json")),
+                         {"member_handle": "alice", "last_pull": "2026-10-16"})
+        self.assertEqual(self.read(hive / "sync.json"), '{"member_handle": "bob", "pushes": ["2026-09-01"]}\n',
+                         "back to the committed text")
         self.assertEqual(run_git(hive, "status", "--porcelain", "--", "sync.json").strip(), "", "pulls run again")
         self.assertNotIn("sync.json", level["commit_paths"])
         self.assertIn("sync.json", [item["path"] for item in level["report"]], "untracking it stays the team's call")

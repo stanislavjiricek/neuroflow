@@ -139,7 +139,7 @@ Group all hive warnings under "⚠️ hive". These are warnings, not blocking er
 
 ### S9 — Project registry (if a flowie or a hive exists)
 
-Once, when `~/.neuroflow/flowie/` or any `~/.neuroflow/hives/*/` exists: run `python "${CLAUDE_PLUGIN_ROOT}/skills/neuroflow-core/scripts/projects.py" check --json` (exit `0` clean, `1` findings, `2` it could not run — say so). Report each finding with its message under "⚠️ projects": two cards for one project (`/neuroflow:migrate` folds them), a pointer that leads nowhere or copies card fields, a local folder in a card's `repos`, a `blocked_by` that names no task on its board, an open task whose `project:` names no registered project (neuroflow-core → **Project registry**).
+Once, when `~/.neuroflow/flowie/` or any `~/.neuroflow/hives/*/` exists: run `python "${CLAUDE_PLUGIN_ROOT}/skills/neuroflow-core/scripts/projects.py" check --json` (exit `0` clean, `1` findings, `2` it could not run — say so). Show each finding with its message in the session, under "⚠️ projects" — never in `.neuroflow/sentinel.md`: the messages name the person's private flowie projects, task files and folders, and that file is committed with the project. There, write one line only: `S9 project registry: {N} finding(s), shown in the session (they come from your flowie and hives)`. The findings are two cards for one project (`/neuroflow:migrate` folds them), a pointer that leads nowhere or copies card fields, a local folder in a card's `repos`, a `blocked_by` that names no task on its board, an open task whose `project:` names no registered project (neuroflow-core → **Project registry**).
 
 ## Report
 
@@ -170,6 +170,7 @@ Only after the user agrees, issue by issue:
 - Add a missing `wiki/` row to `.neuroflow/flow.md` (NF1, S7b); delete an obsolete hive `directions.md` (S8)
 
 Never automatic:
+- The project registry (S9): two cards are folded by `/neuroflow:migrate` (it asks which values stay, and pushes to a hive only after a yes); a pointer, a `blocked_by` or a `project:` is fixed where it lives, with the person.
 - An older or missing `plugin_version` (NF2): suggest `/neuroflow:migrate`, which records the version when it brings the project up to date, and checks the flowie and the hive in the same run. Never set the version by hand — that silences the update notice while the formats stay old
 - Frozen preregistration files and `preregistration/status.md` (NF3, S3) — freezing and unfreezing are a person's actions; changes go to `deviations.md`. Never write `set_by: person`.
 - Sensitive information (NF8, S5) — sentinel only surfaces findings. The user decides whether to redact, remove, or confirm each item.

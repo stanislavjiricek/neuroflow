@@ -347,6 +347,26 @@ describe('phase switching', () => {
     expect(decision.approved_by).toBe('person')
   })
 
+  test('a switch in a project linked to a flowie hands /neuroflow:phase --sync to the prompt', { options: { runtime: 'observe' } }, async ($, on) => {
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\nflowie_profiles:\n  - handle: me\n    repo: me/flowie\n---\n',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 30).getTime() })
+    mock.store(on)
+    on('session.start', ($$, e) => ({ cwd: e.cwd }))
+    on('ui.toast', () => ({ value: undefined }))
+    const filled: string[] = []
+    on('prompt.fill', ($$, e) => {
+      filled.push(e.text)
+      return { isFilled: true, text: e.text, cursor: e.text.length }
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const result = await $.command.run({ command: 'neuroflow:phase', args: 'paper' })
+    expect(result.text).toContain('Press Enter to record it on your flowie')
+    expect(filled).toEqual(['/neuroflow:phase --sync'])
+  })
+
   test('the picker switches on a pick', { options: { runtime: 'observe' } }, async ($, on) => {
     const fs = setup(on)
     await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })

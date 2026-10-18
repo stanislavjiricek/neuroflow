@@ -288,7 +288,11 @@ class SafetyAndShapesTests(RegistryTests):
 
     def test_an_unforeseen_shape_is_an_error_not_a_finding(self) -> None:
         self.registry(self.flowie, {"id": "A", "repos": 5})
-        self.assertEqual(self.h("check")[0], 2)
+        self.assertEqual(self.h("check")[0], 0, "a repos value that is no text is no repository")
+        with mock.patch.object(pj, "check", side_effect=TypeError("a shape nobody foresaw")):
+            code, _, err = self.h("check")
+        self.assertEqual(code, 2)
+        self.assertIn("TypeError", err)
 
 
 @unittest.skipUnless(shutil.which("git"), "needs git")
@@ -342,6 +346,33 @@ class ThirdReviewTests(RegistryTests):
         self.assertFalse(ok)
         self.assertFalse(partial.exists(), "the half-made clone of an earlier run is removed")
         self.assertFalse(target.exists())
+
+class FinalReviewTests(RegistryTests):
+    def test_fold_never_puts_a_local_folder_on_the_team_card(self) -> None:
+        self.registry(self.flowie, {"id": "Oddball", "repos": ["https://github.com/example-lab/oddball", "C:/Users/alice/projects/oddball"]})
+        self.registry(self.hive, {"id": "Oddball", "repos": ["https://github.com/example-lab/oddball"]})
+        plan = json.loads(self.h("fold", "--json")[1])["plan"][0]
+        self.assertEqual(plan["local_repos"], ["C:/Users/alice/projects/oddball"])
+        self.assertEqual(plan["differ"], [], "the remote URL is already on the card")
+        self.h("fold", "--apply", "--json")
+        hive = json.loads((self.hive / "projects" / "projects.json").read_text(encoding="utf-8"))["projects"][0]
+        self.assertEqual(hive["repos"], ["https://github.com/example-lab/oddball"])
+        self.assertEqual([f["kind"] for f in json.loads(self.h("check", "--json")[1])["findings"]], [])
+
+    def test_a_repos_string_is_one_repository_everywhere(self) -> None:
+        self.registry(self.flowie, {"id": "Solo", "repos": "https://github.com/example-lab/solo"})
+        self.assertEqual(self.h("check")[0], 0)
+        self.assertEqual(pj.card_repos({"repos": "https://github.com/example-lab/solo"}), ["https://github.com/example-lab/solo"])
+
+    def test_a_task_may_name_a_card_of_another_level(self) -> None:
+        self.registry(self.flowie, {"id": "Solo"})
+        self.registry(self.hive, {"id": "Team"})
+        self.write(self.flowie / "tasks" / "inbox" / "a.md", task("A", "Team"))
+        self.assertEqual(self.h("check")[0], 0)
+
+    def test_a_key_part_never_ends_in_a_dot(self) -> None:
+        self.assertIsNone(pj.parse_repo("https://github.com/example-lab/oddball."))
+        self.assertEqual(pj.repo_key("https://github.com/example-lab/odd.ball"), "github.com/example-lab/odd.ball")
 
 
 if __name__ == "__main__":

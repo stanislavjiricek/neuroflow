@@ -137,6 +137,38 @@ class HookSmokeTests(unittest.TestCase):
         self.run_hook(command, project)
         self.assertIn("Lives in example-lab/oddball.", self.git(remote, "show", "main:projects/Oddball.md"))
 
+    def test_flowie_hook_adds_nothing_while_a_conflict_is_unresolved(self):
+        command = pick(".neuroflow/flowie")
+        remote = self.tmp / "remote.git"
+        home = self.tmp / "home" / ".neuroflow"
+        flowie = home / "flowie"
+        other = self.tmp / "other"
+        self.git(self.tmp, "init", "-q", "--bare", "-b", "main", str(remote))
+        flowie.mkdir(parents=True)
+        self.git(flowie, "init", "-q", "-b", "main")
+        (flowie / "notes.md").write_text("one\n", encoding="utf-8")
+        (flowie / "profile.md").write_text("# profile\n", encoding="utf-8")
+        self.git(flowie, "add", "-A")
+        self.git(flowie, "commit", "-q", "-m", "init")
+        self.git(flowie, "remote", "add", "origin", str(remote))
+        self.git(flowie, "push", "-q", "-u", "origin", "main")
+        # Another machine changes notes.md; this one has its own uncommitted change to it.
+        self.git(self.tmp, "clone", "-q", str(remote), str(other))
+        (other / "notes.md").write_text("two (other machine)\n", encoding="utf-8")
+        self.git(other, "commit", "-q", "-am", "elsewhere")
+        self.git(other, "push", "-q")
+        (flowie / "notes.md").write_text("two (this machine)\n", encoding="utf-8")
+        subprocess.run(["git", "pull", "-q", "--rebase", "--autostash"], cwd=flowie, capture_output=True, env=self.env)
+        self.assertIn("notes.md", self.git(flowie, "diff", "--name-only", "--diff-filter=U"))
+        # Now a write elsewhere in the flowie: nothing is added, committed or pushed, and the log says why.
+        (flowie / "profile.md").write_text("# profile\n\nNew line.\n", encoding="utf-8")
+        before = self.git(remote, "rev-parse", "main")
+        self.assertEqual(self.run_hook(command, flowie / "profile.md").returncode, 0)
+        self.assertEqual(self.git(remote, "rev-parse", "main"), before)
+        self.assertIn("skipped (unresolved conflict; /flowie --sync): profile.md",
+                      (home / "flowie-sync.log").read_text(encoding="utf-8"))
+        self.assertNotIn("<<<<<<<", self.git(remote, "show", "main:notes.md"))
+
     def test_hooks_ignore_unrelated_paths_and_bad_input(self):
         command = pick(".neuroflow/flowie")
         self.assertEqual(self.run_hook(command, self.tmp / "project" / "x.md").returncode, 0)
