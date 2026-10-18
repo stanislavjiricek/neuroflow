@@ -10,7 +10,9 @@ reads:
   - ~/.neuroflow/local-projects.json        # which flowie project this repo is (this project's tasks first)
   - ~/.neuroflow/flowie/projects/projects.json
   - ~/.neuroflow/hives/{org-repo}/projects/projects.json   # which lab project this repo is in that hive
+  - ~/.neuroflow/boards/                    # --project: cached boards of the project's other repositories
 writes:
+  - ~/.neuroflow/boards/                    # --project refreshes it (machine-local, never synced)
   - .neuroflow/tasks/
   - ~/.neuroflow/flowie/tasks/
   - ~/.neuroflow/hives/{org-repo}/tasks/
@@ -36,7 +38,19 @@ Follow the `neuroflow:neuroflow-core` lifecycle (open with its version notice wh
 
 Select with `--level project|flowie|hive`. At hive level, `--hive {org-repo}` names the hive — its folder under `~/.neuroflow/hives/` — when the person joined several; without it, ask which (a single joined hive needs no flag). If the requested level's storage doesn't exist (no flowie linked, no hive joined), say so and point at `/flowie` or `/hive --init` — never scaffold another level's storage from here.
 
-**This project** is named per level, by the registry whose names that level's `project:` carries. At flowie level it is the flowie project this repo is linked to: the `name` of this folder's entry in `~/.neuroflow/local-projects.json`, else the entry of the flowie's `projects/projects.json` whose `repos` list this folder or its `origin` remote URL. At hive level, where `project:` names the lab project (`neuroflow:phase-hive` → `--tasks`), it is the entry of that hive's own `projects/projects.json` whose `repos` list this folder or its `origin` remote URL. A level's tasks of this project are those whose `project:` is its name there. Without a link at a level, none of that level's tasks is this project's — never guess one from names, nor carry a name from one level to another.
+**This project** is the project card this repo belongs to (`neuroflow:neuroflow-core` → **Project registry**): the `name` of this folder's entry in `~/.neuroflow/local-projects.json`, else the card whose `repos` list this folder or its `origin` remote URL — in the flowie or in a hive, a flowie pointer leading to its hive card. Its tasks, at every level, are those whose `project:` is the card's `id`. A registry written before one card per project may still name a project differently per level: then each level's own entry whose `repos` list this repo names it there. Without a link, no task is this project's — never guess one from names.
+
+## Placement
+
+A task goes on the narrowest board that everyone who must see it can read:
+
+| Who must see it | Board |
+|---|---|
+| only the person | `flowie` |
+| the team (anyone else in the hive) | `hive` — the default for a task of a team project |
+| the people working in this repository, about its code or files (a pipeline step, a bug, a data folder) | `project` |
+
+`--add` without `--level` proposes the board by this rule and says why in one line (*"hive DES_team — the team works on this project"*), and the person can pick another. A personal to-do about a team project stays in the flowie. Never move a task to a wider board without the person's yes: a flowie task becomes visible to the team on the hive.
 
 ## Task file format
 
@@ -91,7 +105,7 @@ before `--move` at those levels; the move itself still runs as below. Any argume
 | `--move {slug} {column}` | Move the task to another column (see Moves) |
 | `--done {slug}` | Same as `--move {slug} done` |
 | `--archive` | Move `done` tasks whose `updated` is older than `archive_after_days` to `archive` |
-| `--project {name}` | Filter the board or list to tasks whose `project` is `{name}` |
+| `--project {id}` | One project across every level: run `python <neuroflow-core skill base dir>/scripts/projects.py view --project {id} --root . --json` (exit `0`; `1` — some repository's board could not be read: name it with the script's reason and show the rest; `2` — show the error). It pulls nothing in the flowie or the hives; it refreshes the machine-local cache of the card's other repositories (`~/.neuroflow/boards/`) from their remotes each time. Render one section per level (the card's place first, then the flowie, each hive, this repository and each other repository, naming where it was read from and, for a cached board, when it was fetched), open tasks only, overdue first; then the card's status and phase in one line. With `--level`, it filters that level's board to the project instead |
 
 ## Moves
 

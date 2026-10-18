@@ -34,7 +34,9 @@ At flowie and hive level, the tasks of **this project** come first in each colum
 | `--move {slug} {column}` | Move a task to another column |
 | `--done {slug}` | Complete a task |
 | `--archive` | Archive done tasks older than `archive_after_days` (default 90) |
-| `--project {name}` | Filter to one project |
+| `--project {id}` | One project across every board: your flowie, each hive, this repository and the project's other repositories (their boards fetched into a local cache in `~/.neuroflow/boards/` each time, never synced) |
+
+**Where a task goes.** On the narrowest board that everyone who must see it can read: only you — your flowie; the team — the hive (the default for a team project); the people working in this repository, about its code or files — the project board. `--add` proposes the board and says why; you can pick another.
 
 Every board display is a rendered ASCII Kanban — never a flat list, except `--list`. Overdue tasks are flagged `⚠` and float to the top of their column, right after this project's tasks at flowie and hive level.
 

@@ -135,6 +135,8 @@ For each `~/.neuroflow/hives/{org-repo}/` found:
 - **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If a hive cache exists but `hive_repo` is absent from the config, flag as inconsistency.
 - **No old `directions.md`:** if `directions.md` exists in the cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
 
+- **Project registry:** run `python "${CLAUDE_PLUGIN_ROOT}/skills/neuroflow-core/scripts/projects.py" check --json` (exit `0` clean, `1` findings, `2` it could not run — say so). Report each finding with its message: two cards for one project (`/neuroflow:migrate` folds them), a pointer that leads nowhere or copies card fields, a `blocked_by` that names no task on its board, an open task whose `project:` names no registered project.
+
 Group all hive warnings under "⚠️ hive". These are warnings, not blocking errors.
 
 ## Report

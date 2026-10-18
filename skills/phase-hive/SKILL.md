@@ -211,12 +211,13 @@ View and edit the team roster.
 4. Write updated `members.md`, push to hive repo (Pushing to the hive)
 
 ### `--projects`
-View and manage the lab project registry (analogous to `/flowie --projects`).
+View and manage the lab project registry (analogous to `/flowie --projects`). A team project's card lives here — one card per project (`neuroflow:neuroflow-core` → **Project registry**); the members' flowies hold only pointers to it.
 
 1. Pull `projects/projects.json` from hive repo
 2. Display all lab projects as ASCII phase timeline (same format as flowie projects)
-3. Sub-flags: `--projects --add` to register a new lab project (asks id, description, repos, current phase, status)
-4. Push changes to hive repo (Pushing to the hive)
+3. Sub-flags: `--projects --add` to register a new lab project (asks id, description, repos — remote URLs only — current phase, status). Then offer the pointer in the person's flowie: `{ "id": "{id}", "ref": "hive:{org}/{repo}" }` in `~/.neuroflow/flowie/projects/projects.json` — a flowie card of the same id (an older copy) is folded instead (`/neuroflow:migrate`).
+4. A change to a card (status, description, repos, phase): edit it here, never in a flowie copy; commit by path and push as in Pushing to the hive — the diff shown first.
+5. **Phase on the card** (from `/phase`, after the person's yes): pull; set `current_phase`, append `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }` to `visited_phases` if it is not listed, and a timeline row `| {new_phase} | {YYYY-MM-DD} |` in `projects/{id}.md`; commit both by path (`phase: {id} → {new_phase}`), show `git log --stat @{u}..HEAD`, push.
 
 ### `--ideas`
 View and append to lab-wide cross-project ideas.

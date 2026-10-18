@@ -722,7 +722,7 @@ If yes, append a `## Claude's read` section to `profile.md` with the confirmed p
 
 Pull first (Git operations pattern).
 
-Read `projects/projects.json`, and `~/.neuroflow/local-projects.json` if it exists (where each project lives on this machine).
+Read `projects/projects.json`, and `~/.neuroflow/local-projects.json` if it exists (where each project lives on this machine). An entry with `ref: hive:{org}/{repo}` is a pointer to a team project's card (`neuroflow:neuroflow-core` → **Project registry**): read its description, status and phases from that hive's clone (pull it first) and mark it `team: {org}/{repo}`; the flowie keeps only the person's notes about it.
 
 ### --projects (no sub-flag) — ASCII phase timeline
 
@@ -748,7 +748,7 @@ If the project has an entry in `~/.neuroflow/local-projects.json`, add a `local:
 
 Before starting, run the wellbeing check: if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before proceeding.
 
-Register a new project. Ask:
+Register a new project. First ask (AskUserQuestion) whose project it is: **Mine** (the card goes here) or **A team's** — one option per hive under `~/.neuroflow/hives/` (the card goes to that hive: run `/hive --projects --add` there, then add the pointer `{ "id": "{id}", "ref": "hive:{org}/{repo}" }` to `projects/projects.json` and a `projects/{id}.md` with a `Card:` line and an empty `## Notes`). For the person's own project, ask:
 
 1. *"Project ID (short name, no spaces — e.g. AlphaModulation)?"*
 2. *"Description (one line)?"*
@@ -942,7 +942,7 @@ This section is invoked automatically when `active_phase` in `project_config.md`
 
 1. Read `flowie_profiles` from `.neuroflow/project_config.md`. Use the first entry (`flowie_profiles[0]`). If the list is absent or empty, skip silently.
 2. Pull (Git operations pattern).
-3. Read `projects/projects.json`. Find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the entry whose `repos[].url` matches this repo's remote URL. If neither matches, skip silently.
+3. Read `projects/projects.json`. Find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the entry whose `repos[].url` matches this repo's remote URL. If neither matches, skip silently. If the entry is a pointer (`ref: hive:…`), the card is in that hive: the change goes there instead (`neuroflow:phase-hive` → `--projects`, **Phase on the card**) and this section ends here.
    - Update `current_phase` to the new phase.
    - If the new phase is not already in `visited_phases`, append `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`.
 4. Write the updated `projects/projects.json`.

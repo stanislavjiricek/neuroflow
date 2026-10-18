@@ -18,6 +18,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 ├── integrations.json                ← global integration settings, no secrets (/setup stores no token or key) — device-wide, never inside any repo
 ├── private/                         ← local-only personal files that never sync (e.g. interview notes about candidates); not a git repo
 ├── local-projects.json              ← machine-local project registry (flowie project name → local folder), written by /flowie --link, never synced
+├── boards/                          ← machine-local cache of other repositories' task boards (shallow, sparse clones holding only .neuroflow/tasks/), written by projects.py view/refresh, never synced
 ├── flowie-sync.log                  ← one line per failed flowie auto-sync, plus one per sync the neuroflow mod attempts (its `synced` lines are no failure), machine-local, cleared by /flowie --sync
 ├── flowie/                          ← ONE global clone of github.com/{handle}/flowie
 │   ├── .gitignore                   ← integrations.json
@@ -45,7 +46,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 - `~/.neuroflow/hives/{org-repo}/` is a git clone of the hive repo (shallow is fine) — one per hive the user belongs to
 - Integration settings live in `~/.neuroflow/integrations.json` (global, device-wide; non-secret — `/setup` never stores a token or key), with an optional per-project override at `.neuroflow/integrations.json` (gitignored, excluded from `/output` exports). `~/.neuroflow/flowie/integrations.json` carries **non-secret** settings only (custom LLM provider/base_url/model/proxy_port), kept on this machine: it is gitignored in the flowie repo and never committed (the auto-sync hook skips it) — `api_key` never enters the flowie repo
 - Neither `flowie/` nor `hive/` ever appears inside a project's `.neuroflow/`
-- `user.yaml`, `private/`, `local-projects.json` and `flowie-sync.log` are local only: never copied into a project, pushed or exported
+- `user.yaml`, `private/`, `local-projects.json`, `boards/` and `flowie-sync.log` are local only: never copied into a project, pushed or exported
 
 ---
 
@@ -280,7 +281,7 @@ set_at: 2026-09-12T09:00:00Z
 
 | Tier | What | Rule |
 |---|---|---|
-| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json`, `~/.neuroflow/flowie-sync.log`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/wiki/.pending/` (wiki capture cards awaiting review), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
+| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json`, `~/.neuroflow/boards/`, `~/.neuroflow/flowie-sync.log`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/wiki/.pending/` (wiki capture cards awaiting review), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
 | `team` | everything else under `.neuroflow/` | Committed to the project repo; visible to collaborators. |
 | `public` | what `/output`, `/hive` share, NotebookLM, slides, posters and papers send outside | Only after the person confirms what leaves. Never includes `local` paths, `fails/`, `finance/`, or participant-identifying `ethics/` content. |
 
@@ -297,6 +298,22 @@ The scaffold (and `/neuroflow:migrate`) adds these lines to the project's `.giti
 
 <!-- nf-rule: EGRESS-CONFIRM -->
 **Egress:** every outbound data movement — uploads, pushes to shared remotes, exports, opening an issue URL — needs the person's explicit confirmation in the turn it happens. Nothing leaves "automatically", with one exception: the person's own private flowie repository is a sync target they set up explicitly, so the flowie auto-sync hook commits the file Claude wrote there, pulls with rebase and pushes (`/flowie` → Git operations pattern). Shared targets — a hive, exports, NotebookLM, public repositories — always need the confirmation.
+
+### Project registry — one card per project
+
+A research project is described once. Its **card** — an entry in a `projects/projects.json` and its `projects/{id}.md` — lives where its readers are:
+
+- **a team project** (anyone else works on it): in the hive of that team, `~/.neuroflow/hives/{org-repo}/projects/` — the hive the project's `hive_repo` names, when it names one;
+- **a personal project**: in the flowie, `~/.neuroflow/flowie/projects/`.
+
+The card holds the project's facts: `id`, `description`, `repos` (remote URLs only — a folder on one machine belongs in `~/.neuroflow/local-projects.json`), `current_phase`, `visited_phases`, `status` (`active` | `paused` | `complete`). The other level holds at most a **pointer** — `{"id": "{id}", "ref": "hive:{org}/{repo}"}` in the flowie's `projects.json`, with a `projects/{id}.md` that keeps only the person's own notes — and never a copy of a card field: a copy is what drifts.
+
+- **Reading.** A project's status, phase or repos come from its card; a flowie pointer leads to the hive card (the local clone, pulled first). `python <neuroflow-core skill base dir>/scripts/projects.py list` lists every card and pointer; exit `0`, `2` on a usage error.
+- **Writing — propagation.** Every change to a project's facts is written on its card, wherever the change starts: the phase sync after `/phase`, `/flowie --projects`, `/hive --projects`. On a hive card: commit by path, show the diff, and push only after the person's yes in that turn (`neuroflow:phase-hive` → Pushing to the hive). Never write the change into a flowie copy instead.
+- **Registering.** `/flowie --projects --add` and `/hive --projects --add` ask whether the project is the person's own or a team's (which hive), write the card there, and for a team project a pointer in the flowie.
+- **Two cards for one project** (registries written before this rule): `/neuroflow:migrate` folds them with `python <neuroflow-core skill base dir>/scripts/projects.py fold` — the hive card stays, the flowie entry becomes a pointer, a field that differs keeps the value the person picks, and the hive is written only after their yes. A project with cards in two hives is reported, never folded.
+- **Checks.** `python <neuroflow-core skill base dir>/scripts/projects.py check` reports two cards for one project, pointers that lead nowhere or carry copies, `blocked_by` entries that name no task on their board, and open tasks whose `project:` names no registered project (exit `0` clean, `1` findings, `2` error); `/sentinel` and `/neuroflow:migrate` run it.
+- **Tasks.** The boards stay three (`/tasks` → Levels) and a task's `project:` is the card's `id` at every level; where a task belongs is `/tasks` → Placement. `python <neuroflow-core skill base dir>/scripts/projects.py view --project {id}` reads one project's open tasks at every level — the flowie, each hive, this repository's board and the boards of the card's other repositories, through a shallow, sparse cache in `~/.neuroflow/boards/` (local tier) that is refreshed from their remotes each time; `--no-remote` reads the cache as it is.
 
 ---
 

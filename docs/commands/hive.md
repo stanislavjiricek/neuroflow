@@ -16,7 +16,7 @@ Run `/hive` with one of the following flags:
 | `--sync` | Pull the latest team state + show change digest |
 | `--view` | Display current Hive state without syncing |
 | `--members` | View and edit the team roster |
-| `--projects` | View and manage the lab project registry |
+| `--projects` | View and manage the lab project registry — a team project's one card lives here; your flowie keeps only a pointer to it |
 | `--ideas` | View and append to lab-wide cross-project ideas |
 | `--tasks` | Show and manage the team Kanban board (same format as [`/tasks`](tasks.md)) |
 | `--errata` | View known problems in shared datasets, or add one with `--errata --add` |

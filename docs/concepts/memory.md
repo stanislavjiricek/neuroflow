@@ -25,6 +25,12 @@ Personal settings and consents stay outside every repository, in `~/.neuroflow/u
 
 One task format serves all three boards, so an action item from a meeting can land on any of them.
 
+## One project, one card
+
+A project is described once. A team project's card — status, phase, description, repositories — lives in the team's hive; a personal project's lives in your flowie. Your flowie keeps only a pointer to a team project, with your own notes, so the two can never disagree. A phase change or a new status is written on the card, wherever you make it; for a hive card you see the change and confirm before it is pushed. Registries from before this rule hold two cards for some projects: [`/neuroflow:migrate`](../commands/migrate.md) folds them, asking which value wins where they differ, and [`/sentinel`](../commands/sentinel.md) reports what is left.
+
+Tasks stay on three boards, and each goes on the narrowest one everyone who must see it can read: only you — your flowie; the team — the hive (the default for a team project); the people working in one repository, about its code — that repository's board. [`/tasks --project {id}`](../commands/tasks.md) shows one project's open tasks from every board at once, including the boards of its repositories that are not checked out on this machine, fetched into a local cache each time.
+
 ## What crosses between levels
 
 - **Into the project** — nothing personal. Your profile shapes how Claude helps you; it is never written into papers, reports, grants or slides.

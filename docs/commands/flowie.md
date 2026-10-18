@@ -63,7 +63,7 @@ Then run `/flowie --init` to build your profile through a short interview.
 | `--tasks --done <slug>` | Move a task to the `done/` column |
 | `--tasks --archive` | Sweep `done/` → `archive/` for tasks not updated for `archive_after_days` |
 | `--projects` | List all registered projects with ASCII phase timelines |
-| `--projects --add` | Register a new project (name, description, GitHub repos) |
+| `--projects --add` | Register a new project (name, description, GitHub repos) — yours here; a team's goes to its hive, with a pointer here |
 
 If no mode flag is provided, `/flowie` shows the mode menu.
 

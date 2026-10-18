@@ -19,6 +19,7 @@ writes:
   - .neuroflow/sessions/YYYY-MM-DD.md
   - .neuroflow/reasoning/general.jsonl
   - ~/.neuroflow/flowie/projects/
+  - ~/.neuroflow/hives/{org-repo}/projects/   # a team project's card, after the person's yes
 lifecycle: light
 ---
 
@@ -127,7 +128,7 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
 7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `~/.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`). The person's own private flowie repo is a sync target they set up, so this sync asks nothing more (`neuroflow:neuroflow-core` → **Sharing tiers**); it runs only for a phase change the person chose in step 5 — never for one the model inferred. These are the steps of `/flowie` → **Phase sync**:
 
    - Pull (`/flowie` → Git operations pattern): skip the whole sync while `~/.neuroflow/flowie/.git/rebase-merge` or `rebase-apply` exists (a rebase the person has in progress). Otherwise `git -C ~/.neuroflow/flowie pull --rebase --autostash`; if it stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — only the rebase this pull started — and skip the rest
-   - Read `projects/projects.json` — find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the `projects.json` entry whose `repos[].url` matches `git remote get-url origin`. If neither matches, skip the rest
+   - Read `projects/projects.json` — find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the `projects.json` entry whose `repos[].url` matches `git remote get-url origin`. If neither matches, skip the rest. If the entry is a pointer (`ref: hive:{org}/{repo}`) — a team project, whose card is in that hive (`neuroflow:neuroflow-core` → **Project registry**) — skip the flowie steps below and run step 8
    - Update `current_phase` to the new phase
    - Append to `visited_phases` if this phase is not already listed: `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`
    - Write updated `projects/projects.json`
@@ -135,3 +136,5 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
    - Commit, pull and push: `git -C ~/.neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push || true` — if this pull stops on a conflict, abort it as above; the commit stays local for `/flowie --sync`
 
    If `~/.neuroflow/flowie/` does not exist, `flowie_profiles` is absent or empty, or any git operation fails, skip silently — never surface flowie errors to the user during a phase switch.
+
+8. **Team card:** when this project's card is in a hive (a flowie pointer leads there, or the hive's `projects.json` lists this repo), ask once (AskUserQuestion): *"Also record {new_phase} on the team's card in {org}/{repo}?"* — **Record and push** / **Not now**. On yes, follow `neuroflow:phase-hive` → `--projects`, **Phase on the card**: the same `current_phase` / `visited_phases` / timeline update on the hive card, committed by path, the diff shown, pushed in this turn. On no, say that the card keeps the old phase until `/hive --projects` updates it.

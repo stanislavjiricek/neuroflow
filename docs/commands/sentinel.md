@@ -62,7 +62,7 @@ Exit `0` = clean, `1` = findings, `2` = the script could not run (the agent then
 | S3 | Preregistration vs progress — analyses or decisions that deviate from the plan without a `deviations.md` entry |
 | S4 | Ethics gate — human data in `.neuroflow/data/` without a recorded approval (silenced by `ethics: not-applicable`) |
 | S5 | Names and institutions in logs (and emails or secrets when the PII scanner is not installed) |
-| S6–S8 | Flowie, wiki and hive structure, when they exist |
+| S6–S8 | Flowie, wiki and hive structure, when they exist — including the project registry (`projects.py check`): two cards for one project, pointers that lead nowhere, `blocked_by` entries that name no task |
 
 ---
 
