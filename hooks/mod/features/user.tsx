@@ -75,6 +75,31 @@ export const xrayCounts = (findings: readonly XrayFinding[]): { red: number; ora
   decided: findings.filter(item => item.status !== 'open').length,
 })
 
+/** The most options the engine's Select takes (it refuses the whole render above that); the mobile list is shorter. */
+export const XRAY_PAGE = { select: 64, buttons: 8 } as const
+
+/**
+ * The page of open findings the pane lists: red before orange (file order within each), `size` at a time, the page
+ * that holds the picked finding (else the first). `previous`/`next` are the findings that open the neighbouring
+ * pages, so a key press reaches every finding whatever the count; `from`/`to` are 1-based for the header.
+ */
+export const xrayPage = (open: readonly XrayFinding[], pickId: string | null, size: number) => {
+  const rank = (item: XrayFinding) => (item.severity === 'red' ? 0 : 1)
+  const ordered = open.map((item, at) => ({ item, at })).sort((a, b) => rank(a.item) - rank(b.item) || a.at - b.at).map(entry => entry.item)
+  const at = Math.max(0, ordered.findIndex(item => item.id === pickId))
+  const start = Math.floor(at / size) * size
+  const shown = ordered.slice(start, start + size)
+  return {
+    first: ordered[0] ?? null,
+    shown,
+    from: shown.length === 0 ? 0 : start + 1,
+    to: start + shown.length,
+    total: ordered.length,
+    previous: start > 0 ? ordered[start - size] : null,
+    next: start + size < ordered.length ? ordered[start + size] : null,
+  }
+}
+
 // ── engine side ────────────────────────────────────────────────────────────────────────────────
 
 const ioOf = ($: EngineInterface): NfIo => ({
@@ -160,8 +185,12 @@ const decide = async ($: EngineInterface, id: string, status: 'accepted' | 'reje
     const md = await io.read(mdPath)
     if (md !== null) await io.write(mdPath, decideInMarkdown(md, id, status, reason))
   }
+  // The next pick is the open finding after this one in the pane's order (red first), so the page stays put.
+  const before = xrayPage(view.findings.filter(item => item.status === 'open'), null, Number.MAX_SAFE_INTEGER).shown.map(item => item.id)
   await loadXray($, scope.root)
-  const next = (await read($, xrayViewAtom))?.findings.find(item => item.status === 'open')
+  const open = (await read($, xrayViewAtom))?.findings.filter(item => item.status === 'open') ?? []
+  const after = before.slice(before.indexOf(id) + 1)
+  const next = after.map(nextId => open.find(item => item.id === nextId)).find(item => item !== undefined) ?? xrayPage(open, null, 1).first
   await update($, xrayPickAtom, () => next?.id ?? null)
 }
 
@@ -334,7 +363,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     if (/^--xray\s+view\s*$/.test(args)) {
       const view = await loadXray($, root)
       if (view === null) return { text: 'No X-ray yet. Run /neuroflow:paper --xray <manuscript file> first.' }
-      await update($, xrayPickAtom, () => view.findings.find(item => item.status === 'open')?.id ?? null)
+      await update($, xrayPickAtom, () => xrayPage(view.findings.filter(item => item.status === 'open'), null, 1).first?.id ?? null)
       if (await isPersonThere($)) await $.ui.open({ id: XRAY_PANE, title: `X-ray ${view.title}`, focus: true })
       const counts = xrayCounts(view.findings)
       return { text: `X-ray ${view.title}: ${counts.red} red, ${counts.orange} orange open; ${counts.decided} decided.` }
@@ -398,13 +427,23 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     if (view === null) return <Text dimColor>neuroflow: no X-ray loaded — /neuroflow:paper --xray view</Text>
     const counts = xrayCounts(view.findings)
     const open = view.findings.filter(item => item.status === 'open')
-    const picked = view.findings.find(item => item.id === pick) ?? open[0] ?? null
-    const header = `${view.title} · ${counts.red} red · ${counts.orange} orange open · ${counts.decided} decided`
     const Select = e.surface === 'mobile' ? null : $.ui.resolve(e).Select
+    // The engine's Select takes at most 64 options: a long X-ray is listed a page at a time (#255).
+    const page = xrayPage(open, pick, Select === null ? XRAY_PAGE.buttons : XRAY_PAGE.select)
+    const picked = view.findings.find(item => item.id === pick) ?? page.first
+    const header = `${view.title} · ${counts.red} red · ${counts.orange} orange open · ${counts.decided} decided`
+    const paging =
+      page.total > page.shown.length ? (
+        <Box flexDirection="row" columnGap={1}>
+          <Text dimColor>{`showing ${page.from}–${page.to} of ${page.total} open, red first`}</Text>
+          {page.previous !== null ? <Button key="nf-xray-prev" label="previous" hotkey="p" onPress={() => update($, xrayPickAtom, () => page.previous?.id ?? null)} /> : null}
+          {page.next !== null ? <Button key="nf-xray-next" label="next" hotkey="n" onPress={() => update($, xrayPickAtom, () => page.next?.id ?? null)} /> : null}
+        </Box>
+      ) : null
     const list =
       Select === null ? (
         <Box flexDirection="column">
-          {open.slice(0, 8).map(item => (
+          {page.shown.map(item => (
             <Button key={`nf-xray-${item.id}`} label={findingLabel(item)} onPress={() => update($, xrayPickAtom, () => item.id)} />
           ))}
         </Box>
@@ -412,8 +451,8 @@ export const registerUser = (on: On, opts: NfOptions): void => {
         <Select
           key="nf-xray-select"
           label="Finding "
-          options={open.map(item => ({ value: item.id, label: findingLabel(item) }))}
-          value={picked?.id}
+          options={page.shown.map(item => ({ value: item.id, label: findingLabel(item) }))}
+          value={picked !== null && page.shown.some(item => item.id === picked.id) ? picked.id : undefined}
           autoFocus
           onSelect={value => {
             void update($, xrayPickAtom, () => value)
@@ -424,6 +463,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
       <Box flexDirection="column" gap={1}>
         <Text bold wrap="truncate-end">{header}</Text>
         {open.length === 0 ? <Text color="success">Every finding is decided.</Text> : list}
+        {paging}
         {picked !== null ? (
           <Box flexDirection="column">
             <Text wrap="wrap">{`${picked.id} (${picked.scope}${picked.line ? `, line ${picked.line}` : ''}, ${picked.basis ?? 'model'}): ${picked.finding}`}</Text>
