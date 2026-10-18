@@ -6,6 +6,24 @@ title: Changelog
 
 ---
 
+## 0.2.24
+
+**One project, one card ([#256](https://github.com/stanislavjiricek/neuroflow/issues/256))**
+
+- A project is described once: a team project's card (status, phase, description, repositories) lives in its hive, a personal project's in the flowie, and the other level keeps only a pointer (`{"id", "ref": "hive:{org}/{repo}"}`) with the person's notes — neuroflow-core → Project registry
+- Changes go to the card wherever they start: `/phase` offers to record a new phase on a team project's hive card and pushes after the person's yes; `/flowie --projects --add` asks whose project it is and registers a team project in its hive with a pointer in the flowie
+- `/tasks` gains Placement — a task goes on the narrowest board everyone who must see it can read (flowie, hive, or the repository's board), and `--add` proposes it — and `--project {id}`, which shows one project's open tasks from every board, including the boards of its other repositories, read through a shallow, sparse cache in `~/.neuroflow/boards/` that is refreshed each time
+- New `skills/neuroflow-core/scripts/projects.py` (`list`, `check`, `view`, `refresh`, `fold`): `/neuroflow:migrate` folds two cards of one project into one (the person picks each differing value; the hive is written only after their yes), and `/sentinel` reports two cards, pointers that lead nowhere or copy card fields, `blocked_by` entries that name no task, and open tasks whose project is not registered
+- With the mod, the tasks tab and the board pane name the project by its card id at every level and show the boards of its other repositories, read-only, from that cache (refreshed in the background when the boards open)
+
+**Fixes**
+
+- [#252](https://github.com/stanislavjiricek/neuroflow/issues/252): the mod's flowie sync skipped every sync as "git hooks or LFS", because Claude Code runs git with `-c core.hooksPath=<null device>`; only the repository's, the person's and the system's config count now (the last value wins), only real hook names in `.git/hooks`, and the log line names what fired
+- [#253](https://github.com/stanislavjiricek/neuroflow/issues/253): the wellbeing band asks only once it knows today's entry is not already on the flowie remote — a background fetch as a session starts in a neuroflow project, never holding the first prompt and never touching the work tree; offline, or with git hooks or LFS in the flowie, it asks as before
+- [#251](https://github.com/stanislavjiricek/neuroflow/issues/251): machine-local paths stay off the flowie remote — `skills/phase-flowie/scripts/local_paths.py` finds them (system and web paths, link targets and examples are not paths; a line marked `nf: local-path-ok` is kept), the auto-sync hook holds such a file back and logs it, the `/flowie` Sync step checks before staging and offers to move each path into `~/.neuroflow/local-projects.json`, and `/neuroflow:migrate` reports the ones already in the flowie; every flowie pull runs with `--autostash`, so a held-back file never stops a later sync
+- [#254](https://github.com/stanislavjiricek/neuroflow/issues/254): a hive member's sync state is `.git/neuroflow-sync.json` in the clone, which git can never track or publish; `/neuroflow:migrate` moves an untracked `sync.json` there, heals a tracked one an older neuroflow wrote into (its values move out, the file goes back to its committed text), and still reports a tracked one as the team's call
+- [#255](https://github.com/stanislavjiricek/neuroflow/issues/255): the X-ray pane lists the open findings red first, 64 at a time (8 on mobile), and `n` / `p` move between pages; above 64 the engine refused the whole pane
+
 ## 0.2.23
 
 - Tasks at every level in the mod: the dashboard's tasks tab sums up the project board, your flowie and each hive you joined (this project's share where a level links it), and the bare `/neuroflow:tasks` pane switches between their boards with `v`, this project's cards first and marked; a move fills the prompt with one `/tasks` command, which gains `--hive {org-repo}`. Read-only: the mod never pulls or moves task files
