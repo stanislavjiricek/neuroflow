@@ -59,7 +59,7 @@ describe('a flush', () => {
     const result = await flushFlowie(io, HOME, [wellbeing])
     expect(result.outcome).toBe('synced')
     expect(calls.map(call => call.args.join(' '))).toEqual([
-      'config --get core.hooksPath',
+      'config --show-origin --get-all core.hooksPath',
       'add -- wellbeing/2026-10-07.json wellbeing/.flow',
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
       'pull --rebase',
@@ -91,12 +91,27 @@ describe('a flush', () => {
     expect(io.files[LOG]).toContain('commit failed: wellbeing/2026-10-07.json wellbeing/.flow (mod) — process API unavailable')
   })
 
+  test("the engine's own core.hooksPath (git run with -c, origin 'command line:') is no hook (#252)", async () => {
+    const injected = 'command line:\t\\\\.\\NUL\ncommand line:\t\\\\.\\NUL\n'
+    const engine = gitIo(repo, args => (args[0] === 'config' ? { exitCode: 0, stdout: injected, stderr: '' } : ok))
+    expect((await flushFlowie(engine.io, HOME, [wellbeing])).outcome).toBe('synced')
+    const devNull = gitIo(repo, args => (args[0] === 'config' ? { exitCode: 0, stdout: 'file:C:/Users/Some One/.gitconfig\t/dev/null\n', stderr: '' } : ok))
+    expect((await flushFlowie(devNull.io, HOME, [wellbeing])).outcome).toBe('synced')
+    const husky = gitIo(repo, args => (args[0] === 'config' ? { exitCode: 0, stdout: `file:.git/config\t.husky\n${injected}`, stderr: '' } : ok))
+    const skipped = await flushFlowie(husky.io, HOME, [wellbeing])
+    expect(skipped.detail).toBe('this flowie uses git hooks or LFS (hooksPath=.husky), which the mod does not run')
+    expect(husky.io.files[LOG]).toContain('skipped (git hooks or LFS: hooksPath=.husky)')
+    // Only real hook names count: samples and notes in .git/hooks do not.
+    const odd = gitIo({ ...repo, [`${FLOWIE}/.git/hooks/README.txt`]: 'x', [`${FLOWIE}/.git/hooks/pre-push.sample`]: 'x' }, args => (args[0] === 'config' ? { exitCode: 1, stdout: '', stderr: '' } : ok))
+    expect((await flushFlowie(odd.io, HOME, [wellbeing])).outcome).toBe('synced')
+  })
+
   test('not run with git hooks or LFS or during a rebase (kept for /flowie --sync); only files that exist are committed', async () => {
     const hooked = gitIo({ ...repo, [`${FLOWIE}/.git/hooks/pre-commit`]: '#!/bin/sh\n' }, () => ok)
     const skipped = await flushFlowie(hooked.io, HOME, [wellbeing])
-    expect([skipped.outcome, skipped.detail]).toEqual(['failed', 'this flowie uses git hooks or LFS, which the mod does not run'])
+    expect([skipped.outcome, skipped.detail]).toEqual(['failed', 'this flowie uses git hooks or LFS (hooks: pre-commit), which the mod does not run'])
     expect(hooked.calls.map(call => call.args[0])).toEqual(['config'])
-    expect(hooked.io.files[LOG]).toContain('skipped (git hooks or LFS): wellbeing/2026-10-07.json wellbeing/.flow (mod)')
+    expect(hooked.io.files[LOG]).toContain('skipped (git hooks or LFS: hooks: pre-commit): wellbeing/2026-10-07.json wellbeing/.flow (mod)')
     const lfs = gitIo({ ...repo, [`${FLOWIE}/.gitattributes`]: '*.bin filter=lfs diff=lfs\n' }, () => ok)
     expect((await flushFlowie(lfs.io, HOME, [wellbeing])).outcome).toBe('failed')
     const rebasing = gitIo({ ...repo, [`${FLOWIE}/.git/rebase-merge/head-name`]: 'x' }, () => ok)
@@ -260,7 +275,7 @@ describe('the wellbeing band', () => {
     expect(JSON.stringify([...seen.store.values()])).not.toContain('slept badly')
     await $.turn.complete(TURN as never)
     expect(seen.git).toEqual([
-      'config --get core.hooksPath',
+      'config --show-origin --get-all core.hooksPath',
       'add -- wellbeing/2026-10-07.json wellbeing/.flow',
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
       'pull --rebase',
@@ -372,7 +387,7 @@ describe('idea capture and the queue in a session', () => {
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     expect(JSON.stringify(await ui.drawn())).toContain('flowie sync pending (wellbeing: 2026-10-06)')
     await $.turn.complete(TURN as never)
-    expect(seen.git.slice(2)).toEqual(['config --get core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase', 'push'])
+    expect(seen.git.slice(2)).toEqual(['config --show-origin --get-all core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase', 'push'])
     expect(asQueue(seen.store.get(SYNC_QUEUE))).toEqual([])
     expect(fs.files[LOG]).toContain('synced: wellbeing/2026-10-06.json (mod)')
     expect(JSON.stringify(await ui.drawn())).not.toContain('flowie sync pending')
@@ -409,7 +424,7 @@ const DASHBOARD = {
   props: { title: 'neuroflow', isFocused: true, bodyColumns: 160, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
 }
 const SYNC = [
-  'config --get core.hooksPath',
+  'config --show-origin --get-all core.hooksPath',
   'add -- wellbeing/2026-10-07.json wellbeing/.flow',
   'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
   'pull --rebase',

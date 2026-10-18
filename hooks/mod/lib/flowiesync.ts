@@ -86,6 +86,39 @@ const git = async (io: NfIo, flowie: string, args: readonly string[], timeoutMs 
   }
 }
 
+/** The hook names git runs (githooks(5)); anything else in .git/hooks, a `.sample` included, is not a hook. */
+const GIT_HOOKS = new Set([
+  'applypatch-msg', 'pre-applypatch', 'post-applypatch', 'pre-commit', 'pre-merge-commit', 'prepare-commit-msg',
+  'commit-msg', 'post-commit', 'pre-rebase', 'post-checkout', 'post-merge', 'pre-push', 'pre-receive', 'update',
+  'proc-receive', 'post-receive', 'post-update', 'reference-transaction', 'push-to-checkout', 'pre-auto-gc',
+  'post-rewrite', 'sendemail-validate', 'fsmonitor-watchman', 'post-index-change',
+])
+
+/**
+ * What of git hooks or LFS the flowie repository itself configures, each named for the log (`hooksPath=…`,
+ * `hooks: pre-commit`, `lfs`); empty when none. $.process.run runs git with `-c core.hooksPath=<null device>`
+ * (seen on Windows as `\\.\NUL`, origin "command line:"), so a value from the command line is the engine's own
+ * and never counts — only the repository's, the person's and the system's config do.
+ */
+export const repoHooksOrLfs = async (io: NfIo, flowie: string): Promise<string[]> => {
+  const uses: string[] = []
+  const config = await git(io, flowie, ['config', '--show-origin', '--get-all', 'core.hooksPath'], 10_000)
+  const configured = config.stdout
+    .split(/\r?\n/)
+    .filter(line => line.includes('\t') && !/^command line:/i.test(line))
+    .map(line => line.slice(line.indexOf('\t') + 1).trim())
+    .filter(value => value !== '' && !/^(\\\\\.\\nul|nul|\/dev\/null)$/i.test(value))
+  if (configured.length > 0) uses.push(`hooksPath=${configured[configured.length - 1]}`)
+  const hooks = (await io.list(`${flowie}/.git/hooks`))
+    .filter(entry => !entry.isDir)
+    .map(entry => entry.name.replace(/^.*[\\/]/, ''))
+    .filter(name => GIT_HOOKS.has(name.replace(/\.(exe|cmd|bat|ps1|sh)$/i, '').toLowerCase()))
+  if (hooks.length > 0) uses.push(`hooks: ${hooks.sort().join(' ')}`)
+  const attributes = `${(await io.read(`${flowie}/.gitattributes`)) ?? ''}\n${(await io.read(`${flowie}/.git/info/attributes`)) ?? ''}`
+  if (/filter=lfs/.test(attributes)) uses.push('lfs')
+  return uses
+}
+
 /**
  * Commits the queued files by path, pulls with rebase and pushes, as the flowie Sync step does (commands/flowie.md →
  * Git operations pattern), and logs the attempt: `{time} synced: {paths} (mod)`, or what stopped it. Never throws.
@@ -107,11 +140,9 @@ export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlow
     (await io.exists(`${flowie}/.git/rebase-merge`)) || (await io.exists(`${flowie}/.git/rebase-apply`)) || (await io.exists(`${flowie}/.git/MERGE_HEAD`))
   if (!(await io.exists(`${flowie}/.git`))) return nothing('no flowie repository here')
   if (await inMiddle()) return finish('failed', 'skipped (rebase or merge in progress)', '', 'a rebase or merge is in progress in your flowie')
-  const hooksPath = (await git(io, flowie, ['config', '--get', 'core.hooksPath'], 10_000)).stdout.trim()
-  const hooks = (await io.list(`${flowie}/.git/hooks`)).filter(entry => !entry.name.endsWith('.sample'))
-  const attributes = (await io.read(`${flowie}/.gitattributes`)) ?? ''
-  if (hooksPath !== '' || hooks.length > 0 || /filter=lfs/.test(attributes)) {
-    return finish('failed', 'skipped (git hooks or LFS)', '', 'this flowie uses git hooks or LFS, which the mod does not run')
+  const uses = await repoHooksOrLfs(io, flowie)
+  if (uses.length > 0) {
+    return finish('failed', `skipped (git hooks or LFS: ${uses.join(', ')})`, '', `this flowie uses git hooks or LFS (${uses.join(', ')}), which the mod does not run`)
   }
   const committed: string[] = []
   for (const entry of queue) {
