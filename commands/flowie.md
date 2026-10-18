@@ -81,7 +81,7 @@ git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flow
 <!-- nf-rule: GIT-NO-SECRETS -->
 Never `git add -A`, never stage `integrations.json`. If the pull stops on a conflict, abort it as above and leave the push for `--sync`.
 
-Files written with Edit/Write are synced by the plugin's **flowie auto-sync hook**: it commits that one file, pulls with rebase, then pushes. It skips `integrations.json`, gitignored files and a file that holds a machine-local path (`local_paths.py`, logged as `skipped (machine-local path; /flowie --sync)`), does nothing while a rebase or merge is in progress, and never blocks — each failure is appended as one line to `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The Sync step above still runs for every write, so the prose works with hooks disabled, and it is the only thing that commits changes made through Bash (`git mv`, deletions).
+Files written with Edit/Write are synced by the plugin's **flowie auto-sync hook**: it commits that one file, pulls with rebase, then pushes. It skips `integrations.json`, gitignored files, a file that holds a machine-local path (`local_paths.py`, logged as `skipped (machine-local path; /flowie --sync)`) and everything while git still marks a file as conflicted (`skipped (unresolved conflict; /flowie --sync)`), does nothing while a rebase or merge is in progress, and never blocks — each failure is appended as one line to `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The Sync step above still runs for every write, so the prose works with hooks disabled, and it is the only thing that commits changes made through Bash (`git mv`, deletions).
 
 Never use a staging/remote-sync subdirectory. The flowie directory is the repo.
 

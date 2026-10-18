@@ -252,10 +252,10 @@ describe('the boards in a session', () => {
     props: { title: requestId, isFocused: true, bodyColumns: 140, placement: 'inline', scroll: { offset: 0, bodyRows: rows }, view: {} },
   })
 
-  const setUp = (on: On, files: Record<string, string> = FILES): { filled: string[]; fs: FakeFs } => {
+  const setUp = (on: On, files: Record<string, string> = FILES): { filled: string[]; fs: FakeFs; clock: ReturnType<typeof mock.clock> } => {
     const fs = fakeFs(on, files, ROOT)
     mock.env(on, { HOME })
-    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    const clock = mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
     mock.store(on)
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('ui.open', () => ({ value: { isPlaced: true } }))
@@ -268,7 +268,7 @@ describe('the boards in a session', () => {
       filled.push(e.text)
       return { isFilled: true, text: e.text, cursor: e.text.length }
     })
-    return { filled, fs }
+    return { filled, fs, clock }
   }
 
   test('the dashboard\'s tasks tab shows every level', { options: { runtime: 'observe' } }, async ($, on) => {
@@ -337,7 +337,7 @@ describe('the boards in a session', () => {
       }),
       [`${HOME}/.neuroflow/boards/github.com/example-lab/oddball-analysis/.neuroflow/tasks/active/rerun.md`]: task('Rerun cached'),
     }
-    setUp(on, files)
+    const { clock } = setUp(on, files)
     const refreshes: string[][] = []
     on('process.run', ($$, e) => {
       const argv = (e as unknown as { argv: string[] }).argv
@@ -353,10 +353,16 @@ describe('the boards in a session', () => {
     await $.turn.complete({ reason: 'answer', answer: 'x', durationMs: 1, isAborted: false, turnId: 't1' } as never)
     await new Promise(resolve => setTimeout(resolve, 30))
     expect(refreshes.length).toBe(1)
-    // r right after a failed refresh: the board is read again, the network is not asked again for ten minutes.
+    // r after a failed refresh: the board is read again, the network is asked again only ten minutes later
+    // (a refresh that went through could run again after one).
+    await clock.advance(2 * 60_000)
     await ui.press({ key: 'nf-board-refresh' })
     await new Promise(resolve => setTimeout(resolve, 30))
     expect(refreshes.length).toBe(1)
+    await clock.advance(9 * 60_000)
+    await ui.press({ key: 'nf-board-refresh' })
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes.length).toBe(2)
     await ui.unmount()
   })
 

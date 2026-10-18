@@ -141,6 +141,12 @@ export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlow
     (await io.exists(`${flowie}/.git/rebase-merge`)) || (await io.exists(`${flowie}/.git/rebase-apply`)) || (await io.exists(`${flowie}/.git/MERGE_HEAD`))
   if (!(await io.exists(`${flowie}/.git`))) return nothing('no flowie repository here')
   if (await inMiddle()) return finish('failed', 'skipped (rebase or merge in progress)', '', 'a rebase or merge is in progress in your flowie')
+  // A file git still marks as conflicted (an autostash that could not go back) is never added: that would commit
+  // its conflict markers. /flowie --sync resolves it with the person.
+  const unmerged = await git(io, flowie, ['diff', '--name-only', '--diff-filter=U'], 10_000)
+  if (unmerged.exitCode === 0 && unmerged.stdout.trim() !== '') {
+    return finish('failed', 'skipped (unresolved conflict)', '', `your flowie has an unresolved conflict (${unmerged.stdout.trim().split(/\r?\n/)[0]})`)
+  }
   const uses = await repoHooksOrLfs(io, flowie)
   if (uses.length > 0) {
     return finish('failed', `skipped (git hooks or LFS: ${uses.join(', ')})`, '', `this flowie uses git hooks or LFS (${uses.join(', ')}), which the mod does not run`)

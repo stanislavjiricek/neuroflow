@@ -336,7 +336,7 @@ def git(args: list[str], cwd: Path | None, home: Path, timeout: int = 60) -> sub
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never",
                GIT_SSH_COMMAND=os.environ.get("GIT_SSH_COMMAND", "ssh") + " -o BatchMode=yes")
     try:
-        return subprocess.run(["git", "-c", f"core.hooksPath={no_hooks.as_posix()}", *args], cwd=cwd,
+        return subprocess.run(["git", "-c", f"core.hooksPath={no_hooks.as_posix()}", "-c", "core.symlinks=false", *args], cwd=cwd,
                               capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
                               stdin=subprocess.DEVNULL, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as error:
@@ -367,13 +367,19 @@ def refresh_cache(home: Path, url: str, key: str) -> tuple[bool, str]:
         remove_tree(target)  # a cache of ours that broke: clone it again
     fresh = not target.exists()
     if fresh:
+        # Cloned beside the target and moved into place once marked, so a clone cut off half-way (a killed process)
+        # leaves only a `.neuroflow-partial` folder, which the next refresh removes: that name is this script's own.
+        partial = target.with_name(target.name + ".neuroflow-partial")
+        if partial.exists():
+            remove_tree(partial)
         target.parent.mkdir(parents=True, exist_ok=True)
-        proc = git(["clone", "--depth", "1", "--filter=blob:none", "--no-checkout", "--quiet", "--", url, str(target)], None, home)
+        proc = git(["clone", "--depth", "1", "--filter=blob:none", "--no-checkout", "--quiet", "--", url, str(partial)], None, home)
         if proc.returncode != 0:
-            if target.exists() and not (target / BOARD_MARK).exists():
-                remove_tree(target)  # the half-made folder this call created
+            if partial.exists():
+                remove_tree(partial)
             return False, first_line(proc)
-        (target / BOARD_MARK).write_text("a cache of this repository's .neuroflow/tasks/ (projects.py)\n", encoding="utf-8")
+        (partial / BOARD_MARK).write_text("a cache of this repository's .neuroflow/tasks/ (projects.py)\n", encoding="utf-8")
+        partial.rename(target)
     steps = [["sparse-checkout", "set", "--no-cone", "/.neuroflow/tasks/"]]
     steps += [["checkout", "--quiet"]] if fresh else [["fetch", "--depth", "1", "--quiet", "origin", "HEAD"],
                                                       ["checkout", "--quiet", "--force", "FETCH_HEAD"]]
@@ -565,9 +571,16 @@ def same(a, b) -> bool:
     return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
 
 
+def as_items(value) -> list:
+    """A field as a list: a single value (a repos string, say) is one item, never its characters."""
+    if value in (None, "", []):
+        return []
+    return list(value) if isinstance(value, list) else [value]
+
+
 def union(a, b) -> list:
-    out = list(a or [])
-    for item in b or []:
+    out = as_items(a)
+    for item in as_items(b):
         if not any(same(item, kept) for kept in out):
             out.append(item)
     return out
@@ -615,10 +628,10 @@ def fold_plan(home: Path, keep: dict[str, str], projects: set[str], hives: set[s
         hive = holders[0]
         card = hive.entry(project_id)
         item: dict = {"project": project_id, "hive": hive.repo or hive.name, "hive_folder": hive.name, "differ": [],
-                      "extra": {key: value for key, value in entry.items() if key not in (*CARD_FIELDS, "id", "name", "ref")}}
+                      "extra": {key: value for key, value in entry.items() if key not in (*CARD_FIELDS, "id", "ref")}}
         note = flowie.root / "projects" / f"{project_id}.md"
         note_urls, _ = note_sections(read_text(note) or "") if note.exists() else ([], "")
-        mine_repos = union(entry.get("repos"), [url for url in note_urls if not any(url in str(r) for r in entry.get("repos") or [])])
+        mine_repos = union(entry.get("repos"), [url for url in note_urls if not any(url in str(r) for r in as_items(entry.get("repos")))])
         hive_writes = {}
         for field in CARD_FIELDS:
             mine = mine_repos if field == "repos" else entry.get(field)

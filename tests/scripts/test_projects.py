@@ -323,6 +323,26 @@ class DirtyFoldTests(RegistryTests):
         self.assertEqual(code, 0, out)
         self.assertTrue((cache / ".neuroflow" / "tasks" / "active" / "rerun-ica.md").is_file())
 
+class ThirdReviewTests(RegistryTests):
+    def test_fold_with_a_repos_string_and_a_name_key(self) -> None:
+        self.registry(self.flowie, {"name": "Oddball", "repos": "https://github.com/example-lab/oddball-analysis", "tags": ["eeg"]})
+        self.registry(self.hive, {"id": "Oddball", "repos": ["https://github.com/example-lab/oddball-eeg"]})
+        self.h("fold", "--apply", "--json")
+        hive = json.loads((self.hive / "projects" / "projects.json").read_text(encoding="utf-8"))["projects"][0]
+        self.assertEqual(hive["repos"], ["https://github.com/example-lab/oddball-eeg", "https://github.com/example-lab/oddball-analysis"])
+        pointer = json.loads((self.flowie / "projects" / "projects.json").read_text(encoding="utf-8"))["projects"][0]
+        self.assertEqual(pointer, {"id": "Oddball", "ref": "hive:example-lab/hive", "name": "Oddball", "tags": ["eeg"]})
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_clone_cut_off_half_way_is_cleaned_up_by_the_next_refresh(self) -> None:
+        target = pj.cache_dir(self.home, "example.invalid/lab/oddball")
+        partial = target.with_name(target.name + ".neuroflow-partial")
+        self.write(partial / "leftover.txt", "a killed clone\n")
+        ok, reason = pj.refresh_cache(self.home, "https://example.invalid/lab/oddball", "example.invalid/lab/oddball")
+        self.assertFalse(ok)
+        self.assertFalse(partial.exists(), "the half-made clone of an earlier run is removed")
+        self.assertFalse(target.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

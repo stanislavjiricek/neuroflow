@@ -59,7 +59,7 @@ describe('a flush', () => {
     const result = await flushFlowie(io, HOME, [wellbeing])
     expect(result.outcome).toBe('synced')
     expect(calls.map(call => call.args.join(' '))).toEqual([
-      'config --show-origin --get-all core.hooksPath',
+      'diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath',
       'add -- wellbeing/2026-10-07.json wellbeing/.flow',
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
       'pull --rebase --autostash',
@@ -79,6 +79,14 @@ describe('a flush', () => {
     })
     expect(io.files[LOG]).toContain('push failed')
     expect(syncState([wellbeing], result)).toEqual({ pending: ['wellbeing: 2026-10-07'], failure: 'push failed — fatal: unable to access the remote', isHeld: true })
+  })
+
+  test('a file git still marks as conflicted is never added: its markers would be committed', async () => {
+    const { io, calls } = gitIo(repo, args => (args[0] === 'diff' ? { exitCode: 0, stdout: 'wellbeing/.flow\n', stderr: '' } : ok))
+    const result = await flushFlowie(io, HOME, [wellbeing])
+    expect([result.outcome, result.detail]).toEqual(['failed', 'your flowie has an unresolved conflict (wellbeing/.flow)'])
+    expect(calls.map(call => call.args[0])).toEqual(['diff'])
+    expect(io.files[LOG]).toContain('skipped (unresolved conflict)')
   })
 
   test('a git call that throws synchronously is a failed step, logged — never an escape', async () => {
@@ -110,7 +118,7 @@ describe('a flush', () => {
     const hooked = gitIo({ ...repo, [`${FLOWIE}/.git/hooks/pre-commit`]: '#!/bin/sh\n' }, () => ok)
     const skipped = await flushFlowie(hooked.io, HOME, [wellbeing])
     expect([skipped.outcome, skipped.detail]).toEqual(['failed', 'this flowie uses git hooks or LFS (hooks: pre-commit), which the mod does not run'])
-    expect(hooked.calls.map(call => call.args[0])).toEqual(['config'])
+    expect(hooked.calls.map(call => call.args[0])).toEqual(['diff', 'config'])
     expect(hooked.io.files[LOG]).toContain('skipped (git hooks or LFS: hooks: pre-commit): wellbeing/2026-10-07.json wellbeing/.flow (mod)')
     const lfs = gitIo({ ...repo, [`${FLOWIE}/.gitattributes`]: '*.bin filter=lfs diff=lfs\n' }, () => ok)
     expect((await flushFlowie(lfs.io, HOME, [wellbeing])).outcome).toBe('failed')
@@ -121,7 +129,7 @@ describe('a flush', () => {
     delete partial[`${FLOWIE}/wellbeing/.flow`]
     const half = gitIo(partial, () => ok)
     expect((await flushFlowie(half.io, HOME, [wellbeing])).line).toBe('2026-10-07T07:30:00Z synced: wellbeing/2026-10-07.json (mod)')
-    expect(half.calls[1].args.join(' ')).toBe('add -- wellbeing/2026-10-07.json')
+    expect(half.calls[2].args.join(' ')).toBe('add -- wellbeing/2026-10-07.json')
     const gone = gitIo({ [`${FLOWIE}/.git/HEAD`]: 'x' }, () => ok)
     const nothing = await flushFlowie(gone.io, HOME, [wellbeing])
     expect(nothing.outcome).toBe('skipped')
@@ -286,7 +294,7 @@ describe('the wellbeing band', () => {
     expect(JSON.stringify([...seen.store.values()])).not.toContain('slept badly')
     await $.turn.complete(TURN as never)
     expect(seen.git).toEqual([
-      'config --show-origin --get-all core.hooksPath',
+      'diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath',
       'add -- wellbeing/2026-10-07.json wellbeing/.flow',
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
       'pull --rebase --autostash',
@@ -402,7 +410,7 @@ describe('idea capture and the queue in a session', () => {
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     expect(JSON.stringify(await ui.drawn())).toContain('flowie sync pending (wellbeing: 2026-10-06)')
     await $.turn.complete(TURN as never)
-    expect(seen.git.slice(2)).toEqual(['config --show-origin --get-all core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase --autostash', 'push'])
+    expect(seen.git.slice(2)).toEqual(['diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase --autostash', 'push'])
     expect(asQueue(seen.store.get(SYNC_QUEUE))).toEqual([])
     expect(fs.files[LOG]).toContain('synced: wellbeing/2026-10-06.json (mod)')
     expect(JSON.stringify(await ui.drawn())).not.toContain('flowie sync pending')
@@ -440,7 +448,7 @@ const DASHBOARD = {
   props: { title: 'neuroflow', isFocused: true, bodyColumns: 160, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
 }
 const SYNC = [
-  'config --show-origin --get-all core.hooksPath',
+  'diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath',
   'add -- wellbeing/2026-10-07.json wellbeing/.flow',
   'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
   'pull --rebase --autostash',
@@ -548,13 +556,13 @@ describe('the sync before a neuroflow command', () => {
     await ui.input({ key: 'nf-wellbeing', text: '3 6 7' })
     const ending = $.turn.complete(TURN as never)
     await seen.clock.settle()
-    expect(seen.git).toEqual(SYNC.slice(0, 4))
+    expect(seen.git).toEqual(SYNC.slice(0, 5))
     await $.command.run({ command: 'neuroflow:migrate', args: '' } as never)
     const sending = $.prompt.submit({ text: '/neuroflow:migrate', origin: { kind: 'composer' } } as never)
     await seen.clock.settle()
     // The command waits; no second git run starts beside the first.
     expect(reached).toEqual([])
-    expect(seen.git).toEqual(SYNC.slice(0, 4))
+    expect(seen.git).toEqual(SYNC.slice(0, 5))
     release()
     await ending
     await sending
