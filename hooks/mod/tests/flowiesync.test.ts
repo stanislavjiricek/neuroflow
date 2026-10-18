@@ -2,7 +2,7 @@ import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import type { NfFlowieSyncEntry } from '../../../types'
-import { SYNC_QUEUE, afterFlush, asQueue, enqueue, flushFlowie, gitReason, isSettled, syncState } from '../lib/flowiesync'
+import { SYNC_QUEUE, afterFlush, asQueue, checkRemoteEntry, enqueue, flushFlowie, gitReason, isSettled, syncState } from '../lib/flowiesync'
 import type { NfIo, NfRun } from '../lib/io'
 import { bandItems, keyFillsPrompt } from '../features/views'
 import { fakeFs } from './fakefs'
@@ -221,10 +221,12 @@ const memStore = (on: On, initial: Record<string, unknown> = {}): Map<string, un
   return map
 }
 
-type Session = { git: string[]; toasts: string[]; ran: string[]; store: Map<string, unknown>; clock: ReturnType<typeof mock.clock> }
+type Session = { remote: string[]; git: string[]; toasts: string[]; ran: string[]; store: Map<string, unknown>; clock: ReturnType<typeof mock.clock> }
 
-const session = (on: On, answer: (args: readonly string[]) => NfRun | Promise<NfRun> = () => ok, stored: Record<string, unknown> = {}): Session => {
+/** `remote`: what the band's remote check (#253: fetch, rev-parse @{u}, cat-file, merge) finds; kept out of `git`. */
+const session = (on: On, answer: (args: readonly string[]) => NfRun | Promise<NfRun> = () => ok, stored: Record<string, unknown> = {}, remote: 'absent' | 'present' | 'offline' = 'absent'): Session => {
   const seen: Session = {
+    remote: [],
     git: [],
     toasts: [],
     ran: [],
@@ -247,6 +249,12 @@ const session = (on: On, answer: (args: readonly string[]) => NfRun | Promise<Nf
   on('process.run', async ($, e) => {
     const argv = (e as unknown as { argv: string[] }).argv
     if (argv[0] !== 'git') return { value: { exitCode: 2, stdout: '', stderr: 'not here', isStdoutTruncated: false, isStderrTruncated: false } }
+    const remoteStep = argv[3] === 'fetch' || argv[3] === 'cat-file' || argv[3] === 'merge' || (argv[3] === 'rev-parse' && argv.includes('@{u}'))
+    if (remoteStep) {
+      seen.remote.push(argv.slice(3).join(' '))
+      const fails = (remote === 'offline' && argv[3] === 'fetch') || (remote === 'absent' && argv[3] === 'cat-file')
+      return { value: { exitCode: fails ? 1 : 0, stdout: '', stderr: fails ? 'fatal: no' : '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
     seen.git.push(argv.slice(3).join(' '))
     return { value: { ...(await answer(argv.slice(3))), isStdoutTruncated: false, isStderrTruncated: false } }
   })
@@ -541,6 +549,61 @@ describe('the sync before a neuroflow command', () => {
     await sending
     expect(reached).toEqual([SYNC])
     expect(seen.git).toEqual(SYNC)
+    await ui.unmount()
+  })
+})
+
+describe('today\'s wellbeing entry made on another machine (#253)', () => {
+  const settle = () => new Promise(resolve => setTimeout(resolve, 20))
+
+  test('checkRemoteEntry: fetch, then the upstream decides; a clean clone is fast-forwarded', async () => {
+    const path = 'wellbeing/2026-10-07.json'
+    const there = gitIo(repo, () => ok)
+    expect(await checkRemoteEntry(there.io, HOME, path)).toBe('present')
+    expect(there.calls.map(call => call.args.join(' '))).toEqual([
+      'fetch --quiet',
+      'rev-parse --verify --quiet @{u}',
+      `cat-file -e @{u}:${path}`,
+      'status --porcelain',
+      'merge --ff-only --quiet @{u}',
+    ])
+    const dirty = gitIo(repo, args => (args[0] === 'status' ? { exitCode: 0, stdout: ' M wellbeing/.flow\n', stderr: '' } : ok))
+    expect(await checkRemoteEntry(dirty.io, HOME, path)).toBe('present')
+    expect(dirty.calls.some(call => call.args[0] === 'merge')).toBe(false)
+    const missing = gitIo(repo, args => (args[0] === 'cat-file' ? { exitCode: 128, stdout: '', stderr: 'fatal: path not in tree' } : ok))
+    expect(await checkRemoteEntry(missing.io, HOME, path)).toBe('absent')
+    const offline = gitIo(repo, args => (args[0] === 'fetch' ? { exitCode: 128, stdout: '', stderr: 'fatal: unable to access' } : ok))
+    expect(await checkRemoteEntry(offline.io, HOME, path)).toBe('unknown')
+    expect(offline.calls.map(call => call.args[0])).toEqual(['fetch'])
+    const noUpstream = gitIo(repo, args => (args[0] === 'rev-parse' ? { exitCode: 1, stdout: '', stderr: '' } : ok))
+    expect(await checkRemoteEntry(noUpstream.io, HOME, path)).toBe('unknown')
+    expect(await checkRemoteEntry(gitIo({}, () => ok).io, HOME, path)).toBe('unknown')
+  })
+
+  for (const [remote, asks] of [['present', false], ['absent', true], ['offline', true]] as const) {
+    test(`the band ${asks ? 'asks' : 'does not ask'} when the remote check finds the entry ${remote}`, { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+      fakeFs(on, FILES, ROOT)
+      const seen = session(on, () => ok, {}, remote)
+      await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+      await settle()
+      const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
+      expect(JSON.stringify(await ui.drawn()).includes('wellbeing today')).toBe(asks)
+      expect(seen.remote[0]).toBe('fetch --quiet')
+      // Only reads: nothing committed, pulled or pushed.
+      expect(seen.git.filter(step => /^(add|commit|pull|push)/.test(step))).toEqual([])
+      await ui.unmount()
+    })
+  }
+
+  test('a check the session start could not finish runs when the first turn ends', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    fakeFs(on, FILES, ROOT)
+    const seen = session(on, () => ok, {}, 'present')
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.turn.complete(TURN as never)
+    await settle()
+    const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
+    expect(JSON.stringify(await ui.drawn())).not.toContain('wellbeing today')
+    expect(seen.remote.filter(step => step === 'fetch --quiet').length).toBeGreaterThan(0)
     await ui.unmount()
   })
 })

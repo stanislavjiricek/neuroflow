@@ -11,7 +11,7 @@ import type { EngineInterface, On } from 'claude-code'
 
 import type { NfDashboardTab, NfFlowieSync, NfLoopView, NfSnapshot, NfTaskView } from '../../../types'
 import { setActivePhase } from '../lib/config'
-import { NO_SYNC, SYNC_QUEUE, asQueue, enqueue, syncState } from '../lib/flowiesync'
+import { NO_SYNC, SYNC_QUEUE, asQueue, checkRemoteEntry, enqueue, syncState } from '../lib/flowiesync'
 import type { NfIo } from '../lib/io'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
@@ -37,6 +37,7 @@ const boardLevelAtom = atom({ plugin: 'neuroflow', key: 'boardLevel' } as const,
 const boardPickAtom = atom({ plugin: 'neuroflow', key: 'boardPick' } as const, null)
 const quietAtom = atom({ plugin: 'neuroflow', key: 'quietSince' } as const, null)
 const flowieSyncAtom = atom({ plugin: 'neuroflow', key: 'flowieSync' } as const, NO_SYNC)
+const wellbeingCheckAtom = atom({ plugin: 'neuroflow', key: 'wellbeingCheck' } as const, null)
 
 const DASHBOARD = 'nf-dashboard'
 const PICKER = 'nf-phase'
@@ -474,6 +475,38 @@ const runKey = async ($: EngineInterface, command: string, args: string): Promis
   await $.command.run({ command, args })
 }
 
+/** The check this session runs (one at a time): a second caller waits for the first. */
+let wellbeingChecking: Promise<void> | null = null
+
+/**
+ * Before the band asks for today's wellbeing entry (#253): is it already on the flowie remote, made on another
+ * machine? Only when the person collects wellbeing and today's entry is missing here. The band does not ask while
+ * the check runs; `present` keeps it from asking (and the clone is fast-forwarded when clean); `absent` or `unknown`
+ * (offline, no upstream) lets it ask as before. A fetch only reads: nothing leaves.
+ */
+const checkWellbeingRemote = ($: EngineInterface): Promise<void> => {
+  if (wellbeingChecking !== null) return wellbeingChecking
+  const run = (async () => {
+    const io = ioOf($)
+    const home = toSlash((await io.home()) ?? '')
+    if (home === '') return
+    const today = isoDate(await io.now())
+    const done = await read($, wellbeingCheckAtom)
+    if (done !== null && done.date === today && done.state !== 'pending') return
+    const wellbeing = `${home}/.neuroflow/flowie/wellbeing`
+    const config = await io.read(`${wellbeing}/config.json`)
+    if (config === null || !/"collect"\s*:\s*true/.test(config) || (await io.exists(`${wellbeing}/${today}.json`))) return
+    await update($, wellbeingCheckAtom, () => ({ date: today, state: 'pending' as const }))
+    const state = await checkRemoteEntry(io, home, `wellbeing/${today}.json`).catch(() => 'unknown' as const)
+    await update($, wellbeingCheckAtom, () => ({ date: today, state }))
+    if (state === 'present') await update($, snapshotAtom, snap => (snap === null ? snap : { ...snap, wellbeingDue: false }))
+  })()
+  wellbeingChecking = run.finally(() => {
+    wellbeingChecking = null
+  })
+  return wellbeingChecking
+}
+
 /** Three whole numbers 1–10 and optional notes after them ("3 6 7 slept badly"), or null. */
 export const parseWellbeing = (value: string): { anxiety: number; energy: number; happiness: number; notes: string } | null => {
   const match = /^\s*(\d{1,2})[\s,/]+(\d{1,2})[\s,/]+(\d{1,2})\s*(.*)$/s.exec(value)
@@ -764,6 +797,16 @@ export const registerViews = (on: On, opts: NfOptions): void => {
   on('turn.complete', { reason: ['answer', 'aborted', 'error', 'refusal'] }, async ($, e, next) => {
     const result = await next(e)
     if (e.agentId === undefined && (await read($, taskViewAtom)) !== null) await loadTasks($).catch(() => undefined)
+    // The wellbeing remote check, if the one the session's start began did not finish (#253).
+    if (e.agentId === undefined && (await read($, wellbeingCheckAtom))?.state === 'pending') await checkWellbeingRemote($).catch(() => undefined)
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // As an interactive session starts: whether today's wellbeing entry is already on the flowie remote (#253). Not
+  // awaited, so the first prompt never waits for the network; the band does not ask until it knows.
+  on('session.start', { isInteractive: true }, async ($, e, next) => {
+    const result = await next(e)
+    void checkWellbeingRemote($).catch(() => undefined)
     return result
   }).catch(($, e, next) => next(e))
 
@@ -833,7 +876,10 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const items = bandItems(snap, opts.band === 'quiet', await read($, flowieSyncAtom))
     // Self-reported wellbeing (M146, opt-in in flowie): one field, no scores kept anywhere but the file.
     const idle = (await read($, activeCommandAtom)) === null
-    if (snap.wellbeingDue && idle && e.surface !== 'mobile' && items[0]?.level !== 'alert') {
+    const check = await read($, wellbeingCheckAtom)
+    const today = isoDate(await $.clock.now())
+    const askable = check === null || check.date !== today || check.state === 'absent' || check.state === 'unknown'
+    if (snap.wellbeingDue && askable && idle && e.surface !== 'mobile' && items[0]?.level !== 'alert') {
       const { Box, Button, Input, Text } = $.ui.resolve(e)
       return (
         <Box flexDirection="row" flexWrap="wrap" columnGap={2}>

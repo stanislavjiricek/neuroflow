@@ -88,7 +88,7 @@ Current: data-analyze — analysis
 | Quiet | A `quiet` command such as `/idk` silences the band, status line and footer label until the next neuroflow command | — |
 | Autoresearch driver | `/neuroflow:autoresearch drive <name>`: one iteration per turn, caps checked between turns, a stop key | `runtime: on` |
 
-The wellbeing check-in on the band and `idea: …` write into your private [flowie](flowie.md). The mod commits those
+The band asks for the wellbeing check-in only once it knows today's entry is not already on your flowie's remote — made on another machine: as a session starts the mod fetches your flowie in the background (a read, nothing leaves), and when the entry is there it brings it down (fast-forward, on a clean clone) and does not ask; offline, it asks as before. The wellbeing check-in on the band and `idea: …` write into your private [flowie](flowie.md). The mod commits those
 files by path, pulls and pushes them — for an idea right away, for the check-in before your next neuroflow command
 (which pulls your flowie first) or when the next turn ends, never from the band's own field and never while a session
 starts — and writes each attempt and its outcome as a line of `~/.neuroflow/flowie-sync.log`. A sync that does not go

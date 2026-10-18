@@ -170,6 +170,26 @@ export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlow
 }
 
 /**
+ * Whether `path` (a flowie file, e.g. today's wellbeing entry) is already on the flowie's upstream: a fetch, then
+ * `git cat-file -e @{u}:{path}`. A fetch only reads, so nothing leaves. When the entry is there and nothing local is
+ * in the way (a clean tree), the clone is fast-forwarded to it (`merge --ff-only`), so the local files agree.
+ * `unknown` when the remote could not be asked (offline, no upstream, no repository). Never throws.
+ */
+export const checkRemoteEntry = async (io: NfIo, home: string, path: string): Promise<'present' | 'absent' | 'unknown'> => {
+  const flowie = flowieOf(home)
+  if (!(await io.exists(`${flowie}/.git`))) return 'unknown'
+  const fetch = await git(io, flowie, ['fetch', '--quiet'], 20_000)
+  if (fetch.exitCode !== 0) return 'unknown'
+  const upstream = await git(io, flowie, ['rev-parse', '--verify', '--quiet', '@{u}'], 10_000)
+  if (upstream.exitCode !== 0) return 'unknown'
+  const there = await git(io, flowie, ['cat-file', '-e', `@{u}:${path}`], 10_000)
+  if (there.exitCode !== 0) return 'absent'
+  const status = await git(io, flowie, ['status', '--porcelain'], 10_000)
+  if (status.exitCode === 0 && status.stdout.trim() === '') await git(io, flowie, ['merge', '--ff-only', '--quiet', '@{u}'], 20_000)
+  return 'present'
+}
+
+/**
  * Whether a sync that ran elsewhere (/neuroflow:flowie --sync, the auto-sync hook, the person's own git) settled
  * the queue: nothing of its files left to commit, nothing left to push. Local git only, no network.
  */

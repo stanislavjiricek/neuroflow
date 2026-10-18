@@ -215,6 +215,17 @@ export type NfFlowieSync = {
   isHeld: boolean
 }
 
+/**
+ * The band's check of the flowie remote before it asks for today's wellbeing entry (#253): `pending` while it runs,
+ * `present` when the entry is already on the remote (made on another machine), `absent`, or `unknown` when it could
+ * not tell (offline, no upstream) — then the band asks as it always did.
+ */
+export type NfWellbeingCheck = {
+  /** The day checked, YYYY-MM-DD (local time). */
+  date: string
+  state: 'pending' | 'present' | 'absent' | 'unknown'
+}
+
 export type NfReasoningBaseline = { path: string; lines: number }
 
 export type NfDraftedDecision = {
@@ -298,6 +309,8 @@ declare module 'claude-code' {
       taskView: NfTaskView | null
       /** The level the board pane shows (an NfTaskLevel id); null picks one as the pane opens. */
       boardLevel: string | null
+      /** Whether today's wellbeing entry is already on the flowie remote (#253); null before a check started. */
+      wellbeingCheck: NfWellbeingCheck | null
       /** The task card picked on the board, to move it. */
       boardPick: string | null
       // </feature:views>
