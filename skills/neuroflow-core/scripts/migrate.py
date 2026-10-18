@@ -1154,7 +1154,7 @@ class LevelPlan:
     """One user-level folder (~/.neuroflow/flowie or a cached hive) and what migrating it changes."""
 
     def __init__(self, level: str, root: Path, home: Path, name: str | None = None) -> None:
-        self.level, self.root, self.name = level, root, name
+        self.level, self.root, self.name, self.home = level, root, name, home
         try:
             self.shown = "~/" + root.relative_to(home).as_posix()
         except ValueError:
@@ -1502,8 +1502,21 @@ def own_state(plan: LevelPlan, path: Path) -> bytes:
         return raw
     if not isinstance(mine, dict) or not isinstance(theirs, dict):
         return raw
-    own = {key: value for key, value in mine.items() if theirs.get(key) != value}
+    handle = flowie_handle(plan.home)
+    own = {key: value for key, value in mine.items()
+           if theirs.get(key) != value or key == "hive_repo"  # the same for every member, and S8 and --doctor need it
+           or (key == "member_handle" and handle is not None and str(value).lstrip("@").lower() == handle.lower())}
     return (json.dumps(own, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def flowie_handle(home: Path) -> str | None:
+    """The person's handle from ~/.neuroflow/user.yaml (neuroflow-core → Personal layer), or None."""
+    try:
+        text = (home / ".neuroflow" / "user.yaml").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    match = re.search(r"^flowie_handle:\s*['\"]?([^'\"#\s]+)", text, re.M)
+    return match.group(1).lstrip("@") if match else None
 
 
 def apply_level(plan: LevelPlan) -> None:

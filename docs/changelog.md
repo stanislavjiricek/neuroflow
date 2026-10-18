@@ -10,12 +10,13 @@ title: Changelog
 
 Fixes from a final review of 0.2.24:
 
-- `projects.py fold` never puts a machine-local folder on the team's card: such entries of the flowie card come back as `local_repos`, and `/neuroflow:migrate` 5.7 writes them into `~/.neuroflow/local-projects.json` before folding; it passes `--no-hive` when no hive pulled cleanly and skips the fold when the flowie did not
+- `projects.py fold` never puts a machine-local folder on the team's card: such entries of the flowie card come back as `local_repos`, and `/neuroflow:migrate` 5.7 writes them into `~/.neuroflow/local-projects.json` before folding; it skips the fold when the flowie or every hive did not pull cleanly. Anything in `repos` that is no remote URL counts as a local folder (`$HOME/…`, `../…`, a relative path), and the local rows of a flowie note's `Repos` table are listed too
 - Sentinel S9 shows the registry findings in the session only; `.neuroflow/sentinel.md`, which is committed with the project, gets one count line — the messages name private flowie projects, task files and folders
 - `/flowie --sync` resolves an autostash conflict with the person (both versions shown, nothing with conflict markers committed, the autostash entry dropped after); the auto-sync hook and the mod skip while git marks a file as conflicted and log `autostash conflict` when their own pull leaves one
 - `/neuroflow:migrate` moves only this member's own values out of a tracked hive `sync.json` (the keys that differ from the committed copy)
 - `projects.py`: a `repos` string is one repository everywhere; a task's `project:` may name a card of another level; a repository key part never ends in a dot; the cache's git keeps a person's own ssh setup (`GIT_SSH`, `GIT_SSH_COMMAND`, `core.sshCommand`)
-- `/phase` step 7 runs for `--sync` too; `/tasks --project` shows the script's problems; the mod reads `name`-keyed cards and `repos` strings like the script
+- `/flowie` never stages a file git marks as conflicted, and `--sync` resolves such files before it pulls; the hook's log names them
+- `/phase` step 7 runs for `--sync` too (without repeating a timeline row); `/tasks --project` shows the script's problems; the mod reads `name`-keyed cards and `repos` strings like the script
 
 ## 0.2.24
 

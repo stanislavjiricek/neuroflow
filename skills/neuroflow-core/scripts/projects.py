@@ -271,10 +271,19 @@ def repo_values(entry: dict) -> list[str]:
     return values
 
 
-def is_local_path(value: str) -> bool:
-    """A folder on some machine (C:\\…, /…, ~/…, \\\\server\\…, file://…), not a remote a repository can be cloned from."""
+def is_remote(value: str) -> bool:
+    """A remote a repository can be cloned from: a URL with a scheme other than file://, an scp-style address
+    (user@host:path), or a bare host.domain/owner/repo."""
     value = value.strip()
-    return bool(re.match(r"^(?:[A-Za-z]:[\\/]|[/~\\]|file:)", value, re.I))
+    if re.match(r"^[a-z][a-z0-9+.-]*://", value, re.I):
+        return not value.lower().startswith("file:")
+    return bool(re.match(r"^[^@/\\:\s]+@[^:/\s]+:\S", value)) or parse_repo(value) is not None
+
+
+def is_local_path(value: str) -> bool:
+    """Anything in `repos` that is no remote: a folder on some machine (C:\\…, /…, ~/…, $HOME/…, ../…, a relative
+    path, file://…). neuroflow-core: repos holds remote URLs only."""
+    return value.strip() != "" and not is_remote(value)
 
 
 def card_repos(card: dict) -> list[str]:
@@ -358,8 +367,8 @@ def own_ssh(home: Path) -> bool:
     key = str(home)
     if key not in _OWN_SSH:
         try:
-            proc = subprocess.run(["git", "config", "--get", "core.sshCommand"], capture_output=True, text=True,
-                                  stdin=subprocess.DEVNULL, timeout=10)
+            proc = subprocess.run(["git", "config", "--global", "--get", "core.sshCommand"], capture_output=True,
+                                  text=True, stdin=subprocess.DEVNULL, timeout=10, cwd=str(home) if home.is_dir() else None)
             _OWN_SSH[key] = proc.returncode == 0 and proc.stdout.strip() != ""
         except (OSError, subprocess.TimeoutExpired):
             _OWN_SSH[key] = False
@@ -611,16 +620,28 @@ def union(a, b) -> list:
 
 
 def note_sections(text: str) -> tuple[list[str], str]:
-    """A flowie project note: the repository URLs its card-like sections list, and everything else, kept."""
+    """A flowie project note: what its repository sections list (URLs, and local folders, which the caller keeps off
+    the card), and everything else, kept."""
     text = text.replace("\r\n", "\n")
-    urls = re.findall(r"(?:https?|ssh)://\S+|[\w.-]+@[\w.-]+:[\w./-]+", "\n".join(
-        body for heading, body in re.findall(r"^## +(.+?)\s*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-        if heading.strip().lower() in ("repos", "linked repos")))
+    urls: list[str] = []
+    for heading, body in re.findall(r"^## +(.+?)\s*\n(.*?)(?=^## |\Z)", text, re.M | re.S):
+        if heading.strip().lower() not in ("repos", "linked repos"):
+            continue
+        for line in body.splitlines():
+            line = line.strip()
+            if not line or re.match(r"^\|?\s*:?-{3,}", line):
+                continue
+            cell = line.strip("|").split("|")[0].strip() if line.startswith("|") else re.sub(r"^[-*+]\s+", "", line)
+            cell = cell.strip("`<> ")
+            if not cell or cell.lower() in ("url", "repo", "repository", "path"):
+                continue
+            found = re.findall(r"(?:https?|ssh|git)://\S+|[\w.-]+@[\w.-]+:[\w./-]+", cell)
+            urls += found or ([cell.split()[0]] if is_local_path(cell.split()[0]) and re.search(r"[\\/]", cell) else [])
     kept = re.sub(r"^## +(.+?)\s*\n.*?(?=^## |\Z)",
                   lambda match: "" if match.group(1).strip().lower() in CARD_SECTIONS else match.group(0), text,
                   flags=re.M | re.S)
     kept = re.sub(r"\A# .*\n", "", kept).strip()
-    return [url.rstrip("|).,") for url in urls], kept
+    return [url.rstrip("|).,`") for url in urls], kept
 
 
 def dirty(level: Level, paths: list[str]) -> bool:

@@ -158,8 +158,12 @@ class HookSmokeTests(unittest.TestCase):
         self.git(other, "commit", "-q", "-am", "elsewhere")
         self.git(other, "push", "-q")
         (flowie / "notes.md").write_text("two (this machine)\n", encoding="utf-8")
-        subprocess.run(["git", "pull", "-q", "--rebase", "--autostash"], cwd=flowie, capture_output=True, env=self.env)
+        # The hook's own pull (after it commits profile.md) carries notes.md along and cannot put it back: it says so.
+        (flowie / "profile.md").write_text("# profile\n\nFirst line.\n", encoding="utf-8")
+        self.assertEqual(self.run_hook(command, flowie / "profile.md").returncode, 0)
         self.assertIn("notes.md", self.git(flowie, "diff", "--name-only", "--diff-filter=U"))
+        self.assertIn("autostash conflict in notes.md (/flowie --sync): profile.md",
+                      (home / "flowie-sync.log").read_text(encoding="utf-8"))
         # Now a write elsewhere in the flowie: nothing is added, committed or pushed, and the log says why.
         (flowie / "profile.md").write_text("# profile\n\nNew line.\n", encoding="utf-8")
         before = self.git(remote, "rev-parse", "main")

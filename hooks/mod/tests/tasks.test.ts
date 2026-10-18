@@ -15,6 +15,7 @@ import {
   openingLevel,
   orderHives,
   originUrl,
+  registryProject,
   repoKey,
   topCards,
   userHives,
@@ -376,5 +377,8 @@ describe('the boards in a session', () => {
     }
     expect(repoKey('HTTPS://GitHub.com/Example-Lab/Oddball.GIT')).toBe('github.com/example-lab/oddball')
     expect(repoKey('github.com/example-lab/oddball')).toBe('github.com/example-lab/oddball')
+    // A registry that writes repos as one string links this repository too.
+    const keys = new Set([locationKey('https://github.com/example-lab/oddball-eeg', HOME)])
+    expect(registryProject(JSON.stringify({ projects: [{ id: 'Oddball', repos: 'git@github.com:example-lab/oddball-eeg.git' }] }), keys, HOME)).toBe('Oddball')
   })
 })

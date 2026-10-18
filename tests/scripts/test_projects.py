@@ -374,6 +374,29 @@ class FinalReviewTests(RegistryTests):
         self.assertIsNone(pj.parse_repo("https://github.com/example-lab/oddball."))
         self.assertEqual(pj.repo_key("https://github.com/example-lab/odd.ball"), "github.com/example-lab/odd.ball")
 
+class PreMergeTests(RegistryTests):
+    def test_every_spelling_of_a_local_folder_stays_off_the_card(self) -> None:
+        local = ["$HOME/projects/odd", "%USERPROFILE%\\projects\\odd", "../odd", "projects/odd", "file:///D:/data/odd"]
+        self.registry(self.flowie, {"id": "Oddball", "repos": ["https://github.com/example-lab/oddball", *local]})
+        self.registry(self.hive, {"id": "Oddball", "repos": ["https://github.com/example-lab/oddball"]})
+        plan = json.loads(self.h("fold", "--json")[1])["plan"][0]
+        self.assertEqual(plan["local_repos"], local)
+        self.assertEqual(plan["hive_writes"], {})
+        for value in ("https://git.overleaf.com/6840b7f8", "git@github.com:example-lab/oddball.git", "github.com/example-lab/oddball"):
+            self.assertFalse(pj.is_local_path(value), value)
+        kinds = [f["kind"] for f in json.loads(self.h("check", "--json")[1])["findings"]]
+        self.assertEqual(sorted(kinds), ["local-repo", "two-cards"])
+
+    def test_local_rows_of_the_notes_repos_table_are_listed_not_lost(self) -> None:
+        self.registry(self.flowie, {"id": "Oddball"})
+        self.registry(self.hive, {"id": "Oddball"})
+        self.write(self.flowie / "projects" / "Oddball.md",
+                   "# Oddball\n\n## Repos\n\n| url | description |\n|---|---|\n| https://github.com/example-lab/oddball | code |\n"
+                   "| C:\\Users\\alice\\note | a local copy |\n\n## Linked repos\n\n- `file:///D:/data/note`\n")
+        plan = json.loads(self.h("fold", "--json")[1])["plan"][0]
+        self.assertEqual(plan["local_repos"], ["C:\\Users\\alice\\note", "file:///D:/data/note"])
+        self.assertEqual(plan["hive_writes"], {"repos": ["https://github.com/example-lab/oddball"]})
+
 
 if __name__ == "__main__":
     unittest.main()

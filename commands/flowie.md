@@ -78,6 +78,8 @@ git -C ~/.neuroflow/flowie commit -m "{message}" -- {paths}   # "nothing to comm
 git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push
 ```
 
+If `git -C ~/.neuroflow/flowie diff --name-only --diff-filter=U` lists files after a pull (an autostash that could not go back) or before a Sync, stage none of them — `git add` would mark the conflict resolved and commit its markers — and send the person to `/flowie --sync` (**Unresolved conflict**).
+
 <!-- nf-rule: GIT-NO-SECRETS -->
 Never `git add -A`, never stage `integrations.json`. If the pull stops on a conflict, abort it as above and leave the push for `--sync`.
 
@@ -505,6 +507,8 @@ Profile saved. Push to your flowie GitHub repo now? [Y/n]
 Read `sync.json` for the repo URL. If it is missing, tell the user to run `/flowie` first to connect a repo.
 
 ### Pull step
+
+First, if `git -C ~/.neuroflow/flowie diff --name-only --diff-filter=U` lists files, resolve them as in **Unresolved conflict** below before pulling: in that state the pull refuses to run.
 
 Pull (Git operations pattern). If the pull succeeds, report what changed (use `git -C ~/.neuroflow/flowie diff --stat HEAD@{1} HEAD` to summarise).
 

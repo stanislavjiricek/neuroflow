@@ -136,7 +136,7 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
    - Update `current_phase` to the new phase
    - Append to `visited_phases` if this phase is not already listed: `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`
    - Write updated `projects/projects.json`
-   - Read `projects/{name}.md` — append a new row to the Phase timeline table: `| {new_phase} | {YYYY-MM-DD} |`
+   - Read `projects/{name}.md` — append a new row to the Phase timeline table: `| {new_phase} | {YYYY-MM-DD} |`, unless its last row already names this phase (a repeated `--sync`)
    - Commit, pull and push: `git -C ~/.neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push || true` — if this pull stops on a conflict, abort it as above; the commit stays local for `/flowie --sync`
 
    If `~/.neuroflow/flowie/` does not exist, `flowie_profiles` is absent or empty, or any git operation fails, skip silently — never surface flowie errors to the user during a phase switch.

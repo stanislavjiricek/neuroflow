@@ -603,6 +603,19 @@ class FlowieHiveTest(unittest.TestCase):
         self.assertIn("sync.json", [item["path"] for item in level["report"]], "untracking it stays the team's call")
 
     @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_the_moved_state_keeps_hive_repo_and_this_members_handle(self) -> None:
+        hive = self.hives / "example-lab-hive"
+        committed = {"hive_repo": "example-lab/hive", "member_handle": "alice", "last_pull": "2026-09-01"}
+        self.write(hive / "sync.json", json.dumps(committed) + "\n")
+        self.repo(hive)
+        self.write(self.home / ".neuroflow" / "user.yaml", "flowie_handle: alice\n")
+        self.write(hive / "sync.json", json.dumps({**committed, "last_pull": "2026-10-16", "last_push": "2026-10-16"}) + "\n")
+        self.levels("--hive", "example-lab-hive", "--apply")
+        self.assertEqual(json.loads(self.read(hive / ".git" / "neuroflow-sync.json")),
+                         {"hive_repo": "example-lab/hive", "member_handle": "alice", "last_pull": "2026-10-16",
+                          "last_push": "2026-10-16"})
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
     def test_both_copies_of_the_state_are_reported_not_moved(self) -> None:
         hive = self.hives / "example-lab-hive"
         self.write(hive / ".gitignore", "sync.json\n")

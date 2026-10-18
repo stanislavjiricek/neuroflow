@@ -315,7 +315,7 @@ export const registryProject = (registryJson: string | null, keys: ReadonlySet<s
   for (const project of entriesOf(parsed(registryJson))) {
     const name = typeof project.id === 'string' && project.id.trim() !== '' ? project.id.trim() : typeof project.name === 'string' ? project.name.trim() : ''
     if (name === '') continue
-    for (const repo of Array.isArray(project.repos) ? project.repos : []) {
+    for (const repo of Array.isArray(project.repos) ? project.repos : typeof project.repos === 'string' ? [project.repos] : []) {
       const value = typeof repo === 'string' ? repo : repo !== null && typeof repo === 'object' && typeof (repo as { url?: unknown }).url === 'string' ? (repo as { url: string }).url : ''
       if (value.trim() !== '' && keys.has(locationKey(value, home))) return name
     }
