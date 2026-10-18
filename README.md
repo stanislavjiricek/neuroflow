@@ -20,6 +20,11 @@
 ---
 
 <a id="whats-new"></a>
+## What's new in 0.2.25
+
+- **Safer project registry and flowie sync** — a final review of 0.2.24 found three problems, now fixed: folding two cards of one project never puts a folder from one of your machines on the team's card (it goes to `~/.neuroflow/local-projects.json`); [`/sentinel`](commands/sentinel.md) shows the registry findings in the session and never writes your private flowie's project names into the committed `sentinel.md`; and [`/flowie --sync`](commands/flowie.md) resolves files an `--autostash` pull could not give back, with you, so no conflict markers are ever committed — the auto-sync hook and the mod skip and log such a state instead of pushing it
+- **Smaller fixes** — a hive member's state moves only their own values out of an old tracked `sync.json`; `repos` written as a single string counts as one repository; a task may name a project whose card is on another level; `/phase --sync` records the current phase on your cards; the board cache uses your own ssh setup when you have one ([#251](https://github.com/stanislavjiricek/neuroflow/issues/251)–[#256](https://github.com/stanislavjiricek/neuroflow/issues/256) follow-ups)
+
 ## What's new in 0.2.24
 
 - **One project, one card** ([#256](https://github.com/stanislavjiricek/neuroflow/issues/256)) — a team project is described once, in its hive, and your flowie keeps only a pointer to it, so the two can no longer drift; a phase or status change goes to that card after your yes. Each task goes on the narrowest board everyone who must see it can read, and [`/tasks --project {id}`](commands/tasks.md) shows one project's open tasks from every board, including the boards of its repositories that are not checked out here. [`/neuroflow:migrate`](commands/migrate.md) folds existing duplicate cards, and [`/sentinel`](commands/sentinel.md) checks the registry ([`projects.py`](skills/neuroflow-core/scripts/projects.py))
