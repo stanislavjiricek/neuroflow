@@ -63,20 +63,18 @@ All git operations use the `-C` flag to target the flowie repo directory. Networ
 **Pull** (before any read):
 
 ```bash
-git -C ~/.neuroflow/flowie pull --rebase
+git -C ~/.neuroflow/flowie pull --rebase --autostash
 ```
 
-If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — never leave a half-finished rebase — tell the person, and resolve it with them in `--sync`. If it fails for network reasons, say so once and carry on with the local copy.
+`--autostash` carries uncommitted changes (a file the auto-sync hook held back, a check-in not yet synced) through the pull and puts them back, so they never stop it. If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — never leave a half-finished rebase — tell the person, and resolve it with them in `--sync`. If it fails for network reasons, say so once and carry on with the local copy.
 
-**Sync** (after a write) — `{paths}` are exactly the files this mode changed:
+**Sync** (after a write) — `{paths}` are exactly the files this mode changed, relative to the flowie. First check them for machine-local paths: `python <phase-flowie skill base dir>/scripts/local_paths.py --root ~/.neuroflow/flowie {paths}` (exit `0` clean; `1` it lists each path with its file and line; `2` it could not run — say so and go on). On `1`, stage none of the files it names: show the person each path and offer to move it into `~/.neuroflow/local-projects.json` (this machine only), then rewrite the line without it and check again. A folder on one machine means nothing on the others, and the repo travels to every one. Then:
 
 ```bash
 git -C ~/.neuroflow/flowie add -- {paths}
 git -C ~/.neuroflow/flowie commit -m "{message}" -- {paths}   # "nothing to commit" is fine: the auto-sync hook already did it
-git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push
+git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push
 ```
-
-Before the commit, check `{paths}` for machine-local paths: `python <phase-flowie skill base dir>/scripts/local_paths.py {paths}` (exit `0` clean; `1` it lists each path with its file and line; `2` it could not run — say so and go on). On `1`, commit none of the files it names: show the person each path and offer to move it into `~/.neuroflow/local-projects.json` (this machine only), then rewrite the line without it and sync the file. A folder on one machine means nothing on the others, and the repo travels to every one.
 
 <!-- nf-rule: GIT-NO-SECRETS -->
 Never `git add -A`, never stage `integrations.json`. If the pull stops on a conflict, abort it as above and leave the push for `--sync`.

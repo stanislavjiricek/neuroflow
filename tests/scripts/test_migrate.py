@@ -583,6 +583,44 @@ class FlowieHiveTest(unittest.TestCase):
         self.assertEqual((code, result["levels"][0]["changes"]), (0, []))
 
     @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_tracked_sync_json_this_member_wrote_into_is_healed(self) -> None:
+        hive = self.hives / "example-lab-hive"
+        self.write(hive / "hive.md", "# Example Lab\n")
+        self.write(hive / "sync.json", '{"member_handle": "bob"}\n')  # committed by an older neuroflow: bob's state
+        self.repo(hive)
+        self.write(hive / "sync.json", '{"member_handle": "alice", "last_pull": "2026-10-16"}\n')  # alice's own writes
+        code, result = self.levels("--hive", "example-lab-hive", "--apply")
+        level = result["levels"][0]
+        self.assertEqual(level["changes"][-1]["to"], ".git/neuroflow-sync.json")
+        self.assertEqual(self.read(hive / ".git" / "neuroflow-sync.json"),
+                         '{"member_handle": "alice", "last_pull": "2026-10-16"}\n')
+        self.assertEqual(self.read(hive / "sync.json"), '{"member_handle": "bob"}\n', "back to the committed text")
+        self.assertEqual(run_git(hive, "status", "--porcelain", "--", "sync.json").strip(), "", "pulls run again")
+        self.assertNotIn("sync.json", level["commit_paths"])
+        self.assertIn("sync.json", [item["path"] for item in level["report"]], "untracking it stays the team's call")
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_both_copies_of_the_state_are_reported_not_moved(self) -> None:
+        hive = self.hives / "example-lab-hive"
+        self.write(hive / ".gitignore", "sync.json\n")
+        self.repo(hive)
+        self.write(hive / ".git" / "neuroflow-sync.json", '{"member_handle": "alice"}\n')
+        self.write(hive / "sync.json", '{"member_handle": "alice-old"}\n')
+        code, result = self.levels("--hive", "example-lab-hive", "--apply")
+        level = result["levels"][0]
+        self.assertEqual(level["changes"], [])
+        self.assertIn("older copy", level["report"][0]["message"])
+        self.assertTrue((hive / "sync.json").exists())
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_an_empty_git_folder_is_no_repository(self) -> None:
+        hive = self.hives / "lab-copy"
+        self.write(hive / "hive.md", "# Lab\n")
+        (hive / ".git").mkdir()
+        code, result = self.levels("--hive", "lab-copy")
+        self.assertIn("not a git clone", result["levels"][0]["report"][0]["message"])
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
     def test_hives_checks_every_cached_hive(self) -> None:
         for name in ("lab-a", "lab-b"):
             self.write(self.hives / name / "tasks" / "t-1-plan.md", "---\nid: t-1\ntitle: Plan\nstatus: review\n---\n")
@@ -775,6 +813,7 @@ class FlowieHiveTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("git"), "needs git")
     def test_a_rebase_in_progress_blocks_writing(self) -> None:
         self.write(self.flowie / "tasks" / "t-1-x.md", "---\nid: t-1\ntitle: X\n---\n")
+        self.repo(self.flowie)
         (self.flowie / ".git" / "rebase-merge").mkdir(parents=True)
         code, result = self.levels("--flowie", "--apply")
         self.assertEqual(code, 1)

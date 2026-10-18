@@ -388,9 +388,9 @@ Sync never hides a failure — no `|| true` — and never leaves a half-finished
 
 **flowie level** (private repo):
 ```bash
-git -C ~/.neuroflow/flowie pull --rebase                     # before reads
+git -C ~/.neuroflow/flowie pull --rebase --autostash                     # before reads
 git -C ~/.neuroflow/flowie add wiki/ && git -C ~/.neuroflow/flowie commit -m "wiki: {description}" -- wiki/
-git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push
+git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push
 ```
 
 **project level** — the wiki lives in the project repository, so sync follows the person's current branch:

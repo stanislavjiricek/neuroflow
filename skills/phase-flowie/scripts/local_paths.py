@@ -6,15 +6,18 @@ means nothing on the others and tells the hosting service where the person keeps
 only in ~/.neuroflow/local-projects.json, which never syncs. The flowie auto-sync hook, /flowie --sync and
 /neuroflow:migrate run this check; it reports and never edits.
 
-Flagged: a Windows drive path (C:\\… or C:/…), a UNC path (\\\\server\\share), a home or mount folder (/home/,
-/Users/, /mnt/, /media/, /scratch/, /gpfs/, /lustre/, /storage/, /data/, /work/, /srv/, /net/, /nfs/, /tmp/),
-a ~/ path outside ~/.neuroflow/, and any other absolute path of two or more parts inside a code span or a table
-row. URLs, relative paths, slash commands (/flowie --sync) and example patterns (/storage/.../data,
-~/{project}) are not paths here.
+Flagged: a Windows drive path (C:\\… or C:/…), a UNC path (\\\\server\\share), a file:// URL, a home or storage
+folder (/home/, /Users/, /Volumes/, /mnt/, /media/, /scratch/, /gpfs/, /lustre/, /storage/, /data/, /work/,
+/projects/, /srv/, /net/, /nfs/, /auto/, /root/), a ~/, $HOME/ or %USERPROFILE% path outside ~/.neuroflow/, and
+any other absolute path of three or more parts inside a code span, a fenced code block or a table row. Not paths
+here: web URLs, relative paths, slash commands (/flowie --sync), link targets, system and web paths (/dev/null,
+/usr/bin/…, /etc/…, /api/v1/…) and example patterns (/storage/.../data, ~/{project}, C:\\Users\\<name>). A line
+that holds `nf: local-path-ok` (e.g. in an HTML comment) is skipped, for a path the person wants kept.
 
 usage:
-  python local_paths.py FILE [FILE ...]      check these files
-  python local_paths.py --flowie DIR         check every text file of a flowie clone
+  python local_paths.py FILE [FILE ...]                check these files
+  python local_paths.py --root DIR PATH [PATH ...]     check these paths, relative to DIR (e.g. the flowie)
+  python local_paths.py --flowie DIR                   check every text file of a flowie clone
   add --json for a machine-readable result
 
 exit codes: 0 nothing found · 1 machine-local paths found · 2 usage or read error
@@ -31,21 +34,28 @@ TEXT_SUFFIXES = {".md", ".json", ".jsonl", ".yaml", ".yml", ".txt", ".csv", ".ts
 # Files that stay on the machine (gitignored) or are git's own: never synced, so never checked.
 SKIP_NAMES = {"integrations.json"}
 SKIP_DIRS = {".git"}
+OK_MARK = "nf: local-path-ok"
 
-MOUNTS = "home|Users|mnt|media|scratch|gpfs|lustre|storage|data|work|srv|net|nfs|tmp"
+STOP = r"\s|`'\")\]"  # what ends a path written in text
+MOUNTS = "home|Users|Volumes|mnt|media|scratch|gpfs|lustre|storage|data|work|projects|project|srv|net|nfs|auto|root"
 ALWAYS = [
-    ("windows path", re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/][^\s|`'\")\]<>]*")),
-    ("network share", re.compile(r"(?<![\\\w])\\\\[A-Za-z0-9._-]+\\[^\s|`'\")\]<>]+")),
-    ("home or mount folder", re.compile(rf"(?<![\w.:/~-])/(?:{MOUNTS})/[^\s|`'\")\]<>]+")),
-    ("home folder (~/)", re.compile(r"(?<![\w.:/~-])~/(?!\.neuroflow(?:/|\b))[^\s|`'\")\]<>]+")),
+    ("windows path", re.compile(rf"(?<![A-Za-z0-9/])[A-Za-z]:[\\/][^{STOP}]*")),
+    ("network share", re.compile(rf"(?<![\\\w])\\\\[A-Za-z0-9._-]+\\[^{STOP}]+")),
+    ("file URL", re.compile(rf"file:/{{2,3}}[^{STOP}]+", re.I)),
+    ("home or storage folder", re.compile(rf"(?<![\w.:/~$%-])/(?:{MOUNTS})/[^{STOP}]+")),
+    ("home folder", re.compile(rf"(?<![\w.:/~-])(?:~|\$HOME|\$\{{HOME\}}|%USERPROFILE%|%HOMEPATH%)[\\/](?!\.neuroflow(?:[\\/]|$|[{STOP}]))[^{STOP}]+")),
 ]
-# Inside a code span or a table row, a whole token that is an absolute path of two or more parts counts.
-ABSOLUTE = re.compile(r"/[^/\s]+(?:/[^/\s]+)+/?")
+# Inside a code span, a fenced block or a table row, a whole token that is an absolute path of three or more parts
+# (two parts are too often a fragment: '/sub-01/eeg' joined onto a folder in code).
+ABSOLUTE = re.compile(r"/[^/\s]+(?:/[^/\s]+){2,}/?")
 TOKEN_EDGES = re.compile(r"[\s|`'\"()\[\],;]+")
 CODE_SPAN = re.compile(r"`([^`]+)`")
-URL = re.compile(r"[a-z][a-z0-9+.-]*://\S+", re.I)
-# A pattern shown as an example (/storage/.../data, ~/{project}, C:\Users\<name>), not a folder anyone has.
-PLACEHOLDER = re.compile(r"\.\.\.|…|[<>{}$*]")
+LINK_TARGET = re.compile(r"\]\(([^)\s]+)[^)]*\)")
+WEB_URL = re.compile(r"\b(?!file:)[a-z][a-z0-9+.-]*://\S+", re.I)
+# System and web paths that name no one's folder.
+NOT_LOCAL = re.compile(r"^/(?:dev|usr|etc|proc|sys|bin|sbin|lib|lib64|var|run|opt|boot|api|v\d+|static|assets|wiki|docs)(?:/|$)", re.I)
+# An example pattern (/storage/.../data, ~/{project}, C:\Users\<name>), not a folder anyone has.
+PLACEHOLDER = re.compile(r"\.\.\.|…|[<>{}]|\$\{(?!HOME\})")
 
 
 def utf8_stdio() -> None:
@@ -59,17 +69,24 @@ def utf8_stdio() -> None:
 def findings_in_text(text: str) -> list[dict]:
     """Every machine-local path in `text`, one entry per hit: line number, kind and the path as written."""
     out: list[dict] = []
+    fenced = False
     for number, raw in enumerate(text.splitlines(), start=1):
-        line = URL.sub(" ", raw)
+        if raw.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            continue
+        if OK_MARK in raw:
+            continue
+        line = LINK_TARGET.sub("]()", WEB_URL.sub(" ", raw))
         hits: list[tuple[str, str]] = []
         for kind, pattern in ALWAYS:
             hits += [(kind, match.group(0)) for match in pattern.finditer(line)]
         scopes = [match.group(1) for match in CODE_SPAN.finditer(line)]
-        if line.lstrip().startswith("|"):
+        if fenced or line.lstrip().startswith("|"):
             scopes.append(line)
         for scope in scopes:
             tokens = [token.rstrip(".:") for token in TOKEN_EDGES.split(scope)]
-            hits += [("absolute path", token) for token in tokens if ABSOLUTE.fullmatch(token) and ":" not in token]
+            hits += [("absolute path", token) for token in tokens
+                     if ABSOLUTE.fullmatch(token) and ":" not in token and not NOT_LOCAL.match(token)]
         seen: set[str] = set()
         for kind, path in hits:
             if PLACEHOLDER.search(path):
@@ -104,7 +121,10 @@ def check(paths: list[Path], base: Path | None) -> tuple[list[dict], list[str]]:
         except OSError as error:
             errors.append(f"{path}: {error.strerror or error}")
             continue
-        shown = path.relative_to(base).as_posix() if base is not None else path.as_posix()
+        try:
+            shown = path.relative_to(base).as_posix() if base is not None else path.as_posix()
+        except ValueError:
+            shown = path.as_posix()
         for hit in findings_in_text(text):
             results.append({"file": shown, **hit})
     return results, errors
@@ -113,7 +133,8 @@ def check(paths: list[Path], base: Path | None) -> tuple[list[dict], list[str]]:
 def main(argv: list[str] | None = None) -> int:
     utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("files", nargs="*", type=Path, help="files to check")
+    parser.add_argument("files", nargs="*", type=Path, help="files to check (relative to --root when it is given)")
+    parser.add_argument("--root", type=Path, metavar="DIR", help="the folder the named paths are relative to")
     parser.add_argument("--flowie", type=Path, metavar="DIR", help="check every text file of this flowie clone")
     parser.add_argument("--json", action="store_true", help="print the result as JSON")
     args = parser.parse_args(argv)
@@ -121,11 +142,15 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_usage(sys.stderr)
         print("local_paths: name files to check, or --flowie DIR", file=sys.stderr)
         return 2
-    if args.flowie is not None and not args.flowie.is_dir():
-        print(f"local_paths: no folder {args.flowie}", file=sys.stderr)
+    folder = args.flowie if args.flowie is not None else args.root
+    if folder is not None and not folder.is_dir():
+        print(f"local_paths: no folder {folder}", file=sys.stderr)
         return 2
-    paths = flowie_files(args.flowie) if args.flowie is not None else list(args.files)
-    results, errors = check(paths, args.flowie)
+    if args.flowie is not None:
+        paths = flowie_files(args.flowie)
+    else:
+        paths = [args.root / path if args.root is not None and not path.is_absolute() else path for path in args.files]
+    results, errors = check(paths, folder)
     if args.json:
         print(json.dumps({"findings": results, "errors": errors, "checked": len(paths)}, ensure_ascii=False, indent=2))
     else:

@@ -132,7 +132,7 @@ Hive data is cached at the user level — not inside any project repo.
 └── …                ← errata/, tasks/, meetings/, wiki/ as in the hive repo
 ```
 
-This member's sync state is `.git/neuroflow-sync.json` in the clone. A clone made by an older neuroflow may still hold it as an untracked `sync.json` in the work tree: read it there while `.git/neuroflow-sync.json` is missing, and `/neuroflow:migrate` moves it. A `sync.json` the hive repo tracks belongs to whoever committed it — never read it as this member's state and never write to it.
+This member's sync state is `.git/neuroflow-sync.json` in the clone (`git -C … rev-parse --git-path neuroflow-sync.json` names it, also in a worktree): `hive_repo` (`git -C … remote get-url origin`), `member_handle` (`flowie_handle` from `~/.neuroflow/user.yaml`, else `gh api user -q .login`, else ask the person), `last_pull` and `last_push`. Write it whole the first time; afterwards change only the field at hand. A cache without `.git/` (copied files) gets no state file — `/hive --init` replaces it with a clone. A clone made by an older neuroflow may still hold the state as an untracked `sync.json` in the work tree: read it there while `.git/neuroflow-sync.json` is missing, and `/neuroflow:migrate` moves it. A `sync.json` the hive repo tracks (`git -C … ls-files --error-unmatch sync.json` succeeds) belongs to whoever committed it — never read it as this member's state and never write to it; if this member's state was written into it before (`git -C … diff --quiet -- sync.json` fails), `/neuroflow:migrate` moves those values out and restores the file.
 
 One cache folder per hive the user belongs to. Created by `/hive --init` (`git clone --depth 1`). Never committed to any project repo. Older caches that hold copied files without a `.git/` folder still work for reading; `/hive --doctor` flags them and `/hive --init` replaces them with a clone (after the person confirms — local edits there would be lost).
 
@@ -171,14 +171,14 @@ Connect the current neuroflow project to a Hive repo for the first time.
 - Ask: *"Team name and description?"*
 - Ask: *"Active research directions? (one per line)"* → write to `## Active research directions` in `hive.md`
 - Ask: *"Add team members? (name, email, GitHub handle, role — one per line, Enter to skip)"* → write to `members.md` exactly as given (no email the person did not type)
-- Create the private repo and push the scaffold: `gh repo create {org}/{hive-repo} --private`, then clone it into `~/.neuroflow/hives/{org-repo}/`
+- Create the private repo and push the scaffold: `gh repo create {org}/{hive-repo} --private`, then clone it into `~/.neuroflow/hives/{org-repo}/` and write this member's sync state there (Local hive cache)
 
 ### `--sync`
 Pull latest state and show a digest of what changed since last pull.
 
 1. Record the current commit: `git -C ~/.neuroflow/hives/{org-repo} rev-parse HEAD` (an older cache without `.git/`: note `last_pull` and fetch `hive.md`, `members.md`, `ideas.md` as copies)
-2. Pull: `git -C ~/.neuroflow/hives/{org-repo} pull --rebase` — on a conflict, `git rebase --abort` and tell the person
-3. Update `last_pull` in `.git/neuroflow-sync.json`
+2. Pull: `git -C ~/.neuroflow/hives/{org-repo} pull --rebase` — on a conflict, `git rebase --abort` and tell the person; if it refuses because of local changes to a tracked `sync.json` (an older neuroflow wrote this member's state into it), point at `/neuroflow:migrate`, which moves that state out and restores the file
+3. Update `last_pull` in `.git/neuroflow-sync.json` (written whole if it does not exist yet — Local hive cache; skipped for a cache without `.git/`)
 4. **Digest:** compare the recorded commit with the new `HEAD` (`git diff --stat`, `git log`) and print a structured change summary — what changed, not who did what:
    ```
    Hive sync — 2026-04-20 10:00

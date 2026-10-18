@@ -98,7 +98,7 @@ before `--move` at those levels; the move itself still runs as below. Any argume
 1. Set `status: {column}` and `updated: {today}` in the task file where it is (Edit).
 2. Move the file to `tasks/{column}/` — with `git mv` when the level is a git repo, so history follows it.
 3. Commit the move by path — never `git add -A`:
-   - `flowie`: `git -C ~/.neuroflow/flowie commit -m "tasks: move {slug} → {column}" -- tasks/{from}/{slug}.md tasks/{column}/{slug}.md`, then `git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push` (the auto-sync hook only sees Edit/Write, not `git mv`).
+   - `flowie`: `git -C ~/.neuroflow/flowie commit -m "tasks: move {slug} → {column}" -- tasks/{from}/{slug}.md tasks/{column}/{slug}.md`, then `git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push` (the auto-sync hook only sees Edit/Write, not `git mv`).
    - `hive`: the same commit inside the hive cache; push as in At end.
    - `project`: no commit — the move stays in the working tree with the person's other changes.
 

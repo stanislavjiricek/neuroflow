@@ -378,7 +378,7 @@ Hooks fire automatically on tool use events, for every Claude Code user.
 |---|---|---|
 | Sci-Hub block | `PreToolUse` — the bundled literature server | Denies the server's Sci-Hub tools and any call with `platform: scihub` |
 | ruff formatter | `PostToolUse` — Edit / Write | Auto-formats any `.py` file written during a session |
-| flowie git-sync | `PostToolUse` — Edit / Write | Commits the file just written to `~/.neuroflow/flowie/` by path, pulls with rebase, and pushes to your private repo; failures go to `~/.neuroflow/flowie-sync.log` |
+| flowie git-sync | `PostToolUse` — Edit / Write | Commits the file just written to `~/.neuroflow/flowie/` by path, pulls with rebase, and pushes to your private repo; a file with a machine-local path (`C:\Users\…`, `/home/…`) is held back for `/flowie --sync`; failures go to `~/.neuroflow/flowie-sync.log` |
 | PsychoPy audit | `PostToolUse` — Edit / Write | After an edit to a paradigm script or `.psyexp`, adds the static audit's warnings for the model to see |
 
 > **Pre-session orientation:** `/neuroflow` writes one static block into the project's `.claude/CLAUDE.md` that points Claude at `.neuroflow/project_config.md`, where the active phase lives. It is never written to your global `~/.claude/CLAUDE.md`.

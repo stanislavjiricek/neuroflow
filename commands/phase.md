@@ -126,12 +126,12 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
 
 7. **Flowie phase sync:** After updating `project_config.md`, check whether `flowie_profiles` is set and non-empty in `project_config.md`. If it is, and `~/.neuroflow/flowie/` exists as a git repo, use the first entry (`flowie_profiles[0]`). The person's own private flowie repo is a sync target they set up, so this sync asks nothing more (`neuroflow:neuroflow-core` → **Sharing tiers**); it runs only for a phase change the person chose in step 5 — never for one the model inferred. These are the steps of `/flowie` → **Phase sync**:
 
-   - Pull (`/flowie` → Git operations pattern): skip the whole sync while `~/.neuroflow/flowie/.git/rebase-merge` or `rebase-apply` exists (a rebase the person has in progress). Otherwise `git -C ~/.neuroflow/flowie pull --rebase`; if it stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — only the rebase this pull started — and skip the rest
+   - Pull (`/flowie` → Git operations pattern): skip the whole sync while `~/.neuroflow/flowie/.git/rebase-merge` or `rebase-apply` exists (a rebase the person has in progress). Otherwise `git -C ~/.neuroflow/flowie pull --rebase --autostash`; if it stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — only the rebase this pull started — and skip the rest
    - Read `projects/projects.json` — find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the `projects.json` entry whose `repos[].url` matches `git remote get-url origin`. If neither matches, skip the rest
    - Update `current_phase` to the new phase
    - Append to `visited_phases` if this phase is not already listed: `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`
    - Write updated `projects/projects.json`
    - Read `projects/{name}.md` — append a new row to the Phase timeline table: `| {new_phase} | {YYYY-MM-DD} |`
-   - Commit, pull and push: `git -C ~/.neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push || true` — if this pull stops on a conflict, abort it as above; the commit stays local for `/flowie --sync`
+   - Commit, pull and push: `git -C ~/.neuroflow/flowie add projects/projects.json "projects/{name}.md" && git -C ~/.neuroflow/flowie commit -m "phase: {project} → {new_phase}" && git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push || true` — if this pull stops on a conflict, abort it as above; the commit stays local for `/flowie --sync`
 
    If `~/.neuroflow/flowie/` does not exist, `flowie_profiles` is absent or empty, or any git operation fails, skip silently — never surface flowie errors to the user during a phase switch.

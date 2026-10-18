@@ -49,7 +49,7 @@ A list of all your neuroflow projects with phase timelines:
 3. Answer a few questions to seed your initial profile
 4. On subsequent sessions, `/flowie --sync` keeps the profile up to date
 
-Everything Claude writes to flowie is committed and pushed right away by the plugin's auto-sync hook — one file at a time, pulling first. If a push fails (offline, auth, conflict), the commit stays local, a line goes to `~/.neuroflow/flowie-sync.log`, and `/flowie --sync` sorts it out.
+Everything Claude writes to flowie is committed and pushed right away by the plugin's auto-sync hook — one file at a time, pulling first. A file that names a folder on this machine (`C:\Users\…`, `/home/…`, `~/projects/…`) is held back: such a folder means nothing on your other machines, and `/flowie --sync` offers to move it into `~/.neuroflow/local-projects.json`, which never syncs. If a push fails (offline, auth, conflict), the commit stays local, a line goes to `~/.neuroflow/flowie-sync.log`, and `/flowie --sync` sorts it out.
 
 ---
 

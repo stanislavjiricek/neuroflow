@@ -481,12 +481,16 @@ let wellbeingChecking: Promise<void> | null = null
 /**
  * Before the band asks for today's wellbeing entry (#253): is it already on the flowie remote, made on another
  * machine? Only when the person collects wellbeing and today's entry is missing here. The band does not ask while
- * the check runs; `present` keeps it from asking (and the clone is fast-forwarded when clean); `absent` or `unknown`
+ * the check runs; `present` keeps it from asking (the next pull brings the entry down); `absent` or `unknown`
  * (offline, no upstream) lets it ask as before. A fetch only reads: nothing leaves.
  */
-const checkWellbeingRemote = ($: EngineInterface): Promise<void> => {
+const checkWellbeingRemote = ($: EngineInterface, band: NfOptions['band']): Promise<void> => {
   if (wellbeingChecking !== null) return wellbeingChecking
   const run = (async () => {
+    // Only where the band could ask: an active project, a person at a surface, the band on, not hidden today.
+    const scope = await read($, scopeAtom)
+    if (!scope?.isActive || scope.isHeadless || band === 'off') return
+    if ((await read($, bandHiddenAtom)) || (await $.store.get(BAND_HIDDEN_ON)) === isoDate(await $.clock.now())) return
     const io = ioOf($)
     const home = toSlash((await io.home()) ?? '')
     if (home === '') return
@@ -798,7 +802,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const result = await next(e)
     if (e.agentId === undefined && (await read($, taskViewAtom)) !== null) await loadTasks($).catch(() => undefined)
     // The wellbeing remote check, if the one the session's start began did not finish (#253).
-    if (e.agentId === undefined && (await read($, wellbeingCheckAtom))?.state === 'pending') await checkWellbeingRemote($).catch(() => undefined)
+    if (e.agentId === undefined && (await read($, wellbeingCheckAtom))?.state === 'pending') await checkWellbeingRemote($, opts.band).catch(() => undefined)
     return result
   }).catch(($, e, next) => next(e))
 
@@ -806,7 +810,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
   // awaited, so the first prompt never waits for the network; the band does not ask until it knows.
   on('session.start', { isInteractive: true }, async ($, e, next) => {
     const result = await next(e)
-    void checkWellbeingRemote($).catch(() => undefined)
+    void checkWellbeingRemote($, opts.band).catch(() => undefined)
     return result
   }).catch(($, e, next) => next(e))
 

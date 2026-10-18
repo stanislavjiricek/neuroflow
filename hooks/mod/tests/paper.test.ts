@@ -144,6 +144,11 @@ describe('a long X-ray (#255)', () => {
     const last = xrayPage(open, second.next?.id ?? null, XRAY_PAGE.select)
     expect([last.from, last.to, last.next]).toEqual([129, 145, null])
     expect(xrayPage(open, null, XRAY_PAGE.buttons).shown.length).toBe(8)
+    // Exactly one page needs no pager; one more finding makes two pages.
+    const sixtyFour = xrayPage(parseXray(make(64)), null, XRAY_PAGE.select)
+    expect([sixtyFour.shown.length, sixtyFour.next]).toEqual([64, null])
+    const sixtyFive = xrayPage(parseXray(make(65)), null, XRAY_PAGE.select)
+    expect([sixtyFive.shown.length, sixtyFive.total, sixtyFive.next === null]).toEqual([64, 65, false])
     expect(xrayPage([], null, 64)).toMatchObject({ shown: [], from: 0, to: 0, total: 0, first: null })
   })
 

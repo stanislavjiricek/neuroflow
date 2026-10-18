@@ -948,7 +948,17 @@ TRACKED = {
 }
 # Where a hive member's own sync state lives (phase-hive → Local hive cache): inside the clone's .git folder,
 # so the hive repository can never track, merge or publish it.
-HIVE_STATE = ".git/neuroflow-sync.json"
+HIVE_STATE = "neuroflow-sync.json"  # inside the clone's git folder (`git rev-parse --git-path`)
+
+
+def hive_state(plan: "LevelPlan") -> Path:
+    """Where this member's sync state lives in a hive clone: its git folder, also when .git is a worktree's file."""
+    if plan.git:
+        proc = git(plan.root, "rev-parse", "--git-path", HIVE_STATE)
+        if proc.returncode == 0 and proc.stdout.strip():
+            path = Path(proc.stdout.strip())
+            return path if path.is_absolute() else plan.root / path
+    return plan.root / ".git" / HIVE_STATE
 SYNC_HINT = {"flowie": "/flowie --sync", "hive": "/hive --sync"}
 # The two-letter states of `git status --porcelain` that mark a conflict not yet resolved.
 UNMERGED = {"DD", "AU", "UD", "UA", "DU", "AA", "UU"}
@@ -1149,12 +1159,14 @@ class LevelPlan:
             self.shown = "~/" + root.relative_to(home).as_posix()
         except ValueError:
             self.shown = root.as_posix()
-        self.is_repo = (root / ".git").exists()
+        # A clone has .git/HEAD, a worktree a .git file; an empty .git folder (made by mistake) is no repository.
+        self.is_repo = (root / ".git" / "HEAD").is_file() or (root / ".git").is_file()
         self.git = self.is_repo and shutil.which("git") is not None
         self.changes: list[dict] = []
         self.moves: list[tuple[Path, Path, str, str]] = []  # (src, dst, text, newline); dst == src: in place
         self.writes: list[tuple[Path, str, str]] = []
-        self.local_moves: list[tuple[Path, Path]] = []  # renamed on this machine only: never staged or committed
+        self.local_moves: list[tuple[Path, Path, bool]] = []  # on this machine only, never staged; True: copy, then
+        # restore the tracked file to its committed text
         self.blocking: list[str] = []
         self.report: list[dict] = []
         self.notes: list[str] = []
@@ -1175,9 +1187,15 @@ class LevelPlan:
         self.writes.append((path, text, newline))
         self.changes.append({"path": self.rel(path), "action": "write", "summary": summary})
 
-    def move_local(self, src: Path, dst: Path, summary: str) -> None:
-        self.local_moves.append((src, dst))
-        self.changes.append({"path": self.rel(src), "action": "move", "to": self.rel(dst), "summary": summary})
+    def shown_path(self, path: Path) -> str:
+        try:
+            return self.rel(path)
+        except ValueError:  # a worktree's git folder lies outside the clone
+            return path.as_posix()
+
+    def move_local(self, src: Path, dst: Path, summary: str, restore: bool = False) -> None:
+        self.local_moves.append((src, dst, restore))
+        self.changes.append({"path": self.rel(src), "action": "move", "to": self.shown_path(dst), "summary": summary})
 
 
 def one_owner_or_report(plan: LevelPlan, path: Path, task: dict) -> bool:
@@ -1394,13 +1412,38 @@ def plan_level(plan: LevelPlan, today: str) -> None:
             plan.write(ignore, sc.append_lines_text(existing, header, [name]), sc.detect_newline(existing),
                        f"add {name}: it stays on this machine")
     tracked = plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", name).returncode == 0
-    if tracked:
+    if plan.level == "hive" and plan.is_repo:
+        plan_hive_state(plan, name, tracked)
+    elif tracked:
         plan.report.append({"path": name, "message": TRACKED[plan.level].format(root=plan.shown)})
-    elif plan.level == "hive" and plan.is_repo and (plan.root / name).is_file() and not (plan.root / HIVE_STATE).exists():
-        # An untracked sync.json is this member's own state from an older neuroflow: it moves out of the work tree.
-        plan.move_local(plan.root / name, plan.root / HIVE_STATE, "this member's sync state moves out of the work tree "
-                        "(stays on this machine, never committed)")
     flag_local_changes(plan)
+
+
+def plan_hive_state(plan: LevelPlan, name: str, tracked: bool) -> None:
+    """This member's sync state moves out of the work tree (phase-hive → Local hive cache): an untracked sync.json is
+    theirs and moves; a tracked one that an older /hive --init or --sync wrote into holds their state in its local
+    changes, which move too, and the tracked file goes back to its committed text (else every pull stops on it)."""
+    state = hive_state(plan)
+    local = plan.root / name
+    shown = plan.shown_path(state)
+    if tracked:
+        changed = plan.git and git(plan.root, "diff", "--quiet", "--", name).returncode == 1
+        if changed and not state.exists():
+            plan.move_local(local, state, f"this member's sync state, written into the tracked copy, moves to {shown}; "
+                            "the tracked file goes back to its committed text (stays on this machine, never committed)",
+                            restore=True)
+        elif changed:
+            plan.report.append({"path": name, "message": f"has local changes, and this member's state is already in "
+                                f"{shown}: `git -C {plan.shown} checkout -- {name}` restores the tracked file, so pulls "
+                                "run again"})
+        plan.report.append({"path": name, "message": TRACKED[plan.level].format(root=plan.shown)})
+    elif local.is_file():
+        if state.exists():
+            plan.report.append({"path": name, "message": f"an older copy of this member's sync state; neuroflow reads "
+                                f"{shown}: delete {name} once you have checked nothing in it is needed"})
+        else:
+            plan.move_local(local, state, "this member's sync state moves out of the work tree "
+                            "(stays on this machine, never committed)")
 
 
 def build_levels(home: Path, flowie: bool, hive_names: list[str], all_hives: bool,
@@ -1459,9 +1502,12 @@ def apply_level(plan: LevelPlan) -> None:
     for path, text, newline in plan.writes:
         sc.write_text(path, text, newline)
         stage(plan, path)
-    for src, dst in plan.local_moves:  # machine-local: renamed, never staged
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        src.replace(dst)
+    for src, dst, restore in plan.local_moves:  # machine-local, never staged
+        if restore:
+            dst.write_bytes(src.read_bytes())
+            git_ok(plan.root, "checkout", "--", plan.rel(src))
+        else:
+            src.replace(dst)
 
 
 def level_summary(plan: LevelPlan) -> dict:

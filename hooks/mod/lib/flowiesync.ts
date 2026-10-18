@@ -107,8 +107,9 @@ export const repoHooksOrLfs = async (io: NfIo, flowie: string): Promise<string[]
     .split(/\r?\n/)
     .filter(line => line.includes('\t') && !/^command line:/i.test(line))
     .map(line => line.slice(line.indexOf('\t') + 1).trim())
-    .filter(value => value !== '' && !/^(\\\\\.\\nul|nul|\/dev\/null)$/i.test(value))
-  if (configured.length > 0) uses.push(`hooksPath=${configured[configured.length - 1]}`)
+  // The last value wins, as for git itself; a null device there turns hooks off.
+  const hooksPath = configured[configured.length - 1] ?? ''
+  if (hooksPath !== '' && !/^(\\\\\.\\nul|nul|\/dev\/null)$/i.test(hooksPath)) uses.push(`hooksPath=${hooksPath}`)
   const hooks = (await io.list(`${flowie}/.git/hooks`))
     .filter(entry => !entry.isDir)
     .map(entry => entry.name.replace(/^.*[\\/]/, ''))
@@ -158,7 +159,8 @@ export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlow
   }
   if (committed.length === 0) return nothing('the files it queued are gone')
   paths = committed
-  const pull = await git(io, flowie, ['pull', '--rebase'])
+  // --autostash: a file held back elsewhere (the auto-sync hook's machine-local-path skip) never stops the pull.
+  const pull = await git(io, flowie, ['pull', '--rebase', '--autostash'])
   if (pull.exitCode !== 0) {
     // Never leave a half-finished rebase (commands/flowie.md → Git operations pattern).
     if (await inMiddle()) await git(io, flowie, ['rebase', '--abort'], 15_000)
@@ -171,22 +173,26 @@ export const flushFlowie = async (io: NfIo, home: string, queue: readonly NfFlow
 
 /**
  * Whether `path` (a flowie file, e.g. today's wellbeing entry) is already on the flowie's upstream: a fetch, then
- * `git cat-file -e @{u}:{path}`. A fetch only reads, so nothing leaves. When the entry is there and nothing local is
- * in the way (a clean tree), the clone is fast-forwarded to it (`merge --ff-only`), so the local files agree.
- * `unknown` when the remote could not be asked (offline, no upstream, no repository). Never throws.
+ * `git cat-file -e @{u}:{path}`. A fetch only reads remote refs: nothing leaves and the work tree is not touched —
+ * the next pull (a command's, or /flowie --sync) brings the file down. `unknown` when the remote could not be asked
+ * (offline, no upstream, no repository) or should not be (git hooks or LFS, which the mod does not run; a rebase or
+ * merge in progress). Never throws.
  */
 export const checkRemoteEntry = async (io: NfIo, home: string, path: string): Promise<'present' | 'absent' | 'unknown'> => {
   const flowie = flowieOf(home)
   if (!(await io.exists(`${flowie}/.git`))) return 'unknown'
+  for (const marker of ['rebase-merge', 'rebase-apply', 'MERGE_HEAD']) if (await io.exists(`${flowie}/.git/${marker}`)) return 'unknown'
+  // The repository's own hooks or LFS, read from its files (no git run before the fetch decides anything).
+  const config = (await io.read(`${flowie}/.git/config`)) ?? ''
+  const hooks = (await io.list(`${flowie}/.git/hooks`)).filter(entry => !entry.isDir && GIT_HOOKS.has(entry.name.replace(/^.*[\\/]/, '').replace(/\.(exe|cmd|bat|ps1|sh)$/i, '').toLowerCase()))
+  const attributes = (await io.read(`${flowie}/.gitattributes`)) ?? ''
+  if (/^\s*hookspath\s*=/im.test(config) || hooks.length > 0 || /filter=lfs/.test(attributes)) return 'unknown'
   const fetch = await git(io, flowie, ['fetch', '--quiet'], 20_000)
   if (fetch.exitCode !== 0) return 'unknown'
   const upstream = await git(io, flowie, ['rev-parse', '--verify', '--quiet', '@{u}'], 10_000)
   if (upstream.exitCode !== 0) return 'unknown'
   const there = await git(io, flowie, ['cat-file', '-e', `@{u}:${path}`], 10_000)
-  if (there.exitCode !== 0) return 'absent'
-  const status = await git(io, flowie, ['status', '--porcelain'], 10_000)
-  if (status.exitCode === 0 && status.stdout.trim() === '') await git(io, flowie, ['merge', '--ff-only', '--quiet', '@{u}'], 20_000)
-  return 'present'
+  return there.exitCode === 0 ? 'present' : 'absent'
 }
 
 /**

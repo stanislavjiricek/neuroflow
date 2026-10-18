@@ -126,6 +126,11 @@ class HookSmokeTests(unittest.TestCase):
         self.assertNotIn("projects/Oddball.md", self.git(remote, "ls-tree", "-r", "--name-only", "main").split())
         self.assertIn("skipped (machine-local path; /flowie --sync): projects/Oddball.md",
                       (home / "flowie-sync.log").read_text(encoding="utf-8"))
+        # The held file never blocks the next sync: an edit elsewhere is still pulled and pushed (--autostash).
+        (flowie / "profile.md").write_text("# profile\n\nLater line.\n", encoding="utf-8")
+        self.run_hook(command, flowie / "profile.md")
+        self.assertIn("Later line.", self.git(remote, "show", "main:profile.md"))
+        self.assertNotIn("pull failed", (home / "flowie-sync.log").read_text(encoding="utf-8"))
         # The same file without the path syncs as usual.
         project.write_text("# Oddball\n\nLives in example-lab/oddball.\n", encoding="utf-8")
         self.run_hook(command, project)

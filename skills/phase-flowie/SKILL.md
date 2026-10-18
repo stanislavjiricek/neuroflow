@@ -104,7 +104,7 @@ These rules apply whenever the `/flowie` command or any other command writes to 
 
 The flowie profile is mirrored to a private GitHub repository. The sync protocol is:
 
-1. **Always pull before push.** `git -C ~/.neuroflow/flowie pull --rebase` before every push. If the rebase stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` at once — never leave the repo mid-rebase — and resolve it with the person (rule 3).
+1. **Always pull before push.** `git -C ~/.neuroflow/flowie pull --rebase --autostash` before every push. If the rebase stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` at once — never leave the repo mid-rebase — and resolve it with the person (rule 3).
 2. **Show what a pull brought in.** `/flowie --sync` summarises incoming changes before pushing; nothing pulled is ever silently overwritten.
 3. **Handle merge conflicts explicitly.** If local and remote have diverged, show both versions side by side. Do not silently pick one. Ask the user to resolve each conflict.
 <!-- nf-rule: GIT-NO-SECRETS -->
