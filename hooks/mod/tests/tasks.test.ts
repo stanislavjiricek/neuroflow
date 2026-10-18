@@ -6,6 +6,7 @@ import {
   hiveFolderOf,
   legacyColumn,
   levelArgs,
+  levelCardLine,
   levelSummary,
   linkedProject,
   loadTaskView,
@@ -14,6 +15,7 @@ import {
   openingLevel,
   orderHives,
   originUrl,
+  repoKey,
   topCards,
   userHives,
 } from '../lib/tasks'
@@ -116,8 +118,10 @@ describe('the task view', () => {
   test('every level counted; this project first, overdue first, then by due date', async () => {
     const view = await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY)
     expect(view.levels.map(level => level.id)).toEqual(['project', 'flowie', 'hive:lab-team', 'hive:alpha-team', 'hive:another-team'])
-    // This project's name per level: the flowie's link, the lab project of the hive's own registry, none elsewhere.
-    expect(view.levels.map(level => level.project)).toEqual([null, 'Oddball EEG', 'oddball-lab', null, null])
+    // This project's name per level: one card id everywhere (the flowie's link here), except a hive whose own
+    // registry lists this repo under another name (written before one card per project).
+    expect(view.levels.map(level => level.project)).toEqual([null, 'Oddball EEG', 'oddball-lab', 'Oddball EEG', 'Oddball EEG'])
+    expect(view.card).toBe('Oddball EEG')
     expect(levelSummary(view)).toBe('project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0')
     // At hive level the flowie's name marks nothing: no name guessing across registries.
     expect(view.levels[2]?.board.columns.find(column => column.id === 'inbox')?.cards.map(card => [card.slug, card.isMine])).toEqual([['review-poster', false]])
@@ -132,6 +136,35 @@ describe('the task view', () => {
       'flowie:write-intro',
     ])
     expect(openingLevel(view)).toBe('project')
+  })
+
+  test('a flowie pointer leads to the hive card, whose other repositories show from the cache, read-only', async () => {
+    const io = memIo({
+      [`${ROOT}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\n---\n',
+      [`${ROOT}/.git/config`]: '[remote "origin"]\n\turl = git@github.com:example-lab/oddball-eeg.git\n',
+      [`${HOME}/.neuroflow/flowie/projects/projects.json`]: JSON.stringify({ projects: [{ id: 'Oddball', ref: 'hive:example-lab/hive' }] }),
+      [`${HOME}/.neuroflow/flowie/tasks/inbox/read.md`]: task('Read', 'project: Oddball\n'),
+      [`${HOME}/.neuroflow/hives/lab-team/projects/projects.json`]: JSON.stringify({
+        projects: [{ id: 'Oddball', repos: ['https://github.com/example-lab/oddball-eeg', { url: 'https://github.com/Example-Lab/oddball-analysis.git' }, 'C:/Users/me/oddball'] }],
+      }),
+      [`${HOME}/.neuroflow/hives/lab-team/tasks/inbox/plan.md`]: task('Plan', 'project: Oddball\n'),
+      [`${HOME}/.neuroflow/boards/github.com/example-lab/oddball-analysis/.neuroflow/tasks/active/rerun.md`]: task('Rerun', 'owner: li\n'),
+      [`${HOME}/.neuroflow/boards/github.com/example-lab/oddball-analysis/.neuroflow-fetched`]: '2026-10-18T20:00:00Z\n',
+    }, { home: HOME })
+    const view = await loadTaskView(io, ROOT, HOME, TODAY)
+    expect([view.card, view.hasRemote]).toEqual(['Oddball', true])
+    expect(view.levels.map(level => [level.id, level.project, level.mine])).toEqual([
+      ['project', null, 0],
+      ['flowie', 'Oddball', 1],
+      ['hive:lab-team', 'Oddball', 1],
+      ['remote:github.com/example-lab/oddball-analysis', 'Oddball', 1],
+    ])
+    const remote = view.levels[3]
+    expect([remote.kind, remote.name, remote.fetched]).toEqual(['remote', 'example-lab/oddball-analysis', '2026-10-18T20:00:00Z'])
+    expect(levelCardLine(remote.top[0], remote.kind)).toBe('Rerun @li')
+    expect(levelSummary(view)).toBe('project 0 · flowie 1 (1 Oddball) · lab-team 1 (1 Oddball) · example-lab/oddball-analysis 1')
+    expect(repoKey('git@github.com:Example-Lab/Oddball.git')).toBe('github.com/example-lab/oddball')
+    expect(repoKey('C:/Users/me/oddball')).toBe(null)
   })
 
   test('the pane opens where the work is', async () => {
@@ -219,10 +252,10 @@ describe('the boards in a session', () => {
     props: { title: requestId, isFocused: true, bodyColumns: 140, placement: 'inline', scroll: { offset: 0, bodyRows: rows }, view: {} },
   })
 
-  const setUp = (on: On, files: Record<string, string> = FILES): { filled: string[]; fs: FakeFs } => {
+  const setUp = (on: On, files: Record<string, string> = FILES): { filled: string[]; fs: FakeFs; clock: ReturnType<typeof mock.clock> } => {
     const fs = fakeFs(on, files, ROOT)
     mock.env(on, { HOME })
-    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    const clock = mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
     mock.store(on)
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('ui.open', () => ({ value: { isPlaced: true } }))
@@ -235,7 +268,7 @@ describe('the boards in a session', () => {
       filled.push(e.text)
       return { isFilled: true, text: e.text, cursor: e.text.length }
     })
-    return { filled, fs }
+    return { filled, fs, clock }
   }
 
   test('the dashboard\'s tasks tab shows every level', { options: { runtime: 'observe' } }, async ($, on) => {
@@ -294,5 +327,50 @@ describe('the boards in a session', () => {
     await $.turn.complete({ reason: 'answer', answer: 'moved', durationMs: 1, isAborted: false, turnId: 't1' } as never)
     expect(JSON.stringify(await ui.drawn())).toContain('[project 0]')
     await ui.unmount()
+  })
+
+  test('the remote boards refresh when the boards open or on r, never when a turn ends, and wait after a failure', { options: { runtime: 'observe' } }, async ($, on) => {
+    const files = {
+      ...FILES,
+      [`${HOME}/.neuroflow/flowie/projects/projects.json`]: JSON.stringify({
+        projects: [{ id: 'Oddball EEG', repos: ['https://github.com/example-lab/oddball-eeg', 'https://github.com/example-lab/oddball-analysis'] }],
+      }),
+      [`${HOME}/.neuroflow/boards/github.com/example-lab/oddball-analysis/.neuroflow/tasks/active/rerun.md`]: task('Rerun cached'),
+    }
+    const { clock } = setUp(on, files)
+    const refreshes: string[][] = []
+    on('process.run', ($$, e) => {
+      const argv = (e as unknown as { argv: string[] }).argv
+      if (argv.some(arg => arg.endsWith('projects.py'))) refreshes.push(argv.slice(argv.findIndex(arg => arg.endsWith('projects.py')) + 1))
+      return { value: { exitCode: 1, stdout: '{}', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    })
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    const ui = await $.ui.mount(pane('nf-board') as never)
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes).toEqual([['refresh', '--project', 'Oddball EEG', '--root', ROOT, '--json']])
+    expect(JSON.stringify(await ui.drawn())).toContain('example-lab/oddball-analysis 1')
+    await $.turn.complete({ reason: 'answer', answer: 'x', durationMs: 1, isAborted: false, turnId: 't1' } as never)
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes.length).toBe(1)
+    // r after a failed refresh: the board is read again, the network is asked again only ten minutes later
+    // (a refresh that went through could run again after one).
+    await clock.advance(2 * 60_000)
+    await ui.press({ key: 'nf-board-refresh' })
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes.length).toBe(1)
+    await clock.advance(9 * 60_000)
+    await ui.press({ key: 'nf-board-refresh' })
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes.length).toBe(2)
+    await ui.unmount()
+  })
+
+  test('repository keys follow projects.py: three safe parts, nothing that could leave the cache', () => {
+    for (const url of ['https://nohost.invalid/../../victim', 'https://github.com/org', '-oProxyCommand=x', 'file:///C:/repo', 'https://github.com/a/b/c']) {
+      expect(repoKey(url)).toBe(null)
+    }
+    expect(repoKey('HTTPS://GitHub.com/Example-Lab/Oddball.GIT')).toBe('github.com/example-lab/oddball')
+    expect(repoKey('github.com/example-lab/oddball')).toBe('github.com/example-lab/oddball')
   })
 })

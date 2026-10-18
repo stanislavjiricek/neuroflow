@@ -74,7 +74,7 @@ Claude: ✅ Active phase updated to: data-analyze
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/flow.md`, `.neuroflow/sessions/`, `.neuroflow/timeline.md`, `.neuroflow/paper/` (only with `/paper --auto` on), `.neuroflow/*/runs.md`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json` (flowie sync) |
-| Writes | only when you switch: `active_phase` in `project_config.md`, a session line, a `reasoning/general.jsonl` entry, and your flowie project registry (if linked) |
+| Writes | only when you switch: `active_phase` in `project_config.md`, a session line, a `reasoning/general.jsonl` entry, and your flowie project registry (if linked); for a team project, the card in the hive after you confirm the push (with the mod, the picker puts `/neuroflow:phase --sync` in the prompt for this) |
 
 ---
 

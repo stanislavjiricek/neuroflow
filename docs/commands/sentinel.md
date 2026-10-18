@@ -63,6 +63,7 @@ Exit `0` = clean, `1` = findings, `2` = the script could not run (the agent then
 | S4 | Ethics gate — human data in `.neuroflow/data/` without a recorded approval (silenced by `ethics: not-applicable`) |
 | S5 | Names and institutions in logs (and emails or secrets when the PII scanner is not installed) |
 | S6–S8 | Flowie, wiki and hive structure, when they exist |
+| S9 | The project registry (`projects.py check`), when a flowie or a hive exists: two cards for one project, pointers that lead nowhere, a local folder in a card's repos, `blocked_by` entries that name no task |
 
 ---
 

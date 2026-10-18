@@ -20,6 +20,12 @@
 ---
 
 <a id="whats-new"></a>
+## What's new in 0.2.24
+
+- **One project, one card** ([#256](https://github.com/stanislavjiricek/neuroflow/issues/256)) — a team project is described once, in its hive, and your flowie keeps only a pointer to it, so the two can no longer drift; a phase or status change goes to that card after your yes. Each task goes on the narrowest board everyone who must see it can read, and [`/tasks --project {id}`](commands/tasks.md) shows one project's open tasks from every board, including the boards of its repositories that are not checked out here. [`/neuroflow:migrate`](commands/migrate.md) folds existing duplicate cards, and [`/sentinel`](commands/sentinel.md) checks the registry ([`projects.py`](skills/neuroflow-core/scripts/projects.py))
+- **Your flowie syncs again** — the mod's flowie sync took Claude Code's own `core.hooksPath` setting for git hooks of yours and skipped every check-in and idea ([#252](https://github.com/stanislavjiricek/neuroflow/issues/252)); the band no longer asks for a check-in you already made on another machine ([#253](https://github.com/stanislavjiricek/neuroflow/issues/253)); every flowie pull carries uncommitted files along (`--autostash`); and a file with a machine-local path such as `C:\Users\…` stays off the synced repo ([#251](https://github.com/stanislavjiricek/neuroflow/issues/251), [`local_paths.py`](skills/phase-flowie/scripts/local_paths.py))
+- **Hive and X-ray fixes** — your hive sync state lives in the clone's `.git/neuroflow-sync.json`, so a hive repo that once committed `sync.json` can no longer leak it or block your pulls ([#254](https://github.com/stanislavjiricek/neuroflow/issues/254)); the X-ray pane lists a long X-ray a page at a time, red first ([#255](https://github.com/stanislavjiricek/neuroflow/issues/255))
+
 ## What's new in 0.2.23
 
 - **Your tasks from every level** — with the mod, the [dashboard](commands/dashboard.md)'s tasks tab and the [`/neuroflow:tasks`](commands/tasks.md) pane show the project board, your flowie and every hive you joined (`v` switches the level); this project's tasks come first, and a move goes into the prompt as one `/tasks` command (new `--hive {org-repo}`). A bug that made the mod see no folders at all (so no task board, phases or loops) is fixed
@@ -378,7 +384,7 @@ Hooks fire automatically on tool use events, for every Claude Code user.
 |---|---|---|
 | Sci-Hub block | `PreToolUse` — the bundled literature server | Denies the server's Sci-Hub tools and any call with `platform: scihub` |
 | ruff formatter | `PostToolUse` — Edit / Write | Auto-formats any `.py` file written during a session |
-| flowie git-sync | `PostToolUse` — Edit / Write | Commits the file just written to `~/.neuroflow/flowie/` by path, pulls with rebase, and pushes to your private repo; failures go to `~/.neuroflow/flowie-sync.log` |
+| flowie git-sync | `PostToolUse` — Edit / Write | Commits the file just written to `~/.neuroflow/flowie/` by path, pulls with rebase, and pushes to your private repo; a file with a machine-local path (`C:\Users\…`, `/home/…`) is held back for `/flowie --sync`; failures go to `~/.neuroflow/flowie-sync.log` |
 | PsychoPy audit | `PostToolUse` — Edit / Write | After an edit to a paradigm script or `.psyexp`, adds the static audit's warnings for the model to see |
 
 > **Pre-session orientation:** `/neuroflow` writes one static block into the project's `.claude/CLAUDE.md` that points Claude at `.neuroflow/project_config.md`, where the active phase lives. It is never written to your global `~/.claude/CLAUDE.md`.

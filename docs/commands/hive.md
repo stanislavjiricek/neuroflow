@@ -16,7 +16,7 @@ Run `/hive` with one of the following flags:
 | `--sync` | Pull the latest team state + show change digest |
 | `--view` | Display current Hive state without syncing |
 | `--members` | View and edit the team roster |
-| `--projects` | View and manage the lab project registry |
+| `--projects` | View and manage the lab project registry — a team project's one card lives here; your flowie keeps only a pointer to it |
 | `--ideas` | View and append to lab-wide cross-project ideas |
 | `--tasks` | Show and manage the team Kanban board (same format as [`/tasks`](tasks.md)) |
 | `--errata` | View known problems in shared datasets, or add one with `--errata --add` |
@@ -36,7 +36,7 @@ If no flag is given, defaults to `--view` when already connected, or `--init` wh
 1. Checks your `~/.neuroflow/flowie/profile.md` for known hives (shows picker if found)
 2. Asks for the GitHub org and Hive repo name (`{org}/{hive-repo}`)
 3. Asks for your GitHub handle
-4. Clones the hive repo into `~/.neuroflow/hives/{org-repo}/` and writes your local `sync.json` (never pushed)
+4. Clones the hive repo into `~/.neuroflow/hives/{org-repo}/` and writes your sync state into the clone's own `.git/neuroflow-sync.json` (never tracked, never pushed)
 5. Updates `project_config.md` with `hive_repo:`
 
 ### `--sync`
@@ -99,7 +99,7 @@ Hive data is cached globally — not inside any project repo. The cache is a git
 ├── hive.md          ← team identity + directions
 ├── members.md       ← team roster
 ├── ideas.md         ← team ideas
-├── sync.json        ← your hive_repo URL, last_pull, last_push, member_handle (local only, never pushed)
+├── .git/neuroflow-sync.json ← your hive_repo URL, last_pull, last_push, member_handle (local only, never tracked or pushed)
 └── …                ← errata/, tasks/, meetings/, wiki/
 ```
 

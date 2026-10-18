@@ -34,7 +34,9 @@ At flowie and hive level, the tasks of **this project** come first in each colum
 | `--move {slug} {column}` | Move a task to another column |
 | `--done {slug}` | Complete a task |
 | `--archive` | Archive done tasks older than `archive_after_days` (default 90) |
-| `--project {name}` | Filter to one project |
+| `--project {id}` | One project across every board: your flowie, each hive, this repository and the project's other repositories (their boards fetched into a local cache in `~/.neuroflow/boards/` each time, never synced) |
+
+**Where a task goes.** On the narrowest board that everyone who must see it can read: only you — your flowie; the team — the hive (the default for a team project); the people working in this repository, about its code or files — the project board. `--add` proposes the board and says why; you can pick another.
 
 Every board display is a rendered ASCII Kanban — never a flat list, except `--list`. Overdue tasks are flagged `⚠` and float to the top of their column, right after this project's tasks at flowie and hive level.
 
@@ -42,7 +44,7 @@ Every board display is a rendered ASCII Kanban — never a flat list, except `--
 
 ## With the neuroflow mod
 
-A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
+A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are, and — read-only — the boards of the project's other repositories, from a local cache that is refreshed in the background when the boards open. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
 
 ---
 

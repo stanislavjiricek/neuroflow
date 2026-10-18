@@ -2,7 +2,7 @@ import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import type { NfFlowieSyncEntry } from '../../../types'
-import { SYNC_QUEUE, afterFlush, asQueue, enqueue, flushFlowie, gitReason, isSettled, syncState } from '../lib/flowiesync'
+import { SYNC_QUEUE, afterFlush, asQueue, checkRemoteEntry, enqueue, flushFlowie, gitReason, isSettled, syncState } from '../lib/flowiesync'
 import type { NfIo, NfRun } from '../lib/io'
 import { bandItems, keyFillsPrompt } from '../features/views'
 import { fakeFs } from './fakefs'
@@ -59,10 +59,10 @@ describe('a flush', () => {
     const result = await flushFlowie(io, HOME, [wellbeing])
     expect(result.outcome).toBe('synced')
     expect(calls.map(call => call.args.join(' '))).toEqual([
-      'config --get core.hooksPath',
+      'diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath',
       'add -- wellbeing/2026-10-07.json wellbeing/.flow',
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
-      'pull --rebase',
+      'pull --rebase --autostash',
       'push',
     ])
     expect(calls.every(call => call.env?.GIT_TERMINAL_PROMPT === '0')).toBe(true)
@@ -81,6 +81,14 @@ describe('a flush', () => {
     expect(syncState([wellbeing], result)).toEqual({ pending: ['wellbeing: 2026-10-07'], failure: 'push failed — fatal: unable to access the remote', isHeld: true })
   })
 
+  test('a file git still marks as conflicted is never added: its markers would be committed', async () => {
+    const { io, calls } = gitIo(repo, args => (args[0] === 'diff' ? { exitCode: 0, stdout: 'wellbeing/.flow\n', stderr: '' } : ok))
+    const result = await flushFlowie(io, HOME, [wellbeing])
+    expect([result.outcome, result.detail]).toEqual(['failed', 'your flowie has an unresolved conflict (wellbeing/.flow)'])
+    expect(calls.map(call => call.args[0])).toEqual(['diff'])
+    expect(io.files[LOG]).toContain('skipped (unresolved conflict)')
+  })
+
   test('a git call that throws synchronously is a failed step, logged — never an escape', async () => {
     const { io } = gitIo(repo, () => {
       throw new Error('process API unavailable')
@@ -91,12 +99,27 @@ describe('a flush', () => {
     expect(io.files[LOG]).toContain('commit failed: wellbeing/2026-10-07.json wellbeing/.flow (mod) — process API unavailable')
   })
 
+  test("the engine's own core.hooksPath (git run with -c, origin 'command line:') is no hook (#252)", async () => {
+    const injected = 'command line:\t\\\\.\\NUL\ncommand line:\t\\\\.\\NUL\n'
+    const engine = gitIo(repo, args => (args[0] === 'config' ? { exitCode: 0, stdout: injected, stderr: '' } : ok))
+    expect((await flushFlowie(engine.io, HOME, [wellbeing])).outcome).toBe('synced')
+    const devNull = gitIo(repo, args => (args[0] === 'config' ? { exitCode: 0, stdout: 'file:C:/Users/Some One/.gitconfig\t/dev/null\n', stderr: '' } : ok))
+    expect((await flushFlowie(devNull.io, HOME, [wellbeing])).outcome).toBe('synced')
+    const husky = gitIo(repo, args => (args[0] === 'config' ? { exitCode: 0, stdout: `file:.git/config\t.husky\n${injected}`, stderr: '' } : ok))
+    const skipped = await flushFlowie(husky.io, HOME, [wellbeing])
+    expect(skipped.detail).toBe('this flowie uses git hooks or LFS (hooksPath=.husky), which the mod does not run')
+    expect(husky.io.files[LOG]).toContain('skipped (git hooks or LFS: hooksPath=.husky)')
+    // Only real hook names count: samples and notes in .git/hooks do not.
+    const odd = gitIo({ ...repo, [`${FLOWIE}/.git/hooks/README.txt`]: 'x', [`${FLOWIE}/.git/hooks/pre-push.sample`]: 'x' }, args => (args[0] === 'config' ? { exitCode: 1, stdout: '', stderr: '' } : ok))
+    expect((await flushFlowie(odd.io, HOME, [wellbeing])).outcome).toBe('synced')
+  })
+
   test('not run with git hooks or LFS or during a rebase (kept for /flowie --sync); only files that exist are committed', async () => {
     const hooked = gitIo({ ...repo, [`${FLOWIE}/.git/hooks/pre-commit`]: '#!/bin/sh\n' }, () => ok)
     const skipped = await flushFlowie(hooked.io, HOME, [wellbeing])
-    expect([skipped.outcome, skipped.detail]).toEqual(['failed', 'this flowie uses git hooks or LFS, which the mod does not run'])
-    expect(hooked.calls.map(call => call.args[0])).toEqual(['config'])
-    expect(hooked.io.files[LOG]).toContain('skipped (git hooks or LFS): wellbeing/2026-10-07.json wellbeing/.flow (mod)')
+    expect([skipped.outcome, skipped.detail]).toEqual(['failed', 'this flowie uses git hooks or LFS (hooks: pre-commit), which the mod does not run'])
+    expect(hooked.calls.map(call => call.args[0])).toEqual(['diff', 'config'])
+    expect(hooked.io.files[LOG]).toContain('skipped (git hooks or LFS: hooks: pre-commit): wellbeing/2026-10-07.json wellbeing/.flow (mod)')
     const lfs = gitIo({ ...repo, [`${FLOWIE}/.gitattributes`]: '*.bin filter=lfs diff=lfs\n' }, () => ok)
     expect((await flushFlowie(lfs.io, HOME, [wellbeing])).outcome).toBe('failed')
     const rebasing = gitIo({ ...repo, [`${FLOWIE}/.git/rebase-merge/head-name`]: 'x' }, () => ok)
@@ -106,7 +129,7 @@ describe('a flush', () => {
     delete partial[`${FLOWIE}/wellbeing/.flow`]
     const half = gitIo(partial, () => ok)
     expect((await flushFlowie(half.io, HOME, [wellbeing])).line).toBe('2026-10-07T07:30:00Z synced: wellbeing/2026-10-07.json (mod)')
-    expect(half.calls[1].args.join(' ')).toBe('add -- wellbeing/2026-10-07.json')
+    expect(half.calls[2].args.join(' ')).toBe('add -- wellbeing/2026-10-07.json')
     const gone = gitIo({ [`${FLOWIE}/.git/HEAD`]: 'x' }, () => ok)
     const nothing = await flushFlowie(gone.io, HOME, [wellbeing])
     expect(nothing.outcome).toBe('skipped')
@@ -156,7 +179,7 @@ describe('a flush', () => {
     })
     const result = await flushFlowie(io, HOME, [wellbeing])
     expect(result.outcome).toBe('failed')
-    expect(calls.map(call => call.args.join(' ')).slice(-2)).toEqual(['pull --rebase', 'rebase --abort'])
+    expect(calls.map(call => call.args.join(' ')).slice(-2)).toEqual(['pull --rebase --autostash', 'rebase --abort'])
   })
 })
 
@@ -188,6 +211,8 @@ const IDEAS = {
 }
 /** With the self-reported check-in switched on and today's entry missing, the band offers the field. */
 const FILES = { ...IDEAS, [`${FLOWIE}/wellbeing/config.json`]: '{"collect": true}\n' }
+/** The band's remote check (#253) runs detached from the session's start: wait until it has answered. */
+const checkDone = () => new Promise(resolve => setTimeout(resolve, 30))
 const TURN = { reason: 'answer', answer: 'done', durationMs: 1, isAborted: false, turnId: 't1' }
 
 /** $.store in memory, kept where the test can look. */
@@ -206,10 +231,12 @@ const memStore = (on: On, initial: Record<string, unknown> = {}): Map<string, un
   return map
 }
 
-type Session = { git: string[]; toasts: string[]; ran: string[]; store: Map<string, unknown>; clock: ReturnType<typeof mock.clock> }
+type Session = { remote: string[]; git: string[]; toasts: string[]; ran: string[]; store: Map<string, unknown>; clock: ReturnType<typeof mock.clock> }
 
-const session = (on: On, answer: (args: readonly string[]) => NfRun | Promise<NfRun> = () => ok, stored: Record<string, unknown> = {}): Session => {
+/** `remote`: what the band's remote check (#253: fetch, rev-parse @{u}, cat-file, merge) finds; kept out of `git`. */
+const session = (on: On, answer: (args: readonly string[]) => NfRun | Promise<NfRun> = () => ok, stored: Record<string, unknown> = {}, remote: 'absent' | 'present' | 'offline' = 'absent'): Session => {
   const seen: Session = {
+    remote: [],
     git: [],
     toasts: [],
     ran: [],
@@ -232,6 +259,12 @@ const session = (on: On, answer: (args: readonly string[]) => NfRun | Promise<Nf
   on('process.run', async ($, e) => {
     const argv = (e as unknown as { argv: string[] }).argv
     if (argv[0] !== 'git') return { value: { exitCode: 2, stdout: '', stderr: 'not here', isStdoutTruncated: false, isStderrTruncated: false } }
+    const remoteStep = argv[3] === 'fetch' || argv[3] === 'cat-file' || argv[3] === 'merge' || (argv[3] === 'rev-parse' && argv.includes('@{u}'))
+    if (remoteStep) {
+      seen.remote.push(argv.slice(3).join(' '))
+      const fails = (remote === 'offline' && argv[3] === 'fetch') || (remote === 'absent' && argv[3] === 'cat-file')
+      return { value: { exitCode: fails ? 1 : 0, stdout: '', stderr: fails ? 'fatal: no' : '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
     seen.git.push(argv.slice(3).join(' '))
     return { value: { ...(await answer(argv.slice(3))), isStdoutTruncated: false, isStderrTruncated: false } }
   })
@@ -243,6 +276,7 @@ describe('the wellbeing band', () => {
     const fs = fakeFs(on, FILES, ROOT)
     const seen = session(on, args => (args[0] === 'config' ? { exitCode: 1, stdout: '', stderr: '' } : ok))
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     expect(JSON.stringify(await ui.drawn())).toContain('wellbeing today')
     await ui.input({ key: 'nf-wellbeing', text: '3 6 7 slept badly' })
@@ -260,10 +294,10 @@ describe('the wellbeing band', () => {
     expect(JSON.stringify([...seen.store.values()])).not.toContain('slept badly')
     await $.turn.complete(TURN as never)
     expect(seen.git).toEqual([
-      'config --get core.hooksPath',
+      'diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath',
       'add -- wellbeing/2026-10-07.json wellbeing/.flow',
       'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
-      'pull --rebase',
+      'pull --rebase --autostash',
       'push',
     ])
     expect(fs.files[LOG]).toMatch(/^\S+Z synced: wellbeing\/2026-10-07\.json wellbeing\/\.flow \(mod\)\n$/)
@@ -286,6 +320,7 @@ describe('the wellbeing band', () => {
     const fs = fakeFs(on, FILES, ROOT)
     const seen = session(on)
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     const saving = ui.input({ key: 'nf-wellbeing', text: '4 5 6' })
     await seen.clock.settle()
@@ -321,9 +356,10 @@ describe('idea capture and the queue in a session', () => {
     })
     on('prompt.submit', ($, e) => ({ text: e.text }))
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     const first = await $.prompt.submit({ text: 'idea: try CSD instead', origin: { kind: 'composer' } } as never)
     expect(JSON.stringify(first)).toContain('Idea saved — inbox: 1 · synced')
-    expect(seen.git.slice(-3)).toEqual(['commit -m idea: inbox -- ideas-inbox.md', 'pull --rebase', 'push'])
+    expect(seen.git.slice(-3)).toEqual(['commit -m idea: inbox -- ideas-inbox.md', 'pull --rebase --autostash', 'push'])
     offline = true
     const second = await $.prompt.submit({ text: 'idea: a second cohort', origin: { kind: 'composer' } } as never)
     expect(JSON.stringify(second)).toContain('the sync did not go through (push failed — fatal: could not resolve host) and was logged')
@@ -352,6 +388,7 @@ describe('idea capture and the queue in a session', () => {
     const seen = session(on, args => (args[0] === 'push' && offline ? { exitCode: 128, stdout: '', stderr: 'fatal: could not resolve host' } : ok))
     on('prompt.submit', ($, e) => ({ text: e.text }))
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     await $.prompt.submit({ text: 'idea: one', origin: { kind: 'composer' } } as never)
     offline = false
     const again = await $.prompt.submit({ text: 'idea: two', origin: { kind: 'composer' } } as never)
@@ -367,12 +404,13 @@ describe('idea capture and the queue in a session', () => {
       [SYNC_QUEUE]: [{ paths: ['wellbeing/2026-10-06.json'], message: 'wellbeing: 2026-10-06', at: 1 }],
     })
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     // The first prompt waits for session.start: nothing networked there, nothing committed.
     expect(seen.git).toEqual(['status --porcelain -- wellbeing/2026-10-06.json', 'rev-list --count @{u}..HEAD'])
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     expect(JSON.stringify(await ui.drawn())).toContain('flowie sync pending (wellbeing: 2026-10-06)')
     await $.turn.complete(TURN as never)
-    expect(seen.git.slice(2)).toEqual(['config --get core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase', 'push'])
+    expect(seen.git.slice(2)).toEqual(['diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath', 'add -- wellbeing/2026-10-06.json', 'commit -m wellbeing: 2026-10-06 -- wellbeing/2026-10-06.json', 'pull --rebase --autostash', 'push'])
     expect(asQueue(seen.store.get(SYNC_QUEUE))).toEqual([])
     expect(fs.files[LOG]).toContain('synced: wellbeing/2026-10-06.json (mod)')
     expect(JSON.stringify(await ui.drawn())).not.toContain('flowie sync pending')
@@ -385,6 +423,7 @@ describe('idea capture and the queue in a session', () => {
       [SYNC_QUEUE]: [{ paths: ['wellbeing/2026-10-06.json'], message: 'wellbeing: 2026-10-06', at: 1 }],
     })
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     expect(asQueue(seen.store.get(SYNC_QUEUE))).toEqual([])
     await $.turn.complete(TURN as never)
     expect(seen.git).toEqual(['status --porcelain -- wellbeing/2026-10-06.json', 'rev-list --count @{u}..HEAD'])
@@ -409,10 +448,10 @@ const DASHBOARD = {
   props: { title: 'neuroflow', isFocused: true, bodyColumns: 160, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
 }
 const SYNC = [
-  'config --get core.hooksPath',
+  'diff --name-only --diff-filter=U', 'config --show-origin --get-all core.hooksPath',
   'add -- wellbeing/2026-10-07.json wellbeing/.flow',
   'commit -m wellbeing: 2026-10-07 -- wellbeing/2026-10-07.json wellbeing/.flow',
-  'pull --rebase',
+  'pull --rebase --autostash',
   'push',
 ]
 const noHooks = (args: readonly string[]): NfRun => (args[0] === 'config' ? { exitCode: 1, stdout: '', stderr: '' } : ok)
@@ -428,6 +467,7 @@ describe('the sync before a neuroflow command', () => {
       return { text: e.text }
     })
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     await ui.input({ key: 'nf-wellbeing', text: '3 6 7' })
     expect(seen.git).toEqual([])
@@ -458,6 +498,7 @@ describe('the sync before a neuroflow command', () => {
     })
     on('ui.open', () => ({ value: { isPlaced: true } }))
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     await ui.input({ key: 'nf-wellbeing', text: '3 6 7' })
     const drawn = JSON.stringify(await ui.drawn())
@@ -510,22 +551,116 @@ describe('the sync before a neuroflow command', () => {
       return { text: e.text }
     })
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
     await ui.input({ key: 'nf-wellbeing', text: '3 6 7' })
     const ending = $.turn.complete(TURN as never)
     await seen.clock.settle()
-    expect(seen.git).toEqual(SYNC.slice(0, 4))
+    expect(seen.git).toEqual(SYNC.slice(0, 5))
     await $.command.run({ command: 'neuroflow:migrate', args: '' } as never)
     const sending = $.prompt.submit({ text: '/neuroflow:migrate', origin: { kind: 'composer' } } as never)
     await seen.clock.settle()
     // The command waits; no second git run starts beside the first.
     expect(reached).toEqual([])
-    expect(seen.git).toEqual(SYNC.slice(0, 4))
+    expect(seen.git).toEqual(SYNC.slice(0, 5))
     release()
     await ending
     await sending
     expect(reached).toEqual([SYNC])
     expect(seen.git).toEqual(SYNC)
+    await ui.unmount()
+  })
+})
+
+describe('today\'s wellbeing entry made on another machine (#253)', () => {
+  const settle = () => new Promise(resolve => setTimeout(resolve, 20))
+
+  test('checkRemoteEntry: a fetch, then the upstream decides; nothing in the clone is touched', async () => {
+    const path = 'wellbeing/2026-10-07.json'
+    const there = gitIo(repo, () => ok)
+    expect(await checkRemoteEntry(there.io, HOME, path)).toBe('present')
+    expect(there.calls.map(call => call.args.join(' '))).toEqual([
+      'fetch --quiet',
+      'rev-parse --verify --quiet @{u}',
+      `cat-file -e @{u}:${path}`,
+    ])
+    const missing = gitIo(repo, args => (args[0] === 'cat-file' ? { exitCode: 128, stdout: '', stderr: 'fatal: path not in tree' } : ok))
+    expect(await checkRemoteEntry(missing.io, HOME, path)).toBe('absent')
+    const offline = gitIo(repo, args => (args[0] === 'fetch' ? { exitCode: 128, stdout: '', stderr: 'fatal: unable to access' } : ok))
+    expect(await checkRemoteEntry(offline.io, HOME, path)).toBe('unknown')
+    expect(offline.calls.map(call => call.args[0])).toEqual(['fetch'])
+    const noUpstream = gitIo(repo, args => (args[0] === 'rev-parse' ? { exitCode: 1, stdout: '', stderr: '' } : ok))
+    expect(await checkRemoteEntry(noUpstream.io, HOME, path)).toBe('unknown')
+    expect(await checkRemoteEntry(gitIo({}, () => ok).io, HOME, path)).toBe('unknown')
+    // Hooks, LFS or a rebase in progress: no git at all, the band asks as before.
+    for (const extra of [
+      { [`${FLOWIE}/.git/hooks/reference-transaction`]: '#!/bin/sh\n' },
+      { [`${FLOWIE}/.git/config`]: '[core]\n\thooksPath = .githooks\n' },
+      { [`${FLOWIE}/.gitattributes`]: '*.bin filter=lfs\n' },
+      { [`${FLOWIE}/.git/rebase-merge/head-name`]: 'x' },
+    ]) {
+      const held = gitIo({ ...repo, ...extra }, () => ok)
+      expect(await checkRemoteEntry(held.io, HOME, path)).toBe('unknown')
+      expect(held.calls).toEqual([])
+    }
+  })
+
+  test('the last core.hooksPath outside the command line decides (#252)', async () => {
+    const config = (stdout: string) => gitIo(repo, args => (args[0] === 'config' ? { exitCode: 0, stdout, stderr: '' } : ok))
+    // A global path, then the flowie's own /dev/null: hooks are off, the sync runs.
+    const off = config('file:C:/Users/Some One/.gitconfig\t.githooks\nfile:.git/config\t/dev/null\ncommand line:\t\\\\.\\NUL\n')
+    expect((await flushFlowie(off.io, HOME, [wellbeing])).outcome).toBe('synced')
+    // The other way round: the flowie's own path wins over a global null device.
+    const on = config('file:C:/Users/Some One/.gitconfig\t/dev/null\nfile:.git/config\t.githooks\n')
+    expect((await flushFlowie(on.io, HOME, [wellbeing])).detail).toContain('hooksPath=.githooks')
+    // A hook listed with a Windows-style full name is still a hook.
+    const listed = gitIo(repo, args => (args[0] === 'config' ? { exitCode: 1, stdout: '', stderr: '' } : ok))
+    const io = { ...listed.io, list: async () => [{ name: 'C:\\Users\\Some One\\.neuroflow\\flowie\\.git\\hooks\\pre-push', isDir: false }] }
+    expect((await flushFlowie(io, HOME, [wellbeing])).detail).toContain('hooks: pre-push')
+  })
+
+  test('no remote check outside an active project, with the band off, or once hidden for today', { options: { runtime: 'observe', band: 'off' } }, async ($, on) => {
+    fakeFs(on, FILES, ROOT)
+    const seen = session(on, () => ok, {}, 'present')
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
+    expect(seen.remote).toEqual([])
+  })
+
+  test('no remote check in a folder that is no neuroflow project', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    fakeFs(on, FILES, ROOT)
+    const seen = session(on, () => ok, {}, 'present')
+    await $.session.start({ cwd: 'C:/elsewhere', surface: 'terminal', isInteractive: true })
+    await checkDone()
+    expect(seen.remote).toEqual([])
+  })
+
+  for (const [remote, asks] of [['present', false], ['absent', true], ['offline', true]] as const) {
+    test(`the band ${asks ? 'asks' : 'does not ask'} when the remote check finds the entry ${remote}`, { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+      fakeFs(on, FILES, ROOT)
+      const seen = session(on, () => ok, {}, remote)
+      await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
+      await settle()
+      const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
+      expect(JSON.stringify(await ui.drawn()).includes('wellbeing today')).toBe(asks)
+      expect(seen.remote[0]).toBe('fetch --quiet')
+      // Only reads: nothing committed, pulled or pushed.
+      expect(seen.git.filter(step => /^(add|commit|pull|push)/.test(step))).toEqual([])
+      await ui.unmount()
+    })
+  }
+
+  test('a check the session start could not finish runs when the first turn ends', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    fakeFs(on, FILES, ROOT)
+    const seen = session(on, () => ok, {}, 'present')
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await checkDone()
+    await $.turn.complete(TURN as never)
+    await settle()
+    const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
+    expect(JSON.stringify(await ui.drawn())).not.toContain('wellbeing today')
+    expect(seen.remote.filter(step => step === 'fetch --quiet').length).toBeGreaterThan(0)
     await ui.unmount()
   })
 })

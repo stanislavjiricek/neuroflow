@@ -168,11 +168,17 @@ export type NfBoard = {
 
 /** One task board level (commands/tasks.md → Levels), read from the local files as they are. */
 export type NfTaskLevel = {
-  /** `project`, `flowie`, or `hive:{folder}`: what the board pane switches by. */
+  /** `project`, `flowie`, `hive:{folder}` or `remote:{host/owner/repo}`: what the board pane switches by. */
   id: string
-  kind: 'project' | 'flowie' | 'hive'
-  /** What the views call it: `project`, `flowie`, or the hive's folder under ~/.neuroflow/hives/. */
+  /**
+   * `remote`: the board of another repository of this project's card, read from the machine-local cache
+   * projects.py keeps in ~/.neuroflow/boards/ (neuroflow-core → Project registry) — read-only here.
+   */
+  kind: 'project' | 'flowie' | 'hive' | 'remote'
+  /** What the views call it: `project`, `flowie`, the hive's folder under ~/.neuroflow/hives/, or `owner/repo`. */
   name: string
+  /** For a remote board: when its cache was last fetched (ISO time), null when unknown. */
+  fetched?: string | null
   /**
    * This project's name at this level, the `project:` its tasks carry (commands/tasks.md → Levels): the flowie
    * project this repo is linked to, or the lab project of the hive's own registry; null at project level or unlinked.
@@ -189,8 +195,12 @@ export type NfTaskLevel = {
 
 /** The task boards of every level, for the dashboard's tasks tab and the board pane. */
 export type NfTaskView = {
-  /** Project first, then flowie, then the hives (those user.yaml lists first, the rest alphabetically). */
+  /** Project first, then flowie, then the hives (those user.yaml lists first, the rest alphabetically), then remote boards. */
   levels: NfTaskLevel[]
+  /** The id of this project's card (neuroflow-core → Project registry), null when this repo is linked to none. */
+  card?: string | null
+  /** Whether the card lists other repositories, whose boards the cache can hold. */
+  hasRemote?: boolean
 }
 
 /** A flowie sync the mod queued (in $.store): the files it wrote there and the commit message. */
@@ -213,6 +223,17 @@ export type NfFlowieSync = {
    * point only checks, locally, whether a sync elsewhere (/neuroflow:flowie --sync) settled it.
    */
   isHeld: boolean
+}
+
+/**
+ * The band's check of the flowie remote before it asks for today's wellbeing entry (#253): `pending` while it runs,
+ * `present` when the entry is already on the remote (made on another machine), `absent`, or `unknown` when it could
+ * not tell (offline, no upstream) — then the band asks as it always did.
+ */
+export type NfWellbeingCheck = {
+  /** The day checked, YYYY-MM-DD (local time). */
+  date: string
+  state: 'pending' | 'present' | 'absent' | 'unknown'
 }
 
 export type NfReasoningBaseline = { path: string; lines: number }
@@ -298,6 +319,8 @@ declare module 'claude-code' {
       taskView: NfTaskView | null
       /** The level the board pane shows (an NfTaskLevel id); null picks one as the pane opens. */
       boardLevel: string | null
+      /** Whether today's wellbeing entry is already on the flowie remote (#253); null before a check started. */
+      wellbeingCheck: NfWellbeingCheck | null
       /** The task card picked on the board, to move it. */
       boardPick: string | null
       // </feature:views>

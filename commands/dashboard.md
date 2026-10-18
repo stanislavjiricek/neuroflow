@@ -14,6 +14,7 @@ reads:
   - ~/.neuroflow/local-projects.json
   - ~/.neuroflow/flowie/projects/projects.json
   - ~/.neuroflow/hives/{org-repo}/projects/projects.json
+  - ~/.neuroflow/boards/                # the project's other repositories' boards (cache, read-only)
   - ~/.neuroflow/user.yaml
   - .neuroflow/{phase}/autoresearch-loops.md
 writes: []
@@ -79,6 +80,8 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
      first few open tasks across levels, each tagged `[level]`: this project's first (`◆` at flowie and hive level),
      overdue (`⚠`) first, then by due date; a last line names the marks shown. Read the local files as they are; pull
      nothing. A level whose storage does not exist is left out (the project's is always shown).
+     The boards of the project card's other repositories (`neuroflow:neuroflow-core` → **Project registry**) follow,
+     each as `[owner/repo]`, from the cache in `~/.neuroflow/boards/` as it is, with the time it was fetched.
    - **Loop**: each row of the phases' `autoresearch-loops.md`; for a running loop, the `Running` column of its
      `results.md` as a sparkline and the open questions at the top of its `report.md`.
    Every symbol has a word next to it, so the block reads correctly without colour.

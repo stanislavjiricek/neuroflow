@@ -88,7 +88,9 @@ Current: data-analyze — analysis
 | Quiet | A `quiet` command such as `/idk` silences the band, status line and footer label until the next neuroflow command | — |
 | Autoresearch driver | `/neuroflow:autoresearch drive <name>`: one iteration per turn, caps checked between turns, a stop key | `runtime: on` |
 
-The wellbeing check-in on the band and `idea: …` write into your private [flowie](flowie.md). The mod commits those
+When you open the boards (`/neuroflow:tasks`, the dashboard's tasks tab) or press `r` there, the mod refreshes the cache of the project's other repositories' boards in `~/.neuroflow/boards/` in the background — a shallow, sparse fetch of their `.neuroflow/tasks/` only, with git hooks off and no password prompt; nothing leaves — at most once a minute, and ten minutes after a fetch that failed. Those boards are read-only in the pane.
+
+The band asks for the wellbeing check-in only once it knows today's entry is not already on your flowie's remote — made on another machine: as a session starts in a neuroflow project the mod fetches your flowie in the background (it reads the remote's refs: nothing leaves, your files are not touched, the first prompt never waits), and when the entry is there it does not ask — the next pull brings it down; offline, or with git hooks or LFS in your flowie, it asks as before. The wellbeing check-in on the band and `idea: …` write into your private [flowie](flowie.md). The mod commits those
 files by path, pulls and pushes them — for an idea right away, for the check-in before your next neuroflow command
 (which pulls your flowie first) or when the next turn ends, never from the band's own field and never while a session
 starts — and writes each attempt and its outcome as a line of `~/.neuroflow/flowie-sync.log`. A sync that does not go

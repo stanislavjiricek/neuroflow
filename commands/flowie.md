@@ -11,6 +11,7 @@ reads:
   - ~/.neuroflow/flowie/sync.json
   - ~/.neuroflow/flowie/tasks/config.json
   - ~/.neuroflow/flowie/projects/projects.json
+  - ~/.neuroflow/hives/{org-repo}/projects/projects.json   # a pointer's card
   - ~/.neuroflow/flowie/wellbeing/config.json
   - ~/.neuroflow/flowie/wellbeing/*.json
   - ~/.neuroflow/flowie/wiki/schema.md
@@ -28,6 +29,7 @@ writes:
   - .neuroflow/tasks/**
   - ~/.neuroflow/flowie/projects/projects.json
   - ~/.neuroflow/flowie/projects/*.md
+  - ~/.neuroflow/hives/{org-repo}/projects/   # a team project's card (--projects --add, --link), after the person's yes
   - ~/.neuroflow/flowie/notes/
   - ~/.neuroflow/flowie/wellbeing/config.json
   - ~/.neuroflow/flowie/wellbeing/*.json
@@ -63,23 +65,23 @@ All git operations use the `-C` flag to target the flowie repo directory. Networ
 **Pull** (before any read):
 
 ```bash
-git -C ~/.neuroflow/flowie pull --rebase
+git -C ~/.neuroflow/flowie pull --rebase --autostash
 ```
 
-If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — never leave a half-finished rebase — tell the person, and resolve it with them in `--sync`. If it fails for network reasons, say so once and carry on with the local copy.
+`--autostash` carries uncommitted changes (a file the auto-sync hook held back, a check-in not yet synced) through the pull and puts them back, so they never stop it. If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort` — never leave a half-finished rebase — tell the person, and resolve it with them in `--sync`. If it fails for network reasons, say so once and carry on with the local copy.
 
-**Sync** (after a write) — `{paths}` are exactly the files this mode changed:
+**Sync** (after a write) — `{paths}` are exactly the files this mode changed, relative to the flowie. First check them for machine-local paths: `python <phase-flowie skill base dir>/scripts/local_paths.py --root ~/.neuroflow/flowie {paths}` (exit `0` clean; `1` it lists each path with its file and line; `2` it could not run — say so and go on). On `1`, stage none of the files it names: show the person each path and offer to move it into `~/.neuroflow/local-projects.json` (this machine only), then rewrite the line without it and check again. A folder on one machine means nothing on the others, and the repo travels to every one. Then:
 
 ```bash
 git -C ~/.neuroflow/flowie add -- {paths}
 git -C ~/.neuroflow/flowie commit -m "{message}" -- {paths}   # "nothing to commit" is fine: the auto-sync hook already did it
-git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push
+git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push
 ```
 
 <!-- nf-rule: GIT-NO-SECRETS -->
 Never `git add -A`, never stage `integrations.json`. If the pull stops on a conflict, abort it as above and leave the push for `--sync`.
 
-Files written with Edit/Write are synced by the plugin's **flowie auto-sync hook**: it commits that one file, pulls with rebase, then pushes. It skips `integrations.json` and gitignored files, does nothing while a rebase or merge is in progress, and never blocks — each failure is appended as one line to `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The Sync step above still runs for every write, so the prose works with hooks disabled, and it is the only thing that commits changes made through Bash (`git mv`, deletions).
+Files written with Edit/Write are synced by the plugin's **flowie auto-sync hook**: it commits that one file, pulls with rebase, then pushes. It skips `integrations.json`, gitignored files, a file that holds a machine-local path (`local_paths.py`, logged as `skipped (machine-local path; /flowie --sync)`) and everything while git still marks a file as conflicted (`skipped (unresolved conflict; /flowie --sync)`), does nothing while a rebase or merge is in progress, and never blocks — each failure is appended as one line to `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The Sync step above still runs for every write, so the prose works with hooks disabled, and it is the only thing that commits changes made through Bash (`git mv`, deletions).
 
 Never use a staging/remote-sync subdirectory. The flowie directory is the repo.
 
@@ -612,7 +614,7 @@ Which project does this neuroflow repo belong to? [1/2/3]
 
 If the user selects an existing project:
 - Read `.neuroflow/project_config.md`. If a `flowie_profiles:` list already exists, append a new entry `- handle: {username}\n  repo: {username}/flowie` if this handle is not already present. If no `flowie_profiles:` list exists, add one (replacing any legacy `flowie_project:` or `flowie_profile:` scalar field). The entry for the user who ran `--link` becomes the first entry if the list was empty.
-- Open `projects/{name}.md` and, under a `## Linked repos` section, add this repo's remote URL (`git remote get-url origin`) if it has one and it is not listed yet. Never write the local folder path there — flowie syncs to every machine you use.
+- Add this repo's remote URL (`git remote get-url origin`), if it has one and it is not listed yet, to the `repos` of the project's card (`neuroflow:neuroflow-core` → **Project registry**): in `projects/projects.json` for a personal project; for a pointer, on the team's card in its hive — show the change and push only after the person's yes (`neuroflow:phase-hive` → `--projects`). Never write the local folder path there — the card syncs to every machine.
 - Record the local folder in the machine-local registry `~/.neuroflow/local-projects.json` (create it if missing; it lives outside the flowie repo and is never committed or synced). One entry per local folder, forward slashes; if the path is already listed, update `last_opened`:
   ```json
   {
@@ -631,7 +633,7 @@ This project is now linked to {name} in your flowie registry.
 Claude will read your profile and project registry when assisting in any neuroflow phase.
 ```
 
-Sync `projects/{name}.md` if it changed (`link: {project} ← {repo-basename}`). `~/.neuroflow/local-projects.json` is never staged.
+Sync `projects/projects.json` if it changed (`link: {project} ← {repo-basename}`). `~/.neuroflow/local-projects.json` is never staged.
 
 Write to `sessions/YYYY-MM-DD.md`.
 
@@ -722,7 +724,7 @@ If yes, append a `## Claude's read` section to `profile.md` with the confirmed p
 
 Pull first (Git operations pattern).
 
-Read `projects/projects.json`, and `~/.neuroflow/local-projects.json` if it exists (where each project lives on this machine).
+Read `projects/projects.json`, and `~/.neuroflow/local-projects.json` if it exists (where each project lives on this machine). An entry with `ref: hive:{org}/{repo}` is a pointer to a team project's card (`neuroflow:neuroflow-core` → **Project registry**): read its description, status and phases from that hive's clone (pull it first) and mark it `team: {org}/{repo}`; the flowie keeps only the person's notes about it.
 
 ### --projects (no sub-flag) — ASCII phase timeline
 
@@ -748,7 +750,7 @@ If the project has an entry in `~/.neuroflow/local-projects.json`, add a `local:
 
 Before starting, run the wellbeing check: if `wellbeing/config.json` has `collect: true` and today's entry is missing, run `--assess` inline before proceeding.
 
-Register a new project. Ask:
+Register a new project. First ask (AskUserQuestion) whose project it is: **Mine** (the card goes here) or **A team's** — one option per hive under `~/.neuroflow/hives/` (the card goes to that hive: run `/hive --projects --add` there, then add the pointer `{ "id": "{id}", "ref": "hive:{org}/{repo}" }` to `projects/projects.json` and a `projects/{id}.md` with a `Card:` line and an empty `## Notes`). For the person's own project, ask:
 
 1. *"Project ID (short name, no spaces — e.g. AlphaModulation)?"*
 2. *"Description (one line)?"*
@@ -942,7 +944,7 @@ This section is invoked automatically when `active_phase` in `project_config.md`
 
 1. Read `flowie_profiles` from `.neuroflow/project_config.md`. Use the first entry (`flowie_profiles[0]`). If the list is absent or empty, skip silently.
 2. Pull (Git operations pattern).
-3. Read `projects/projects.json`. Find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the entry whose `repos[].url` matches this repo's remote URL. If neither matches, skip silently.
+3. Read `projects/projects.json`. Find the linked project: the `name` of this repo's entry in `~/.neuroflow/local-projects.json`, else the entry whose `repos[].url` matches this repo's remote URL. If neither matches, skip silently. If the entry is a pointer (`ref: hive:…`), the card is in that hive: the change goes there instead (`neuroflow:phase-hive` → `--projects`, **Phase on the card**) and this section ends here.
    - Update `current_phase` to the new phase.
    - If the new phase is not already in `visited_phases`, append `{ "phase": "{new_phase}", "entered": "{YYYY-MM-DD}" }`.
 4. Write the updated `projects/projects.json`.
@@ -961,7 +963,7 @@ If any step fails (file not found, JSON parse error), fail silently and log the 
 - Never ask for a GitHub token in chat, print one to the terminal or write one to any file.
 - The `flowie` repo must be private. Do not confirm or suggest making it public.
 - Do not log task content, project details, or profile contents to `.neuroflow/sessions/` beyond the one-line summary.
-- Never write machine-local absolute paths (`C:/Users/…`, `/home/…`) into any flowie file — they sync to every machine. Local folders live only in `~/.neuroflow/local-projects.json`.
+- Never write machine-local absolute paths (`C:/Users/…`, `/home/…`, `~/projects/…`) into any flowie file — they sync to every machine. Local folders live only in `~/.neuroflow/local-projects.json`. When the person asks to record where a project lives on a machine (a laptop, a compute server), write that entry into `~/.neuroflow/local-projects.json` on that machine and say why: it never syncs, so each machine keeps its own.
 - Wellbeing is self-reported only: never infer mood, stress or energy from messages, typing, timing or work patterns, and never record an inferred value anywhere.
 
 ---

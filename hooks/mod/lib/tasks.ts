@@ -79,7 +79,7 @@ export const cardLine = (card: NfCard): string =>
 export const MINE = '◆'
 
 /** A card as the board and the dashboard draw it at its level: this project's cards marked on flowie and hive boards. */
-export const levelCardLine = (card: NfCard, kind: NfTaskLevel['kind']): string => `${card.isMine && kind !== 'project' ? `${MINE} ` : ''}${cardLine(card)}`
+export const levelCardLine = (card: NfCard, kind: NfTaskLevel['kind']): string => `${card.isMine && kind !== 'project' && kind !== 'remote' ? `${MINE} ` : ''}${cardLine(card)}`
 
 // ── levels ────────────────────────────────────────────────────────────────────────────────────
 
@@ -196,7 +196,8 @@ export const loadLevel = async (io: NfIo, ref: LevelRef, today: string, linked: 
   const counted = (slug: string): NfCard => ({ slug, title: slug, owner: null, due: null, overdue: false, project: null, isMine: false })
   const read = (text: string, slug: string): NfCard => {
     const card = parseTask(text, slug, today, false)
-    return { ...card, isMine: ref.kind === 'project' || (linked !== null && card.project === linked) }
+    // A project's own board (this repository's, or another repository's of its card) holds only its tasks.
+    return { ...card, isMine: ref.kind === 'project' || ref.kind === 'remote' || (linked !== null && card.project === linked) }
   }
   for (const column of columns) {
     for (const entry of await io.list(join(dir, column.id))) {
@@ -343,21 +344,84 @@ export const linkedProject = async (io: NfIo, root: string, home: string, keys?:
 export const hiveProject = async (io: NfIo, hiveDir: string, keys: ReadonlySet<string>, home: string): Promise<string | null> =>
   registryProject(await io.read(join(hiveDir, 'projects/projects.json')), keys, home)
 
-/** Every level's board for the views, read from the local files (never pulled), each with this project's name there. */
+const SAFE_PART = /^[a-z0-9][a-z0-9._-]*$/
+
+/**
+ * A repository URL as projects.py names its cache folder (`parse_repo` there, the same rules): `host/owner/repo` in
+ * lower case for an https, http, ssh or scp-style git URL or a bare host/owner/repo; null for anything else — a local
+ * folder, a file:// URL, an option, or a path that is not exactly host, owner and repository of safe characters.
+ */
+export const repoKey = (url: string): string | null => {
+  const text = url.trim()
+  if (text === '' || text.startsWith('-') || /\s/.test(text)) return null
+  const scheme = /^(https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+)$/i.exec(text)
+  const scp = scheme ? null : /^[^@/:]+@([^:/]+):(.+)$/.exec(text)
+  const bare = scheme || scp ? null : /^([^/:]+\.[^/:]+)\/(.+)$/.exec(text)
+  const found = scheme ? [scheme[2], scheme[3]] : scp ? [scp[1], scp[2]] : bare ? [bare[1], bare[2]] : null
+  if (found === null) return null
+  const path = found[1].replace(/^\/+|\/+$/g, '').replace(/\.git$/i, '')
+  const parts = [found[0], ...path.split('/')].map(part => part.toLowerCase())
+  if (parts.length !== 3 || !parts[0].includes('.') || parts.some(part => part === '.' || part === '..' || !SAFE_PART.test(part))) return null
+  return parts.join('/')
+}
+
+/** The repository URLs a registry entry lists (`repos`: strings or `{ url }`). */
+const reposOf = (entry: Record<string, unknown>): string[] =>
+  (Array.isArray(entry.repos) ? entry.repos : [])
+    .map(repo => (typeof repo === 'string' ? repo : repo !== null && typeof repo === 'object' && typeof (repo as { url?: unknown }).url === 'string' ? (repo as { url: string }).url : ''))
+    .filter(url => url.trim() !== '')
+
+/**
+ * The card of project `id` (neuroflow-core → Project registry): the entry without `ref` in a hive's registry, else
+ * in the flowie's — a flowie pointer (`ref: hive:…`) is no card. Null when none is cloned here.
+ */
+export const projectCard = async (io: NfIo, home: string, hiveDirs: readonly string[], id: string): Promise<Record<string, unknown> | null> => {
+  const isCard = (entry: Record<string, unknown>) => entry.id === id && typeof entry.ref !== 'string'
+  for (const dir of hiveDirs) {
+    const card = entriesOf(parsed(await io.read(join(dir, 'projects/projects.json')))).find(isCard)
+    if (card !== undefined) return card
+  }
+  return entriesOf(parsed(await io.read(join(toSlash(home), '.neuroflow/flowie/projects/projects.json')))).find(isCard) ?? null
+}
+
+/**
+ * Every level's board for the views, read from the local files (never pulled): the project's, the flowie's, each
+ * hive clone's, and the boards of this project's other repositories from the cache projects.py keeps in
+ * ~/.neuroflow/boards/ (read-only here). This project is one card id across levels (neuroflow-core → Project
+ * registry); a level whose own registry lists this repo under another name (written before that rule) keeps it.
+ */
 export const loadTaskView = async (io: NfIo, root: string, home: string | null, today: string): Promise<NfTaskView> => {
   const refs = await taskLevels(io, root, home)
-  const keys = home === null || refs.every(ref => ref.kind === 'project') ? null : await projectKeys(io, root, home)
-  const levels: NfTaskLevel[] = []
-  for (const ref of refs) {
-    const linked =
-      home === null || keys === null || ref.kind === 'project'
-        ? null
-        : ref.kind === 'flowie'
-          ? await linkedProject(io, root, home, keys)
-          : await hiveProject(io, ref.dir, keys, home)
-    levels.push(await loadLevel(io, ref, today, linked))
+  const keys = home === null ? null : await projectKeys(io, root, home)
+  const named = new Map<string, string | null>()
+  if (home !== null && keys !== null) {
+    for (const ref of refs) {
+      if (ref.kind === 'flowie') named.set(ref.id, await linkedProject(io, root, home, keys))
+      if (ref.kind === 'hive') named.set(ref.id, await hiveProject(io, ref.dir, keys, home))
+    }
   }
-  return { levels }
+  const hiveDirs = refs.filter(ref => ref.kind === 'hive').map(ref => ref.dir)
+  // The card id: the flowie's link, else the first hive that lists this repo (board order).
+  const card = named.get('flowie') ?? refs.map(ref => named.get(ref.id) ?? null).find(id => id !== null) ?? null
+  const levels: NfTaskLevel[] = []
+  for (const ref of refs) levels.push(await loadLevel(io, ref, today, ref.kind === 'project' ? null : named.get(ref.id) ?? card))
+  let hasRemote = false
+  if (home !== null && card !== null) {
+    const entry = await projectCard(io, home, hiveDirs, card)
+    const here = new Set([...(keys ?? [])].map(key => key.toLowerCase()))
+    for (const url of entry === null ? [] : reposOf(entry)) {
+      const key = repoKey(url)
+      if (key === null || here.has(key)) continue
+      hasRemote = true
+      const dir = join(toSlash(home), '.neuroflow/boards', key)
+      if (!(await io.exists(join(dir, '.neuroflow/tasks')))) continue
+      const ref: LevelRef = { id: `remote:${key}`, kind: 'remote', name: key.split('/').slice(1).join('/'), dir: join(dir, '.neuroflow') }
+      const level = await loadLevel(io, ref, today, card)
+      const stamp = (await io.read(join(dir, '.neuroflow-fetched')))?.trim() ?? null
+      levels.push({ ...level, fetched: stamp === '' ? null : stamp })
+    }
+  }
+  return { levels, card, hasRemote }
 }
 
 // ── what the views say ────────────────────────────────────────────────────────────────────────
@@ -365,7 +429,7 @@ export const loadTaskView = async (io: NfIo, root: string, home: string | null, 
 /** `project 0 · flowie 28 (5 Oddball) · example-lab-hive 8`: open tasks per level, this project's share in brackets. */
 export const levelSummary = (view: NfTaskView): string =>
   view.levels
-    .map(level => `${level.name} ${level.open}${level.kind !== 'project' && level.project !== null && level.mine > 0 ? ` (${level.mine} ${level.project})` : ''}`)
+    .map(level => `${level.name} ${level.open}${(level.kind === 'flowie' || level.kind === 'hive') && level.project !== null && level.mine > 0 ? ` (${level.mine} ${level.project})` : ''}`)
     .join(' · ')
 
 /** The first open cards across levels: this project's first, overdue first, then by due date; level order breaks ties. */

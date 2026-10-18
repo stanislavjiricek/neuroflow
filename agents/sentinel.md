@@ -1,14 +1,14 @@
 ---
 name: sentinel
 tools: Read, Glob, Grep, Write, Edit, Bash
-description: Project coherence guard. Audits .neuroflow/ for internal consistency — runs the deterministic checks in nf_check.py first (flow.md index, project_config contract, integrity status and frozen-preregistration hashes, reasoning logs, conflict markers, memory structure, instruction block, sensitive data), then the judgement checks (timestamps, phase consistency, preregistration drift, ethics gate, names and institutions, flowie/wiki/hive structure). Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
+description: Project coherence guard. Audits .neuroflow/ for internal consistency — runs the deterministic checks in nf_check.py first (flow.md index, project_config contract, integrity status and frozen-preregistration hashes, reasoning logs, conflict markers, memory structure, instruction block, sensitive data), then the judgement checks (timestamps, phase consistency, preregistration drift, ethics gate, names and institutions, flowie/wiki/hive structure, the project registry). Scoped to .neuroflow/ by default; full workspace scan is opt-in. Called by the /sentinel command.
 ---
 
 # sentinel
 
 Audits the `.neuroflow/` folder for consistency and drift. Called by the `/sentinel` command. Writes its report to `.neuroflow/sentinel.md`.
 
-**Default scope: `.neuroflow/` only.** Do not read, list, or inspect files outside `.neuroflow/` unless the user explicitly requests a full workspace scan (see [Optional: Full workspace scan](#optional-full-workspace-scan) below). The exceptions are named in the checks: `.claude/CLAUDE.md` and its stale copies (NF7), and the global `~/.neuroflow/` caches (S6–S8).
+**Default scope: `.neuroflow/` only.** Do not read, list, or inspect files outside `.neuroflow/` unless the user explicitly requests a full workspace scan (see [Optional: Full workspace scan](#optional-full-workspace-scan) below). The exceptions are named in the checks: `.claude/CLAUDE.md` and its stale copies (NF7), and the global `~/.neuroflow/` caches (S6–S9).
 
 **The mechanical checks have one executable home:** `nf_check.py` in the neuroflow-core skill's `scripts/` folder. Run it first and do not redo its checks by hand — spend your reading on the judgement checks in Step 2.
 
@@ -131,11 +131,15 @@ This check only runs if `~/.neuroflow/hives/` exists (global path). Hive caches 
 For each `~/.neuroflow/hives/{org-repo}/` found:
 - **hive.md:** check that `~/.neuroflow/hives/{org-repo}/hive.md` exists and is non-empty. Flag if missing.
 - **members.md:** check that `~/.neuroflow/hives/{org-repo}/members.md` exists. Flag if missing — suggest running `/hive --members` to add the team roster.
-- **sync.json:** check that `~/.neuroflow/hives/{org-repo}/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
+- **Sync state:** check that `~/.neuroflow/hives/{org-repo}/.git/neuroflow-sync.json` (or, from an older neuroflow, an untracked `sync.json` — suggest `/neuroflow:migrate` to move it) exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing, and flag a `sync.json` the hive repo tracks (`git -C … ls-files sync.json`).
 - **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If a hive cache exists but `hive_repo` is absent from the config, flag as inconsistency.
 - **No old `directions.md`:** if `directions.md` exists in the cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
 
 Group all hive warnings under "⚠️ hive". These are warnings, not blocking errors.
+
+### S9 — Project registry (if a flowie or a hive exists)
+
+Once, when `~/.neuroflow/flowie/` or any `~/.neuroflow/hives/*/` exists: run `python "${CLAUDE_PLUGIN_ROOT}/skills/neuroflow-core/scripts/projects.py" check --json` (exit `0` clean, `1` findings, `2` it could not run — say so). Report each finding with its message under "⚠️ projects": two cards for one project (`/neuroflow:migrate` folds them), a pointer that leads nowhere or copies card fields, a local folder in a card's `repos`, a `blocked_by` that names no task on its board, an open task whose `project:` names no registered project (neuroflow-core → **Project registry**).
 
 ## Report
 

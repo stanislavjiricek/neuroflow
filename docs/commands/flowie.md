@@ -63,7 +63,7 @@ Then run `/flowie --init` to build your profile through a short interview.
 | `--tasks --done <slug>` | Move a task to the `done/` column |
 | `--tasks --archive` | Sweep `done/` → `archive/` for tasks not updated for `archive_after_days` |
 | `--projects` | List all registered projects with ASCII phase timelines |
-| `--projects --add` | Register a new project (name, description, GitHub repos) |
+| `--projects --add` | Register a new project (name, description, GitHub repos) — yours here; a team's goes to its hive, with a pointer here |
 
 If no mode flag is provided, `/flowie` shows the mode menu.
 
@@ -134,6 +134,8 @@ The profile informs suggestions — it does not override your explicit instructi
 3. Local changes are listed, then committed by path (never `git add -A`, never `integrations.json`) and pushed
 4. `last_synced` in `sync.json` is updated only if the push succeeds
 5. Failures recorded by the auto-sync hook are shown, and cleared once a pull and a push have both succeeded
+
+A file that holds a machine-local path (`C:\Users\…`, `/home/…`, `~/projects/…`) is not synced: such a folder means nothing on your other machines. `/flowie` offers to move it into `~/.neuroflow/local-projects.json`, which stays on the machine it describes.
 
 Every other write (task add/move/done, project add, wellbeing, phase sync) is synced as it happens: the plugin's auto-sync hook commits the one file Claude just wrote, pulls with rebase, then pushes. It never blocks you — if anything fails (offline, auth, a conflict), the commit stays local and one line goes to `~/.neuroflow/flowie-sync.log`, which `/flowie` mentions until `--sync` resolves it.
 
