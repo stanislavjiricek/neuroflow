@@ -21,6 +21,8 @@ Your flowie (--flowie) and team hives (--hive NAME, --hives), instead of the pro
     level keys) -> tasks/{column}/{slug}.md with the keys commands/tasks.md defines; a slug /tasks
     accepts is kept as it is, and blocked_by entries follow a task whose name changes
   - .gitignore: integrations.json (flowie) or sync.json (hive) added when it is missing
+  - a hive member's own untracked sync.json -> .git/neuroflow-sync.json in that clone (machine-local,
+    never staged): the hive repository can then never track or publish it
   Only reports (never edits): integrations.json or sync.json tracked by git; a task file that is
   not UTF-8, holds conflict markers or names more than one person as its owner; a blocked_by entry
   that could now mean two tasks; a cached hive without .git/ (the copied-file cache that
@@ -940,9 +942,13 @@ TRACKED = {
     "flowie": ("tracked by git, so it travels with your flowie; it belongs on this machine. "
                "`git -C {root} rm --cached integrations.json` and a commit stop tracking it. Older commits keep "
                "their copies: if one ever held a key, revoke that key; rewriting the history is your call"),
-    "hive": ("tracked by the hive repository, so every member's sync state is shared. Agree with the team, then "
-             "`git -C {root} rm --cached sync.json`, commit, and push after your yes"),
+    "hive": ("tracked by the hive repository: an older neuroflow kept each member's sync state there. Your own now "
+             "lives in .git/neuroflow-sync.json, so nothing of yours goes into it; to stop sharing the old copy, agree "
+             "with the team, then `git -C {root} rm --cached sync.json`, commit, and push after your yes"),
 }
+# Where a hive member's own sync state lives (phase-hive → Local hive cache): inside the clone's .git folder,
+# so the hive repository can never track, merge or publish it.
+HIVE_STATE = ".git/neuroflow-sync.json"
 SYNC_HINT = {"flowie": "/flowie --sync", "hive": "/hive --sync"}
 # The two-letter states of `git status --porcelain` that mark a conflict not yet resolved.
 UNMERGED = {"DD", "AU", "UD", "UA", "DU", "AA", "UU"}
@@ -1148,6 +1154,7 @@ class LevelPlan:
         self.changes: list[dict] = []
         self.moves: list[tuple[Path, Path, str, str]] = []  # (src, dst, text, newline); dst == src: in place
         self.writes: list[tuple[Path, str, str]] = []
+        self.local_moves: list[tuple[Path, Path]] = []  # renamed on this machine only: never staged or committed
         self.blocking: list[str] = []
         self.report: list[dict] = []
         self.notes: list[str] = []
@@ -1167,6 +1174,10 @@ class LevelPlan:
     def write(self, path: Path, text: str, newline: str, summary: str) -> None:
         self.writes.append((path, text, newline))
         self.changes.append({"path": self.rel(path), "action": "write", "summary": summary})
+
+    def move_local(self, src: Path, dst: Path, summary: str) -> None:
+        self.local_moves.append((src, dst))
+        self.changes.append({"path": self.rel(src), "action": "move", "to": self.rel(dst), "summary": summary})
 
 
 def one_owner_or_report(plan: LevelPlan, path: Path, task: dict) -> bool:
@@ -1382,8 +1393,13 @@ def plan_level(plan: LevelPlan, today: str) -> None:
         else:
             plan.write(ignore, sc.append_lines_text(existing, header, [name]), sc.detect_newline(existing),
                        f"add {name}: it stays on this machine")
-    if plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", name).returncode == 0:
+    tracked = plan.git and git(plan.root, "ls-files", "--error-unmatch", "--", name).returncode == 0
+    if tracked:
         plan.report.append({"path": name, "message": TRACKED[plan.level].format(root=plan.shown)})
+    elif plan.level == "hive" and plan.is_repo and (plan.root / name).is_file() and not (plan.root / HIVE_STATE).exists():
+        # An untracked sync.json is this member's own state from an older neuroflow: it moves out of the work tree.
+        plan.move_local(plan.root / name, plan.root / HIVE_STATE, "this member's sync state moves out of the work tree "
+                        "(stays on this machine, never committed)")
     flag_local_changes(plan)
 
 
@@ -1443,6 +1459,9 @@ def apply_level(plan: LevelPlan) -> None:
     for path, text, newline in plan.writes:
         sc.write_text(path, text, newline)
         stage(plan, path)
+    for src, dst in plan.local_moves:  # machine-local: renamed, never staged
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        src.replace(dst)
 
 
 def level_summary(plan: LevelPlan) -> dict:

@@ -564,6 +564,25 @@ class FlowieHiveTest(unittest.TestCase):
         self.assertEqual(run_git(hive, "rev-list", "--count", "HEAD").strip(), "1", "never commits, never pushes")
 
     @unittest.skipUnless(shutil.which("git"), "needs git")
+    def test_a_members_own_sync_json_moves_out_of_the_work_tree(self) -> None:
+        hive = self.hives / "example-lab-hive"
+        self.write(hive / "hive.md", "# Example Lab\n")
+        self.write(hive / ".gitignore", "sync.json\n")
+        self.repo(hive)
+        self.write(hive / "sync.json", '{"member_handle": "alice"}\n')  # untracked: this member's own state
+        code, result = self.levels("--hive", "example-lab-hive")
+        self.assertEqual(code, 1)
+        change = result["levels"][0]["changes"][0]
+        self.assertEqual((change["path"], change["to"]), ("sync.json", ".git/neuroflow-sync.json"))
+        self.assertEqual(result["levels"][0]["report"], [])
+        code, result = self.levels("--hive", "example-lab-hive", "--apply")
+        self.assertFalse((hive / "sync.json").exists())
+        self.assertEqual(self.read(hive / ".git" / "neuroflow-sync.json"), '{"member_handle": "alice"}\n')
+        self.assertEqual(result["levels"][0]["commit_paths"], [], "machine-local: never staged")
+        code, result = self.levels("--hive", "example-lab-hive")
+        self.assertEqual((code, result["levels"][0]["changes"]), (0, []))
+
+    @unittest.skipUnless(shutil.which("git"), "needs git")
     def test_hives_checks_every_cached_hive(self) -> None:
         for name in ("lab-a", "lab-b"):
             self.write(self.hives / name / "tasks" / "t-1-plan.md", "---\nid: t-1\ntitle: Plan\nstatus: review\n---\n")

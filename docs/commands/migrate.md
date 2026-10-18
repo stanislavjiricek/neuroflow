@@ -36,6 +36,7 @@ title: /migrate
 | `.claude/CLAUDE.md` | a neuroflow block naming the active phase | the static block that points at `project_config.md` |
 | Flowie and hive tasks | `tasks/t-014-re-run-ica.md` with `id:` and `assignee:` | `tasks/active/re-run-ica.md` with `status:` and `owner:` (the [task format](tasks.md)), moved with `git mv` so its history follows; the slug stays as it was, and when a name has to change, the `blocked_by` entries that name the task follow it |
 | Flowie and hive `.gitignore` | — | `integrations.json` (flowie) and `sync.json` (hive) stay on your machine |
+| Your hive sync state | `sync.json` in the hive clone (untracked) | `.git/neuroflow-sync.json` in that clone: git can never track or publish it |
 
 It only **reports** neuroflow blocks in `~/.claude/CLAUDE.md`, `.github/copilot-instructions.md` and `AGENTS.md`, and offers to remove each one after showing it to you. It also only reports an `integrations.json` or `sync.json` that git already tracks: untracking it, and cleaning the history if you want that, is your call (for a hive, the team's). The same goes for a task file that is not UTF-8 (convert it, then run `/migrate` again), a task that names more than one person as its owner (you choose who owns it; nobody is dropped), and a `blocked_by` entry that could now mean two tasks.
 

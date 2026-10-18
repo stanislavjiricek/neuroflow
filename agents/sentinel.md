@@ -131,7 +131,7 @@ This check only runs if `~/.neuroflow/hives/` exists (global path). Hive caches 
 For each `~/.neuroflow/hives/{org-repo}/` found:
 - **hive.md:** check that `~/.neuroflow/hives/{org-repo}/hive.md` exists and is non-empty. Flag if missing.
 - **members.md:** check that `~/.neuroflow/hives/{org-repo}/members.md` exists. Flag if missing — suggest running `/hive --members` to add the team roster.
-- **sync.json:** check that `~/.neuroflow/hives/{org-repo}/sync.json` exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing.
+- **Sync state:** check that `~/.neuroflow/hives/{org-repo}/.git/neuroflow-sync.json` (or, from an older neuroflow, an untracked `sync.json` — suggest `/neuroflow:migrate` to move it) exists and contains `hive_repo` (non-empty) and `last_pull` fields. Flag any missing, and flag a `sync.json` the hive repo tracks (`git -C … ls-files sync.json`).
 - **project_config.md binding:** check that `hive_repo:` is set in `project_config.md`. If a hive cache exists but `hive_repo` is absent from the config, flag as inconsistency.
 - **No old `directions.md`:** if `directions.md` exists in the cache, flag it — directions are now merged into `hive.md` and `directions.md` is obsolete. Offer to delete it.
 

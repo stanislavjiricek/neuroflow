@@ -6,14 +6,14 @@ reads:
   - .neuroflow/flow.md
   - ~/.neuroflow/hives/{org-repo}/hive.md
   - ~/.neuroflow/hives/{org-repo}/members.md
-  - ~/.neuroflow/hives/{org-repo}/sync.json
+  - ~/.neuroflow/hives/{org-repo}/.git/neuroflow-sync.json
   - ~/.neuroflow/hives/{org-repo}/errata/
   - ~/.neuroflow/hives/{org-repo}/review_checklist.md
 writes:
   - ~/.neuroflow/hives/{org-repo}/
   - ~/.neuroflow/hives/{org-repo}/hive.md
   - ~/.neuroflow/hives/{org-repo}/members.md
-  - ~/.neuroflow/hives/{org-repo}/sync.json
+  - ~/.neuroflow/hives/{org-repo}/.git/neuroflow-sync.json
   - ~/.neuroflow/hives/{org-repo}/errata/
 user-invocable: false
 ---
@@ -35,7 +35,7 @@ Hive is the **team-level counterpart to flowie**. Where flowie is the personal r
 ├── hive.md          ← team identity, norms, and active research directions
 ├── members.md       ← team roster: name, email, github, role
 ├── ideas.md         ← cross-project team hypotheses and open questions
-├── .gitignore       ← lists sync.json — each member's sync state stays on their machine
+├── .gitignore       ← lists sync.json, for clones of older neuroflow versions (a member's sync state never lives in the work tree)
 ├── review_checklist.md ← optional — the lab's own review rubric (read by /paper and /review)
 ├── errata/          ← known problems in shared datasets, one append-only file per dataset
 │   └── {dataset-id}.md
@@ -128,9 +128,11 @@ Hive data is cached at the user level — not inside any project repo.
 ├── hive.md          ← team identity + directions
 ├── members.md       ← team roster
 ├── ideas.md         ← team ideas
-├── sync.json        ← this member's hive_repo URL, last_pull, last_push, member_handle — local only (gitignored by the hive repo, never pushed)
+├── .git/neuroflow-sync.json ← this member's hive_repo URL, last_pull, last_push, member_handle — inside git's own folder, so the hive repo can never track, merge or publish it
 └── …                ← errata/, tasks/, meetings/, wiki/ as in the hive repo
 ```
+
+This member's sync state is `.git/neuroflow-sync.json` in the clone. A clone made by an older neuroflow may still hold it as an untracked `sync.json` in the work tree: read it there while `.git/neuroflow-sync.json` is missing, and `/neuroflow:migrate` moves it. A `sync.json` the hive repo tracks belongs to whoever committed it — never read it as this member's state and never write to it.
 
 One cache folder per hive the user belongs to. Created by `/hive --init` (`git clone --depth 1`). Never committed to any project repo. Older caches that hold copied files without a `.git/` folder still work for reading; `/hive --doctor` flags them and `/hive --init` replaces them with a clone (after the person confirms — local edits there would be lost).
 
@@ -155,12 +157,12 @@ Connect the current neuroflow project to a Hive repo for the first time.
    If the user picks one, pre-fill the org/repo. Otherwise ask freeform.
 
 2. Ask for the GitHub org and repo name: `{org}/{hive-repo}`
-2. Ask for the researcher's GitHub handle (used as `member_handle` in sync.json)
+2. Ask for the researcher's GitHub handle (used as `member_handle` in this member's sync state)
 3. Check if the hive repo already exists (via `gh` CLI or GitHub API)
 
 **If joining an existing hive repo:**
 - Clone it into `~/.neuroflow/hives/{org-repo}/` (`git clone --depth 1`) and read `hive.md` and `members.md`
-- Write this member's local `sync.json` (never committed)
+- Write this member's sync state to `.git/neuroflow-sync.json` in the clone — never to a `sync.json` in the work tree, which an older hive repo may still track with another member's state
 - Update `.neuroflow/flow.md` + `project_config.md`
 - Show team identity from `hive.md` and members from `members.md`
 
@@ -176,7 +178,7 @@ Pull latest state and show a digest of what changed since last pull.
 
 1. Record the current commit: `git -C ~/.neuroflow/hives/{org-repo} rev-parse HEAD` (an older cache without `.git/`: note `last_pull` and fetch `hive.md`, `members.md`, `ideas.md` as copies)
 2. Pull: `git -C ~/.neuroflow/hives/{org-repo} pull --rebase` — on a conflict, `git rebase --abort` and tell the person
-3. Update `last_pull` in the local `sync.json` (skip if the hive repo still tracks `sync.json` — `--doctor` explains the fix)
+3. Update `last_pull` in `.git/neuroflow-sync.json`
 4. **Digest:** compare the recorded commit with the new `HEAD` (`git diff --stat`, `git log`) and print a structured change summary — what changed, not who did what:
    ```
    Hive sync — 2026-04-20 10:00
@@ -196,7 +198,7 @@ Pull latest state and show a digest of what changed since last pull.
 Display current local Hive state without syncing.
 
 1. Read `~/.neuroflow/hives/{org-repo}/hive.md` and `members.md`
-2. Read `sync.json` for last sync timestamp
+2. Read `.git/neuroflow-sync.json` for the last sync timestamp
 3. Print team identity, directions, member count, last sync
 4. Print: `"Run /hive --sync to fetch the latest updates."`
 
@@ -241,8 +243,9 @@ Check this member's setup. Read-only: it changes nothing except fetching remote 
 | GitHub CLI signed in | `gh auth status` | run `gh auth login` in a terminal |
 | Hive cache is a git clone | `~/.neuroflow/hives/{org-repo}/.git` exists | `/hive --init` (re-clone; confirm first) |
 | Hive cache up to date | `git -C … fetch -q`, then `git -C … rev-list --count HEAD..@{u}` is 0 | `/hive --sync` |
-| `sync.json` stays local | `git -C … check-ignore -q sync.json` | add `sync.json` to the hive's `.gitignore` (if already tracked: `git rm --cached sync.json`) — agree with the team, then push |
-| Listed in the roster | `member_handle` from `sync.json` appears in the `github` column of `members.md` | `/hive --members` |
+| Sync state outside the work tree | `.git/neuroflow-sync.json` exists in the clone | `/neuroflow:migrate` (moves an untracked `sync.json` there), or `/hive --sync` writes it |
+| No shared `sync.json` | `git -C … ls-files sync.json` prints nothing | an older neuroflow committed one: agree with the team, then `git rm --cached sync.json`, commit, and push after your yes |
+| Listed in the roster | `member_handle` from `.git/neuroflow-sync.json` appears in the `github` column of `members.md` | `/hive --members` |
 | Project linked | `hive_repo` in `project_config.md` names this hive | `/hive --init` |
 | Flowie repo private (if flowie is set up) | `gh repo view {handle}/flowie --json visibility -q .visibility` is `PRIVATE` | change the visibility on GitHub |
 | Flowie fully pushed | the `flowie-unpushed`, `flowie-uncommitted` and `flowie-sync-log` lines of `python <neuroflow-core base dir>/scripts/doctor.py --json` (one home for the check) | `/flowie --sync` |
@@ -301,7 +304,7 @@ When a new team member joins a project that already has neuroflow set up, they f
 | Analysis results | **Never** automatically — only with `--wiki-ingest` |
 | Personal project_config.md fields | **Never** |
 | Presence, activity, working hours, progress or mood — observed or inferred | **Never** — a member's status in the hive is only what they write themselves |
-| Pull/push times (`sync.json`) | **Never** — kept on the member's machine |
+| Pull/push times (`.git/neuroflow-sync.json`) | **Never** — kept on the member's machine |
 | A dataset erratum | Only via `--errata --add`, after confirmation; dataset labels only |
 | Something the user explicitly approves via `--wiki-ingest` | Yes, after confirmation |
 

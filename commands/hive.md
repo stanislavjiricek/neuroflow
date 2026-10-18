@@ -7,12 +7,12 @@ reads:
   - .neuroflow/flow.md
   - ~/.neuroflow/hives/{org-repo}/hive.md
   - ~/.neuroflow/hives/{org-repo}/members.md
-  - ~/.neuroflow/hives/{org-repo}/sync.json
+  - ~/.neuroflow/hives/{org-repo}/.git/neuroflow-sync.json
   - ~/.neuroflow/hives/{org-repo}/errata/
   - ~/.neuroflow/hives/{org-repo}/review_checklist.md
 writes:
   - ~/.neuroflow/hives/{org-repo}/
-  - ~/.neuroflow/hives/{org-repo}/sync.json
+  - ~/.neuroflow/hives/{org-repo}/.git/neuroflow-sync.json
   - .neuroflow/sessions/YYYY-MM-DD.md
 lifecycle: light
 ---

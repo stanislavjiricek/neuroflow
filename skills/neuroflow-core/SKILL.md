@@ -37,7 +37,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
         ├── hive.md
         ├── members.md
         ├── ideas.md
-        └── sync.json                ← this member's state — gitignored by the hive repo, never pushed
+        └── .git/neuroflow-sync.json ← this member's state — inside git's own folder: never tracked, never pushed
 ```
 
 **Key rules:**
