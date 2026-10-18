@@ -78,6 +78,8 @@ git -C ~/.neuroflow/flowie commit -m "{message}" -- {paths}   # "nothing to comm
 git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push
 ```
 
+If `git -C ~/.neuroflow/flowie diff --name-only --diff-filter=U` lists files after a pull (an autostash that could not go back) or before a Sync, stage none of them — `git add` would mark the conflict resolved and commit its markers — and send the person to `/flowie --sync` (**Unresolved conflict**).
+
 <!-- nf-rule: GIT-NO-SECRETS -->
 Never `git add -A`, never stage `integrations.json`. If the pull stops on a conflict, abort it as above and leave the push for `--sync`.
 
@@ -506,12 +508,18 @@ Read `sync.json` for the repo URL. If it is missing, tell the user to run `/flow
 
 ### Pull step
 
+First, if `git -C ~/.neuroflow/flowie diff --name-only --diff-filter=U` lists files, resolve them as in **Unresolved conflict** below before pulling: in that state the pull refuses to run.
+
 Pull (Git operations pattern). If the pull succeeds, report what changed (use `git -C ~/.neuroflow/flowie diff --stat HEAD@{1} HEAD` to summarise).
 
 - If nothing changed, report "No changes to pull."
 - If there are changes, show a brief diff summary.
 
 If the pull stops on a conflict, run `git -C ~/.neuroflow/flowie rebase --abort`, show the conflicting files with both versions side by side (local vs `git -C ~/.neuroflow/flowie show @{u}:{path}`), and agree each one with the person. Then pull again, write the agreed version of each conflicting file, `git add` it and `git rebase --continue` — never pick a side silently, and push nothing before the rebase is finished (phase-flowie → GitHub sync protocol).
+
+### Unresolved conflict
+
+If `git -C ~/.neuroflow/flowie diff --name-only --diff-filter=U` lists files, an earlier pull set uncommitted changes aside (`--autostash`) and could not put them back cleanly: those files hold conflict markers, and the person's own version is kept in the stash (`git -C ~/.neuroflow/flowie stash list` shows `autostash`). The pull cannot run until this is resolved, and nothing may be committed while the markers are there. For each file, show the committed version (`git -C ~/.neuroflow/flowie show HEAD:{path}`) beside the person's (`git -C ~/.neuroflow/flowie show stash@{0}:{path}`), agree the result with them, write it (no conflict markers left), and `git -C ~/.neuroflow/flowie add -- "{path}"`. Once no file is listed, drop that stash entry (`git -C ~/.neuroflow/flowie stash drop`, after checking it is the `autostash` one) and continue with the Push step, which commits the resolved files by path. Never commit a file that still contains `<<<<<<<`.
 
 ### Push step
 

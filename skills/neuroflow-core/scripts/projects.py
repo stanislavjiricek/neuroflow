@@ -48,7 +48,7 @@ NO_PROJECT = {"", "-", "—", "none", "personal", "null", "~"}
 DEFAULT_COLUMNS = ["inbox", "ready", "active", "review", "meeting", "done", "archive"]
 CARD_SECTIONS = {"repos", "phase timeline", "linked repos"}  # a card's fields, written out in a flowie note
 BOARD_MARK = ".neuroflow-board"  # written into every cache folder this script creates: only those are ever replaced
-SAFE_PART = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+SAFE_PART = re.compile(r"^[a-z0-9](?:[a-z0-9._-]*[a-z0-9_-])?$")
 
 
 class UsageError(Exception):
@@ -264,11 +264,26 @@ def find_card(levels: list[Level], project_id: str) -> tuple[Level | None, dict 
 
 def repo_values(entry: dict) -> list[str]:
     values = []
-    for repo in entry.get("repos") or []:
+    for repo in as_items(entry.get("repos")):
         value = repo.get("url") if isinstance(repo, dict) else repo
         if isinstance(value, str) and value.strip():
             values.append(value.strip())
     return values
+
+
+def is_remote(value: str) -> bool:
+    """A remote a repository can be cloned from: a URL with a scheme other than file://, an scp-style address
+    (user@host:path), or a bare host.domain/owner/repo."""
+    value = value.strip()
+    if re.match(r"^[a-z][a-z0-9+.-]*://", value, re.I):
+        return not value.lower().startswith("file:")
+    return bool(re.match(r"^[^@/\\:\s]+@[^:/\s]+:\S", value)) or parse_repo(value) is not None
+
+
+def is_local_path(value: str) -> bool:
+    """Anything in `repos` that is no remote: a folder on some machine (C:\\…, /…, ~/…, $HOME/…, ../…, a relative
+    path, file://…). neuroflow-core: repos holds remote URLs only."""
+    return value.strip() != "" and not is_remote(value)
 
 
 def card_repos(card: dict) -> list[str]:
@@ -333,14 +348,31 @@ def git(args: list[str], cwd: Path | None, home: Path, timeout: int = 60) -> sub
     """git for the cache: hooks off (an empty hooks folder), no credential prompt, ssh in batch mode, no stdin."""
     no_hooks = boards_root(home) / ".nohooks"
     no_hooks.mkdir(parents=True, exist_ok=True)
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never",
-               GIT_SSH_COMMAND=os.environ.get("GIT_SSH_COMMAND", "ssh") + " -o BatchMode=yes")
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
+    if not (os.environ.get("GIT_SSH_COMMAND") or os.environ.get("GIT_SSH") or own_ssh(home)):
+        env["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes"  # no passphrase or host-key question can hold it
     try:
         return subprocess.run(["git", "-c", f"core.hooksPath={no_hooks.as_posix()}", "-c", "core.symlinks=false", *args], cwd=cwd,
                               capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
                               stdin=subprocess.DEVNULL, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as error:
         return subprocess.CompletedProcess(args, 1, "", str(error))
+
+
+_OWN_SSH: dict[str, bool] = {}
+
+
+def own_ssh(home: Path) -> bool:
+    """Whether git is set up with the person's own ssh command (core.sshCommand): then it is used as it is."""
+    key = str(home)
+    if key not in _OWN_SSH:
+        try:
+            proc = subprocess.run(["git", "config", "--global", "--get", "core.sshCommand"], capture_output=True,
+                                  text=True, stdin=subprocess.DEVNULL, timeout=10, cwd=str(home) if home.is_dir() else None)
+            _OWN_SSH[key] = proc.returncode == 0 and proc.stdout.strip() != ""
+        except (OSError, subprocess.TimeoutExpired):
+            _OWN_SSH[key] = False
+    return _OWN_SSH[key]
 
 
 def cache_dir(home: Path, key: str) -> Path:
@@ -526,7 +558,7 @@ def check(home: Path) -> list[dict]:
                                         + (" — /neuroflow:migrate folds them into one card and a pointer" if len(full) == 2 and full[0][0].kind == "flowie"
                                            else " — keep one: a project has one card")})
         for level, entry in full:
-            local = [value for value in repo_values(entry) if parse_repo(value) is None and not re.match(r"^[a-z]+://", value, re.I)]
+            local = [value for value in repo_values(entry) if is_local_path(value)]
             if local:
                 findings.append({"kind": "local-repo", "project": project_id, "where": level.label,
                                  "message": f"the card of {project_id} in the {level.label} lists a local folder in repos ({local[0]}); "
@@ -547,12 +579,13 @@ def check(home: Path) -> list[dict]:
             elif card is None or is_pointer(card):
                 findings.append({"kind": "pointer-target", "project": project_id, "where": level.label,
                                  "message": f"{project_id} points at {entry['ref']}, which has no card for it"})
+    # A task's project: is the card's id at every level (/tasks): a flowie task may name a team card with no pointer.
+    known = {entry_id(entry) for level in levels for entry in level.entries}
     for level in levels:
         tasks, error = safe_board(level.root / "tasks")
         if error:
             findings.append({"kind": "board", "where": level.label, "message": f"the {level.label} board: {error}"})
         slugs = {task["slug"] for task in tasks}
-        known = {entry_id(entry) for entry in level.entries}
         for task in tasks:
             for slug in task["blocked_by"]:
                 if slug not in slugs:
@@ -561,7 +594,7 @@ def check(home: Path) -> list[dict]:
             project = task["project"]
             if task["open"] and project and project.lower() not in NO_PROJECT and known and project not in known:
                 findings.append({"kind": "unknown-project", "where": level.label, "file": task["file"],
-                                 "message": f"{task['file']}: project {project} is not in the {level.label} registry"})
+                                 "message": f"{task['file']}: project {project} is not a registered project"})
     return findings
 
 
@@ -587,16 +620,28 @@ def union(a, b) -> list:
 
 
 def note_sections(text: str) -> tuple[list[str], str]:
-    """A flowie project note: the repository URLs its card-like sections list, and everything else, kept."""
+    """A flowie project note: what its repository sections list (URLs, and local folders, which the caller keeps off
+    the card), and everything else, kept."""
     text = text.replace("\r\n", "\n")
-    urls = re.findall(r"(?:https?|ssh)://\S+|[\w.-]+@[\w.-]+:[\w./-]+", "\n".join(
-        body for heading, body in re.findall(r"^## +(.+?)\s*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-        if heading.strip().lower() in ("repos", "linked repos")))
+    urls: list[str] = []
+    for heading, body in re.findall(r"^## +(.+?)\s*\n(.*?)(?=^## |\Z)", text, re.M | re.S):
+        if heading.strip().lower() not in ("repos", "linked repos"):
+            continue
+        for line in body.splitlines():
+            line = line.strip()
+            if not line or re.match(r"^\|?\s*:?-{3,}", line):
+                continue
+            cell = line.strip("|").split("|")[0].strip() if line.startswith("|") else re.sub(r"^[-*+]\s+", "", line)
+            cell = cell.strip("`<> ")
+            if not cell or cell.lower() in ("url", "repo", "repository", "path"):
+                continue
+            found = re.findall(r"(?:https?|ssh|git)://\S+|[\w.-]+@[\w.-]+:[\w./-]+", cell)
+            urls += found or ([cell.split()[0]] if is_local_path(cell.split()[0]) and re.search(r"[\\/]", cell) else [])
     kept = re.sub(r"^## +(.+?)\s*\n.*?(?=^## |\Z)",
                   lambda match: "" if match.group(1).strip().lower() in CARD_SECTIONS else match.group(0), text,
                   flags=re.M | re.S)
     kept = re.sub(r"\A# .*\n", "", kept).strip()
-    return [url.rstrip("|).,") for url in urls], kept
+    return [url.rstrip("|).,`") for url in urls], kept
 
 
 def dirty(level: Level, paths: list[str]) -> bool:
@@ -631,7 +676,10 @@ def fold_plan(home: Path, keep: dict[str, str], projects: set[str], hives: set[s
                       "extra": {key: value for key, value in entry.items() if key not in (*CARD_FIELDS, "id", "ref")}}
         note = flowie.root / "projects" / f"{project_id}.md"
         note_urls, _ = note_sections(read_text(note) or "") if note.exists() else ([], "")
-        mine_repos = union(entry.get("repos"), [url for url in note_urls if not any(url in str(r) for r in as_items(entry.get("repos")))])
+        flowie_repos = union(entry.get("repos"), [url for url in note_urls if not any(url in str(r) for r in as_items(entry.get("repos")))])
+        # A folder on some machine never goes on the team's card: it is listed for ~/.neuroflow/local-projects.json.
+        item["local_repos"] = [repo for repo in flowie_repos if is_local_path(repo.get("url", "") if isinstance(repo, dict) else str(repo))]
+        mine_repos = [repo for repo in flowie_repos if repo not in item["local_repos"]]
         hive_writes = {}
         for field in CARD_FIELDS:
             mine = mine_repos if field == "repos" else entry.get(field)
@@ -678,7 +726,8 @@ def apply_fold(home: Path, plan: list[dict]) -> dict[str, list[str]]:
                 if isinstance(entry, dict) and entry_id(entry) == project_id:
                     entry.update(item["hive_writes"])
             write_json(hive_json, hive_data)
-            changed.setdefault(item["hive_folder"], []).append("projects/projects.json")
+            if "projects/projects.json" not in changed.setdefault(item["hive_folder"], []):
+                changed[item["hive_folder"]].append("projects/projects.json")
         pointer = {"id": project_id, "ref": f"hive:{item['hive']}", **item["extra"]}
         entries = flowie_data["projects"] if isinstance(flowie_data, dict) else flowie_data
         entries[:] = [pointer if isinstance(entry, dict) and entry_id(entry) == project_id else entry for entry in entries]

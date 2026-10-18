@@ -134,6 +134,7 @@ The profile informs suggestions — it does not override your explicit instructi
 3. Local changes are listed, then committed by path (never `git add -A`, never `integrations.json`) and pushed
 4. `last_synced` in `sync.json` is updated only if the push succeeds
 5. Failures recorded by the auto-sync hook are shown, and cleared once a pull and a push have both succeeded
+6. If an earlier pull could not put your uncommitted changes back cleanly (an autostash conflict), each affected file is shown in both versions and agreed with you before anything is committed — no conflict markers are ever pushed
 
 A file that holds a machine-local path (`C:\Users\…`, `/home/…`, `~/projects/…`) is not synced: such a folder means nothing on your other machines. `/flowie` offers to move it into `~/.neuroflow/local-projects.json`, which stays on the machine it describes.
 

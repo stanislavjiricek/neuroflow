@@ -315,7 +315,7 @@ export const registryProject = (registryJson: string | null, keys: ReadonlySet<s
   for (const project of entriesOf(parsed(registryJson))) {
     const name = typeof project.id === 'string' && project.id.trim() !== '' ? project.id.trim() : typeof project.name === 'string' ? project.name.trim() : ''
     if (name === '') continue
-    for (const repo of Array.isArray(project.repos) ? project.repos : []) {
+    for (const repo of Array.isArray(project.repos) ? project.repos : typeof project.repos === 'string' ? [project.repos] : []) {
       const value = typeof repo === 'string' ? repo : repo !== null && typeof repo === 'object' && typeof (repo as { url?: unknown }).url === 'string' ? (repo as { url: string }).url : ''
       if (value.trim() !== '' && keys.has(locationKey(value, home))) return name
     }
@@ -344,7 +344,7 @@ export const linkedProject = async (io: NfIo, root: string, home: string, keys?:
 export const hiveProject = async (io: NfIo, hiveDir: string, keys: ReadonlySet<string>, home: string): Promise<string | null> =>
   registryProject(await io.read(join(hiveDir, 'projects/projects.json')), keys, home)
 
-const SAFE_PART = /^[a-z0-9][a-z0-9._-]*$/
+const SAFE_PART = /^[a-z0-9](?:[a-z0-9._-]*[a-z0-9_-])?$/
 
 /**
  * A repository URL as projects.py names its cache folder (`parse_repo` there, the same rules): `host/owner/repo` in
@@ -367,7 +367,7 @@ export const repoKey = (url: string): string | null => {
 
 /** The repository URLs a registry entry lists (`repos`: strings or `{ url }`). */
 const reposOf = (entry: Record<string, unknown>): string[] =>
-  (Array.isArray(entry.repos) ? entry.repos : [])
+  (Array.isArray(entry.repos) ? entry.repos : typeof entry.repos === 'string' ? [entry.repos] : [])
     .map(repo => (typeof repo === 'string' ? repo : repo !== null && typeof repo === 'object' && typeof (repo as { url?: unknown }).url === 'string' ? (repo as { url: string }).url : ''))
     .filter(url => url.trim() !== '')
 
@@ -376,7 +376,7 @@ const reposOf = (entry: Record<string, unknown>): string[] =>
  * in the flowie's — a flowie pointer (`ref: hive:…`) is no card. Null when none is cloned here.
  */
 export const projectCard = async (io: NfIo, home: string, hiveDirs: readonly string[], id: string): Promise<Record<string, unknown> | null> => {
-  const isCard = (entry: Record<string, unknown>) => entry.id === id && typeof entry.ref !== 'string'
+  const isCard = (entry: Record<string, unknown>) => (entry.id ?? entry.name) === id && typeof entry.ref !== 'string'
   for (const dir of hiveDirs) {
     const card = entriesOf(parsed(await io.read(join(dir, 'projects/projects.json')))).find(isCard)
     if (card !== undefined) return card

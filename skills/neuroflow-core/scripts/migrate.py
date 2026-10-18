@@ -1154,7 +1154,7 @@ class LevelPlan:
     """One user-level folder (~/.neuroflow/flowie or a cached hive) and what migrating it changes."""
 
     def __init__(self, level: str, root: Path, home: Path, name: str | None = None) -> None:
-        self.level, self.root, self.name = level, root, name
+        self.level, self.root, self.name, self.home = level, root, name, home
         try:
             self.shown = "~/" + root.relative_to(home).as_posix()
         except ValueError:
@@ -1489,6 +1489,36 @@ def in_head(plan: LevelPlan, path: Path) -> bool:
     return git(plan.root, "cat-file", "-e", f"HEAD:{plan.rel(path)}").returncode == 0
 
 
+def own_state(plan: LevelPlan, path: Path) -> bytes:
+    """This member's values in a tracked sync.json they wrote into: the keys whose value differs from the committed
+    copy (whoever committed it), so another member's member_handle or push history never becomes theirs. The whole
+    file when either side is not a JSON object."""
+    raw = path.read_bytes()
+    committed = git(plan.root, "show", f"HEAD:{plan.rel(path)}")
+    try:
+        mine = json.loads(raw.decode("utf-8-sig"))
+        theirs = json.loads(committed.stdout) if committed.returncode == 0 else {}
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return raw
+    if not isinstance(mine, dict) or not isinstance(theirs, dict):
+        return raw
+    handle = flowie_handle(plan.home)
+    own = {key: value for key, value in mine.items()
+           if theirs.get(key) != value or key == "hive_repo"  # the same for every member, and S8 and --doctor need it
+           or (key == "member_handle" and handle is not None and str(value).lstrip("@").lower() == handle.lower())}
+    return (json.dumps(own, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def flowie_handle(home: Path) -> str | None:
+    """The person's handle from ~/.neuroflow/user.yaml (neuroflow-core → Personal layer), or None."""
+    try:
+        text = (home / ".neuroflow" / "user.yaml").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    match = re.search(r"^flowie_handle:\s*['\"]?([^'\"#\s]+)", text, re.M)
+    return match.group(1).lstrip("@") if match else None
+
+
 def apply_level(plan: LevelPlan) -> None:
     """Writes the plan; in a git repository tracked task files move with git mv and every change is staged."""
     for src, dst, text, newline in plan.moves:
@@ -1507,7 +1537,7 @@ def apply_level(plan: LevelPlan) -> None:
         stage(plan, path)
     for src, dst, restore in plan.local_moves:  # machine-local, never staged
         if restore:
-            dst.write_bytes(src.read_bytes())
+            dst.write_bytes(own_state(plan, src))
             git_ok(plan.root, "checkout", "--", plan.rel(src))
         else:
             src.replace(dst)
