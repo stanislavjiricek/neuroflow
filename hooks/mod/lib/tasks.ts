@@ -344,12 +344,25 @@ export const linkedProject = async (io: NfIo, root: string, home: string, keys?:
 export const hiveProject = async (io: NfIo, hiveDir: string, keys: ReadonlySet<string>, home: string): Promise<string | null> =>
   registryProject(await io.read(join(hiveDir, 'projects/projects.json')), keys, home)
 
-/** A repository URL as projects.py names its cache folder: `host/owner/repo`, lower case; null for no URL. */
+const SAFE_PART = /^[a-z0-9][a-z0-9._-]*$/
+
+/**
+ * A repository URL as projects.py names its cache folder (`parse_repo` there, the same rules): `host/owner/repo` in
+ * lower case for an https, http, ssh or scp-style git URL or a bare host/owner/repo; null for anything else — a local
+ * folder, a file:// URL, an option, or a path that is not exactly host, owner and repository of safe characters.
+ */
 export const repoKey = (url: string): string | null => {
   const text = url.trim()
-  if (/^[A-Za-z]:[\\/]/.test(text)) return null
-  const match = /^(?:[a-z][a-z0-9+.-]*:\/\/)?(?:[^@/]+@)?([A-Za-z0-9.-]+\.[A-Za-z]{2,})[:/]+(.+?)(?:\.git)?\/*$/i.exec(text)
-  return match === null ? null : `${match[1]}/${match[2]}`.toLowerCase()
+  if (text === '' || text.startsWith('-') || /\s/.test(text)) return null
+  const scheme = /^(https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+)$/i.exec(text)
+  const scp = scheme ? null : /^[^@/:]+@([^:/]+):(.+)$/.exec(text)
+  const bare = scheme || scp ? null : /^([^/:]+\.[^/:]+)\/(.+)$/.exec(text)
+  const found = scheme ? [scheme[2], scheme[3]] : scp ? [scp[1], scp[2]] : bare ? [bare[1], bare[2]] : null
+  if (found === null) return null
+  const path = found[1].replace(/^\/+|\/+$/g, '').replace(/\.git$/i, '')
+  const parts = [found[0], ...path.split('/')].map(part => part.toLowerCase())
+  if (parts.length !== 3 || !parts[0].includes('.') || parts.some(part => part === '.' || part === '..' || !SAFE_PART.test(part))) return null
+  return parts.join('/')
 }
 
 /** The repository URLs a registry entry lists (`repos`: strings or `{ url }`). */

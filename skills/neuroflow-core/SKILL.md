@@ -350,12 +350,12 @@ Every `full` command follows this order; `light` and `quiet` commands follow the
 With the neuroflow mod active, a `neuroflow digest` note follows the command as it starts: the project, phase and mode, the ethics and preregistration state (markers a model set are shown as unconfirmed), the raw-data folders, the next dates, the version notice when the project is behind, the phase's `flow.md` and the latest problem note — read from the files at that moment. Use it for those facts instead of re-reading the same files; read the files for anything more.
 
 **At start:**
-1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hives/*/` caches if they exist. This ensures every session starts with fresh knowledge from GitHub. It never blocks: a repository with a rebase in progress is skipped, a pull that stops on a conflict has its rebase aborted at once, and a failed flowie pull adds one line to `~/.neuroflow/flowie-sync.log` (`/flowie` reports it).
+1. **Global sync (silent):** pull `~/.neuroflow/flowie/` and all `~/.neuroflow/hives/*/` caches if they exist. This ensures every session starts with fresh knowledge from GitHub. It never blocks: uncommitted files (a flowie file the auto-sync hook held back, someone's unfinished hive edit) are carried through the pull and left as they are (`--autostash`), a repository with a rebase in progress is skipped, a pull that stops on a conflict has its rebase aborted at once, and a failed flowie pull adds one line to `~/.neuroflow/flowie-sync.log` (`/flowie` reports it).
    ```bash
    for d in ~/.neuroflow/flowie ~/.neuroflow/hives/*; do
      [ -d "$d/.git" ] || continue
      [ -d "$d/.git/rebase-merge" ] || [ -d "$d/.git/rebase-apply" ] && continue
-     git -C "$d" pull --rebase -q >/dev/null 2>&1 && continue
+     git -C "$d" pull --rebase --autostash -q >/dev/null 2>&1 && continue
      { [ -d "$d/.git/rebase-merge" ] || [ -d "$d/.git/rebase-apply" ]; } && git -C "$d" rebase --abort >/dev/null 2>&1
      case "$d" in */flowie) printf '%s pull failed: (command start)\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> ~/.neuroflow/flowie-sync.log;; esac
    done; true

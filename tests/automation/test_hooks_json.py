@@ -113,17 +113,18 @@ class HookSmokeTests(unittest.TestCase):
         flowie.mkdir(parents=True)
         self.git(flowie, "init", "-q", "-b", "main")
         (flowie / "profile.md").write_text("# profile\n", encoding="utf-8")
+        (flowie / "projects").mkdir()
+        project = flowie / "projects" / "Oddball.md"
+        project.write_text("# Oddball\n", encoding="utf-8")  # tracked: a held-back edit leaves it modified
         self.git(flowie, "add", "-A")
         self.git(flowie, "commit", "-q", "-m", "init")
         self.git(flowie, "remote", "add", "origin", str(remote))
         self.git(flowie, "push", "-q", "-u", "origin", "main")
-        (flowie / "projects").mkdir()
-        project = flowie / "projects" / "Oddball.md"
         project.write_text("# Oddball\n\n| server-a | /scratch/alice/oddball |\n", encoding="utf-8")
         self.env["CLAUDE_PLUGIN_ROOT"] = str(Path(__file__).resolve().parents[2])
         result = self.run_hook(command, project)
         self.assertEqual(result.returncode, 0)
-        self.assertNotIn("projects/Oddball.md", self.git(remote, "ls-tree", "-r", "--name-only", "main").split())
+        self.assertNotIn("/scratch/", self.git(remote, "show", "main:projects/Oddball.md"))
         self.assertIn("skipped (machine-local path; /flowie --sync): projects/Oddball.md",
                       (home / "flowie-sync.log").read_text(encoding="utf-8"))
         # The held file never blocks the next sync: an edit elsewhere is still pulled and pushed (--autostash).
@@ -134,7 +135,7 @@ class HookSmokeTests(unittest.TestCase):
         # The same file without the path syncs as usual.
         project.write_text("# Oddball\n\nLives in example-lab/oddball.\n", encoding="utf-8")
         self.run_hook(command, project)
-        self.assertIn("projects/Oddball.md", self.git(remote, "ls-tree", "-r", "--name-only", "main").split())
+        self.assertIn("Lives in example-lab/oddball.", self.git(remote, "show", "main:projects/Oddball.md"))
 
     def test_hooks_ignore_unrelated_paths_and_bad_input(self):
         command = pick(".neuroflow/flowie")

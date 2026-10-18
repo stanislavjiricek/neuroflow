@@ -7,17 +7,23 @@ fields. Tasks stay on three boards (project repo, flowie, hive: /tasks → Level
 
 subcommands:
   list                       every card and pointer, where it lives
-  check                      two cards for one project, pointers that lead nowhere or carry copies, blocked_by
-                             entries that name no task at their level, tasks whose project: names no registered project
+  check                      two cards for one project, pointers that lead nowhere or carry copies, a local path in
+                             a card's repos, blocked_by entries that name no task at their level, open tasks whose
+                             project: names no registered project
   view --project ID          the project's open tasks at every level: the flowie, each hive, this repository's board
                              and the boards of the card's other repositories — read from a machine-local cache
                              (~/.neuroflow/boards/) that is refreshed from their remotes first (--no-remote: cache only)
-  refresh --project ID       refresh that cache only
-  fold [--apply] [--keep ID.FIELD=flowie|hive ...]
+  refresh --project ID       refresh that cache only (--root: this repository, which needs no cache)
+  fold [--project ID ...] [--hive NAME ...] [--no-hive] [--keep ID.FIELD=flowie|hive|both ...] [--apply]
                              two cards of one project (one in the flowie, one in a hive) become the hive card and a
-                             flowie pointer; a field that differs keeps the hive's value unless --keep says flowie.
-                             Writes files only with --apply, stages nothing, never commits or pushes.
+                             flowie pointer. A field that differs: a list (repos, visited_phases) keeps both by
+                             default, a value keeps the hive's unless only the flowie has one. --hive limits the
+                             hives that may be written (by folder name), --no-hive skips every project whose hive card
+                             would change. Writes files only with --apply; stages nothing, never commits or pushes.
   add --json for a machine-readable result; --home DIR stands in for the home folder (tests)
+
+The cache in ~/.neuroflow/boards/ holds shallow, sparse clones with only .neuroflow/tasks/; git runs there with hooks
+off, no credential prompt and ssh in batch mode. Nothing outside that folder is ever deleted or checked out.
 
 exit codes: 0 clean (check), nothing to do (fold) or done · 1 findings (check), planned or applied changes (fold),
 a repository that could not be read (view/refresh) · 2 usage or runtime error
@@ -29,16 +35,20 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 CARD_FIELDS = ("description", "repos", "current_phase", "visited_phases", "status")
+LIST_FIELDS = ("repos", "visited_phases")
 CLOSED = {"done", "archive", "archived"}
 NO_PROJECT = {"", "-", "—", "none", "personal", "null", "~"}
 DEFAULT_COLUMNS = ["inbox", "ready", "active", "review", "meeting", "done", "archive"]
-GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
+CARD_SECTIONS = {"repos", "phase timeline", "linked repos"}  # a card's fields, written out in a flowie note
+BOARD_MARK = ".neuroflow-board"  # written into every cache folder this script creates: only those are ever replaced
+SAFE_PART = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
 
 class UsageError(Exception):
@@ -57,20 +67,37 @@ def utf8_stdio() -> None:
 
 def read_text(path: Path) -> str | None:
     try:
-        return path.read_bytes().decode("utf-8", errors="replace")
+        return path.read_bytes().decode("utf-8-sig", errors="replace")
     except OSError:
         return None
 
 
-def read_json(path: Path) -> dict | None:
+def read_json(path: Path):
     text = read_text(path)
     if text is None:
         return None
     try:
-        data = json.loads(text)
+        return json.loads(text)
     except json.JSONDecodeError:
         return None
-    return data if isinstance(data, dict) else None
+
+
+def entry_id(entry: dict) -> str:
+    value = entry.get("id") or entry.get("name") or ""
+    return str(value).strip()
+
+
+def registry_entries(path: Path) -> tuple[list[dict], bool]:
+    """A projects.json's entries, as both shapes are written ({"projects": [...]} or a bare list); False if unreadable."""
+    if not path.exists():
+        return [], True
+    data = read_json(path)
+    if isinstance(data, dict):
+        data = data.get("projects")
+        data = [] if data is None else data
+    if not isinstance(data, list):
+        return [], False
+    return [entry for entry in data if isinstance(entry, dict) and entry_id(entry)], True
 
 
 def _scalar(value: str):
@@ -112,34 +139,48 @@ def as_list(value) -> list[str]:
     return []
 
 
-def repo_key(url: str) -> str | None:
-    """`host/owner/repo`, lower case, for a git URL in any spelling (https, ssh, scp form, no scheme); None if not a URL."""
-    url = url.strip()
-    match = re.match(r"^(?:[a-z][a-z0-9+.-]*://)?(?:[^@/]+@)?([A-Za-z0-9.-]+\.[A-Za-z]{2,})[:/]+(.+?)(?:\.git)?/*$", url)
-    if not match or re.match(r"^[A-Za-z]:[\\/]", url):
+def parse_repo(url: str) -> tuple[str, str] | None:
+    """(`host/owner/repo` in lower case, the URL to clone) for an https, http, ssh or scp-style git URL or a bare
+    host/owner/repo; None for anything else — a local folder, a file:// URL, an option, or a path that is not exactly
+    host, owner and repository of safe characters (no `..`, nothing that could leave the cache folder)."""
+    url = str(url).strip()
+    if not url or url.startswith("-") or any(char.isspace() for char in url):
         return None
-    return f"{match.group(1)}/{match.group(2)}".lower()
+    match = re.match(r"^(https?|ssh|git)://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+)$", url, re.I)
+    scp = None if match else re.match(r"^[^@/:]+@([^:/]+):(.+)$", url)
+    bare = None if match or scp else re.match(r"^([^/:]+\.[^/:]+)/(.+)$", url)
+    if match:
+        host, path = match.group(2), match.group(3)
+    elif scp:
+        host, path = scp.group(1), scp.group(2)
+    elif bare:
+        host, path = bare.group(1), bare.group(2)
+    else:
+        return None
+    path = re.sub(r"\.git$", "", path.strip("/"), flags=re.I)
+    parts = [host.lower(), *[part.lower() for part in path.split("/")]]
+    if len(parts) != 3 or "." not in parts[0] or any(part in (".", "..") or not SAFE_PART.match(part) for part in parts):
+        return None
+    return "/".join(parts), (url if match or scp else f"https://{host}/{path}")
 
 
-def clone_url(url: str) -> str:
-    url = url.strip()
-    if re.match(r"^[a-z][a-z0-9+.-]*://", url) or re.match(r"^[^@/]+@[^:]+:", url):
-        return url
-    return "https://" + url
+def repo_key(url: str) -> str | None:
+    parsed = parse_repo(url)
+    return parsed[0] if parsed else None
 
 
 def origin_url(repo: Path) -> str | None:
     """The `origin` URL in a clone's git config (a worktree's .git file is followed)."""
-    git = repo / ".git"
-    if git.is_file():
-        match = re.search(r"gitdir:\s*(.+)", read_text(git) or "")
+    git_dir = repo / ".git"
+    if git_dir.is_file():
+        match = re.search(r"gitdir:\s*(.+)", read_text(git_dir) or "")
         if not match:
             return None
         gitdir = Path(match.group(1).strip())
         gitdir = gitdir if gitdir.is_absolute() else repo / gitdir
         common = read_text(gitdir / "commondir")
-        git = (gitdir / common.strip()).resolve() if common else gitdir
-    config = read_text(git / "config") or ""
+        git_dir = (gitdir / common.strip()).resolve() if common else gitdir
+    config = read_text(git_dir / "config") or ""
     section = re.search(r'\[remote "origin"\]([^\[]*)', config)
     url = re.search(r"^\s*url\s*=\s*(.+?)\s*$", section.group(1), re.M) if section else None
     return url.group(1) if url else None
@@ -153,17 +194,14 @@ class Level:
     def __init__(self, kind: str, root: Path, name: str, repo: str | None) -> None:
         self.kind, self.root, self.name, self.repo = kind, root, name, repo  # repo: org/repo of a hive
         self.is_clone = (root / ".git" / "HEAD").is_file() or (root / ".git").is_file()
-        data = read_json(root / "projects" / "projects.json")
-        self.registry_ok = data is not None or not (root / "projects" / "projects.json").exists()
-        entries = data.get("projects", []) if data else []
-        self.entries: list[dict] = [entry for entry in entries if isinstance(entry, dict) and entry.get("id")]
+        self.entries, self.registry_ok = registry_entries(root / "projects" / "projects.json")
 
     @property
     def label(self) -> str:
         return "flowie" if self.kind == "flowie" else f"hive {self.repo or self.name}"
 
     def entry(self, project_id: str) -> dict | None:
-        return next((entry for entry in self.entries if str(entry["id"]) == project_id), None)
+        return next((entry for entry in self.entries if entry_id(entry) == project_id), None)
 
 
 def is_pointer(entry: dict) -> bool:
@@ -177,8 +215,7 @@ def hive_levels(home: Path) -> list[Level]:
         if not folder.is_dir():
             continue
         key = repo_key(origin_url(folder) or "")
-        repo = "/".join(key.split("/")[1:]) if key else None
-        levels.append(Level("hive", folder, folder.name, repo))
+        levels.append(Level("hive", folder, folder.name, "/".join(key.split("/")[1:]) if key else None))
     return levels
 
 
@@ -225,13 +262,20 @@ def find_card(levels: list[Level], project_id: str) -> tuple[Level | None, dict 
     return None, None, problems
 
 
+def repo_values(entry: dict) -> list[str]:
+    values = []
+    for repo in entry.get("repos") or []:
+        value = repo.get("url") if isinstance(repo, dict) else repo
+        if isinstance(value, str) and value.strip():
+            values.append(value.strip())
+    return values
+
+
+def card_repos(card: dict) -> list[str]:
+    return [url for url in repo_values(card) if parse_repo(url)]
+
+
 # ── tasks ───────────────────────────────────────────────────────────────────────────────────────
-
-def board_columns(tasks: Path) -> list[str]:
-    config = read_json(tasks / "config.json") or {}
-    columns = [str(column.get("id")) for column in config.get("columns", []) if isinstance(column, dict) and column.get("id")]
-    return columns or DEFAULT_COLUMNS
-
 
 def read_board(tasks: Path) -> list[dict]:
     """Every task file of a board: one per `{column}/{slug}.md`; a legacy flat file counts in its `status` column."""
@@ -261,55 +305,96 @@ def read_board(tasks: Path) -> list[dict]:
     return out
 
 
+def safe_board(tasks: Path) -> tuple[list[dict], str | None]:
+    try:
+        return read_board(tasks), None
+    except OSError as error:
+        return [], f"could not read the board: {error.strerror or error}"
+
+
 # ── machine-local cache of the boards of repositories not checked out here ─────────────────────
 
-def git(args: list[str], cwd: Path | None = None, timeout: int = 90) -> subprocess.CompletedProcess:
-    env = dict(os.environ, **GIT_ENV)
+def remove_tree(path: Path) -> None:
+    """Deletes a cache folder, git's read-only object files included (Windows refuses those otherwise)."""
+    def retry(func, name, _info) -> None:
+        os.chmod(name, stat.S_IWRITE)
+        func(name)
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=retry)
+    else:
+        shutil.rmtree(path, onerror=retry)
+
+
+def boards_root(home: Path) -> Path:
+    return home / ".neuroflow" / "boards"
+
+
+def git(args: list[str], cwd: Path | None, home: Path, timeout: int = 60) -> subprocess.CompletedProcess:
+    """git for the cache: hooks off (an empty hooks folder), no credential prompt, ssh in batch mode, no stdin."""
+    no_hooks = boards_root(home) / ".nohooks"
+    no_hooks.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never",
+               GIT_SSH_COMMAND=os.environ.get("GIT_SSH_COMMAND", "ssh") + " -o BatchMode=yes")
     try:
-        return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
-                              errors="replace", env=env, timeout=timeout)
+        return subprocess.run(["git", "-c", f"core.hooksPath={no_hooks.as_posix()}", *args], cwd=cwd,
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+                              stdin=subprocess.DEVNULL, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as error:
         return subprocess.CompletedProcess(args, 1, "", str(error))
 
 
 def cache_dir(home: Path, key: str) -> Path:
-    return home / ".neuroflow" / "boards" / Path(*key.split("/"))
+    """The cache folder of `host/owner/repo` — always inside ~/.neuroflow/boards/, or an error."""
+    root = boards_root(home).resolve()
+    parts = key.split("/")
+    if len(parts) != 3 or any(part in (".", "..") or not SAFE_PART.match(part) for part in parts):
+        raise UsageError(f"not a repository key: {key!r}")
+    target = root.joinpath(*parts)
+    if root not in target.resolve().parents:
+        raise UsageError(f"{key!r} leads outside {root}")
+    return target
 
 
 def refresh_cache(home: Path, url: str, key: str) -> tuple[bool, str]:
-    """A shallow, sparse clone that holds only the repository's `.neuroflow/tasks/`: cloned once, refreshed after."""
+    """A shallow, sparse clone that holds only the repository's `.neuroflow/tasks/`: cloned once, refreshed after.
+    Only a folder this script created (it holds BOARD_MARK) is ever replaced; anything else in the way is left alone."""
     if shutil.which("git") is None:
         return False, "git is not installed"
     target = cache_dir(home, key)
-    if not (target / ".git").exists():
+    if target.exists() and not (target / BOARD_MARK).is_file():
+        return False, f"{target} is not a board cache this script made; left alone"
+    if (target / BOARD_MARK).is_file() and not (target / ".git").is_dir():
+        remove_tree(target)  # a cache of ours that broke: clone it again
+    fresh = not target.exists()
+    if fresh:
         target.parent.mkdir(parents=True, exist_ok=True)
-        if target.exists():
-            shutil.rmtree(target, ignore_errors=True)
-        steps = [
-            (["clone", "--depth", "1", "--filter=blob:none", "--no-checkout", "--quiet", clone_url(url), str(target)], None),
-            (["sparse-checkout", "set", "--no-cone", "/.neuroflow/tasks/"], target),
-            (["checkout", "--quiet"], target),
-        ]
-    else:
-        steps = [
-            (["fetch", "--depth", "1", "--quiet", "origin", "HEAD"], target),
-            (["checkout", "--quiet", "--force", "FETCH_HEAD"], target),
-        ]
-    for args, cwd in steps:
-        proc = git(args, cwd)
+        proc = git(["clone", "--depth", "1", "--filter=blob:none", "--no-checkout", "--quiet", "--", url, str(target)], None, home)
         if proc.returncode != 0:
-            reason = next((line for line in (proc.stderr + proc.stdout).splitlines() if line.strip()), "git failed")
-            if args[0] == "clone":
-                shutil.rmtree(target, ignore_errors=True)
-            return False, reason.strip()[:200]
+            if target.exists() and not (target / BOARD_MARK).exists():
+                remove_tree(target)  # the half-made folder this call created
+            return False, first_line(proc)
+        (target / BOARD_MARK).write_text("a cache of this repository's .neuroflow/tasks/ (projects.py)\n", encoding="utf-8")
+    steps = [["sparse-checkout", "set", "--no-cone", "/.neuroflow/tasks/"]]
+    steps += [["checkout", "--quiet"]] if fresh else [["fetch", "--depth", "1", "--quiet", "origin", "HEAD"],
+                                                      ["checkout", "--quiet", "--force", "FETCH_HEAD"]]
+    for args in steps:
+        proc = git(args, target, home)
+        if proc.returncode != 0:
+            return False, first_line(proc)
     (target / ".neuroflow-fetched").write_text(datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") + "\n",
                                                encoding="utf-8")
     return True, ""
 
 
+def first_line(proc: subprocess.CompletedProcess) -> str:
+    lines = [line.strip() for line in (proc.stderr + "\n" + proc.stdout).splitlines() if line.strip()]
+    reason = next((line for line in lines if re.match(r"^(fatal|error):", line, re.I)), lines[0] if lines else "git failed")
+    return reason[:200]
+
+
 def local_projects(home: Path) -> list[dict]:
-    data = read_json(home / ".neuroflow" / "local-projects.json") or {}
-    return [entry for entry in data.get("projects", []) if isinstance(entry, dict)]
+    entries, _ = registry_entries(home / ".neuroflow" / "local-projects.json")
+    return entries
 
 
 def find_root(start: Path) -> Path | None:
@@ -319,27 +404,51 @@ def find_root(start: Path) -> Path | None:
     return None
 
 
-def card_repos(card: dict) -> list[str]:
-    urls = []
-    for repo in card.get("repos") or []:
-        url = repo.get("url") if isinstance(repo, dict) else repo
-        if isinstance(url, str) and repo_key(url):
-            urls.append(url)
-    return urls
-
-
 def linked_id(home: Path, levels: list[Level], root: Path) -> str | None:
     """The project this repository is: its local-projects.json entry, else a card or pointer listing its origin."""
     for entry in local_projects(home):
         path = str(entry.get("path") or "")
-        if path and Path(path).expanduser().resolve() == root.resolve():
-            return str(entry.get("name") or "") or None
+        try:
+            if path and Path(path).expanduser().resolve() == root.resolve():
+                return entry_id(entry) or None
+        except OSError:
+            continue
     key = repo_key(origin_url(root) or "")
     for level in levels:
         for entry in level.entries:
-            if key and any(repo_key(url) == key for url in card_repos(entry)):
-                return str(entry["id"])
+            if key and any(repo_key(url) == key for url in repo_values(entry)):
+                return entry_id(entry)
     return None
+
+
+def cached_level(home: Path, key: str) -> dict:
+    entry: dict = {"level": "project", "name": key, "source": "remote", "tasks": []}
+    cached = cache_dir(home, key)
+    stamp = read_text(cached / ".neuroflow-fetched")
+    entry["fetched"] = stamp.strip() if stamp else None
+    if (cached / ".git").exists():
+        entry["tasks"], error = safe_board(cached / ".neuroflow" / "tasks")
+        if error:
+            entry["error"] = error
+    return entry
+
+
+def remote_repos(home: Path, card: dict | None, here: Path | None) -> list[tuple[str, str, Path | None]]:
+    """The card's repositories other than this one: (key, clone URL, the local copy when it is checked out here)."""
+    seen = {repo_key(origin_url(here) or "")} if here is not None else set()
+    checked_out = {}
+    for entry in local_projects(home):
+        key = repo_key(str(entry.get("remote") or ""))
+        if key and entry.get("path"):
+            checked_out[key] = Path(str(entry["path"])).expanduser()
+    out = []
+    for value in repo_values(card or {}):
+        parsed = parse_repo(value)
+        if parsed is None or parsed[0] in seen:
+            continue
+        seen.add(parsed[0])
+        out.append((parsed[0], parsed[1], checked_out.get(parsed[0])))
+    return out
 
 
 def view(home: Path, project_id: str, root: Path | None, remote: bool) -> dict:
@@ -349,50 +458,39 @@ def view(home: Path, project_id: str, root: Path | None, remote: bool) -> dict:
     if card is not None:
         result["card"] = {"where": where.label, **{field: card.get(field) for field in CARD_FIELDS if field in card}}
     for level in levels:
-        tasks = [task for task in read_board(level.root / "tasks") if task["project"] == project_id]
-        if tasks or level.kind == "flowie" or level is where:
-            result["levels"].append({"level": level.kind, "name": level.label, "source": "local", "tasks": tasks})
+        tasks, error = safe_board(level.root / "tasks")
+        tasks = [task for task in tasks if task["project"] == project_id]
+        if tasks or error or level.kind == "flowie" or level is where:
+            result["levels"].append({"level": level.kind, "name": level.label, "source": "local", "tasks": tasks,
+                                     **({"error": error} if error else {})})
     here = find_root(root) if root is not None else None
     if here is not None and linked_id(home, levels, here) == project_id:
-        result["levels"].append({"level": "project", "name": "this repository", "source": "local",
-                                 "tasks": read_board(here / ".neuroflow" / "tasks")})
-    seen = {repo_key(origin_url(here) or "")} if here is not None else set()
-    checked_out = {repo_key(str(entry.get("remote") or "")): Path(str(entry.get("path"))).expanduser()
-                   for entry in local_projects(home) if entry.get("remote") and entry.get("path")}
-    for url in card_repos(card or {}):
-        key = repo_key(url)
-        if key in seen:
-            continue
-        seen.add(key)
-        local = checked_out.get(key)
+        tasks, error = safe_board(here / ".neuroflow" / "tasks")
+        result["levels"].append({"level": "project", "name": "this repository", "source": "local", "tasks": tasks,
+                                 **({"error": error} if error else {})})
+    for key, url, local in remote_repos(home, card, here):
         if local is not None and (local / ".neuroflow").is_dir():
+            tasks, error = safe_board(local / ".neuroflow" / "tasks")
             result["levels"].append({"level": "project", "name": key, "source": f"local copy ({local.as_posix()})",
-                                     "tasks": read_board(local / ".neuroflow" / "tasks")})
+                                     "tasks": tasks, **({"error": error} if error else {})})
             continue
-        entry: dict = {"level": "project", "name": key, "source": "remote", "tasks": []}
-        if remote:
-            ok, reason = refresh_cache(home, url, key)
-            if not ok:
-                entry["error"] = reason
-        cached = cache_dir(home, key)
-        stamp = read_text(cached / ".neuroflow-fetched")
-        entry["fetched"] = stamp.strip() if stamp else None
-        if (cached / ".git").exists():
-            entry["tasks"] = read_board(cached / ".neuroflow" / "tasks")
-        elif "error" not in entry:
+        reason = refresh_cache(home, url, key)[1] if remote else ""
+        entry = cached_level(home, key)
+        if reason:
+            entry["error"] = reason
+        elif "error" not in entry and not (cache_dir(home, key) / ".git").exists():
             entry["error"] = "not fetched yet (run without --no-remote)"
         result["levels"].append(entry)
     return result
 
 
-def refresh(home: Path, project_id: str) -> dict:
+def refresh(home: Path, project_id: str, root: Path | None) -> dict:
     levels = all_levels(home)
     _, card, problems = find_card(levels, project_id)
+    here = find_root(root) if root is not None else None
     out = {"project": project_id, "problems": problems, "repos": []}
-    checked_out = {repo_key(str(entry.get("remote") or "")) for entry in local_projects(home) if entry.get("remote")}
-    for url in card_repos(card or {}):
-        key = repo_key(url)
-        if key in checked_out:
+    for key, url, local in remote_repos(home, card, here):
+        if local is not None and (local / ".neuroflow").is_dir():
             continue
         ok, reason = refresh_cache(home, url, key)
         out["repos"].append({"repo": key, "ok": ok, **({"error": reason} if not ok else {})})
@@ -406,8 +504,8 @@ def check(home: Path) -> list[dict]:
     findings: list[dict] = []
     for level in levels:
         if not level.registry_ok:
-            findings.append({"kind": "registry", "where": level.label, "message": "projects/projects.json is not valid JSON"})
-    ids = {str(entry["id"]) for level in levels for entry in level.entries}
+            findings.append({"kind": "registry", "where": level.label, "message": f"projects/projects.json in the {level.label} is not a list of projects (not valid JSON?)"})
+    ids = {entry_id(entry) for level in levels for entry in level.entries}
     for project_id in sorted(ids):
         cards = [(level, level.entry(project_id)) for level in levels]
         cards = [(level, entry) for level, entry in cards if entry is not None]
@@ -419,7 +517,14 @@ def check(home: Path) -> list[dict]:
                              "differ": differ,
                              "message": f"{project_id} has {len(full)} cards ({', '.join(level.label for level, _ in full)})"
                                         + (f"; they differ in {', '.join(differ)}" if differ else "")
-                                        + " — /neuroflow:migrate folds them into one card and a pointer"})
+                                        + (" — /neuroflow:migrate folds them into one card and a pointer" if len(full) == 2 and full[0][0].kind == "flowie"
+                                           else " — keep one: a project has one card")})
+        for level, entry in full:
+            local = [value for value in repo_values(entry) if parse_repo(value) is None and not re.match(r"^[a-z]+://", value, re.I)]
+            if local:
+                findings.append({"kind": "local-repo", "project": project_id, "where": level.label,
+                                 "message": f"the card of {project_id} in the {level.label} lists a local folder in repos ({local[0]}); "
+                                            "repos holds remote URLs, a folder belongs in ~/.neuroflow/local-projects.json"})
         for level, entry in cards:
             if not is_pointer(entry):
                 continue
@@ -437,9 +542,11 @@ def check(home: Path) -> list[dict]:
                 findings.append({"kind": "pointer-target", "project": project_id, "where": level.label,
                                  "message": f"{project_id} points at {entry['ref']}, which has no card for it"})
     for level in levels:
-        tasks = read_board(level.root / "tasks")
+        tasks, error = safe_board(level.root / "tasks")
+        if error:
+            findings.append({"kind": "board", "where": level.label, "message": f"the {level.label} board: {error}"})
         slugs = {task["slug"] for task in tasks}
-        known = {str(entry["id"]) for entry in level.entries}
+        known = {entry_id(entry) for entry in level.entries}
         for task in tasks:
             for slug in task["blocked_by"]:
                 if slug not in slugs:
@@ -454,74 +561,129 @@ def check(home: Path) -> list[dict]:
 
 # ── fold: two cards of one project become the hive card and a flowie pointer ───────────────────
 
-def fold_plan(home: Path, keep: dict[str, str]) -> list[dict]:
+def same(a, b) -> bool:
+    return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+
+
+def union(a, b) -> list:
+    out = list(a or [])
+    for item in b or []:
+        if not any(same(item, kept) for kept in out):
+            out.append(item)
+    return out
+
+
+def note_sections(text: str) -> tuple[list[str], str]:
+    """A flowie project note: the repository URLs its card-like sections list, and everything else, kept."""
+    text = text.replace("\r\n", "\n")
+    urls = re.findall(r"(?:https?|ssh)://\S+|[\w.-]+@[\w.-]+:[\w./-]+", "\n".join(
+        body for heading, body in re.findall(r"^## +(.+?)\s*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+        if heading.strip().lower() in ("repos", "linked repos")))
+    kept = re.sub(r"^## +(.+?)\s*\n.*?(?=^## |\Z)",
+                  lambda match: "" if match.group(1).strip().lower() in CARD_SECTIONS else match.group(0), text,
+                  flags=re.M | re.S)
+    kept = re.sub(r"\A# .*\n", "", kept).strip()
+    return [url.rstrip("|).,") for url in urls], kept
+
+
+def dirty(level: Level, paths: list[str]) -> bool:
+    """Whether a rebase or merge is in progress in the level's clone, or one of `paths` has uncommitted changes."""
+    git_dir = level.root / ".git"
+    if any((git_dir / marker).exists() for marker in ("rebase-merge", "rebase-apply", "MERGE_HEAD")):
+        return True
+    if shutil.which("git") is None or not level.is_clone:
+        return False
+    proc = subprocess.run(["git", "-C", str(level.root), "--no-optional-locks", "status", "--porcelain", "--", *paths],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL)
+    return proc.returncode == 0 and proc.stdout.strip() != ""  # git cannot answer: nothing to protect it from
+
+
+def fold_plan(home: Path, keep: dict[str, str], projects: set[str], hives: set[str] | None, no_hive: bool) -> list[dict]:
     levels = all_levels(home)
     flowie = next((level for level in levels if level.kind == "flowie"), None)
     if flowie is None:
         return []
     plan = []
     for entry in flowie.entries:
-        if is_pointer(entry):
+        project_id = entry_id(entry)
+        if is_pointer(entry) or (projects and project_id not in projects):
             continue
-        project_id = str(entry["id"])
-        hives = [level for level in levels if level.kind == "hive" and (level.entry(project_id) or {}) and not is_pointer(level.entry(project_id))]
-        if len(hives) != 1:
-            continue  # a personal project, or a card in two hives (check reports it): nothing to fold here
-        hive = hives[0]
-        if not hive.is_clone:
-            plan.append({"project": project_id, "hive": hive.repo or hive.name, "hive_folder": hive.name, "differ": [],
-                         "blocked": "that hive is a copy of files, not a git clone: /hive --init replaces it first"})
-            continue
+        holders = [level for level in levels if level.kind == "hive" and level.entry(project_id) is not None
+                   and not is_pointer(level.entry(project_id))]
+        if len(holders) != 1:
+            continue  # a personal project, or cards in two hives (check reports it): nothing to fold here
+        hive = holders[0]
         card = hive.entry(project_id)
-        fields = []
+        item: dict = {"project": project_id, "hive": hive.repo or hive.name, "hive_folder": hive.name, "differ": [],
+                      "extra": {key: value for key, value in entry.items() if key not in (*CARD_FIELDS, "id", "name", "ref")}}
+        note = flowie.root / "projects" / f"{project_id}.md"
+        note_urls, _ = note_sections(read_text(note) or "") if note.exists() else ([], "")
+        mine_repos = union(entry.get("repos"), [url for url in note_urls if not any(url in str(r) for r in entry.get("repos") or [])])
+        hive_writes = {}
         for field in CARD_FIELDS:
-            mine, theirs = entry.get(field), card.get(field)
-            if mine is None or json.dumps(mine, sort_keys=True) == json.dumps(theirs, sort_keys=True):
+            mine = mine_repos if field == "repos" else entry.get(field)
+            theirs = card.get(field)
+            if mine in (None, "", []) or same(mine, theirs):
                 continue
-            side = keep.get(f"{project_id}.{field}", "hive")
-            fields.append({"field": field, "flowie": mine, "hive": theirs, "keep": side})
-        plan.append({"project": project_id, "hive": hive.repo or hive.name, "hive_folder": hive.name, "differ": fields})
+            default = "both" if field in LIST_FIELDS and theirs not in (None, []) else ("flowie" if theirs in (None, "", []) else "hive")
+            side = keep.get(f"{project_id}.{field}", default)
+            if side == "both" and field not in LIST_FIELDS:
+                side = default
+            item["differ"].append({"field": field, "flowie": mine, "hive": theirs, "keep": side})
+            value = union(theirs, mine) if side == "both" else mine if side == "flowie" else theirs
+            if not same(value, theirs):
+                hive_writes[field] = value
+        item["hive_writes"] = hive_writes
+        if not hive.is_clone:
+            item["blocked"] = "that hive is a copy of files, not a git clone: /hive --init replaces it first"
+        elif hives is not None and hive.name not in hives and (hive.repo or "") not in hives:
+            item["blocked"] = "that hive is not part of this run (its pull did not go through)"
+        elif no_hive and hive_writes:
+            item["blocked"] = "its hive card would change; fold it together with the hive"
+        elif dirty(flowie, ["projects/projects.json", f"projects/{project_id}.md"]):
+            item["blocked"] = "the flowie has a rebase in progress or uncommitted changes in its projects/ files"
+        elif hive_writes and dirty(hive, ["projects/projects.json"]):
+            item["blocked"] = "that hive has a rebase in progress or uncommitted changes in projects/projects.json"
+        plan.append(item)
     return plan
 
 
 def apply_fold(home: Path, plan: list[dict]) -> dict[str, list[str]]:
     flowie_root = home / ".neuroflow" / "flowie"
     flowie_json = flowie_root / "projects" / "projects.json"
-    flowie_data = read_json(flowie_json) or {"projects": []}
     changed: dict[str, list[str]] = {"flowie": []}
     plan = [item for item in plan if not item.get("blocked")]
+    if not plan:
+        return changed
+    flowie_data = read_json(flowie_json)
     for item in plan:
-        project_id, hive_root = item["project"], home / ".neuroflow" / "hives" / item["hive_folder"]
-        hive_json = hive_root / "projects" / "projects.json"
-        hive_data = read_json(hive_json) or {"projects": []}
-        updates = {change["field"]: change["flowie"] for change in item["differ"] if change["keep"] == "flowie"}
-        if updates:
-            for entry in hive_data["projects"]:
-                if isinstance(entry, dict) and str(entry.get("id")) == project_id:
-                    entry.update(updates)
+        project_id = item["project"]
+        if item["hive_writes"]:
+            hive_json = home / ".neuroflow" / "hives" / item["hive_folder"] / "projects" / "projects.json"
+            hive_data = read_json(hive_json)
+            for entry in hive_data["projects"] if isinstance(hive_data, dict) else hive_data:
+                if isinstance(entry, dict) and entry_id(entry) == project_id:
+                    entry.update(item["hive_writes"])
             write_json(hive_json, hive_data)
             changed.setdefault(item["hive_folder"], []).append("projects/projects.json")
-        pointer = {"id": project_id, "ref": f"hive:{item['hive']}"}
-        flowie_data["projects"] = [pointer if isinstance(entry, dict) and str(entry.get("id")) == project_id else entry
-                                   for entry in flowie_data["projects"]]
+        pointer = {"id": project_id, "ref": f"hive:{item['hive']}", **item["extra"]}
+        entries = flowie_data["projects"] if isinstance(flowie_data, dict) else flowie_data
+        entries[:] = [pointer if isinstance(entry, dict) and entry_id(entry) == project_id else entry for entry in entries]
         note = flowie_root / "projects" / f"{project_id}.md"
         if note.exists():
-            notes = personal_notes(read_text(note) or "")
-            note.write_text(f"# {project_id}\n\nCard: hive {item['hive']} → projects/{project_id}.md (status, phase, "
-                            f"description and repos live there).\n\n## Notes\n\n{notes}".rstrip() + "\n", encoding="utf-8")
+            raw = read_text(note) or ""
+            _, kept = note_sections(raw)
+            body = kept if re.search(r"^## ", kept, re.M) or not kept else f"## Notes\n\n{kept}"
+            text = (f"# {project_id}\n\nCard: hive {item['hive']} → projects/{project_id}.md (status, phase, description "
+                    f"and repos live there).\n\n{body or '## Notes'}\n")
+            note.write_bytes(text.replace("\n", "\r\n" if "\r\n" in raw else "\n").encode("utf-8"))
             changed["flowie"].append(f"projects/{project_id}.md")
-    if plan:
-        write_json(flowie_json, flowie_data)
-        changed["flowie"].append("projects/projects.json")
+    write_json(flowie_json, flowie_data)
+    changed["flowie"].append("projects/projects.json")
     return changed
 
 
-def personal_notes(text: str) -> str:
-    match = re.search(r"^## Notes\s*\n(.*?)(?=^## |\Z)", text.replace("\r\n", "\n"), re.M | re.S)
-    return match.group(1).strip() + "\n" if match and match.group(1).strip() else ""
-
-
-def write_json(path: Path, data: dict) -> None:
+def write_json(path: Path, data) -> None:
     raw = read_text(path) or ""
     newline = "\r\n" if "\r\n" in raw else "\n"
     text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
@@ -533,8 +695,11 @@ def write_json(path: Path, data: dict) -> None:
 
 def print_view(result: dict) -> None:
     card = result["card"]
-    print(f"{result['project']}" + (f" — card in the {card['where']}" + (f", {card.get('status')}" if card.get("status") else "")
-                                    + (f", phase {card.get('current_phase')}" if card.get("current_phase") else "") if card else " — no card"))
+    head = result["project"]
+    if card:
+        head += f" — card in the {card['where']}" + (f", {card.get('status')}" if card.get("status") else "")
+        head += f", phase {card.get('current_phase')}" if card.get("current_phase") else ""
+    print(head if card else f"{head} — no card")
     for problem in result["problems"]:
         print(f"  ! {problem}")
     for level in result["levels"]:
@@ -551,30 +716,31 @@ def main(argv: list[str] | None = None) -> int:
     utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("command", choices=["list", "check", "view", "refresh", "fold"])
-    parser.add_argument("--project", help="the project id (view, refresh)")
-    parser.add_argument("--root", type=Path, default=Path.cwd(), help="a folder inside this repository (view)")
+    parser.add_argument("--project", action="append", default=[], help="the project id (view, refresh; fold: limit to it)")
+    parser.add_argument("--root", type=Path, default=Path.cwd(), help="a folder inside this repository (view, refresh)")
     parser.add_argument("--no-remote", action="store_true", help="view: read the cache only, no network")
+    parser.add_argument("--hive", action="append", default=None, metavar="NAME", help="fold: a hive that may be written")
+    parser.add_argument("--no-hive", action="store_true", help="fold: write no hive; skip projects whose card would change")
     parser.add_argument("--apply", action="store_true", help="fold: write the planned changes")
     parser.add_argument("--keep", action="append", default=[], metavar="ID.FIELD=SIDE",
-                        help="fold: keep the flowie's value of a field that differs (SIDE is flowie or hive)")
+                        help="fold: which value a differing field keeps (flowie, hive, or both for repos/visited_phases)")
     parser.add_argument("--home", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--json", action="store_true", help="print the result as JSON")
     args = parser.parse_args(argv)
     home = args.home or Path.home()
     try:
-        if args.command in ("view", "refresh") and not args.project:
-            raise UsageError(f"{args.command} needs --project ID")
+        if args.command in ("view", "refresh") and len(args.project) != 1:
+            raise UsageError(f"{args.command} needs one --project ID")
         keep = {}
         for item in args.keep:
-            match = re.match(r"^(.+)\.([a-z_]+)=(flowie|hive)$", item)
+            match = re.match(r"^(.+)\.([a-z_]+)=(flowie|hive|both)$", item)
             if not match or match.group(2) not in CARD_FIELDS:
-                raise UsageError(f"--keep {item}: expected ID.FIELD=flowie|hive with FIELD one of {', '.join(CARD_FIELDS)}")
+                raise UsageError(f"--keep {item}: expected ID.FIELD=flowie|hive|both with FIELD one of {', '.join(CARD_FIELDS)}")
             keep[f"{match.group(1)}.{match.group(2)}"] = match.group(3)
         if args.command == "list":
-            levels = all_levels(home)
-            rows = [{"project": str(entry["id"]), "where": level.label,
+            rows = [{"project": entry_id(entry), "where": level.label,
                      "kind": "pointer" if is_pointer(entry) else "card", **({"ref": entry["ref"]} if is_pointer(entry) else {})}
-                    for level in levels for entry in level.entries]
+                    for level in all_levels(home) for entry in level.entries]
             if args.json:
                 print(json.dumps({"projects": rows}, ensure_ascii=False, indent=2))
             else:
@@ -591,21 +757,23 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{len(findings)} finding(s)" if findings else "projects: no findings")
             return 1 if findings else 0
         if args.command == "view":
-            result = view(home, args.project, args.root, remote=not args.no_remote)
+            result = view(home, args.project[0], args.root, remote=not args.no_remote)
             print(json.dumps(result, ensure_ascii=False, indent=2)) if args.json else print_view(result)
             return 1 if any(level.get("error") for level in result["levels"]) else 0
         if args.command == "refresh":
-            result = refresh(home, args.project)
+            result = refresh(home, args.project[0], args.root)
             if args.json:
                 print(json.dumps(result, ensure_ascii=False, indent=2))
             else:
                 for repo in result["repos"]:
                     print(f"{repo['repo']}: {'refreshed' if repo['ok'] else 'not refreshed — ' + repo['error']}")
             return 1 if any(not repo["ok"] for repo in result["repos"]) else 0
-        plan = fold_plan(home, keep)
-        changed = apply_fold(home, plan) if args.apply and plan else {}
+        hives = set(args.hive) if args.hive is not None else None
+        plan = fold_plan(home, keep, set(args.project), hives, args.no_hive)
+        changed = apply_fold(home, plan) if args.apply else {}
         if args.json:
-            print(json.dumps({"applied": bool(args.apply and plan), "plan": plan, "changed": changed}, ensure_ascii=False, indent=2))
+            print(json.dumps({"applied": bool(args.apply and any(not item.get("blocked") for item in plan)), "plan": plan,
+                              "changed": changed}, ensure_ascii=False, indent=2))
         else:
             for item in plan:
                 if item.get("blocked"):
@@ -614,7 +782,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{item['project']}: one card in hive {item['hive']}, a pointer in the flowie")
                 for change in item["differ"]:
                     print(f"    {change['field']}: flowie {json.dumps(change['flowie'], ensure_ascii=False)} · hive "
-                          f"{json.dumps(change['hive'], ensure_ascii=False)} → keeps the {change['keep']}'s")
+                          f"{json.dumps(change['hive'], ensure_ascii=False)} → keeps {change['keep']}")
             if not plan:
                 print("projects: nothing to fold")
             elif not args.apply:
@@ -623,8 +791,8 @@ def main(argv: list[str] | None = None) -> int:
     except UsageError as error:
         print(f"projects: {error}", file=sys.stderr)
         return 2
-    except OSError as error:
-        print(f"projects: {error}", file=sys.stderr)
+    except Exception as error:  # a registry shape nobody foresaw is a runtime error, never "findings"
+        print(f"projects: {type(error).__name__}: {error}", file=sys.stderr)
         return 2
 
 

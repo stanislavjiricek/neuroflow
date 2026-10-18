@@ -1376,7 +1376,10 @@ def flag_local_changes(plan: LevelPlan) -> None:
     def local(rel: str) -> bool:  # a folder git lists whole (a nested repository) ends with "/"
         return any(rel == path or (path.endswith("/") and rel.startswith(path)) for path in plan.uncommitted)
 
+    local_moves = {plan.shown_path(src) for src, _, _ in plan.local_moves}
     for change in plan.changes:
+        if change["path"] in local_moves:
+            continue  # moved on this machine only, never committed: nothing of it goes into a commit
         if any(local(rel) for rel in (change["path"], change.get("to")) if rel):
             change["local_changes"] = True
 

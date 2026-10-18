@@ -37,7 +37,7 @@ SKIP_DIRS = {".git"}
 OK_MARK = "nf: local-path-ok"
 
 STOP = r"\s|`'\")\]"  # what ends a path written in text
-MOUNTS = "home|Users|Volumes|mnt|media|scratch|gpfs|lustre|storage|data|work|projects|project|srv|net|nfs|auto|root"
+MOUNTS = "home|Users|Volumes|mnt|media|scratch|gpfs|lustre|beegfs|storage|data|work|projects|project|srv|net|nfs|auto|root"
 ALWAYS = [
     ("windows path", re.compile(rf"(?<![A-Za-z0-9/])[A-Za-z]:[\\/][^{STOP}]*")),
     ("network share", re.compile(rf"(?<![\\\w])\\\\[A-Za-z0-9._-]+\\[^{STOP}]+")),
@@ -53,9 +53,10 @@ CODE_SPAN = re.compile(r"`([^`]+)`")
 LINK_TARGET = re.compile(r"\]\(([^)\s]+)[^)]*\)")
 WEB_URL = re.compile(r"\b(?!file:)[a-z][a-z0-9+.-]*://\S+", re.I)
 # System and web paths that name no one's folder.
-NOT_LOCAL = re.compile(r"^/(?:dev|usr|etc|proc|sys|bin|sbin|lib|lib64|var|run|opt|boot|api|v\d+|static|assets|wiki|docs)(?:/|$)", re.I)
+# and the start of a dataset-relative path (BIDS: /sub-01/ses-02/eeg) joined onto a folder in code.
+NOT_LOCAL = re.compile(r"^/(?:dev|usr|etc|proc|sys|bin|sbin|lib|lib64|var|run|opt|boot|api|v\d+|static|assets|wiki|docs|sub-[^/]+|ses-[^/]+|derivatives|sourcedata|rawdata)(?:/|$)", re.I)
 # An example pattern (/storage/.../data, ~/{project}, C:\Users\<name>), not a folder anyone has.
-PLACEHOLDER = re.compile(r"\.\.\.|…|[<>{}]|\$\{(?!HOME\})")
+PLACEHOLDER = re.compile(r"\.\.\.|…|[<>{}]|\$\{(?!HOME\})|^/path/to/", re.I)
 
 
 def utf8_stdio() -> None:
@@ -114,8 +115,8 @@ def check(paths: list[Path], base: Path | None) -> tuple[list[dict], list[str]]:
     results: list[dict] = []
     errors: list[str] = []
     for path in paths:
-        if path.name in SKIP_NAMES:
-            continue
+        if path.name in SKIP_NAMES or (base is not None and not path.exists()):
+            continue  # under --root, a path that is gone (deleted, moved with git mv) has nothing left to check
         try:
             text = path.read_bytes().decode("utf-8", errors="replace")
         except OSError as error:

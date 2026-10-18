@@ -328,4 +328,43 @@ describe('the boards in a session', () => {
     expect(JSON.stringify(await ui.drawn())).toContain('[project 0]')
     await ui.unmount()
   })
+
+  test('the remote boards refresh when the boards open or on r, never when a turn ends, and wait after a failure', { options: { runtime: 'observe' } }, async ($, on) => {
+    const files = {
+      ...FILES,
+      [`${HOME}/.neuroflow/flowie/projects/projects.json`]: JSON.stringify({
+        projects: [{ id: 'Oddball EEG', repos: ['https://github.com/example-lab/oddball-eeg', 'https://github.com/example-lab/oddball-analysis'] }],
+      }),
+      [`${HOME}/.neuroflow/boards/github.com/example-lab/oddball-analysis/.neuroflow/tasks/active/rerun.md`]: task('Rerun cached'),
+    }
+    setUp(on, files)
+    const refreshes: string[][] = []
+    on('process.run', ($$, e) => {
+      const argv = (e as unknown as { argv: string[] }).argv
+      if (argv.some(arg => arg.endsWith('projects.py'))) refreshes.push(argv.slice(argv.findIndex(arg => arg.endsWith('projects.py')) + 1))
+      return { value: { exitCode: 1, stdout: '{}', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    })
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    const ui = await $.ui.mount(pane('nf-board') as never)
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes).toEqual([['refresh', '--project', 'Oddball EEG', '--root', ROOT, '--json']])
+    expect(JSON.stringify(await ui.drawn())).toContain('example-lab/oddball-analysis 1')
+    await $.turn.complete({ reason: 'answer', answer: 'x', durationMs: 1, isAborted: false, turnId: 't1' } as never)
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes.length).toBe(1)
+    // r right after a failed refresh: the board is read again, the network is not asked again for ten minutes.
+    await ui.press({ key: 'nf-board-refresh' })
+    await new Promise(resolve => setTimeout(resolve, 30))
+    expect(refreshes.length).toBe(1)
+    await ui.unmount()
+  })
+
+  test('repository keys follow projects.py: three safe parts, nothing that could leave the cache', () => {
+    for (const url of ['https://nohost.invalid/../../victim', 'https://github.com/org', '-oProxyCommand=x', 'file:///C:/repo', 'https://github.com/a/b/c']) {
+      expect(repoKey(url)).toBe(null)
+    }
+    expect(repoKey('HTTPS://GitHub.com/Example-Lab/Oddball.GIT')).toBe('github.com/example-lab/oddball')
+    expect(repoKey('github.com/example-lab/oddball')).toBe('github.com/example-lab/oddball')
+  })
 })

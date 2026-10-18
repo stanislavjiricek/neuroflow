@@ -50,7 +50,7 @@ A task goes on the narrowest board that everyone who must see it can read:
 | the team (anyone else in the hive) | `hive` — the default for a task of a team project |
 | the people working in this repository, about its code or files (a pipeline step, a bug, a data folder) | `project` |
 
-`--add` without `--level` proposes the board by this rule and says why in one line (*"hive DES_team — the team works on this project"*), and the person can pick another. A personal to-do about a team project stays in the flowie. Never move a task to a wider board without the person's yes: a flowie task becomes visible to the team on the hive.
+`--add` without `--level` proposes the board by this rule and says why in one line (*"hive example-lab-hive — the team works on this project"*), and the person can pick another. A personal to-do about a team project stays in the flowie. Never move a task to a wider board without the person's yes: a flowie task becomes visible to the team on the hive.
 
 ## Task file format
 

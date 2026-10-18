@@ -11,6 +11,7 @@ reads:
   - ~/.neuroflow/flowie/sync.json
   - ~/.neuroflow/flowie/tasks/config.json
   - ~/.neuroflow/flowie/projects/projects.json
+  - ~/.neuroflow/hives/{org-repo}/projects/projects.json   # a pointer's card
   - ~/.neuroflow/flowie/wellbeing/config.json
   - ~/.neuroflow/flowie/wellbeing/*.json
   - ~/.neuroflow/flowie/wiki/schema.md
@@ -28,6 +29,7 @@ writes:
   - .neuroflow/tasks/**
   - ~/.neuroflow/flowie/projects/projects.json
   - ~/.neuroflow/flowie/projects/*.md
+  - ~/.neuroflow/hives/{org-repo}/projects/   # a team project's card (--projects --add, --link), after the person's yes
   - ~/.neuroflow/flowie/notes/
   - ~/.neuroflow/flowie/wellbeing/config.json
   - ~/.neuroflow/flowie/wellbeing/*.json
@@ -612,7 +614,7 @@ Which project does this neuroflow repo belong to? [1/2/3]
 
 If the user selects an existing project:
 - Read `.neuroflow/project_config.md`. If a `flowie_profiles:` list already exists, append a new entry `- handle: {username}\n  repo: {username}/flowie` if this handle is not already present. If no `flowie_profiles:` list exists, add one (replacing any legacy `flowie_project:` or `flowie_profile:` scalar field). The entry for the user who ran `--link` becomes the first entry if the list was empty.
-- Open `projects/{name}.md` and, under a `## Linked repos` section, add this repo's remote URL (`git remote get-url origin`) if it has one and it is not listed yet. Never write the local folder path there — flowie syncs to every machine you use.
+- Add this repo's remote URL (`git remote get-url origin`), if it has one and it is not listed yet, to the `repos` of the project's card (`neuroflow:neuroflow-core` → **Project registry**): in `projects/projects.json` for a personal project; for a pointer, on the team's card in its hive — show the change and push only after the person's yes (`neuroflow:phase-hive` → `--projects`). Never write the local folder path there — the card syncs to every machine.
 - Record the local folder in the machine-local registry `~/.neuroflow/local-projects.json` (create it if missing; it lives outside the flowie repo and is never committed or synced). One entry per local folder, forward slashes; if the path is already listed, update `last_opened`:
   ```json
   {
@@ -631,7 +633,7 @@ This project is now linked to {name} in your flowie registry.
 Claude will read your profile and project registry when assisting in any neuroflow phase.
 ```
 
-Sync `projects/{name}.md` if it changed (`link: {project} ← {repo-basename}`). `~/.neuroflow/local-projects.json` is never staged.
+Sync `projects/projects.json` if it changed (`link: {project} ← {repo-basename}`). `~/.neuroflow/local-projects.json` is never staged.
 
 Write to `sessions/YYYY-MM-DD.md`.
 

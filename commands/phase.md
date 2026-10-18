@@ -13,6 +13,8 @@ reads:
   - .neuroflow/*/runs.md                  # if any — long runs not yet reviewed
   - ~/.neuroflow/user.yaml                # personal default_mode, if set
   - ~/.neuroflow/local-projects.json      # flowie phase sync: which flowie project this folder is
+  - ~/.neuroflow/flowie/projects/projects.json
+  - ~/.neuroflow/hives/{org-repo}/projects/projects.json   # a team project's card (step 8)
   - commands/{active_phase}.md            # plugin file — its requires/produces/next frontmatter
 writes:
   - .neuroflow/project_config.md          # active_phase only, when the person switches
@@ -29,7 +31,9 @@ lifecycle: light
 
 Shows a visual phase map of the project — current phase, visited phases, recommended phases, and untouched phases. Lets the user switch phase if they want.
 
-With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the map with a picker you move through with the arrow keys and Enter (or a click), and the switch is written to `active_phase` in code. This file is the fallback for Claude Code without the mod, and it asks the same question with `AskUserQuestion`.
+With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the map with a picker you move through with the arrow keys and Enter (or a click), and the switch is written to `active_phase` in code. When the project is linked to a flowie project or a team card, the mod then puts `/neuroflow:phase --sync` in the prompt: sent with Enter, it records the new phase there (steps 7 and 8). This file is the fallback for Claude Code without the mod, and it asks the same question with `AskUserQuestion`.
+
+`/neuroflow:phase --sync` switches nothing: it runs steps 7 and 8 for the current `active_phase` — the flowie phase sync and, after the person's yes, the team card — and reports what it recorded.
 
 ---
 

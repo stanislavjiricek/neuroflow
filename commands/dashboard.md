@@ -14,6 +14,7 @@ reads:
   - ~/.neuroflow/local-projects.json
   - ~/.neuroflow/flowie/projects/projects.json
   - ~/.neuroflow/hives/{org-repo}/projects/projects.json
+  - ~/.neuroflow/boards/                # the project's other repositories' boards (cache, read-only)
   - ~/.neuroflow/user.yaml
   - .neuroflow/{phase}/autoresearch-loops.md
 writes: []

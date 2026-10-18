@@ -592,6 +592,7 @@ class FlowieHiveTest(unittest.TestCase):
         code, result = self.levels("--hive", "example-lab-hive", "--apply")
         level = result["levels"][0]
         self.assertEqual(level["changes"][-1]["to"], ".git/neuroflow-sync.json")
+        self.assertNotIn("local_changes", level["changes"][-1], "a machine-local move never goes into a commit")
         self.assertEqual(self.read(hive / ".git" / "neuroflow-sync.json"),
                          '{"member_handle": "alice", "last_pull": "2026-10-16"}\n')
         self.assertEqual(self.read(hive / "sync.json"), '{"member_handle": "bob"}\n', "back to the committed text")

@@ -366,6 +366,16 @@ const switchPhase = async ($: EngineInterface, phase: string, via: string): Prom
   await reload($, scope.root)
   // The slash menu marks the current and next phase (M065); its cached descriptions are stale now.
   await $.ui.invalidate('command.describe')
+  // The prose records a switch on the project's cards (commands/phase.md, steps 7 and 8: the flowie, and a team
+  // card after the person's yes); the mod does not write there, so it hands that to /neuroflow:phase --sync.
+  const home = await io.home()
+  const linked =
+    (snap?.flowieProfiles.length ?? 0) > 0 ||
+    (home ? (await loadTaskView(io, scope.root, toSlash(home), isoDate(now)).catch(() => null))?.card != null : false)
+  if (linked && (await isPersonThere($))) {
+    await $.prompt.fill({ text: '/neuroflow:phase --sync' })
+    return `Active phase is now ${phase}. Press Enter to record it on your flowie and the team's card (/neuroflow:phase --sync).`
+  }
   return `Active phase is now ${phase}.`
 }
 
@@ -397,18 +407,18 @@ const loadLoopView = async ($: EngineInterface): Promise<void> => {
  * Reads every level's task board (commands/tasks.md → Levels) into state: the project's, the flowie's and each
  * hive clone's, as the local files are — the mod never pulls, writes or moves a task file.
  */
-const loadTasks = async ($: EngineInterface, refresh = true): Promise<void> => {
+const loadTasks = async ($: EngineInterface, refresh = false): Promise<void> => {
   const scope = await read($, scopeAtom)
   if (scope?.root === null || scope === null) return
   const io = ioOf($)
   const home = await io.home()
   const view = await loadTaskView(io, scope.root, home ? toSlash(home) : null, isoDate(await io.now()))
   await update($, taskViewAtom, () => view)
-  if (refresh && view.hasRemote && view.card) void refreshRemoteBoards($, view.card).catch(() => undefined)
+  if (refresh && view.hasRemote && view.card) void refreshRemoteBoards($, view.card, scope.root).catch(() => undefined)
 }
 
-/** When the remote boards were last refreshed this session, per card: at most once a minute, one at a time. */
-const remoteRefreshed = new Map<string, number>()
+/** When the remote boards may be refreshed again, per card: a minute after a refresh, ten after one that failed. */
+const remoteNext = new Map<string, number>()
 let remoteRefreshing: Promise<void> | null = null
 
 /**
@@ -416,13 +426,15 @@ let remoteRefreshing: Promise<void> | null = null
  * keeps in ~/.neuroflow/boards/: when the person opens the tasks, it is refreshed from their remotes in the background
  * (a shallow, sparse fetch of .neuroflow/tasks/ only — nothing leaves), and the boards are read again once it is done.
  */
-const refreshRemoteBoards = ($: EngineInterface, card: string): Promise<void> => {
+const refreshRemoteBoards = ($: EngineInterface, card: string, root: string): Promise<void> => {
   if (remoteRefreshing !== null) return remoteRefreshing
   const run = (async () => {
     const now = await $.clock.now()
-    if (now - (remoteRefreshed.get(card) ?? 0) < 60_000) return
-    remoteRefreshed.set(card, now)
-    await runScript(ioOf($), PROJECTS_SCRIPT, ['refresh', '--project', card, '--json'], { timeoutMs: 180_000 })
+    if (now < (remoteNext.get(card) ?? 0)) return
+    remoteNext.set(card, now + 60_000)
+    // --root: this repository needs no cache. Its git runs with hooks off and no prompt (projects.py).
+    const result = await runScript(ioOf($), PROJECTS_SCRIPT, ['refresh', '--project', card, '--root', root, '--json'], { timeoutMs: 180_000 })
+    if (result.exitCode !== 0) remoteNext.set(card, (await $.clock.now()) + 10 * 60_000)
     await loadTasks($, false)
   })()
   remoteRefreshing = run.finally(() => {
@@ -434,7 +446,7 @@ const refreshRemoteBoards = ($: EngineInterface, card: string): Promise<void> =>
 const selectTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
   await update($, tabAtom, () => tab)
   if (tab === 'loop') await loadLoopView($)
-  if (tab === 'tasks') await loadTasks($)
+  if (tab === 'tasks') await loadTasks($, true)
 }
 
 const openDashboard = async ($: EngineInterface, tab?: string): Promise<void> => {
@@ -443,7 +455,7 @@ const openDashboard = async ($: EngineInterface, tab?: string): Promise<void> =>
   else {
     const current = await read($, tabAtom)
     if (current === 'loop') await loadLoopView($)
-    if (current === 'tasks') await loadTasks($)
+    if (current === 'tasks') await loadTasks($, true)
   }
   await $.ui.open({ id: DASHBOARD, title: 'neuroflow' })
 }
@@ -460,7 +472,7 @@ const isPersonThere = async ($: EngineInterface): Promise<boolean> => (await $.s
  * level with open tasks of this project, else the first with any open tasks.
  */
 const openBoard = async ($: EngineInterface): Promise<void> => {
-  await loadTasks($)
+  await loadTasks($, true)
   const view = await read($, taskViewAtom)
   await update($, boardPickAtom, () => null)
   await update($, boardLevelAtom, () => (view === null ? null : openingLevel(view)))
@@ -819,7 +831,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         ) : null}
         <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
           <Text dimColor>{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
-          <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($)} />
+          <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($, true)} />
           <Button key="nf-board-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: BOARD })} />
         </Box>
       </Box>
@@ -832,7 +844,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const result = await next(e)
     if (e.agentId === undefined && (await read($, taskViewAtom)) !== null) await loadTasks($).catch(() => undefined)
     // The wellbeing remote check, if the one the session's start began did not finish (#253).
-    if (e.agentId === undefined && (await read($, wellbeingCheckAtom))?.state === 'pending') await checkWellbeingRemote($, opts.band).catch(() => undefined)
+    if (e.agentId === undefined && (await read($, wellbeingCheckAtom))?.state === 'pending') void checkWellbeingRemote($, opts.band).catch(() => undefined)
     return result
   }).catch(($, e, next) => next(e))
 
@@ -984,7 +996,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           {tab === 'phase' ? <Button key="nf-dash-switch" label="switch phase" hotkey="s" onPress={() => openPicker($)} /> : null}
           {tab === 'loop' ? <Button key="nf-dash-refresh" label="refresh" hotkey="r" onPress={() => loadLoopView($)} /> : null}
           {tab === 'tasks' ? <Button key="nf-dash-boards" label="boards" hotkey="b" onPress={() => openBoard($)} /> : null}
-          {tab === 'tasks' ? <Button key="nf-dash-tasks-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($)} /> : null}
+          {tab === 'tasks' ? <Button key="nf-dash-tasks-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($, true)} /> : null}
           {tab === 'integrity' && !frozenByPerson ? (
             <Button key="nf-dash-freeze" label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'} hotkey="f" onPress={() => freezeFromDashboard($)} />
           ) : null}

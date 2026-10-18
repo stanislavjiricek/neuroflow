@@ -85,6 +85,10 @@ class FindingsTests(unittest.TestCase):
     def test_a_marked_line_is_kept(self) -> None:
         self.assertEqual(self.paths("server: /scratch/alice/oddball <!-- nf: local-path-ok -->"), [])
 
+    def test_review_cases(self) -> None:
+        self.assertEqual(self.paths("see `/path/to/your/data` and `'/sub-01/ses-01/eeg'` in the code"), [])
+        self.assertEqual(self.paths("cluster copy: /beegfs/alice/oddball"), ["/beegfs/alice/oddball"])
+
     def test_line_numbers_and_kinds(self) -> None:
         hits = lp.findings_in_text("ok\n/home/alice/x\n")
         self.assertEqual(hits, [{"line": 2, "kind": "home or storage folder", "path": "/home/alice/x"}])
@@ -122,6 +126,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 1)
         result = json.loads(out)
         self.assertEqual((result["checked"], result["findings"][0]["file"]), (2, "projects/Oddball.md"))
+        self.assertEqual(run("--root", str(self.flowie), "projects/gone.md")[0], 0, "a path that is gone has nothing to check")
 
     def test_usage_errors_exit_2(self) -> None:
         self.assertEqual(run()[0], 2)

@@ -35,7 +35,7 @@ def task(title: str, project: str, **keys: str) -> str:
 class RegistryTests(unittest.TestCase):
     def setUp(self) -> None:
         self.home = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.home, ignore_errors=True)
+        self.addCleanup(lambda: pj.remove_tree(self.home) if self.home.exists() else None)
         self.flowie = self.home / ".neuroflow" / "flowie"
         self.hive = self.home / ".neuroflow" / "hives" / "example-lab-hive"
         self.write(self.hive / ".git" / "config", '[remote "origin"]\n\turl = https://github.com/example-lab/hive.git\n')
@@ -190,6 +190,138 @@ class ViewTests(RegistryTests):
         levels = json.loads(out)["levels"]
         self.assertEqual([level["name"] for level in levels], ["flowie", "this repository"])
         self.assertEqual(levels[1]["tasks"][0]["title"], "Fix montage")
+
+
+class SafetyAndShapesTests(RegistryTests):
+    def test_repository_urls_that_could_leave_the_cache_are_refused(self) -> None:
+        for url in ("https://nohost.invalid/../../../victim", "https://nohost.invalid/../../flowie", "-oProxyCommand=x",
+                    "https://github.com/org", "https://github.com/a/b/c", "file:///C:/repo", "C:/Users/alice/repo",
+                    "https://github.com/org/re po", "https://c:/x/y"):
+            self.assertIsNone(pj.parse_repo(url), url)
+        self.assertEqual(pj.parse_repo("git@github.com:Example-Lab/Oddball.git"),
+                         ("github.com/example-lab/oddball", "git@github.com:Example-Lab/Oddball.git"))
+        self.assertEqual(pj.parse_repo("github.com/example-lab/oddball")[1], "https://github.com/example-lab/oddball")
+        with self.assertRaises(pj.UsageError):
+            pj.cache_dir(self.home, "nohost.invalid/../victim")
+        inside = pj.cache_dir(self.home, "github.com/example-lab/oddball")
+        self.assertIn(self.home.resolve() / ".neuroflow" / "boards", inside.resolve().parents)
+
+    def test_a_folder_the_script_did_not_make_is_never_replaced(self) -> None:
+        target = pj.cache_dir(self.home, "example.org/lab/oddball")
+        self.write(target / "precious.txt", "keep me\n")
+        ok, reason = pj.refresh_cache(self.home, "https://example.org/lab/oddball", "example.org/lab/oddball")
+        self.assertFalse(ok)
+        self.assertIn("left alone", reason)
+        self.assertEqual((target / "precious.txt").read_text(encoding="utf-8"), "keep me\n")
+
+    def test_older_registry_shapes(self) -> None:
+        self.write(self.flowie / "projects" / "projects.json", "\ufeff" + json.dumps([{"name": "Solo", "status": "active"}]))
+        self.write(self.hive / "projects" / "projects.json", json.dumps({"projects": None}))
+        code, out, _ = self.h("list", "--json")
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out)["projects"], [{"project": "Solo", "where": "flowie", "kind": "card"}])
+        self.assertEqual(self.h("check")[0], 0)
+        self.write(self.hive / "projects" / "projects.json", "{not json")
+        code, out, _ = self.h("check", "--json")
+        self.assertEqual([f["kind"] for f in json.loads(out)["findings"]], ["registry"])
+
+    def test_a_local_folder_in_a_cards_repos_is_reported(self) -> None:
+        self.registry(self.flowie, {"id": "Solo", "repos": ["C:/Users/alice/solo", "https://github.com/example-lab/solo"]})
+        code, out, _ = self.h("check", "--json")
+        self.assertEqual([f["kind"] for f in json.loads(out)["findings"]], ["local-repo"])
+
+    def test_fold_loses_nothing(self) -> None:
+        self.registry(self.flowie, {"id": "Oddball", "status": "paused", "tags": ["eeg"], "deadline": "2026-12-01",
+                                    "repos": ["https://github.com/example-lab/oddball-analysis"],
+                                    "visited_phases": [{"phase": "data", "entered": "2026-09-01"}]})
+        note = ("# Oddball\r\n\r\nP300 study\r\n\r\n## Repos\r\n\r\n| url |\r\n|---|\r\n| https://github.com/example-lab/oddball-analysis |\r\n\r\n"
+                "## Linked repos\r\n\r\n- https://github.com/example-lab/oddball-eeg\r\n\r\n## Phase timeline\r\n\r\n| data | 2026-09-01 |\r\n\r\n"
+                "## Reading list\r\n\r\n- the N2pc review\r\n")
+        (self.flowie / "projects").mkdir(parents=True, exist_ok=True)
+        (self.flowie / "projects" / "Oddball.md").write_bytes(note.encode("utf-8"))
+        self.registry(self.hive, {"id": "Oddball", "status": "active", "description": "P300 study",
+                                  "repos": [{"url": "https://github.com/example-lab/oddball-eeg"}]})
+        code, out, _ = self.h("fold", "--json")
+        plan = json.loads(out)["plan"][0]
+        self.assertEqual({c["field"]: c["keep"] for c in plan["differ"]},
+                         {"repos": "both", "visited_phases": "flowie", "status": "hive"})
+        self.assertEqual(plan["extra"], {"tags": ["eeg"], "deadline": "2026-12-01"})
+        code, out, _ = self.h("fold", "--apply", "--json")
+        hive = json.loads((self.hive / "projects" / "projects.json").read_text(encoding="utf-8"))["projects"][0]
+        self.assertEqual(hive["status"], "active")
+        self.assertEqual(sorted(str(r) for r in hive["repos"]),
+                         sorted(["https://github.com/example-lab/oddball-analysis", "https://github.com/example-lab/oddball-eeg",
+                                 str({"url": "https://github.com/example-lab/oddball-eeg"})]))
+        self.assertEqual(hive["visited_phases"], [{"phase": "data", "entered": "2026-09-01"}])
+        pointer = json.loads((self.flowie / "projects" / "projects.json").read_text(encoding="utf-8"))["projects"][0]
+        self.assertEqual(pointer, {"id": "Oddball", "ref": "hive:example-lab/hive", "tags": ["eeg"], "deadline": "2026-12-01"})
+        kept = (self.flowie / "projects" / "Oddball.md").read_bytes().decode("utf-8")
+        self.assertIn("\r\n", kept, "the note keeps its line endings")
+        self.assertIn("## Reading list", kept)
+        self.assertIn("the N2pc review", kept)
+        self.assertNotIn("## Phase timeline", kept)
+
+    def test_fold_filters(self) -> None:
+        self.registry(self.flowie, {"id": "A", "status": "paused"}, {"id": "B"})
+        self.registry(self.hive, {"id": "A"}, {"id": "B", "status": "active"})
+        code, out, _ = self.h("fold", "--no-hive", "--json")
+        plan = {item["project"]: item for item in json.loads(out)["plan"]}
+        self.assertIn("would change", plan["A"]["blocked"], "A's status exists only in the flowie: the hive card changes")
+        self.assertNotIn("blocked", plan["B"])
+        code, out, _ = self.h("fold", "--project", "B", "--json")
+        self.assertEqual([item["project"] for item in json.loads(out)["plan"]], ["B"])
+        code, out, _ = self.h("fold", "--hive", "other-hive", "--json")
+        self.assertTrue(all("not part of this run" in item["blocked"] for item in json.loads(out)["plan"]))
+        code, out, _ = self.h("fold", "--no-hive", "--apply", "--json")
+        flowie = json.loads((self.flowie / "projects" / "projects.json").read_text(encoding="utf-8"))["projects"]
+        self.assertEqual(flowie, [{"id": "A", "status": "paused"}, {"id": "B", "ref": "hive:example-lab/hive"}])
+
+    def test_a_project_with_cards_in_two_hives_is_not_folded(self) -> None:
+        other = self.home / ".neuroflow" / "hives" / "other-hive"
+        self.write(other / ".git" / "HEAD", "ref: refs/heads/main\n")
+        self.registry(self.flowie, {"id": "A"})
+        self.registry(self.hive, {"id": "A"})
+        self.registry(other, {"id": "A"})
+        self.assertEqual(json.loads(self.h("fold", "--json")[1])["plan"], [])
+        two = [f for f in json.loads(self.h("check", "--json")[1])["findings"] if f["kind"] == "two-cards"]
+        self.assertIn("keep one", two[0]["message"])
+
+    def test_an_unforeseen_shape_is_an_error_not_a_finding(self) -> None:
+        self.registry(self.flowie, {"id": "A", "repos": 5})
+        self.assertEqual(self.h("check")[0], 2)
+
+
+@unittest.skipUnless(shutil.which("git"), "needs git")
+class DirtyFoldTests(RegistryTests):
+    def test_uncommitted_registry_changes_block_the_fold(self) -> None:
+        self.registry(self.flowie, {"id": "A", "status": "paused"})
+        self.registry(self.hive, {"id": "A", "status": "active"})
+        env = dict(os.environ, **GIT_ENV)
+        for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "init"]):
+            subprocess.run(["git", *args], cwd=self.flowie, check=True, capture_output=True, env=env)
+        self.registry(self.flowie, {"id": "A", "status": "paused", "description": "edited, not committed"})
+        plan = json.loads(self.h("fold", "--apply", "--json")[1])["plan"]
+        self.assertIn("uncommitted changes", plan[0]["blocked"])
+        self.assertIn("edited, not committed", (self.flowie / "projects" / "projects.json").read_text(encoding="utf-8"))
+
+    def test_refresh_skips_this_repository_and_rebuilds_a_broken_cache(self) -> None:
+        view = ViewTests(methodName="test_view_reads_every_level_and_the_boards_of_the_cards_repositories")
+        view.home, view.flowie, view.hive = self.home, self.flowie, self.hive
+        bare = view.remote_board()
+        self.registry(self.hive, {"id": "Oddball", "repos": ["https://example.org/lab/oddball", "https://example.org/lab/here"]})
+        here = self.home / "here"
+        self.write(here / ".neuroflow" / "project_config.md", "---\n---\n")
+        self.write(here / ".git" / "config", '[remote "origin"]\n\turl = https://example.org/lab/here\n')
+        rewrite = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": f"url.{bare.as_uri()}.insteadOf",
+                   "GIT_CONFIG_VALUE_0": "https://example.org/lab/oddball"}
+        with mock.patch.dict(os.environ, rewrite):
+            code, out, _ = self.h("refresh", "--project", "Oddball", "--root", str(here), "--json")
+            self.assertEqual((code, [r["repo"] for r in json.loads(out)["repos"]]), (0, ["example.org/lab/oddball"]))
+            cache = pj.cache_dir(self.home, "example.org/lab/oddball")
+            pj.remove_tree(cache / ".git")  # an interrupted or broken cache of ours
+            code, out, _ = self.h("refresh", "--project", "Oddball", "--root", str(here), "--json")
+        self.assertEqual(code, 0, out)
+        self.assertTrue((cache / ".neuroflow" / "tasks" / "active" / "rerun-ica.md").is_file())
 
 
 if __name__ == "__main__":
