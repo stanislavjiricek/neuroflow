@@ -76,10 +76,12 @@ git -C ~/.neuroflow/flowie commit -m "{message}" -- {paths}   # "nothing to comm
 git -C ~/.neuroflow/flowie pull --rebase && git -C ~/.neuroflow/flowie push
 ```
 
+Before the commit, check `{paths}` for machine-local paths: `python <phase-flowie skill base dir>/scripts/local_paths.py {paths}` (exit `0` clean; `1` it lists each path with its file and line; `2` it could not run — say so and go on). On `1`, commit none of the files it names: show the person each path and offer to move it into `~/.neuroflow/local-projects.json` (this machine only), then rewrite the line without it and sync the file. A folder on one machine means nothing on the others, and the repo travels to every one.
+
 <!-- nf-rule: GIT-NO-SECRETS -->
 Never `git add -A`, never stage `integrations.json`. If the pull stops on a conflict, abort it as above and leave the push for `--sync`.
 
-Files written with Edit/Write are synced by the plugin's **flowie auto-sync hook**: it commits that one file, pulls with rebase, then pushes. It skips `integrations.json` and gitignored files, does nothing while a rebase or merge is in progress, and never blocks — each failure is appended as one line to `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The Sync step above still runs for every write, so the prose works with hooks disabled, and it is the only thing that commits changes made through Bash (`git mv`, deletions).
+Files written with Edit/Write are synced by the plugin's **flowie auto-sync hook**: it commits that one file, pulls with rebase, then pushes. It skips `integrations.json`, gitignored files and a file that holds a machine-local path (`local_paths.py`, logged as `skipped (machine-local path; /flowie --sync)`), does nothing while a rebase or merge is in progress, and never blocks — each failure is appended as one line to `~/.neuroflow/flowie-sync.log` (machine-local, never synced). The Sync step above still runs for every write, so the prose works with hooks disabled, and it is the only thing that commits changes made through Bash (`git mv`, deletions).
 
 Never use a staging/remote-sync subdirectory. The flowie directory is the repo.
 
@@ -961,7 +963,7 @@ If any step fails (file not found, JSON parse error), fail silently and log the 
 - Never ask for a GitHub token in chat, print one to the terminal or write one to any file.
 - The `flowie` repo must be private. Do not confirm or suggest making it public.
 - Do not log task content, project details, or profile contents to `.neuroflow/sessions/` beyond the one-line summary.
-- Never write machine-local absolute paths (`C:/Users/…`, `/home/…`) into any flowie file — they sync to every machine. Local folders live only in `~/.neuroflow/local-projects.json`.
+- Never write machine-local absolute paths (`C:/Users/…`, `/home/…`, `~/projects/…`) into any flowie file — they sync to every machine. Local folders live only in `~/.neuroflow/local-projects.json`. When the person asks to record where a project lives on a machine (a laptop, a compute server), write that entry into `~/.neuroflow/local-projects.json` on that machine and say why: it never syncs, so each machine keeps its own.
 - Wellbeing is self-reported only: never infer mood, stress or energy from messages, typing, timing or work patterns, and never record an inferred value anywhere.
 
 ---

@@ -104,6 +104,33 @@ class HookSmokeTests(unittest.TestCase):
         self.assertNotIn("integrations.json", remote_files)
         self.assertIn("New line.", self.git(remote, "show", "main:profile.md"))
 
+    def test_flowie_hook_keeps_a_machine_local_path_off_the_remote(self):
+        command = pick(".neuroflow/flowie")
+        remote = self.tmp / "remote.git"
+        home = self.tmp / "home" / ".neuroflow"
+        flowie = home / "flowie"
+        self.git(self.tmp, "init", "-q", "--bare", "-b", "main", str(remote))
+        flowie.mkdir(parents=True)
+        self.git(flowie, "init", "-q", "-b", "main")
+        (flowie / "profile.md").write_text("# profile\n", encoding="utf-8")
+        self.git(flowie, "add", "-A")
+        self.git(flowie, "commit", "-q", "-m", "init")
+        self.git(flowie, "remote", "add", "origin", str(remote))
+        self.git(flowie, "push", "-q", "-u", "origin", "main")
+        (flowie / "projects").mkdir()
+        project = flowie / "projects" / "Oddball.md"
+        project.write_text("# Oddball\n\n| server-a | /scratch/alice/oddball |\n", encoding="utf-8")
+        self.env["CLAUDE_PLUGIN_ROOT"] = str(Path(__file__).resolve().parents[2])
+        result = self.run_hook(command, project)
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn("projects/Oddball.md", self.git(remote, "ls-tree", "-r", "--name-only", "main").split())
+        self.assertIn("skipped (machine-local path; /flowie --sync): projects/Oddball.md",
+                      (home / "flowie-sync.log").read_text(encoding="utf-8"))
+        # The same file without the path syncs as usual.
+        project.write_text("# Oddball\n\nLives in example-lab/oddball.\n", encoding="utf-8")
+        self.run_hook(command, project)
+        self.assertIn("projects/Oddball.md", self.git(remote, "ls-tree", "-r", "--name-only", "main").split())
+
     def test_hooks_ignore_unrelated_paths_and_bad_input(self):
         command = pick(".neuroflow/flowie")
         self.assertEqual(self.run_hook(command, self.tmp / "project" / "x.md").returncode, 0)

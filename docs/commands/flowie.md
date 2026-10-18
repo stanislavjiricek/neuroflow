@@ -135,6 +135,8 @@ The profile informs suggestions — it does not override your explicit instructi
 4. `last_synced` in `sync.json` is updated only if the push succeeds
 5. Failures recorded by the auto-sync hook are shown, and cleared once a pull and a push have both succeeded
 
+A file that holds a machine-local path (`C:\Users\…`, `/home/…`, `~/projects/…`) is not synced: such a folder means nothing on your other machines. `/flowie` offers to move it into `~/.neuroflow/local-projects.json`, which stays on the machine it describes.
+
 Every other write (task add/move/done, project add, wellbeing, phase sync) is synced as it happens: the plugin's auto-sync hook commits the one file Claude just wrote, pulls with rebase, then pushes. It never blocks you — if anything fails (offline, auth, a conflict), the commit stays local and one line goes to `~/.neuroflow/flowie-sync.log`, which `/flowie` mentions until `--sync` resolves it.
 
 ---
