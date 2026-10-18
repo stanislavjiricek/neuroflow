@@ -19,7 +19,7 @@ terminal, or inline above the prompt otherwise. It stays current as files change
 | `p` | **Phase** — the phase map (`●` current, `✔` visited, `○` recommended) and the next step; `s` opens the phase picker |
 | `d` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
 | `i` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
-| `t` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards, `r` reads them again |
+| `t` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it, then the project's other repositories from the local cache of their boards), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards, `r` reads them again |
 | `l` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions; `r` refreshes |
 
 `/neuroflow:dashboard loop` opens it on a tab. The one-line band above the prompt opens it with `d`. When the project is on an

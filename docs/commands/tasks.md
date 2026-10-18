@@ -44,7 +44,7 @@ Every board display is a rendered ASCII Kanban — never a flat list, except `--
 
 ## With the neuroflow mod
 
-A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
+A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are, and — read-only — the boards of the project's other repositories, from a local cache that is refreshed in the background when the boards open. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
 
 ---
 

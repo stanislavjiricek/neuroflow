@@ -6,6 +6,7 @@ import {
   hiveFolderOf,
   legacyColumn,
   levelArgs,
+  levelCardLine,
   levelSummary,
   linkedProject,
   loadTaskView,
@@ -14,6 +15,7 @@ import {
   openingLevel,
   orderHives,
   originUrl,
+  repoKey,
   topCards,
   userHives,
 } from '../lib/tasks'
@@ -116,8 +118,10 @@ describe('the task view', () => {
   test('every level counted; this project first, overdue first, then by due date', async () => {
     const view = await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY)
     expect(view.levels.map(level => level.id)).toEqual(['project', 'flowie', 'hive:lab-team', 'hive:alpha-team', 'hive:another-team'])
-    // This project's name per level: the flowie's link, the lab project of the hive's own registry, none elsewhere.
-    expect(view.levels.map(level => level.project)).toEqual([null, 'Oddball EEG', 'oddball-lab', null, null])
+    // This project's name per level: one card id everywhere (the flowie's link here), except a hive whose own
+    // registry lists this repo under another name (written before one card per project).
+    expect(view.levels.map(level => level.project)).toEqual([null, 'Oddball EEG', 'oddball-lab', 'Oddball EEG', 'Oddball EEG'])
+    expect(view.card).toBe('Oddball EEG')
     expect(levelSummary(view)).toBe('project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0')
     // At hive level the flowie's name marks nothing: no name guessing across registries.
     expect(view.levels[2]?.board.columns.find(column => column.id === 'inbox')?.cards.map(card => [card.slug, card.isMine])).toEqual([['review-poster', false]])
@@ -132,6 +136,35 @@ describe('the task view', () => {
       'flowie:write-intro',
     ])
     expect(openingLevel(view)).toBe('project')
+  })
+
+  test('a flowie pointer leads to the hive card, whose other repositories show from the cache, read-only', async () => {
+    const io = memIo({
+      [`${ROOT}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\n---\n',
+      [`${ROOT}/.git/config`]: '[remote "origin"]\n\turl = git@github.com:example-lab/oddball-eeg.git\n',
+      [`${HOME}/.neuroflow/flowie/projects/projects.json`]: JSON.stringify({ projects: [{ id: 'Oddball', ref: 'hive:example-lab/hive' }] }),
+      [`${HOME}/.neuroflow/flowie/tasks/inbox/read.md`]: task('Read', 'project: Oddball\n'),
+      [`${HOME}/.neuroflow/hives/lab-team/projects/projects.json`]: JSON.stringify({
+        projects: [{ id: 'Oddball', repos: ['https://github.com/example-lab/oddball-eeg', { url: 'https://github.com/Example-Lab/oddball-analysis.git' }, 'C:/Users/me/oddball'] }],
+      }),
+      [`${HOME}/.neuroflow/hives/lab-team/tasks/inbox/plan.md`]: task('Plan', 'project: Oddball\n'),
+      [`${HOME}/.neuroflow/boards/github.com/example-lab/oddball-analysis/.neuroflow/tasks/active/rerun.md`]: task('Rerun', 'owner: li\n'),
+      [`${HOME}/.neuroflow/boards/github.com/example-lab/oddball-analysis/.neuroflow-fetched`]: '2026-10-18T20:00:00Z\n',
+    }, { home: HOME })
+    const view = await loadTaskView(io, ROOT, HOME, TODAY)
+    expect([view.card, view.hasRemote]).toEqual(['Oddball', true])
+    expect(view.levels.map(level => [level.id, level.project, level.mine])).toEqual([
+      ['project', null, 0],
+      ['flowie', 'Oddball', 1],
+      ['hive:lab-team', 'Oddball', 1],
+      ['remote:github.com/example-lab/oddball-analysis', 'Oddball', 1],
+    ])
+    const remote = view.levels[3]
+    expect([remote.kind, remote.name, remote.fetched]).toEqual(['remote', 'example-lab/oddball-analysis', '2026-10-18T20:00:00Z'])
+    expect(levelCardLine(remote.top[0], remote.kind)).toBe('Rerun @li')
+    expect(levelSummary(view)).toBe('project 0 · flowie 1 (1 Oddball) · lab-team 1 (1 Oddball) · example-lab/oddball-analysis 1')
+    expect(repoKey('git@github.com:Example-Lab/Oddball.git')).toBe('github.com/example-lab/oddball')
+    expect(repoKey('C:/Users/me/oddball')).toBe(null)
   })
 
   test('the pane opens where the work is', async () => {

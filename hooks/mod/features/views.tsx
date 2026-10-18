@@ -40,6 +40,7 @@ const flowieSyncAtom = atom({ plugin: 'neuroflow', key: 'flowieSync' } as const,
 const wellbeingCheckAtom = atom({ plugin: 'neuroflow', key: 'wellbeingCheck' } as const, null)
 
 const DASHBOARD = 'nf-dashboard'
+const PROJECTS_SCRIPT = 'skills/neuroflow-core/scripts/projects.py'
 const PICKER = 'nf-phase'
 const BOARD = 'nf-board'
 /** $.store key: the ISO date on which the person hid the band (a preference, not research state). */
@@ -241,7 +242,7 @@ export const taskLines = (view: NfTaskView | null, max = 5): Line[] => {
   if (view === null) return [{ text: 'Reading the task boards…', dim: true }]
   const cards = topCards(view, max)
   // This project's name at each level its marked cards come from (the flowie's and a hive's may differ).
-  const names = [...new Set(cards.filter(({ level, card }) => card.isMine && level.kind !== 'project').map(({ level }) => level.project))].filter(
+  const names = [...new Set(cards.filter(({ level, card }) => card.isMine && (level.kind === 'flowie' || level.kind === 'hive')).map(({ level }) => level.project))].filter(
     (name): name is string => name !== null,
   )
   const overdue = cards.some(({ card }) => card.overdue)
@@ -396,13 +397,38 @@ const loadLoopView = async ($: EngineInterface): Promise<void> => {
  * Reads every level's task board (commands/tasks.md → Levels) into state: the project's, the flowie's and each
  * hive clone's, as the local files are — the mod never pulls, writes or moves a task file.
  */
-const loadTasks = async ($: EngineInterface): Promise<void> => {
+const loadTasks = async ($: EngineInterface, refresh = true): Promise<void> => {
   const scope = await read($, scopeAtom)
   if (scope?.root === null || scope === null) return
   const io = ioOf($)
   const home = await io.home()
   const view = await loadTaskView(io, scope.root, home ? toSlash(home) : null, isoDate(await io.now()))
   await update($, taskViewAtom, () => view)
+  if (refresh && view.hasRemote && view.card) void refreshRemoteBoards($, view.card).catch(() => undefined)
+}
+
+/** When the remote boards were last refreshed this session, per card: at most once a minute, one at a time. */
+const remoteRefreshed = new Map<string, number>()
+let remoteRefreshing: Promise<void> | null = null
+
+/**
+ * The boards of this project's other repositories (neuroflow-core → Project registry) come from the cache projects.py
+ * keeps in ~/.neuroflow/boards/: when the person opens the tasks, it is refreshed from their remotes in the background
+ * (a shallow, sparse fetch of .neuroflow/tasks/ only — nothing leaves), and the boards are read again once it is done.
+ */
+const refreshRemoteBoards = ($: EngineInterface, card: string): Promise<void> => {
+  if (remoteRefreshing !== null) return remoteRefreshing
+  const run = (async () => {
+    const now = await $.clock.now()
+    if (now - (remoteRefreshed.get(card) ?? 0) < 60_000) return
+    remoteRefreshed.set(card, now)
+    await runScript(ioOf($), PROJECTS_SCRIPT, ['refresh', '--project', card, '--json'], { timeoutMs: 180_000 })
+    await loadTasks($, false)
+  })()
+  remoteRefreshing = run.finally(() => {
+    remoteRefreshing = null
+  })
+  return remoteRefreshing
 }
 
 const selectTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
@@ -736,7 +762,8 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const board = level.board
     const pick = await read($, boardPickAtom)
     const width = Math.max(14, Math.floor((e.props.bodyColumns - 2) / Math.max(1, board.columns.length)))
-    const marked = level.kind !== 'project' && level.mine > 0 && level.project !== null
+    const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
+    const isRemote = level.kind === 'remote'
     return (
       <Box flexDirection="column" gap={1}>
         <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
@@ -771,7 +798,10 @@ export const registerViews = (on: On, opts: NfOptions): void => {
             </Box>
           ))}
         </Box>
-        {pick !== null ? (
+        {isRemote ? (
+          <Text dimColor wrap="wrap">{`Read-only: a copy of ${level.name}'s board${level.fetched ? `, fetched ${level.fetched}` : ''}. Move its tasks in that repository.`}</Text>
+        ) : null}
+        {pick !== null && !isRemote ? (
           <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
             <Text>move {pick} to:</Text>
             {[...board.columns.map(column => column.id), 'done'].map(target => (

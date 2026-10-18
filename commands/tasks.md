@@ -90,7 +90,7 @@ A level may carry `tasks/config.json` with its own `columns` list (`id`, `label`
 
 **With the neuroflow mod**, a bare `/neuroflow:tasks` never reaches the model: the mod draws the boards as a pane
 from these files, each level's board as `/tasks --level {level}` renders it (same rendering rules) — the project's,
-the flowie's and every hive clone's, read as the local clones are (nothing is pulled). `v` or a level's button
+the flowie's and every hive clone's, read as the local clones are (nothing is pulled), and the boards of the project card's other repositories, read-only, from the cache in `~/.neuroflow/boards/` — refreshed in the background (`projects.py refresh`) when the boards open. `v` or a level's button
 switches the level; the pane opens on the project board when it has open tasks, else on the first level with open
 tasks of this project, else on the first with any. You pick a card and a column, and it puts the move in the prompt
 for you to send — `/neuroflow:tasks --move {slug} {column}`, with `--level flowie` or `--level hive --hive {org-repo}`
