@@ -106,6 +106,16 @@ class RepoImagesTests(unittest.TestCase):
         href = re.search(r'href="(https://fonts\.googleapis\.com/css2\?[^"]+)"', ba.FONT_LINK).group(1)
         self.assertIn(href, (REPO / "overrides" / "home.html").read_text(encoding="utf-8"))
 
+    def test_the_site_and_the_manifest_use_the_images(self):
+        mkdocs = (REPO / "mkdocs.yml").read_text(encoding="utf-8")
+        self.assertIn("logo: assets/brand/neuroflow-mark.svg", mkdocs)
+        self.assertIn("favicon: assets/brand/favicon.svg", mkdocs)
+        manifest = json.loads((REPO / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["icon"], "./docs/assets/brand/icon-512.png")
+        head = (REPO / "overrides" / "partials" / "nf-head.html").read_text(encoding="utf-8")
+        for name in ("favicon-32.png", "apple-touch-icon.png", "social-card.png"):
+            self.assertIn(f"assets/brand/{name}", head)
+
 
 class RulesTests(unittest.TestCase):
     def test_svg_rules(self):
