@@ -16,7 +16,8 @@ neuroflow/
 │       ├── validate.yml             ← every PR and push to main: validate_pr.py, unit tests, strict docs build;
 │       │                              mod job: claude plugin validate / test on 2.1.292, mod_policy.py
 │       ├── mod-canary.yml           ← weekly: the same mod checks on the newest Claude Code; opens an issue on failure
-│       ├── deploy-docs.yml          ← builds and deploys MkDocs site on push to main
+│       ├── deploy-docs.yml          ← on push to main: fetches the intro video (release intro-video),
+│       │                              then builds and deploys the MkDocs site
 │       ├── daily-maintenance.yml    ← posts daily maintainer report (Discussion #167)
 │       ├── research-radar.yml       ← posts weekly research radar (Discussion #169)
 │       └── sentinel-dev.yml         ← daily repo-check report + version auto-fix PR (Discussion #168)
