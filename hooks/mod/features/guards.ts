@@ -13,7 +13,9 @@
 //   nf-rule: PARTICIPANT-ROUTE  the model reading participant data the ethics record keeps from it
 //   nf-rule: LOGIN-NODE         heavy compute on an HPC login node (asks)
 //   nf-rule: INTEGRITY-MARKER   the model writing `set_by: person` into an integrity status file (asks)
-//   nf-rule: EGRESS-CONFIRM     uploads to outside services (asks)
+//   nf-rule: EGRESS-CONFIRM     uploads to outside services (asks); ArtifactData writes go without a question only to
+//                               the recorded workbench, under data/users/me, for a mirrored level — and Claude never
+//                               creates or rewrites a workbench intent (denies)
 //   nf-rule: MEMORY-PURITY      files outside the documented .neuroflow/ structure (warns only)
 // Bash, PowerShell and scripts can reach around every rule here; that is why detection (hash checks,
 // /sentinel) backs them, and why they are never called "enforced".
@@ -27,6 +29,8 @@ import type { NfOptions } from '../lib/options'
 import { fold, join, relativeTo, resolveFrom, toSlash } from '../lib/paths'
 import { PHASES } from '../lib/phases'
 import { parseJson, runScript } from '../lib/scripts'
+import { artifactViolations, artifactWrites, workbenchContext } from '../lib/workbench'
+import type { ArtifactDataInput } from '../lib/workbench'
 import { statusLine } from './status'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -746,4 +750,27 @@ export const registerGuards = (on: On, opts: NfOptions): void => {
     const violations = shellViolations(command, snap, { gitignore, isLoginNode: loginNode, gitAlias: await read($, gitAliasAtom), home })
     return decide($, e.tool_use_id, violations, opts, scope.isHeadless, toasted, () => next(e)) as ReturnType<typeof next>
   }).catch(($, e, next) => (next.called ? next(e) : mayEnforce(opts) ? { deny: 'neuroflow: a guard could not check this command — try again, or set the neuroflow mod to observe' } : next(e)))
+
+  // nf-rule: EGRESS-CONFIRM — the claude.ai workbench: ArtifactData writes leave the machine (neuroflow-core →
+  // Workbench snapshot). The prose previews each upload and asks; this guard catches what the prose cannot: a write
+  // to another artifact or outside the person's mirrored levels (asks), and Claude creating or rewriting an intent,
+  // which only the page does from a person's click (denies).
+  on('tool.call', { tool: ['ArtifactData'] }, async ($, e, next) => {
+    const scope = await read($, scopeAtom)
+    if (!scope?.isActive) return next(e)
+    const input = e as unknown as ArtifactDataInput
+    const writes = artifactWrites(input)
+    if (writes.length === 0) return next(e)
+    const io = ioOf($)
+    const cwd = await $.session.cwd()
+    const bodies = new Map<string, Record<string, unknown> | null>()
+    for (const write of writes) {
+      if (typeof write.file_path !== 'string' || bodies.has(write.file_path) || !/\/inbox\/intents\/?$/.test(String(write.collection))) continue
+      const parsed = parseJson<unknown>((await io.read(resolveFrom(cwd, write.file_path))) ?? '')
+      bodies.set(write.file_path, parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null)
+    }
+    const home = await io.home()
+    const violations = artifactViolations(input, await workbenchContext(io, home ? toSlash(home) : null), bodies).map(item => ({ rule: 'EGRESS-CONFIRM' as const, ...item }))
+    return decide($, e.tool_use_id, violations, opts, scope.isHeadless, toasted, () => next(e)) as ReturnType<typeof next>
+  }).catch(($, e, next) => (next.called ? next(e) : mayEnforce(opts) ? { deny: 'neuroflow: a guard could not check this ArtifactData write — try again, or set the neuroflow mod to observe' } : next(e)))
 }

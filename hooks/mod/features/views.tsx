@@ -20,6 +20,7 @@ import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { MINE, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
+import { WEB_APPLY, pendingBandItem, pendingTime } from '../lib/workbench'
 import { isQuiet } from './scope'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -58,8 +59,8 @@ const TABS: readonly { id: NfDashboardTab; label: string; hotkey: string }[] = [
 
 export type Tone = 'error' | 'warning' | 'success' | 'suggestion' | 'subtle'
 export type Line = { text: string; tone?: Tone; dim?: boolean }
-/** A press on the band runs one neuroflow command (the person's explicit request). */
-export type BandAction = { key: string; label: string; hotkey: string; command: string; args: string }
+/** A press on the band runs one neuroflow command (the person's explicit request); `fill` puts it in the prompt instead. */
+export type BandAction = { key: string; label: string; hotkey: string; command: string; args: string; fill?: boolean }
 export type BandItem = { level: 'alert' | 'warn' | 'info'; glyph: string; text: string; actions?: BandAction[] }
 
 export const when = (days: number): string => (days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`)
@@ -143,6 +144,9 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync |
   // because /neuroflow:migrate skips a flowie with uncommitted changes.
   const syncing = flowieSyncItem(sync)
   if (syncing !== null) items.push(syncing)
+  // Clicks on the claude.ai workbench wait for Claude Code (pending.json); `w` fills /neuroflow:tasks --apply-web.
+  const web = pendingBandItem(snap.workbench ?? null)
+  if (web !== null) items.push(web)
   // After a plugin update, until /neuroflow:migrate has run (neuroflow-core → Command lifecycle, version notice).
   // It waits behind the time-bound items: a meeting within two hours keeps the one quiet-band seat and its keys.
   const behind = versionNotice(snap)
@@ -513,6 +517,13 @@ const runKey = async ($: EngineInterface, command: string, args: string): Promis
   await $.command.run({ command, args })
 }
 
+/** A key whose command the person sends themselves (the workbench's apply, which may ask about a hive push). */
+const fillKey = async ($: EngineInterface, command: string, args: string): Promise<void> => {
+  const text = `/${command}${args === '' ? '' : ` ${args}`}`
+  const filled = await $.prompt.fill({ text }).then(result => result.isFilled, () => false)
+  $.ui.toast(filled ? 'neuroflow: press Enter to apply your workbench changes' : `neuroflow: run ${text} to apply your workbench changes`)
+}
+
 /** The check this session runs (one at a time): a second caller waits for the first. */
 let wellbeingChecking: Promise<void> | null = null
 
@@ -749,7 +760,8 @@ export const registerViews = (on: On, opts: NfOptions): void => {
 
   on('command.run', { command: 'neuroflow:dashboard' }, async ($, e, next) => {
     const scope = await read($, scopeAtom)
-    if (!scope?.isActive || !(await isPersonThere($))) return next(e)
+    // --web (the claude.ai workbench) asks, previews and uploads: the prose runs it (commands/dashboard.md → --web).
+    if (!scope?.isActive || /(^|\s)--web(\s|$)/.test(e.args) || !(await isPersonThere($))) return next(e)
     await openDashboard($, e.args.trim())
     return { text: 'Dashboard open — p phase · d deadlines · i integrity · t tasks · l loop.' }
   }).catch(($, e, next) => next(e))
@@ -830,7 +842,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           </Box>
         ) : null}
         <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
-          <Text dimColor>{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
+          <Text dimColor>{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}${view.web ? ` · ↻ web change pending${pendingTime(view.web.checkedAt) ? ` (as of ${pendingTime(view.web.checkedAt)})` : ''}: ${WEB_APPLY}` : ''}`}</Text>
           <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($, true)} />
           <Button key="nf-board-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: BOARD })} />
         </Box>
@@ -949,7 +961,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         ))}
         {more > 0 ? <Text dimColor>+{more} more</Text> : null}
         {actions.map(action => (
-          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => runKey($, action.command, action.args)} />
+          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => (action.fill ? fillKey($, action.command, action.args) : runKey($, action.command, action.args))} />
         ))}
         <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($)} />
         <Button key="nf-band-hide" label="hide today" hotkey="x" plain onPress={() => hideBandToday($)} />
