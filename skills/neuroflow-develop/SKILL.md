@@ -43,7 +43,7 @@ neuroflow/
 ├── mkdocs.yml             ← docs site nav, theme, plugins, extra.version
 ├── requirements.txt       ← Python deps for the docs build (mkdocs-material)
 ├── .neuroflow/            ← plugin-level project memory (dev decisions, sentinel reports)
-└── README.md              ← public docs: What's new, Commands/Skills/Agents/Hooks tables
+└── README.md              ← GitHub front page: logo, pitch, video, links, the newest What's new, install, Commands/Skills/Agents tables
 ```
 
 ## Before adding anything — overlap audit
@@ -190,13 +190,11 @@ The ids come from the rule table in neuroflow-core. A guard cites the id it enfo
 
 1. Make your changes
    - If you added, renamed, or removed a **command, skill, or agent**: place it in the docs index (`mkdocs.yml` nav, each page once) — `validate_pr.py` V10 fails the PR otherwise. A new phase also belongs on the landing page's ring (`overrides/home.html`) and in the Phases list of `docs/overview.md`.
-2. **Update `README.md`** — two places:
-   - Add a `## What's new in X.Y.Z` section above the previous one, with up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight. Move the `<a id="whats-new"></a>` line so it stays right above the newest heading: the header's What's new link points at it.
-   - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.
-3. Add an entry to **`docs/changelog.md`** — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries.
+2. **Add the `docs/changelog.md` entry first** — a `## X.Y.Z` heading on top (newest first) and one-line summaries of everything that changed. The changelog is the permanent record of every release; the README and the docs link to it. Links are relative to `docs/`: `commands/<name>.md` is the command's docs page, and `skills/…` and `agents/…` are copied in at build time. Write anything else in the repo (`hooks/`, `scripts/`, `.github/`, `overrides/`) as code, or link it with its full GitHub URL: `mkdocs build --strict` fails on a link it cannot resolve. When a command, skill or agent is removed later, the same build names the entries that link to its page — keep their text and drop the link.
+3. **Replace the README's single What's new section** — `README.md` keeps one section, for the newest release. Rename its heading to `## What's new in X.Y.Z` and rewrite the bullets: up to 3, each linking to the relevant file. This is the first thing people see after the header — keep it tight. Never add a second section: the earlier notes are already in `docs/changelog.md`, and `validate_pr.py` V12 fails on two. Keep the `<a id="whats-new"></a>` line right above the heading. For a small fix release, keep the previous release's headline bullet, marked with its version, so the README still shows what is new. Add a new command, skill or agent to its README table, with a link to the file (V10).
 4. **`mkdocs.yml` `extra.version`** must match the new version — `bump_version.py` writes it in step 7.
 5. If the release changes a format that existing projects keep (`project_config.md`, task files, reasoning logs, git files), make sure `/neuroflow:migrate` converts it — the first command after the update points every person there (`docs/upgrading.md`).
-6. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
+6. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the welcome ring if any feel stale for this release.
 7. Bump the patch version in **all four places** (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is) with `python scripts/automation/bump_version.py` (`--dry-run` shows the change first; `--sync` repairs drift without bumping). It rewrites only the version strings:
    - `.claude-plugin/plugin.json` → `version` field
    - `.claude-plugin/marketplace.json` → `plugins[].version` field
