@@ -1125,22 +1125,23 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     return result
   }).catch(($, e, next) => next(e))
 
-  // Where the focus ring is in the dashboard and the boards, so j, k, h and l move it on from there.
+  // Where the focus ring is in the dashboard and the boards, so j, k, h and l move it on from there. The panes and
+  // the nf- keys are the mod's own, whatever name the engine gives the plugin's copy.
   on('ui.focus', { requestId: [DASHBOARD, BOARD] }, async ($, e, next) => {
     const result = await next(e)
     const element = e.element
-    if (result.deny === undefined && element !== undefined && e.plugin === $.plugin.name && isRowKey(element)) {
+    if (result.deny === undefined && element !== undefined && isRowKey(element)) {
       await update($, paneRingAtom, ring => ({ ...ring, [e.requestId]: element }))
     }
     return result
   }).catch(($, e, next) => next(e))
 
-  // The band takes the keys (^X Tab, or a click) with its ring on the element it starts on: counted, so the band
-  // stops teaching the chord once the person has used it LEARNED_AFTER times.
+  // The band takes the keys (^X Tab, or a click) with its ring on the element it starts on (an autoFocus, raised
+  // under the plugin's origin): counted, so the band stops teaching the chord once it has been used LEARNED_AFTER times.
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
     const result = await next(e)
     const element = e.element
-    if (result.deny === undefined && e.origin.kind === 'plugin' && e.plugin === $.plugin.name && element !== undefined && BAND_TAKES.includes(element)) {
+    if (result.deny === undefined && e.origin.kind === 'plugin' && element !== undefined && BAND_TAKES.includes(element)) {
       const before = (await read($, keysLearnedAtom)) ?? (Number(await $.store.get(KEYS_LEARNED).catch(() => 0)) || 0)
       if (before < LEARNED_AFTER) {
         await $.store.set(KEYS_LEARNED, before + 1).catch(() => undefined)
