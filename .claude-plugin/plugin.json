@@ -6,8 +6,10 @@
     "name": "Stanislav Jiricek"
   },
   "homepage": "https://github.com/stanislavjiricek/neuroflow",
+  "documentationUrl": "https://stanislavjiricek.github.io/neuroflow/",
   "repository": "https://github.com/stanislavjiricek/neuroflow",
   "license": "MIT",
+  "icon": "./docs/assets/brand/icon-512.png",
   "keywords": [
     "neuroscience",
     "research",

@@ -27,6 +27,7 @@ neuroflow/
 │       ├── validate_pr.py           ← runs repo_checks — CI on every PR, and locally
 │       ├── sentinel_check.py        ← daily report on the same checks
 │       ├── bump_version.py          ← bumps or syncs the four version sites
+│       ├── brand_assets.py          ← writes and checks the ring images (Visual style)
 │       ├── pre_push_version_check.py, install_hooks.py
 │       ├── daily_maintenance.py, research_radar.py, post_discussion.py
 │       └── requirements.txt
@@ -38,8 +39,10 @@ neuroflow/
 │   ├── hooks.json         ← event hooks (PostToolUse, PreToolUse, etc.) and the optional `modules` entry
 │   └── mod/               ← the optional hooks module (docs/concepts/mods.md)
 ├── docs/
+│   ├── assets/brand/      ← the ring images, made by brand_assets.py (Visual style)
 │   └── commands/          ← MkDocs source pages (one .md per command)
-├── overrides/             ← MkDocs theme overrides (main.html)
+├── overrides/             ← MkDocs theme overrides: home.html (landing page), main.html (docs layout)
+│   └── partials/          ← nf-head.html: icons and link previews for every page
 ├── mkdocs.yml             ← docs site nav, theme, plugins, extra.version
 ├── requirements.txt       ← Python deps for the docs build (mkdocs-material)
 ├── .neuroflow/            ← plugin-level project memory (dev decisions, sentinel reports)
@@ -185,6 +188,50 @@ Frozen preregistration files are never edited; record changes in deviations.md.
 ```
 
 The ids come from the rule table in neuroflow-core. A guard cites the id it enforces as the literal text `nf-rule: <ID>` — a comment above its registration, or inside its deny reason. `validate_pr.py` V8 fails on a marker with an unknown id and on a guard whose rule has no marker in `skills/` or `commands/`: a guard may only enforce what the prose states. The marker proves the prose exists, not that guard and prose agree — sentinel-dev J4 reads both.
+
+## Visual style
+
+neuroflow has one look: the ring — nineteen phase dots on a thin circle, the current phase at the top — in the colours of the docs site, with the wordmark `neuroflow` in lowercase Albert Sans. Two files hold it; point to them, never copy their values:
+
+- **Colours:** the tokens in `docs/stylesheets/nf.css` — `:root` for dark, the `prefers-color-scheme: light` block for light.
+- **Shapes:** `scripts/automation/brand_assets.py` — the ring's geometry, which is the dial on the landing page (`overrides/home.html`; `tests/automation/test_brand_assets.py` keeps the two equal), and the wordmark's size and tracking.
+
+Every image in `docs/assets/brand/` is made by that script:
+
+| File | Used by |
+|---|---|
+| `neuroflow-mark.svg` | the ring alone, following light and dark: `mkdocs.yml` `theme.logo`, the vector master |
+| `favicon.svg`, `favicon-32.png` | the browser tab: `theme.favicon`, and the PNG fallback in `overrides/partials/nf-head.html` |
+| `apple-touch-icon.png` | the home-screen icon (180×180) |
+| `icon-512.png` | `plugin.json` `icon`: the plugin directory listing |
+| `neuroflow-lockup-dark.png`, `neuroflow-lockup-light.png` | ring and wordmark, light ink for dark backgrounds and dark ink for light ones: the README header |
+| `social-card.png` | link previews (`og:image` in `nf-head.html`) and the GitHub social preview |
+
+To change an image, change the generator or the tokens, never the image, then regenerate:
+
+```bash
+python scripts/automation/brand_assets.py --write   # the SVGs
+python scripts/automation/brand_assets.py --png     # the PNGs: headless Chrome or Edge, network for the fonts
+python scripts/automation/brand_assets.py           # --check: the same check the unit tests run in CI
+```
+
+`--png` finds Chrome or Edge on its own; `--browser PATH` names another. `--check` exits `1` when an SVG no longer matches the generator, a PNG is missing or has the wrong size, an SVG holds `<text>`, an external `url(...)`, an `@import` or an external `href`, a file in the folder is not in the asset table, or an image passes 512 KB (1 MB for the folder): fix what it names. `2` is a usage or runtime error — a missing colour token, no browser found, fonts that did not load — and its message says which. Before committing, look at every PNG: the ring crisp, no text clipped, each lockup legible on its own background.
+
+- **No version and no URL in an image**, so a release never needs new ones.
+- **The GitHub social preview is uploaded by hand**, in the repository's Settings → General → Social preview: after a change to `social-card.png` is merged, the maintainer uploads the new file there. Nothing in CI can check it.
+- **Type:** Albert Sans and DM Mono, both under the SIL Open Font License. The site and the generator load them from Google Fonts; no font file is kept in the repo.
+- **Neutral:** no Claude Code orange and no vendor marks in neuroflow's images; the words "Claude Code" are fine.
+- **Research outputs keep their own styles.** Posters, slides, reports and figures that the commands make for a person are that person's work, not neuroflow images: `/poster`, `/slideshow` and the others do not take this look.
+
+**In the terminal** the hex palette does not apply: the mod draws with Claude Code's theme colours. Text that marks phases or dates uses one glyph legend — the `/neuroflow` welcome ring, phase maps, timelines and the mod's views; a file that still uses other marks moves to it when it is next changed:
+
+| Glyph | Means |
+|---|---|
+| `◌` | the neuroflow mark |
+| `◉` | current phase |
+| `●` | visited phase |
+| `○` | recommended phase |
+| `⚠` | overdue, or due soon |
 
 ## Release workflow
 
