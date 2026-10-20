@@ -15,8 +15,8 @@ exclude_docs: |
 theme:
   name: material
   custom_dir: overrides
-  logo: assets/logo-brain.svg
-  favicon: assets/logo-brain.svg
+  logo: assets/brand/neuroflow-mark.svg
+  favicon: assets/brand/favicon.svg
   language: en
   features:
     - navigation.sections

@@ -6,7 +6,8 @@
   load); the search results sit below them, above the index. On narrow screens a small button
   opens the index as a drawer; nf.js makes that label a keyboard button (role, tabindex,
   aria-expanded, Enter and Space). The header element stays, empty and hidden, because the theme's
-  scripts measure it.
+  scripts measure it. The head gets a browser theme colour for each colour scheme, and the icons and
+  link-preview tags every page shares (partials/nf-head.html).
 -#}
 {% extends "base.html" %}
 
@@ -15,6 +16,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,200..600;1,300..500&amp;family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&amp;display=swap">
   <style>:root{--md-text-font:"Albert Sans";--md-code-font:"DM Mono"}</style>
+{% endblock %}
+
+{% block extrahead %}
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#06070A">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F3EF">
+  {% include "partials/nf-head.html" %}
 {% endblock %}
 
 {% block header %}
