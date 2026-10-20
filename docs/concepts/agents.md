@@ -107,7 +107,7 @@ Audits the neuroflow plugin repository itself for structural consistency. Called
 
 **Full definition:** [`sentinel-dev`](../agents/sentinel-dev.md)
 
-**What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (README hooks documentation, real names and institutions, guards versus prose):
+**What it checks:** it runs `scripts/automation/validate_pr.py` first — V1–V15, the same checks CI runs on every pull request — then the judgement checks (hooks documentation, real names and institutions, guards versus prose):
 
 - Command folder names vs frontmatter `name:` fields
 - Skill folder names vs `SKILL.md` frontmatter

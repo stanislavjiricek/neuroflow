@@ -89,9 +89,9 @@ Change `--discussion-number 167` in the workflow's `run:` step.
 | V7 | Version bumped when substantive files changed (pull requests only) |
 | V8 | Rule markers (`<!-- nf-rule: ID -->`) use known ids; every rule a mod guard enforces has one |
 | V9 | No skill folder shares a command's name |
-| V10 | Every command, skill and agent is in the README tables and the docs nav, each page listed once; no dead links |
+| V10 | Every command, skill and agent is in the README tables and the docs nav, each page listed once; every relative link and image in the README resolves (an in-page anchor nothing defines is a warning); the site logo, favicon and plugin icon exist; no dead nav links |
 | V11 | No dead `neuroflow:<name>` references in `SKILL.md` files |
-| V12 | Release notes match the version (warning) |
+| V12 | The README has one What's new section, and a second one fails; it is for the current version, and `docs/changelog.md` lists that version first (warnings) |
 | V13 | The repo's own `.neuroflow/` holds only `reasoning/` and `sessions/` (warning) |
 | V14 | No private keys; emails and hardcoded secrets flagged for review |
 | V15 | No stale flowie/hive paths or legacy field names (warning) |

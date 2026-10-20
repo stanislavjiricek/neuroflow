@@ -1,7 +1,7 @@
 ---
 name: sentinel-dev
 tools: Read, Glob, Grep, Write, Edit, Bash
-description: "Plugin development coherence guard. Runs the repo's mechanical checks (scripts/automation/validate_pr.py — the same registry CI runs on every PR: manifests, version sync, frontmatter, docs pages, names, hooks.json, rule markers, name collisions, README/nav propagation, dead references, release notes, sensitive info, path hygiene) and adds the judgement checks a script cannot make: README hooks documentation, real names and institutions, guards versus prose. Writes its report to .neuroflow/sentinel-dev.md."
+description: "Plugin development coherence guard. Runs the repo's mechanical checks (scripts/automation/validate_pr.py — the same registry CI runs on every PR: manifests, version sync, frontmatter, docs pages, names, hooks.json, rule markers, name collisions, README/nav propagation, dead references, release notes, sensitive info, path hygiene) and adds the judgement checks a script cannot make: hooks documentation, real names and institutions, guards versus prose. Writes its report to .neuroflow/sentinel-dev.md."
 ---
 
 # sentinel-dev
@@ -37,9 +37,9 @@ Drop `--base` when there is no `origin/main` (V7 then does not run). For a group
 | V7 | fail | With `--base`: substantive changes bump the `plugin.json` version (the exempt list is shared with `.githooks/pre-push`) |
 | V8 | fail / warn | Rule markers: every `<!-- nf-rule: ID -->` uses an id from neuroflow-core's rule table, and every id a guard in `hooks/mod/` cites (`nf-rule: ID`) has a marker in `skills/` or `commands/`. Warns about rules that have no marker yet |
 | V9 | fail / warn | No skill folder shares a command's name (the command shadows the skill); warns when an agent and a skill share one |
-| V10 | fail | Propagation: every command, skill and agent has a README row and a mkdocs nav entry; no dead README or nav links; the nav lists each page once |
+| V10 | fail / warn | Propagation: every command, skill and agent has a README row and a mkdocs nav entry; every relative link and image in `README.md` resolves (the whole file: Markdown targets and HTML `src`, `href` and `srcset`; an in-page anchor that no heading or id defines warns); the `mkdocs.yml` theme logo and favicon and the `plugin.json` icon exist; no dead nav links; the nav lists each page once |
 | V11 | fail | No dead `neuroflow:<name>` references inside SKILL.md files |
-| V12 | warn | Release notes: README `## What's new in X.Y.Z` and `docs/changelog.md` `## X.Y.Z` match `plugin.json` |
+| V12 | fail / warn | Release notes: README has one What's new section, and two or more fail (the earlier notes live in `docs/changelog.md`); none, or one for another version than `plugin.json`, warns; `docs/changelog.md` has that version as its newest `## X.Y.Z` entry (warn) |
 | V13 | warn | The repo's own `.neuroflow/` holds only `reasoning/` and `sessions/` folders |
 | V14 | fail / warn | Sensitive info: PEM private-key material fails; emails and hardcoded secrets warn `[needs human review]` |
 | V15 | warn | Path hygiene: the old dotted `.neuroflow/.flowie/` path, paths into a project-level `.neuroflow/flowie/` or `.neuroflow/hive/`, and the legacy `flowie_profile:` / `flowie_project:` / `hive_member:` fields |
@@ -48,9 +48,9 @@ If Python is unavailable, say so in the report and do the table's checks by read
 
 ## Step 2 — Judgement checks
 
-### J1 — README hooks documentation
+### J1 — Hooks documentation
 
-Read the Hooks section of `README.md`. Every hook in `hooks/hooks.json` (and the hooks module, if `modules` names one) must be described there, and every hook the README describes must exist. Flag both directions.
+Read `docs/concepts/hooks.md` (and `docs/concepts/mods.md` when `hooks.json` names a module) and the note in the Installation section of `README.md` on what installing adds. Every hook in `hooks/hooks.json`, and the hooks module if `modules` names one, must be described on those pages, and every hook the pages or the README name must exist. Flag both directions.
 
 ### J2 — Real names and institutions
 
