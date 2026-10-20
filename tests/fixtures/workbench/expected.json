@@ -1,0 +1,25 @@
+{
+ "adds": {
+  "i-mh2a0003-cccc": "draft-the-methods"
+ },
+ "final": {
+  "flowie": {
+   "draft-the-methods": "inbox"
+  },
+  "hive+example-lab+hive": {
+   "fix-channel-map": "review"
+  }
+ },
+ "freshness": {
+  "flowie": "files as they are on fixture-machine (no git), exported 2026-10-21T10:00:00Z",
+  "hive+example-lab+hive": "files as they are on fixture-machine (no git), exported 2026-10-21T10:00:00Z",
+  "project+oddball-eeg": "files as they are on fixture-machine (no git), exported 2026-10-21T10:00:00Z"
+ },
+ "verdicts": {
+  "i-mh2a0001-aaaa": "coalesced",
+  "i-mh2a0002-bbbb": "applied",
+  "i-mh2a0003-cccc": "applied",
+  "i-mh2a0004-dddd": "cancelled",
+  "i-mh2a0005-eeee": "applied"
+ }
+}

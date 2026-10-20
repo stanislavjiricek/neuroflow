@@ -1750,9 +1750,20 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
     sources, _ = discover(home, args.root)
     here = {src.key: src for src in sources}
     levels: dict[str, dict] = {}
+    # an undone change (a cancel or a release waits for it) is no longer waiting, as the page counts it too
+    undone = {(doc["body"].get("target") or {}).get("intent") for doc in docs.values()
+              if doc["body"].get("op") == "cancel" and doc["body"].get("status") != "done"}
+    undone |= {iid for iid, doc in docs.items() if doc["body"].get("cancel_requested_at")}
+    grew = True
+    while grew:  # a change chained to an undone one is rejected later ("depends on …"): not waiting either
+        grew = False
+        for iid, doc in docs.items():
+            if iid not in undone and doc["body"].get("after") in undone and doc["body"].get("status") != "done":
+                undone.add(iid)
+                grew = True
     for intent_id, doc in docs.items():
         body = doc["body"]
-        if body.get("status") == "done" or intent_id in finished or body.get("op") == "cancel":
+        if body.get("status") == "done" or intent_id in finished or body.get("op") == "cancel" or intent_id in undone:
             continue
         key = body.get("level")
         entry = levels.setdefault(key, {"level": key, "slugs": [], "adds": 0, "count": 0})
@@ -1932,7 +1943,7 @@ def check_template(html: str, module: str) -> list[str]:
                 findings.append(f"{name}:{line} uses {what}")
     for match in re.finditer(r"<link\b[^>]*>", html, re.I):
         href = re.search(r'href="([^"]*)"', match.group(0))
-        if href and not href.group(1).startswith(("https://fonts.googleapis.com/", "https://fonts.gstatic.com")):
+        if href and not re.match(r"^https://fonts\.(?:googleapis|gstatic)\.com(?:/|$)", href.group(1)):
             findings.append(f"workbench.html links {href.group(1)} (only Google Fonts may load)")
     if not (template_meta(html, "workbench-template") or "").isdigit():
         findings.append("workbench.html has no <meta name=\"neuroflow:workbench-template\" content=\"N\"> version tag")
@@ -2046,12 +2057,30 @@ def cmd_fixtures(args, home: Path, now: datetime) -> tuple[int, dict]:
             if body.get("base") == "@export":   # the card's hash as this export computed it
                 cards = [card for part in snapshot["parts"].get(body["level"], {}).values() for card in part.get("cards", [])]
                 body["base"] = next(card["sha256"] for card in cards if card["slug"] == body["target"]["slug"])
+        # what the page must agree with: each tab's freshness label, and where the validator puts each card once
+        # this machine claims the golden intents (the page's pending overlay shows the same columns)
+        expected: dict = {"freshness": {item["meta"]["level"]: freshness(item["meta"]) for item in built}, "final": {},
+                          "verdicts": {}, "adds": {}}
+        claimed = {iid: {**body, "status": "claimed", "claim": {"machine": person["machine"], "claimed_at": source["now"]}}
+                   for iid, body in intents.items()}
+        phases = mg.canonical_phases() - {"setup"}
+        for src in sources:
+            items = sorted(((iid, body) for iid, body in claimed.items() if body.get("level") == src.key),
+                           key=lambda pair: (str(pair[1].get("created_at")), pair[0]))
+            if not items:
+                continue
+            people = {entry["handle"].lower() for entry in roster(src, person)}
+            result = validate_level(src, items, {}, person["machine"], people, phases, {})
+            expected["final"][src.key] = {action["slug"]: action["to"] for action in result["actions"]}
+            expected["adds"].update({action["intents"][0]: action["slug"] for action in result["actions"] if action["op"] == "add"})
+            expected["verdicts"].update({iid: verdict["result"] for iid, verdict in result["verdicts"].items()})
         text = json.dumps(snapshot, ensure_ascii=False)
         if any(marker in text for marker in {str(Path(tmp)), Path(tmp).as_posix(), str(Path(tmp)).replace("\\", "\\\\")}):
             raise UsageError("the fixture export holds a local path")
     write_json(out / "snapshot.json", snapshot)
     write_json(out / "intents.json", intents)
-    return 0, {"written": [str(out / "snapshot.json"), str(out / "intents.json")]}
+    write_json(out / "expected.json", expected)
+    return 0, {"written": [str(out / name) for name in ("snapshot.json", "intents.json", "expected.json")]}
 
 
 # ── command line ────────────────────────────────────────────────────────────────────────────────

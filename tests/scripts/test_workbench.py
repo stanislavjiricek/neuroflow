@@ -307,7 +307,7 @@ class GoldenTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             code, _ = run("fixtures", "--out", tmp, "--json")
             self.assertEqual(code, 0)
-            for name in ("snapshot.json", "intents.json"):
+            for name in ("snapshot.json", "intents.json", "expected.json"):
                 fresh = json.loads(Path(tmp, name).read_text(encoding="utf-8"))
                 committed = json.loads((FIXTURES / name).read_text(encoding="utf-8"))
                 self.assertEqual(fresh, committed, f"{name} drifted: python skills/neuroflow-core/scripts/workbench.py "
@@ -490,6 +490,18 @@ class IntentTests(Home):
         self.assertEqual((write["op"], write["if_version"]), ("update", 2))
         body = json.loads(Path(write["file_path"]).read_text(encoding="utf-8"))
         self.assertEqual(body, {"status": "claimed", "claim": {"machine": "laptop", "claimed_at": NOW}})
+
+    def test_a_chain_waits_whole_while_its_first_link_is_claimed_elsewhere(self) -> None:
+        hive = "hive+example-lab+hive"
+        docs = {"i-w1-aaaa": intent("move", hive, "01", status="claimed", machine="desktop", target={"slug": "fix-map"}, **{"from": "inbox"},
+                                    to="active", base="0" * 64),
+                "i-w2-bbbb": intent("move", hive, "02", status="pending", target={"slug": "fix-map"}, **{"from": "active"}, to="review",
+                                    after="i-w1-aaaa", base="0" * 64)}
+        code, result = self.wb("pickup", "--intents", str(self.intents(docs)), "--out", str(self.scratch / "claims"))
+        self.assertEqual(result["claim"], 0)
+        reasons = {item["intent"]: item["reason"] for item in result["skipped"]}
+        self.assertEqual(reasons["i-w2-bbbb"], "waits for i-w1-aaaa")
+        self.assertIn("claimed by desktop", reasons["i-w1-aaaa"])
 
     def test_two_moves_of_one_card_merge_into_one(self) -> None:
         hive = "hive+example-lab+hive"
@@ -755,6 +767,51 @@ class UserYamlTests(Home):
         text = (self.home / ".neuroflow" / "user.yaml").read_text(encoding="utf-8")
         self.assertEqual(text, 'name: Alice Example\nworkbench_levels: ["flowie"]\nwiki_auto: ask  # comment\n')
         self.assertFalse(wb.set_user_yaml(self.home, "workbench_levels", ["flowie"]))
+
+
+class PageTests(Home):
+    def test_stage_inlines_the_logic_and_says_exactly_what_to_publish(self) -> None:
+        code, result = run("stage", "--out", str(self.scratch / "page"), "--json")
+        self.assertEqual(code, 0, result)
+        page = Path(result["file"]).read_text(encoding="utf-8")
+        self.assertNotIn(wb.LOGIC_MARK, page)
+        self.assertIsNone(re.search(r"(?m)^export ", page))
+        self.assertIn("function boardModel(", page)
+        self.assertEqual(result["capabilities"], wb.CAPABILITIES)
+        self.assertEqual((result["contract"], result["template_version"]), ("0.2.87", 1))
+        self.assertEqual((result["title"], result["icon"]), ("neuroflow workbench", "board"))
+        self.assertTrue(page.startswith(wb.BEGIN) and page.rstrip().endswith(wb.END))
+        self.assertLess(result["bytes"], 160_000, "every publish reads the page in full: keep it small")
+        # read back from claude.ai inside the publish skeleton (CRLF, trailing spaces), it hashes the same
+        wrapped = "<!doctype html><html><head><meta charset=utf8></head><body>" + page.replace("\n", "  \r\n") + "</body></html>"
+        self.assertEqual(wb.page_hash(wrapped), result["page_sha256"])
+
+    def test_page_check_compares_the_live_page_with_the_record(self) -> None:
+        code, staged = run("stage", "--out", str(self.scratch / "page"), "--json")
+        page = Path(staged["file"])
+        self.user_yaml(f'workbench: on\nworkbench_records: [{{"account": "personal", "url": "https://claude.ai/artifact/x", '
+                       f'"page_sha256": "{staged["page_sha256"]}", "template_version": 1}}]\n')
+        code, result = self.wb("page", "--check", str(page))
+        self.assertEqual((code, result["status"], result["upgrade"]), (0, "same", False))
+        edited = self.write(self.scratch / "edited.html", page.read_text(encoding="utf-8").replace("Settings</button>", "Prefs</button>"))
+        code, result = self.wb("page", "--check", str(edited))
+        self.assertEqual((code, result["status"]), (1, "changed"))
+        code, result = self.wb("page", "--check", str(self.write(self.scratch / "other.html", "<p>no markers</p>")))
+        self.assertEqual(result["status"], "unknown")
+
+    def test_the_template_safety_rules(self) -> None:
+        html = wb.TEMPLATE.read_text(encoding="utf-8")
+        module = wb.MODULE.read_text(encoding="utf-8")
+        self.assertEqual(wb.check_template(html, module), [])
+        found = " | ".join(wb.check_template(html.replace("</style>", '</style><script src="https://cdn.example.org/x.js"></script>'),
+                                             module + "\nconst a = el.innerHTML\ndocument.write('x')\nfetch('https://example.org')\n"))
+        for what in ("innerHTML", "document.write", "a network call", "an external script"):
+            self.assertIn(what, found)
+        self.assertIn("version tag", " ".join(wb.check_template(html.replace('name="neuroflow:workbench-template"', 'name="x"'), module)))
+        self.assertIn("only Google Fonts", " ".join(wb.check_template(html.replace("https://fonts.gstatic.com", "https://example.org"), module)))
+        self.assertIn("dependency-free", " ".join(wb.check_template(html, "import x from 'y'\n" + module)))
+        code, result = run("check", "--json")
+        self.assertEqual((code, result["findings"]), (0, []))
 
 
 class CliTests(unittest.TestCase):
