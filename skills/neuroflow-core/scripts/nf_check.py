@@ -66,6 +66,10 @@ LEGACY_ROOT_FILES = {
 }
 REQUIRED_CONFIG_KEYS = ("nf_schema", "project_name", "active_phase", "recommended_phases", "plugin_version")
 PERSONAL_CONFIG_KEYS = {"auto_issue_reporting", "writing_style", "researcher", "zotero"}
+# The team's opt-in to the claude.ai workbench, and each person's own workbench keys (neuroflow-core → Workbench snapshot).
+WORKBENCH_MIRROR = ("allow", "allow-names", "forbid")
+WORKBENCH_PERSONAL_KEYS = {"workbench", "workbench_levels", "workbench_index_only", "workbench_machine",
+                           "workbench_account", "workbench_records"}
 MODES = {"teacher", "executor", "critic"}
 PREREG_STATUSES = {"draft", "frozen"}
 ETHICS_STATUSES = {"none", "pending", "approved", "expired", "withdrawn"}
@@ -594,6 +598,10 @@ def check_nf2(ctx: Context) -> list[Finding]:
         auto = fm.get("paper_auto")
         if auto not in (None, "") and str(auto).lower() not in ("on", "off"):
             out.append(Finding("NF2", WARN, shown, f"`paper_auto: {auto}` must be on or off"))
+        mirror = fm.get("workbench_mirror")
+        if mirror not in (None, "") and str(mirror).lower() not in WORKBENCH_MIRROR:
+            out.append(Finding("NF2", WARN, shown, f"`workbench_mirror: {mirror}` must be allow, allow-names or forbid "
+                                                   "(absent: not mirrored)"))
         for root in _as_list(fm.get("raw_roots")):
             r = str(root)
             if r.startswith(("/", "\\", "~")) or re.match(r"^[A-Za-z]:", r) or ".." in Path(r).parts:
@@ -609,6 +617,14 @@ def check_nf2(ctx: Context) -> list[Finding]:
                                "`wiki_auto` in the shared project file is ignored - it is each person's own opt-in, "
                                "read only from ~/.neuroflow/user.yaml; the project's policy is `wiki_capture: allow | forbid`",
                                fix="remove it here; whoever wants wiki capture runs /wiki --auto ask"))
+        stray = sorted(k for k in fm if k in WORKBENCH_PERSONAL_KEYS)
+        if stray:
+            # Each person's own switch for their claude.ai workbench: never a project value, never moved for them.
+            out.append(Finding("NF2", WARN, shown,
+                               "personal workbench key(s) in the shared project file are ignored: "
+                               + ", ".join(f"`{k}`" for k in stray)
+                               + " - they live in ~/.neuroflow/user.yaml; the project's policy is `workbench_mirror`",
+                               fix="remove them here; each person sets their own with /dashboard --web"))
     if not recorded:
         out.append(Finding("NF2", WARN, shown, "no plugin_version recorded",
                            fix="run /neuroflow:migrate - it brings the project up to date and records the version, "

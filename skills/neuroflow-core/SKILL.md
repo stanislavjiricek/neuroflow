@@ -86,6 +86,7 @@ paper_auto: off                   # optional: on | off (/paper --auto)
 hive_repo: owner/repo             # optional: GitHub org/repo of the team hive
 ethics: not-applicable            # optional: no approval tracked here (public de-identified data, simulations); silences the ETHICS-GATE, PARTICIPANT-ROUTE and sentinel S4; set only by the person — see /ethics
 wiki_capture: allow               # optional: allow | forbid — forbid stops all wiki capture in this project (e.g. confidential work); absent means allow — see /wiki
+workbench_mirror: allow           # optional: allow | allow-names | forbid — the team's opt-in to members mirroring this project into their own private claude.ai workbench; absent means not mirrored (Workbench snapshot)
 plugin_version: 0.2.22            # the neuroflow version the project was last brought up to date to; only the scaffold and /neuroflow:migrate write it
 ---
 ```
