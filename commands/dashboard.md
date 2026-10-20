@@ -30,14 +30,19 @@ next:
 Shows the project at a glance. It changes nothing.
 
 **With the neuroflow mod active**, this command never reaches the model: the mod opens the dashboard as a pane drawn
-by code (tabs `p` phase · `d` deadlines · `i` integrity · `t` tasks · `l` loop, `s` to switch phase, `m` to run
-`/neuroflow:migrate` when the project is behind the installed neuroflow, `c` to close) and
-keeps it current as files change. While a flowie sync of the mod's waits (a wellbeing check-in on the band), `m` puts
-`/neuroflow:migrate` in the prompt instead: sent with Enter, it waits for the sync, so its pull finds the flowie clean. `/neuroflow:dashboard loop` opens it on a tab. The tasks tab shows the Tasks section
-below; `b` opens the boards (`/neuroflow:tasks`) and `r` reads them again. On the integrity tab the person can
-freeze the preregistration (`f`, after an explicit yes), re-check its hashes (`v`) or unfreeze it with a reason (`u`) —
-the same `freeze.py` calls as `/preregistration` → Freeze, recorded as the person's action. The rest of this file is
-what runs without the mod.
+by code, holding the keyboard, and keeps it current as files change. The digits pick the tabs — `1` now (every item
+the band can show, each with its action), `2` phase, `3` deadlines, `4` integrity, `5` tasks, `6` loop — `h` and `l`
+step to the previous and the next tab, `r` reads the files again, `q` closes, and Esc gives the keys back to the
+prompt. `/neuroflow:dashboard loop` opens it on a tab; running the command again gives an open dashboard the keys
+again. On the now tab an action runs only with Enter on its row (`j` and `k` move between the rows), never on a letter:
+keeping or dropping a drafted decision, syncing the flowie, preparing or closing a meeting, and `/neuroflow:migrate`
+when the project is behind the installed neuroflow — also next to the `Update` line, under the title on every tab.
+While a flowie sync of the mod's waits (a wellbeing check-in on the band), migrate puts `/neuroflow:migrate` in the
+prompt instead: sent with Esc and then Enter, it waits for the sync, so its pull finds the flowie clean. The tasks tab
+shows the Tasks section below; on it `b` opens the boards (`/neuroflow:tasks`), and on the phase tab `g` opens the
+phase picker, each holding the keys. On the integrity tab the person can freeze the preregistration (`f`, after an
+explicit yes), re-check its hashes (`v`) or unfreeze it with a reason (`u`) — the same `freeze.py` calls as
+`/preregistration` → Freeze, recorded as the person's action. The rest of this file is what runs without the mod.
 
 ## Steps
 
