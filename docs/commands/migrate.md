@@ -12,7 +12,7 @@ title: /migrate
 
 ## When to use it
 
-- after updating the plugin — the main reason. When the project is on an older version than the one installed, the first neuroflow command in each session says so in one line and names `/migrate`; with the [neuroflow mod](../concepts/mods.md), the band above the prompt keeps that line, with an `m` key that runs `/migrate`. Only `/migrate` (and the setup of a new project) records the version, so the line stays until the project is migrated. See [Upgrading](../upgrading.md)
+- after updating the plugin — the main reason. When the project is on an older version than the one installed, the first neuroflow command in each session says so in one line and names `/migrate`; with the [neuroflow mod](../concepts/mods.md), the band above the prompt keeps that line, with an `m` key that runs `/migrate` (^X Tab gives the band the keys), and the dashboard shows it as its `Update` line. Only `/migrate` (and the setup of a new project) records the version, so the line stays until the project is migrated. See [Upgrading](../upgrading.md)
 - `/neuroflow` or another command says your `project_config.md` uses a legacy format
 - your decision logs are still `reasoning/*.json` arrays
 

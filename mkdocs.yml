@@ -220,4 +220,5 @@ nav:
   - Reference:
       - Integrations: integrations.md
       - Maintenance: maintenance/automation.md
+      - Mod live check: maintenance/mod-live-check.md
       - Changelog: changelog.md
