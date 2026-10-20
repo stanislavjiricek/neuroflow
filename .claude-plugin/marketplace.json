@@ -4,13 +4,13 @@
     "name": "Stanislav Jiricek"
   },
   "metadata": {
-    "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication."
+    "description": "Your team's shared memory, inside Claude Code: a complete research system for neuroscience teams."
   },
   "plugins": [
     {
       "name": "neuroflow",
       "source": "./",
-      "description": "End-to-end research workflow plugin for neuroscience teams — from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and multimodal recordings.",
+      "description": "Your team's shared memory, inside Claude Code: a complete research system for neuroscience teams, from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and multimodal recordings.",
       "version": "0.2.25",
       "author": {
         "name": "Stanislav Jiricek"
