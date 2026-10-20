@@ -16,26 +16,31 @@ It is the shared brain of your neuroflow project — a set of structured Markdow
 .neuroflow/
 ├── project_config.md       ← frontmatter facts (active phase, recommended phases, collaborators) + notes
 ├── flow.md                 ← index of all subfolders
-├── sentinel.md             ← sentinel audit report
+├── objectives.md           ← project objectives, read by every command
 ├── timeline.md             ← milestones and deadlines (optional)
+├── sentinel.md             ← sentinel audit report
 ├── sessions/               ← one .md per day — local only, gitignored
-├── reasoning/              ← per-phase decision logs (JSON Lines)
-├── tasks/                  ← project task board, one file per task
-├── wiki/                   ← project wiki (its .pending/ review queue is local only)
-├── ethics/                 ← IRB documents, consent forms
-├── preregistration/        ← OSF / AsPredicted documents
-├── finance/                ← grant documents, expense tracking
-├── ideation/               ← research questions, proposals, literature reviews
+├── reasoning/              ← per-phase decision logs (JSON Lines: statement, source, reasoning)
+├── tasks/                  ← project task board, one file per task: tasks/{column}/{slug}.md
+├── meetings/               ← agendas, notes and action items
+├── wiki/                   ← project wiki, an Obsidian vault (its .pending/ review queue is local only)
+├── ethics/                 ← IRB protocols, consent forms, status.md (approval, expiry, ai_processing)
+├── preregistration/        ← OSF / AsPredicted documents, status.md (frozen + hashes), deviations.md
+├── finance/                ← grant documents, expense ledger
+├── ideation/               ← research questions, proposals, literature, watch list
 ├── grant-proposal/         ← grant application drafts
-├── experiment/             ← paradigm scripts, recording setup docs
+├── experiment/             ← paradigm notes, recording setup docs
 ├── tool-build/             ← tool specs and build notes
 ├── tool-validate/          ← validation plans and results
 ├── data/                   ← data inventory and intake reports
 ├── data-preprocess/        ← preprocessing configs and QC reports
-├── data-analyze/           ← analysis plans and result summaries
-├── paper/                  ← manuscript drafts and critic logs
-├── notes/                  ← structured notes from meetings and talks
-└── write-report/           ← project reports
+├── data-analyze/           ← analysis plans, summaries, multiverse ledger, run registry
+├── paper/                  ← manuscript work, critic logs, living paper skeleton
+├── review/                 ← referee work on others' manuscripts — local only, gitignored
+├── notes/                  ← structured notes and the ideas inbox
+├── write-report/           ← project reports
+├── fails/                  ← dissatisfaction log: core.md, science.md, ux.md
+└── output/                 ← output log: one .md per export run
 ```
 
 ---

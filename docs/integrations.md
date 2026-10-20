@@ -4,7 +4,7 @@ title: Integrations
 
 # Integrations
 
-neuroflow bundles three MCP (Model Context Protocol) servers that Claude Code launches automatically via `npx`; none needs credentials. Miro and Zotero are optional servers you add yourself.
+neuroflow bundles three MCP (Model Context Protocol) servers that Claude Code launches automatically via `npx`, each pinned to a tested version; none needs credentials. Miro and Zotero are optional servers you add yourself, and the [Google Workspace CLI](#google-workspace-cli) and a [custom LLM gateway](#custom-llm-gateways) are optional tools you set up in your own terminal.
 
 ---
 
@@ -20,7 +20,7 @@ All are started automatically by Claude Code — you do not need to run them man
 
 **Optional — Miro:** added by you, at user scope — see [Miro](#miro) below.
 
-**Optional — Zotero:** neuroflow does not bundle a Zotero server, but if you add a community one (e.g. `zotero-mcp` — `claude mcp add zotero -- uvx zotero-mcp`, with the Zotero desktop app running or a `ZOTERO_API_KEY` passed with `-e` in your own terminal), `/ideation` automatically switches to library-first literature search: your existing papers are recognized and skipped, and new findings can be saved into a project collection. See `/setup` for guidance.
+**Optional — Zotero:** neuroflow does not bundle a Zotero server, but if you add a community one (e.g. `zotero-mcp` — `claude mcp add zotero -- uvx zotero-mcp`, with the Zotero desktop app running or a `ZOTERO_API_KEY` passed with `-e` in your own terminal), `/ideation` automatically switches to library-first literature search: your existing papers are recognized and skipped, and new findings go into a project collection only after you confirm that write. See `/setup` for guidance.
 
 ---
 
@@ -78,6 +78,37 @@ The Context7 integration provides Claude with up-to-date documentation for libra
 **No credentials needed.** Works automatically after installation.
 
 This means when Claude writes an MNE preprocessing script, it can look up the current API instead of relying on training data that may be outdated.
+
+---
+
+## Google Workspace CLI
+
+The Google Workspace CLI (`gws`) is one command-line tool for Drive, Gmail, Calendar, Sheets, Docs and more. It is optional: with it, Claude can reach your Google Workspace from the terminal. `/neuroflow:setup` (Step 3) checks whether it is installed and signed in and walks you through the steps below.
+
+### Install
+
+It needs Node.js 18 or later (`node --version`):
+
+```bash
+npm install -g @googleworkspace/cli
+```
+
+### Sign in
+
+With the Google Cloud CLI (`gcloud`) installed, one command creates the Cloud project, enables the APIs, creates the OAuth client and opens the browser to sign in:
+
+```bash
+gws auth setup --login
+```
+
+Without `gcloud`, do this once in [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+
+1. Create a project (or pick one), then **Create Credentials → OAuth client ID**, application type **Desktop app**.
+2. **Download JSON** and save the file as `~/.config/gws/client_secret.json` (on Windows `%USERPROFILE%\.config\gws\client_secret.json`). If you keep it elsewhere, set `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` to its path in your shell profile.
+3. Enable the APIs you want to use in the project's API library: Calendar, Gmail, Drive, Sheets, Docs, Slides, Tasks.
+4. Run `gws auth login`. It opens the browser for your consent; Google may warn that the app is unverified, which is expected for your own OAuth client (**Advanced → Continue**). `gws auth status` then shows the signed-in account.
+
+Instead of the file, you can set `GOOGLE_WORKSPACE_CLI_CLIENT_ID` and `GOOGLE_WORKSPACE_CLI_CLIENT_SECRET` in your shell profile and run `gws auth login`. Either way the OAuth secret stays with `gws`: neuroflow never asks for it in the chat and never stores it.
 
 ---
 

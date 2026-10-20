@@ -23,9 +23,14 @@ Ids are stable: never renumber or reuse one - retire it instead.
        and every id a mod guard cites (hooks/mod/) has a marker in skills/ or commands/
   V9   name collisions: no skill folder shares a command's name (the command shadows it)
   V10  propagation: every command, skill and agent appears in README.md and the mkdocs nav;
-       README tables and nav have no dead links; the nav lists each page once
+       every relative link and image in README.md resolves (Markdown targets, HTML src, href
+       and srcset; a link into the docs site names a page in docs/; an in-page #anchor that no
+       heading or id defines warns); the mkdocs.yml theme logo and favicon and the plugin.json
+       icon exist; the nav has no dead links and lists each page once
   V11  dead neuroflow:<name> references inside SKILL.md files
-  V12  release notes (warn): README What's new and docs/changelog.md match the version
+  V12  release notes: README.md has one What's new section (two or more fail; none, or one
+       for another version than plugin.json, warns); docs/changelog.md lists that version
+       first (warn)
   V13  plugin-repo memory (warn): the repo's own .neuroflow/ holds only reasoning/ and sessions/
   V14  sensitive info: PEM private keys (fail); emails and hardcoded secrets (warn, human review)
   V15  path hygiene (warn): stale flowie/hive paths and legacy field names
@@ -38,6 +43,7 @@ import json
 import re
 import subprocess
 import sys
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -148,19 +154,29 @@ _CONFIG_VERSION_RES = (
 )
 
 
-def _mkdocs_extra_version_span(text: str) -> tuple[int, int] | None:
-    """Character span of the `extra:` -> `version:` value (never another `version:` key)."""
-    m = re.search(r"(?m)^extra:[ \t]*$", text)
+def _yaml_child_span(text: str, block: str, key: str) -> tuple[int, int] | None:
+    """Character span of the scalar `block:` -> `key:` in a YAML file read as text (stdlib only).
+
+    Only a direct child of the top-level `block:` counts, never a deeper key of the same name
+    (`theme: icon: logo:` is not `theme: logo:`)."""
+    m = re.search(rf"(?m)^{re.escape(block)}:[ \t]*$", text)
     if not m:
         return None
     start = m.end()
     nxt = re.search(r"(?m)^(?=\S)", text[start + 1:])
     end = start + 1 + nxt.start() if nxt else len(text)
-    best = None
-    for vm in re.finditer(r"(?m)^([ \t]+)version:[ \t]*[\"']?([^\"'\s#]+)", text[start:end]):
-        if best is None or len(vm.group(1)) < len(best.group(1)):
-            best = vm
-    return (start + best.start(2), start + best.end(2)) if best else None
+    indents = [len(i) for i in re.findall(r"(?m)^([ \t]+)[^\s#]", text[start:end])]
+    if not indents:
+        return None
+    for vm in re.finditer(rf"(?m)^([ \t]+){re.escape(key)}:[ \t]*[\"']?([^\"'\s#]+)", text[start:end]):
+        if len(vm.group(1)) == min(indents):
+            return start + vm.start(2), start + vm.end(2)
+    return None
+
+
+def _mkdocs_extra_version_span(text: str) -> tuple[int, int] | None:
+    """Character span of the `extra:` -> `version:` value (never another `version:` key)."""
+    return _yaml_child_span(text, "extra", "version")
 
 
 def site_versions(root: Path, rel: str) -> list[str] | None:
@@ -580,6 +596,133 @@ def mkdocs_nav_paths(mkdocs_text: str) -> list[str]:
     return paths
 
 
+_FENCE_RE = re.compile(r"(?ms)^[ \t]*(`{3,}|~{3,})[^\n`]*$.*?^[ \t]*\1[`~]*[ \t]*$")
+_HTML_COMMENT_RE = re.compile(r"(?s)<!--.*?-->")
+_CODE_SPAN_RE = re.compile(r"(`+)(?!`)(?:(?!\1).)+?(?<!`)\1(?!`)")
+_MD_TARGET_RE = re.compile(r"\]\(\s*(?:<([^>\n]*)>|([^)\s]+))")
+_MD_REF_DEF_RE = re.compile(r"(?m)^[ \t]{0,3}\[(?!\^)[^\]\n]+\]:[ \t]*<?([^\s>]+)>?")  # not footnotes [^1]:
+_HTML_TARGET_RE = re.compile(r"""(?i)\b(srcset|src|href)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+_HTML_ID_RE = re.compile(r"""(?i)\b(?:id|name)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+_HEADING_RE = re.compile(r"(?m)^[ \t]{0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$")
+_SCHEME_RE = re.compile(r"(?i)^(?:[a-z][a-z0-9+.-]*:|//)")
+
+
+def _strip_code(text: str) -> str:
+    """Markdown without fenced code and HTML comments - what GitHub renders as content."""
+    return _HTML_COMMENT_RE.sub("", _FENCE_RE.sub("", text))
+
+
+def github_slug(heading: str) -> str:
+    """The anchor GitHub gives a heading: rendered text, lower case, punctuation dropped, spaces to -."""
+    text = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", heading)  # links and images -> their text
+    text = re.sub(r"<[^>]+>", "", text).replace("`", "")
+    return re.sub(r"[^\w\- ]", "", text.strip().lower()).replace(" ", "-")
+
+
+def readme_anchors(text: str) -> set[str]:
+    """In-page anchors of a README: heading slugs (repeats get -1, -2, as on GitHub) and id/name attributes."""
+    body = _strip_code(text)
+    anchors: set[str] = set()
+    seen: dict[str, int] = {}
+    for heading in _HEADING_RE.findall(body):
+        slug = github_slug(heading)
+        n = seen.get(slug, 0)
+        seen[slug] = n + 1
+        anchors.add(slug if n == 0 else f"{slug}-{n}")
+    anchors.update(a or b for a, b in _HTML_ID_RE.findall(body))
+    return anchors
+
+
+def readme_targets(text: str) -> list[str]:
+    """Every link and image target in a README, outside code: Markdown links, images and
+    reference definitions, and HTML src, href and srcset (each candidate of a srcset list)."""
+    body = _CODE_SPAN_RE.sub("", _strip_code(text))
+    targets = [a or b for a, b in _MD_TARGET_RE.findall(body)]
+    targets += _MD_REF_DEF_RE.findall(body)
+    for attr, dq, sq in _HTML_TARGET_RE.findall(body):
+        value = dq or sq
+        if attr.lower() == "srcset":
+            targets += [part.split()[0] for part in value.split(",") if part.split()]
+        else:
+            targets.append(value)
+    return [t.strip() for t in dict.fromkeys(targets) if t.strip()]
+
+
+def _mkdocs_top(text: str, key: str) -> str | None:
+    """A top-level scalar of mkdocs.yml (site_url, docs_dir)."""
+    m = re.search(rf"(?m)^{re.escape(key)}:[ \t]*[\"']?([^\"'\s#]+)", text)
+    return m.group(1) if m else None
+
+
+def site_page_exists(root: Path, docs_dir: str, page: str) -> bool:
+    """Whether a path on the docs site (directory URLs) has a source: <docs_dir>/<page>.md, its
+    index.md, a static file there, or a skills/ or agents/ page that docs/hooks.py copies in."""
+    page = urllib.parse.unquote(page.split("#", 1)[0].split("?", 1)[0]).strip("/") or "index"
+    page = page[:-len(".html")] if page.endswith(".html") else page
+    bases = [root / docs_dir] + ([root] if page.startswith(("skills/", "agents/")) else [])
+    return any((b / c).exists() for b in bases for c in (f"{page}.md", f"{page}/index.md", page))
+
+
+def readme_link_findings(root: Path, text: str, rel: str = "README.md") -> list[Finding]:
+    """Dead relative links and images in a README (fail) and in-page anchors nothing defines (warn).
+    A link into the docs site (mkdocs.yml site_url) must name a page the docs build from (fail);
+    other URLs are not fetched, and an anchor in another file is not checked."""
+    out = []
+    anchors = readme_anchors(text)
+    base = root.resolve()
+    mkdocs = _read(root / MKDOCS_YML)
+    site = (_mkdocs_top(mkdocs, "site_url") or "").rstrip("/")
+    docs_dir = _mkdocs_top(mkdocs, "docs_dir") or "docs"
+    for target in readme_targets(text):
+        if site and (target == site or target.startswith(site + "/")):
+            if not site_page_exists(root, docs_dir, target[len(site):]):
+                out.append(Finding("V10", f"{rel} links to `{target}`, a site page with no source in {docs_dir}/"))
+            continue
+        if _SCHEME_RE.match(target):
+            continue
+        path, _, fragment = target.partition("#")
+        path = urllib.parse.unquote(path.split("?", 1)[0]).lstrip("/")
+        if not path:
+            frag = urllib.parse.unquote(fragment)
+            frag = frag[len("user-content-"):] if frag.startswith("user-content-") else frag
+            if frag and frag not in anchors and frag.lower() not in anchors:
+                out.append(Finding("V10", f"{rel} links to `#{fragment}`, which no heading or id in it defines", WARN))
+            continue
+        full = (root / path).resolve()
+        if full != base and base not in full.parents:
+            out.append(Finding("V10", f"{rel} links to `{path}`, outside the repository"))
+        elif not full.exists():
+            out.append(Finding("V10", f"{rel} links to non-existent file `{path}`"))
+    return out
+
+
+def icon_findings(root: Path) -> list[Finding]:
+    """The images the site and the plugin listing name: mkdocs.yml theme logo and favicon
+    (in docs_dir, or in the theme's custom_dir) and the plugin.json icon (from the repo root)."""
+    out = []
+    mkdocs = root / MKDOCS_YML
+    if mkdocs.is_file():
+        text = _read(mkdocs)
+        docs_dir = _mkdocs_top(text, "docs_dir") or "docs"
+        custom = _yaml_child_span(text, "theme", "custom_dir")
+        bases = [root / docs_dir] + ([root / text[custom[0]:custom[1]]] if custom else [])
+        for key in ("logo", "favicon"):
+            span = _yaml_child_span(text, "theme", key)
+            value = text[span[0]:span[1]] if span else ""
+            if value and not _SCHEME_RE.match(value) and not any((b / value).is_file() for b in bases):
+                out.append(Finding("V10", f"{MKDOCS_YML} theme {key} `{value}` does not exist in {docs_dir}/"))
+    plugin = root / PLUGIN_JSON
+    try:
+        data = json.loads(_read(plugin)) if plugin.is_file() else {}
+    except json.JSONDecodeError:
+        data = {}  # V1 reports it
+    icon = data.get("icon") if isinstance(data, dict) else None
+    if isinstance(icon, str) and icon.strip() and not _SCHEME_RE.match(icon.strip()):
+        if not (root / icon.strip()).is_file():
+            out.append(Finding("V10", f"{PLUGIN_JSON} icon `{icon.strip()}` does not exist"))
+    return out
+
+
 def v10_propagation(ctx: Context) -> list[Finding]:
     out = []
     root = ctx.root
@@ -594,11 +737,9 @@ def v10_propagation(ctx: Context) -> list[Finding]:
     for name in agents:
         if f"](agents/{name}.md)" not in readme:
             out.append(Finding("V10", f"agents/{name}.md has no link in README.md (Agents table row missing?)"))
-    # Only from "## Why neuroflow" on: the What's new history may link to removed files.
-    region = readme[readme.find("## Why neuroflow"):] if "## Why neuroflow" in readme else readme
-    for target in re.findall(r"\]\(((?:commands|skills|agents|\.github)/[^)#\s]+)\)", region):
-        if not (root / target).exists():
-            out.append(Finding("V10", f"README.md links to non-existent file `{target}`"))
+    # The whole README: it keeps one What's new section, and the history lives in docs/changelog.md.
+    out += readme_link_findings(root, readme)
+    out += icon_findings(root)
 
     nav = mkdocs_nav_paths(_read(root / MKDOCS_YML))
     navset = set(nav)
@@ -647,6 +788,15 @@ def v11_dead_refs(ctx: Context) -> list[Finding]:
 # ---------------------------------------------------------------------------
 
 
+_WHATS_NEW_RE = re.compile(r"(?i)\bwhat['’]s\s+new\s+in\s+v?(\d+\.\d+\.\d+)\b")
+_CHANGELOG_VERSION_RE = re.compile(r"(?m)^##[ \t]+v?(\d+\.\d+\.\d+)\b")
+
+
+def readme_whats_new(text: str) -> list[str]:
+    """Versions of the `What's new in X.Y.Z` mentions in a README, outside code (straight or curly apostrophe)."""
+    return _WHATS_NEW_RE.findall(_CODE_SPAN_RE.sub("", _strip_code(text)))
+
+
 def v12_release_notes(ctx: Context) -> list[Finding]:
     found = site_versions(ctx.root, PLUGIN_JSON) or []
     if not found:
@@ -654,11 +804,24 @@ def v12_release_notes(ctx: Context) -> list[Finding]:
     v = found[0]
     out = []
     readme = ctx.root / "README.md"
-    if readme.is_file() and f"## What's new in {v}" not in _read(readme):
-        out.append(Finding("V12", f"README.md has no `## What's new in {v}` section", WARN))
+    if readme.is_file():
+        shown = readme_whats_new(_read(readme))
+        if len(shown) > 1:
+            out.append(Finding("V12", f"README.md has {len(shown)} What's new sections ({', '.join(shown)}) - keep only "
+                                      "the newest; the earlier notes live in docs/changelog.md"))
+        elif not shown:
+            out.append(Finding("V12", f"README.md has no `## What's new in {v}` section", WARN))
+        elif shown[0] != v:
+            out.append(Finding("V12", f"README.md What's new is for {shown[0]}, plugin.json is {v} - replace the "
+                                      f"section with `## What's new in {v}`", WARN))
     changelog = ctx.root / "docs" / "changelog.md"
-    if changelog.is_file() and not re.search(rf"(?m)^##\s+v?{re.escape(v)}\b", _read(changelog)):
-        out.append(Finding("V12", f"docs/changelog.md has no `## {v}` entry", WARN))
+    if changelog.is_file():
+        versions = _CHANGELOG_VERSION_RE.findall(_read(changelog))
+        if v not in versions:
+            out.append(Finding("V12", f"docs/changelog.md has no `## {v}` entry", WARN))
+        elif versions[0] != v:
+            out.append(Finding("V12", f"docs/changelog.md lists {versions[0]} first - the newest entry (`## {v}`) "
+                                      "goes on top", WARN))
     return out
 
 
@@ -746,9 +909,10 @@ def v14_sensitive(ctx: Context) -> list[Finding]:
     return out
 
 
-# Files where legacy flowie/hive strings are historical or describe the patterns.
+# Files where legacy flowie/hive strings are historical or describe the patterns. README.md is
+# checked: it keeps only the newest release notes, and the history lives in docs/changelog.md.
 _PATH_HYGIENE_EXEMPT = {
-    "docs/changelog.md", "README.md", "agents/sentinel-dev.md", ".neuroflow/sentinel-dev.md",
+    "docs/changelog.md", "agents/sentinel-dev.md", ".neuroflow/sentinel-dev.md",
     "scripts/automation/repo_checks.py", "hooks/hooks.json",
 }
 _LEGACY_FIELDS = (
@@ -804,9 +968,9 @@ CHECKS: tuple[Check, ...] = (
     Check("V7", "Version bump vs base", v7_version_bump, needs_base=True),
     Check("V8", "Rule markers", v8_rule_markers),
     Check("V9", "Name collisions", v9_collisions),
-    Check("V10", "Propagation (README, nav)", v10_propagation),
+    Check("V10", "Propagation and links (README, nav, icons)", v10_propagation),
     Check("V11", "Dead skill/command references", v11_dead_refs),
-    Check("V12", "Release notes sync", v12_release_notes),
+    Check("V12", "Release notes (one What's new, changelog on top)", v12_release_notes),
     Check("V13", "Plugin-repo memory", v13_repo_memory),
     Check("V14", "Sensitive info", v14_sensitive),
     Check("V15", "Path hygiene", v15_path_hygiene),

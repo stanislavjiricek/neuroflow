@@ -78,6 +78,13 @@ FILES = {
         {"matcher": "Edit|Write", "hooks": [{"type": "command", "command": "echo hi; true"}]}]}}, indent=2) + "\n",
     "mkdocs.yml": textwrap.dedent("""\
         site_name: neuroflow
+        site_url: "https://example.org/neuroflow/"
+        theme:
+          name: material
+          logo: assets/logo.svg
+          favicon: assets/logo.svg
+          icon:
+            repo: fontawesome/brands/github
         plugins:
           - search:
               version: "9.9.9"
@@ -106,23 +113,48 @@ FILES = {
     "docs/index.md": "---\ntemplate: home.html\n---\n\n# neuroflow\n",
     "docs/changelog.md": "# Changelog\n\n## 1.2.3\n\n- x\n",
     "docs/commands/alpha.md": "# /alpha\n",
+    "docs/assets/logo.svg": '<svg xmlns="http://www.w3.org/2000/svg"/>\n',
+    "docs/assets/logo-dark.svg": '<svg xmlns="http://www.w3.org/2000/svg"/>\n',
     "README.md": textwrap.dedent("""\
-        # neuroflow
+        <div align="center">
+          <a href="https://example.org/neuroflow/">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+              <img src="docs/assets/logo.svg" alt="neuroflow" width="280">
+            </picture>
+          </a>
+          <p><a href="#whats-new">What's new</a> · <a href="#installation">Install</a></p>
+        </div>
 
+        <a id="whats-new"></a>
         ## What's new in 1.2.3
 
-        - [old thing](agents/removed-long-ago.md)
+        - [Alpha](commands/alpha.md) got better
 
-        ## Why neuroflow
+        ## Installation
+
+        ```
+        /plugin install neuroflow
+        ```
+
+        ## Commands
 
         | Command | What |
         |---|---|
         | [`/alpha`](commands/alpha.md) | alpha |
 
+        ## Skills
+
+        <details><summary>2 skills</summary>
+
         | Skill | What |
         |---|---|
         | [`neuroflow-core`](skills/neuroflow-core/SKILL.md) | core |
         | [`phase-alpha`](skills/phase-alpha/SKILL.md) | alpha |
+
+        </details>
+
+        ## Agents
 
         | Agent | What |
         |---|---|

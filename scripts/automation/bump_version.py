@@ -14,8 +14,10 @@ Sites (repo_checks.VERSION_SITES, also checked by validate_pr.py V2):
   .neuroflow/project_config.md    plugin_version (skipped when the file is absent)
 
 Only the version strings change; formatting and line endings stay as they are. The release
-notes (README What's new, docs/changelog.md) are written by hand - this script prints them as
-next steps.
+notes are written by hand, and this script prints them as next steps: the `## X.Y.Z` entry on
+top of docs/changelog.md (the record of every release), then README.md's single What's new
+section, replaced for the new version (validate_pr.py V12 fails on a second one). Renaming the
+README heading by machine would relabel the previous release's notes, so it stays by hand.
 
 Exit codes: 0 = done (or in sync), 1 = --check found drift, 2 = usage or runtime error.
 """
@@ -102,8 +104,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(f"bump_version: {len(written)} site(s) now at {target}")
     if not args.sync:
-        print("Next (by hand): README.md `## What's new in " + target + "`, docs/changelog.md `## " + target + "`, "
-              "then "
+        print(f"Next (by hand): docs/changelog.md `## {target}` on top, then replace README.md's What's new section "
+              f"with `## What's new in {target}` (one section only - V12), then "
               "python scripts/automation/validate_pr.py --base origin/main")
     return 0
 
