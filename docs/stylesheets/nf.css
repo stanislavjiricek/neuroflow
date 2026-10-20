@@ -3,16 +3,20 @@
    Colours follow the reader's system setting: dark by default, light when the system asks for it. */
 
 /* ── Tokens ─────────────────────────────────────────────────────────────────────────────── */
+/* The brand palette: scripts/automation/brand_assets.py reads the ring images' colours from here.
+   line2 (chip and panel borders) and faint (the quietest text) are the landing page's and the video's. */
 :root {
   --nf-bg: #06070A;
   --nf-raise: #0C0D11;
   --nf-field: #0E0F13;
   --nf-line: #1C1D22;
+  --nf-line2: #2A2C33;
   --nf-fg: #E9E9E4;
   --nf-strong: #FFFFFF;
   --nf-text: #C8C9CC;
   --nf-mute: #A2A4A9;
   --nf-dim: #7C7E84;
+  --nf-faint: #43464E;
   --nf-mark: rgba(233, 233, 228, .1);
   --nf-hl-comment: #6E7179;
   --nf-hl-keyword: #E9E9E4;
@@ -30,11 +34,13 @@
     --nf-raise: #ECEBE6;
     --nf-field: #E8E6E0;
     --nf-line: #DAD7CF;
+    --nf-line2: #C9C6BD;
     --nf-fg: #141416;
     --nf-strong: #000000;
     --nf-text: #2E2E30;
     --nf-mute: #55544F;
     --nf-dim: #6E6C66;
+    --nf-faint: #AEABA3;
     --nf-mark: rgba(20, 20, 22, .08);
     --nf-hl-comment: #77756F;
     --nf-hl-keyword: #141416;
