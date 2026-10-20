@@ -133,7 +133,7 @@ These are set automatically in the workflow file. No additional secrets are need
 
 **Purpose:** Produce a weekly "Radar Brief" with new implementation ideas, detected capability gaps, and threats relevant to neuroflow's neuroscience/scientific workflow focus.
 
-**Repo context read:** `commands/`, `skills/`, `agents/`, `README.md` changelog headings, `.claude-plugin/plugin.json`.
+**Repo context read:** `commands/`, `skills/`, `agents/`, the version headings of `docs/changelog.md`, `.claude-plugin/plugin.json`.
 
 **Script:** `scripts/automation/research_radar.py`
 
