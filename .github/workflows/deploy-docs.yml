@@ -34,6 +34,25 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # The intro video is an asset of the GitHub Release intro-video, never a file in git, so it
+      # never reaches a plugin install. If it cannot be fetched, this job fails, the deploy job is
+      # skipped and the live site stays as it was. Replacing it: docs/maintenance/automation.md.
+      - name: Fetch the intro video
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release download intro-video --repo ${{ github.repository }} \
+              --pattern neuroflow-en.mp4 --dir docs/assets/video; then
+            echo "::error title=Intro video not fetched::Could not download neuroflow-en.mp4 from the intro-video release of ${{ github.repository }}. If the asset is missing, upload it (gh release upload intro-video neuroflow-en.mp4 --clobber), then run this workflow again. The live site is unchanged."
+            exit 1
+          fi
+          size=$(stat -c %s docs/assets/video/neuroflow-en.mp4)
+          if [ "$size" -lt 1000000 ]; then
+            echo "::error title=Intro video too small::neuroflow-en.mp4 from the intro-video release is only $size bytes. Upload the full file again (gh release upload intro-video neuroflow-en.mp4 --clobber), then run this workflow again. The live site is unchanged."
+            exit 1
+          fi
+          echo "Fetched neuroflow-en.mp4 from the intro-video release ($size bytes)."
+
       - name: Build documentation
         run: mkdocs build --strict
 
