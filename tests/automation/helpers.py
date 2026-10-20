@@ -78,6 +78,7 @@ FILES = {
         {"matcher": "Edit|Write", "hooks": [{"type": "command", "command": "echo hi; true"}]}]}}, indent=2) + "\n",
     "mkdocs.yml": textwrap.dedent("""\
         site_name: neuroflow
+        site_url: "https://example.org/neuroflow/"
         theme:
           name: material
           logo: assets/logo.svg

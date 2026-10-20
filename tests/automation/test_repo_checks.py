@@ -236,6 +236,17 @@ class ReadmeLinkTests(RepoCase):
         extra = "\n[site](https://example.org/x) <a href=\"mailto:team@example.org\">mail</a> [cdn](//example.org/a.png)\n"
         self.assertEqual(self.readme(extra=extra), [])
 
+    def test_links_into_the_docs_site_name_a_page(self):
+        # site_url in mkdocs.yml maps a site link to its source, offline: docs/<page>.md, a static
+        # file in docs/, or a skills/ or agents/ page that docs/hooks.py copies in at build time
+        pages = ("https://example.org/neuroflow", "https://example.org/neuroflow/commands/alpha/#usage",
+                 "https://example.org/neuroflow/skills/phase-alpha/SKILL/", "https://example.org/neuroflow/assets/logo.svg",
+                 "https://example.org/neuroflow-other/gone/")
+        self.assertEqual(self.readme(extra="\n" + " ".join(f"[x]({u})" for u in pages) + "\n"), [])
+        found = self.readme(extra="\n[gone](https://example.org/neuroflow/concepts/gone/)\n")
+        self.assertEqual([(f.severity, f.message) for f in found], [(
+            rc.FAIL, "README.md links to `https://example.org/neuroflow/concepts/gone/`, a site page with no source in docs/")])
+
     def test_link_outside_the_repository_fails(self):
         found = self.readme(extra="\n[up](../outside.md)\n")
         self.assertEqual([f.message for f in found], ["README.md links to `../outside.md`, outside the repository"])

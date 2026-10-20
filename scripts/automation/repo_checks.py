@@ -24,9 +24,9 @@ Ids are stable: never renumber or reuse one - retire it instead.
   V9   name collisions: no skill folder shares a command's name (the command shadows it)
   V10  propagation: every command, skill and agent appears in README.md and the mkdocs nav;
        every relative link and image in README.md resolves (Markdown targets, HTML src, href
-       and srcset; an in-page #anchor that no heading or id defines warns); the mkdocs.yml
-       theme logo and favicon and the plugin.json icon exist; the nav has no dead links and
-       lists each page once
+       and srcset; a link into the docs site names a page in docs/; an in-page #anchor that no
+       heading or id defines warns); the mkdocs.yml theme logo and favicon and the plugin.json
+       icon exist; the nav has no dead links and lists each page once
   V11  dead neuroflow:<name> references inside SKILL.md files
   V12  release notes: README.md has one What's new section (two or more fail; none, or one
        for another version than plugin.json, warns); docs/changelog.md lists that version
@@ -648,13 +648,36 @@ def readme_targets(text: str) -> list[str]:
     return [t.strip() for t in dict.fromkeys(targets) if t.strip()]
 
 
+def _mkdocs_top(text: str, key: str) -> str | None:
+    """A top-level scalar of mkdocs.yml (site_url, docs_dir)."""
+    m = re.search(rf"(?m)^{re.escape(key)}:[ \t]*[\"']?([^\"'\s#]+)", text)
+    return m.group(1) if m else None
+
+
+def site_page_exists(root: Path, docs_dir: str, page: str) -> bool:
+    """Whether a path on the docs site (directory URLs) has a source: <docs_dir>/<page>.md, its
+    index.md, a static file there, or a skills/ or agents/ page that docs/hooks.py copies in."""
+    page = urllib.parse.unquote(page.split("#", 1)[0].split("?", 1)[0]).strip("/") or "index"
+    page = page[:-len(".html")] if page.endswith(".html") else page
+    bases = [root / docs_dir] + ([root] if page.startswith(("skills/", "agents/")) else [])
+    return any((b / c).exists() for b in bases for c in (f"{page}.md", f"{page}/index.md", page))
+
+
 def readme_link_findings(root: Path, text: str, rel: str = "README.md") -> list[Finding]:
     """Dead relative links and images in a README (fail) and in-page anchors nothing defines (warn).
-    URLs with a scheme are not fetched; an anchor in another file is not checked."""
+    A link into the docs site (mkdocs.yml site_url) must name a page the docs build from (fail);
+    other URLs are not fetched, and an anchor in another file is not checked."""
     out = []
     anchors = readme_anchors(text)
     base = root.resolve()
+    mkdocs = _read(root / MKDOCS_YML)
+    site = (_mkdocs_top(mkdocs, "site_url") or "").rstrip("/")
+    docs_dir = _mkdocs_top(mkdocs, "docs_dir") or "docs"
     for target in readme_targets(text):
+        if site and (target == site or target.startswith(site + "/")):
+            if not site_page_exists(root, docs_dir, target[len(site):]):
+                out.append(Finding("V10", f"{rel} links to `{target}`, a site page with no source in {docs_dir}/"))
+            continue
         if _SCHEME_RE.match(target):
             continue
         path, _, fragment = target.partition("#")
@@ -680,8 +703,7 @@ def icon_findings(root: Path) -> list[Finding]:
     mkdocs = root / MKDOCS_YML
     if mkdocs.is_file():
         text = _read(mkdocs)
-        m = re.search(r"(?m)^docs_dir:[ \t]*[\"']?([^\"'\s#]+)", text)
-        docs_dir = m.group(1) if m else "docs"
+        docs_dir = _mkdocs_top(text, "docs_dir") or "docs"
         custom = _yaml_child_span(text, "theme", "custom_dir")
         bases = [root / docs_dir] + ([root / text[custom[0]:custom[1]]] if custom else [])
         for key in ("logo", "favicon"):
