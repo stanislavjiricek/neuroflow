@@ -78,7 +78,7 @@ Current: data-analyze — analysis
 
 | Feature | What you see | Needs |
 |---|---|---|
-| Views | `/neuroflow:dashboard` opens a pane (phase map, deadlines, integrity, open tasks at every level, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` the task boards of the project, your flowie and each hive, `v` switching between them | — |
+| Views | `/neuroflow:dashboard` opens a pane (phase map, deadlines, integrity, open tasks at every level, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` the task boards of the project, your flowie and each hive, `v` switching between them; `/neuroflow:paper --auto status`, `/neuroflow:paper --xray view` and `/neuroflow:wiki --review` open panes for the living paper, the paper X-ray and the wiki review queue | — |
 | Band, status line, footer | One line above the prompt when something needs attention (a deadline, a meeting, a drafted decision, a loop being driven, a plugin update the project has not been [migrated](../upgrading.md) to, a flowie sync of the mod's that is pending or did not go through); a status line that speaks only about exceptions; `neuroflow · phase · mode` in the footer | `band` |
 | Instant answers | `/neuroflow:doctor`, `/neuroflow:phase <name>`, `idea: …` and live note capture answered in code, with no model turn | — |
 | Bookkeeping | Missing session lines and `flow.md` rows filled after a command's turn and marked `(auto)`; a decision drafted when a command logged none, kept only on your key press | `runtime: on` |

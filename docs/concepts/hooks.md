@@ -29,7 +29,12 @@ Claude writes scripts/analysis/erp_analysis.py
 
 **Trigger:** `PostToolUse` — whenever Claude uses the Edit or Write tool on a file inside `~/.neuroflow/flowie/`
 
-**What it does:** Commits only the file Claude just wrote (`git commit -- <file>`, never `git add -A`), pulls with rebase, then pushes to your private flowie repo. `integrations.json`, gitignored files, and repos in the middle of a rebase or merge are skipped. It never blocks: a failed pull, commit or push (offline, auth, or a conflict, whose rebase is aborted at once) leaves the commit local and appends one line to `~/.neuroflow/flowie-sync.log`; `/flowie` mentions the log and `/flowie --sync` resolves and clears it.
+**What it does:** Commits only the file Claude just wrote (`git commit -- <file>`, never `git add -A`), pulls with rebase and `--autostash` (so uncommitted files in your flowie never stop the pull), then pushes to your private flowie repo. `integrations.json`, gitignored files, and repos in the middle of a rebase or merge are skipped.
+
+- **Machine-local paths stay home.** Your flowie syncs to every machine you use and to its host, so a file that names a folder on this machine (`C:\Users\…`, `/home/…`) is held back: the hook checks the file with `skills/phase-flowie/scripts/local_paths.py` and leaves it for `/flowie --sync`, which offers to move each such path into `~/.neuroflow/local-projects.json`, a file that never syncs. A line marked `nf: local-path-ok` (in an HTML comment, for example) keeps its path and syncs as it is.
+- **Conflicts wait for you.** While git marks a file in your flowie as conflicted, the hook commits and pushes nothing. When its own `--autostash` pull cannot give your uncommitted changes back cleanly, it logs `autostash conflict` with the file names; `/flowie --sync` resolves them with you and never commits conflict markers.
+
+It never blocks: a file it holds back stays uncommitted, a failed pull, commit or push (offline, auth, or a conflict, whose rebase is aborted at once) leaves the commit local, and each case appends one line to `~/.neuroflow/flowie-sync.log`; `/flowie` mentions the log and `/flowie --sync` resolves and clears it.
 
 ### Sci-Hub block
 
