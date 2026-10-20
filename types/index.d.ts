@@ -163,6 +163,8 @@ export type NfCard = {
 /** One level's task board as the board pane draws it (commands/tasks.md format). */
 export type NfBoard = {
   columns: { id: string; label: string; cards: NfCard[]; total: number }[]
+  /** Every open column of the board's config in board order, drawn or not (an empty one is not): where a card can move. */
+  openColumns: string[]
   done: number
   archived: number
 }

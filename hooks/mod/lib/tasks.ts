@@ -66,6 +66,7 @@ export const buildBoard = (columns: readonly Column[], cards: Readonly<Record<st
         return { id: column.id, label: column.label, cards: list.slice(0, 5), total: list.length }
       })
       .filter(column => column.total > 0 || column.id === 'inbox' || column.id === 'active'),
+    openColumns: drawn.map(column => column.id),
     done,
     archived,
   }

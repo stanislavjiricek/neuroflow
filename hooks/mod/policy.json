@@ -8,6 +8,7 @@
     "session.start",
     "tool.call",
     "turn.complete",
+    "ui.focus",
     "ui.render"
   ],
   "calls": [
@@ -37,6 +38,7 @@
     "$.store.set",
     "$.ui.ask",
     "$.ui.close",
+    "$.ui.focus",
     "$.ui.invalidate",
     "$.ui.log",
     "$.ui.notice",
@@ -64,9 +66,12 @@
     "neuroflow.drive",
     "neuroflow.flowieSync",
     "neuroflow.gitAlias",
+    "neuroflow.keysLearned",
     "neuroflow.loginNode",
     "neuroflow.loopView",
     "neuroflow.memoryStructure",
+    "neuroflow.openedAt",
+    "neuroflow.paneRing",
     "neuroflow.paperView",
     "neuroflow.pickerNote",
     "neuroflow.profileDigest",

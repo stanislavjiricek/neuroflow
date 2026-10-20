@@ -8,6 +8,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { NfIo } from '../lib/io'
+import { BAND, CHORD } from '../lib/keys'
 import { appendLine, clockTime, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import { mayWrite } from '../lib/options'
 import type { NfOptions } from '../lib/options'
@@ -146,7 +147,7 @@ export const registerBookkeeping = (on: On, opts: NfOptions): void => {
         const draft = reply.isAnswered ? parseDraft(reply.text) : null
         if (draft !== null) {
           await update($, draftAtom, () => ({ path: baseline.path, phase: command.phase, command: command.name, ...draft, at: now }))
-          $.ui.toast('neuroflow drafted a decision for the reasoning log — keep it (k) or drop it (n) in the band')
+          $.ui.toast(`neuroflow drafted a decision for the reasoning log — keep or drop it on the band: ${CHORD}, then ${BAND.keep} or ${BAND.drop}`)
         }
       }
     }
