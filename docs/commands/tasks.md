@@ -35,10 +35,26 @@ At flowie and hive level, the tasks of **this project** come first in each colum
 | `--done {slug}` | Complete a task |
 | `--archive` | Archive done tasks older than `archive_after_days` (default 90) |
 | `--project {id}` | One project across every board: your flowie, each hive, this repository and the project's other repositories (their boards fetched into a local cache in `~/.neuroflow/boards/` each time, never synced) |
+| `--apply-web` | Apply the changes you made on [your claude.ai workbench](../concepts/workbench.md) (see below) |
 
 **Where a task goes.** On the narrowest board that everyone who must see it can read: only you — your flowie; the team — the hive (the default for a team project); the people working in this repository, about its code or files — the project board. `--add` proposes the board and says why; you can pick another.
 
 Every board display is a rendered ASCII Kanban — never a flat list, except `--list`. Overdue tasks are flagged `⚠` and float to the top of their column, right after this project's tasks at flowie and hive level.
+
+---
+
+## Changes from your workbench (`--apply-web`)
+
+A card you move or add on [your claude.ai workbench](../concepts/workbench.md) is a request; `--apply-web` is where it
+lands in git. It picks up the waiting requests (a project's only when you run it in that project), claims them so a
+second machine cannot apply them too, and checks each against git: a task that changed or moved since your snapshot is
+a conflict and nothing is written. Accepted changes move the task files exactly as `--move` does — two moves of one card
+become one move, a card you added on the page gets its slug here — and every flowie or hive commit names the requests it
+holds, so nothing is applied twice. Your flowie is synced; a hive's push waits for your yes; a project's change stays in
+your working tree. The outcomes and the refreshed boards go back to the page in one upload, after a one-line preview and
+your yes.
+
+`--move` warns you when a workbench change waits for the same card, and the board marks such cards `↻`.
 
 ---
 
