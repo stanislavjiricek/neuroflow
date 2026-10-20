@@ -190,7 +190,19 @@ The same validation runs locally from the repo root. To bump the version in all 
 
 ## 6 — Deploy documentation (`.github/workflows/deploy-docs.yml`)
 
-**Purpose:** Publish the documentation site. On every push to `main` it installs `requirements.txt`, runs `mkdocs build --strict` and deploys the result to GitHub Pages.
+**Purpose:** Publish the documentation site. On every push to `main` it installs `requirements.txt`, downloads the intro video, runs `mkdocs build --strict` and deploys the result to GitHub Pages.
+
+**The intro video** plays on the landing page and on the Overview (`overview/#intro-video`). It is the asset `neuroflow-en.mp4` of the GitHub Release `intro-video`, not a file in git, so plugin installs never contain it: `.gitignore` keeps `docs/assets/video/*.mp4` out, and only the poster, `docs/assets/video/poster-en.jpg`, is committed. Before the build, the step *Fetch the intro video* runs `gh release download intro-video --pattern neuroflow-en.mp4 --dir docs/assets/video` with the workflow's own token. If the release or the asset is missing, or the file is under 1 MB, the build job fails with an error annotation, the deploy job is skipped and the live site stays as it was. Pull-request builds (`validate`) never fetch it; their players show the poster, and `tests/automation/test_site_video.py` checks the video markup that strict mode cannot see.
+
+To replace the video, keep its file name and run, from a clone of the repository:
+
+```bash
+gh release upload intro-video neuroflow-en.mp4 --clobber
+gh release view intro-video --json assets --jq '.assets[] | {name, size}'
+gh workflow run deploy-docs.yml --ref main
+```
+
+`--clobber` deletes the old asset before it uploads the new one, so check the size with `gh release view` right away: while the asset is missing, every docs deploy fails (the live site keeps its copy). Run the deploy on `main`, because the `github-pages` environment deploys only from there. GitHub Pages caches files for up to ten minutes, so the old video can still be served for a while. A video of another length, or a new poster, needs a pull request: the length (4:33) is written in `overrides/home.html` and `docs/overview.md`, and the poster is committed. For a local preview, download the asset into `docs/assets/video/` (`gh release download intro-video --pattern neuroflow-en.mp4 --dir docs/assets/video`); `mkdocs serve` answers without byte ranges, so seeking is limited there and Safari may not play it at all; GitHub Pages serves byte ranges, so check those on the live site.
 
 ---
 
@@ -226,8 +238,8 @@ python scripts/automation/post_discussion.py \
 - No secrets are stored in the repo — only `GITHUB_TOKEN` (auto-provided by Actions) is used.
 - The `daily-maintenance` and `research-radar` workflows use minimal permissions (`contents: read`, `discussions: write`).
 - The `sentinel-dev` workflow additionally needs `contents: write` and `pull-requests: write` to create fix branches and open PRs.
-- `validate` only reads (`contents: read`); `mod-canary` adds `issues: write` to open its issue; `deploy-docs` needs `pages: write` and `id-token: write` to publish the site.
-- Every workflow installs its tools first — Python packages from PyPI, and Claude Code from npm where it is needed. At run time the report workflows call no external service except `api.github.com`, and the docs deploy publishes to GitHub Pages.
+- `validate` only reads (`contents: read`); `mod-canary` adds `issues: write` to open its issue; `deploy-docs` needs `pages: write` and `id-token: write` to publish the site, and its `contents: read` covers the download of the intro video.
+- Every workflow installs its tools first — Python packages from PyPI, and Claude Code from npm where it is needed. At run time the report workflows call no external service except `api.github.com`, and the docs deploy downloads the intro video from the repository's own `intro-video` release and publishes to GitHub Pages.
 
 ---
 

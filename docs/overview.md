@@ -8,6 +8,18 @@ neuroflow is a plugin for Claude Code. Its commands, skills and agents carry a s
 
 It is built for neuroscientists who work with EEG, iEEG, fMRI, eye tracking, ECG and other physiological signals, in cognitive, clinical and preclinical research.
 
+<!-- The intro video. Paths are relative to the built page, overview/index.html (use_directory_urls,
+     the MkDocs default). The mp4 is not in git: the docs deploy downloads it from the intro-video
+     release (docs/maintenance/automation.md). -->
+
+<figure class="nf-video" id="intro-video">
+<video controls preload="none" playsinline width="1920" height="1080" poster="../assets/video/poster-en.jpg" aria-label="The neuroflow intro, 4 minutes 33 seconds">
+<source src="../assets/video/neuroflow-en.mp4" type="video/mp4">
+<a href="https://github.com/stanislavjiricek/neuroflow/releases/download/intro-video/neuroflow-en.mp4">Download the intro video (MP4, 20 MB)</a>
+</video>
+<figcaption>The intro, 4:33: why neuroflow, how to install it, and how to set up your flowie, your hive and your first project. The captions are part of the picture; the voice is synthetic, and the terminal shots are reconstructions, not screen recordings. <a href="https://github.com/stanislavjiricek/neuroflow/releases/download/intro-video/neuroflow-en.mp4">Download the MP4</a> (20 MB).</figcaption>
+</figure>
+
 ## The cycle
 
 Nineteen phases, each a slash command with its own folder in project memory. Start wherever your work is: every command reads the memory first and picks up where the last one stopped.

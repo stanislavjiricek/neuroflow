@@ -361,3 +361,9 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ── The intro video (Overview): a dark frame in either colour scheme, like the harness figures ── */
+.md-typeset .nf-video { display: block; width: 100%; max-width: 46rem; margin: 1.8rem 0 2.2rem; text-align: left; }
+.md-typeset .nf-video video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid #1C1D22; border-radius: 8px; background: #06070A; }
+.md-typeset .nf-video video:focus-visible { outline: 2px solid var(--nf-fg); outline-offset: 2px; }
+.md-typeset .nf-video figcaption { margin: .6rem 0 0; max-width: 40rem; text-align: left; font-style: normal; font-family: var(--md-code-font-family); font-size: .58rem; line-height: 1.6; color: var(--nf-dim); }
