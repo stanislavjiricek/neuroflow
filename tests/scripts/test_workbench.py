@@ -1,0 +1,780 @@
+"""Tests for skills/neuroflow-core/scripts/workbench.py (the claude.ai workbench: export, guard, intents, apply, gc)."""
+from __future__ import annotations
+
+import contextlib
+import importlib.util
+import io
+import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+SCRIPT = REPO / "skills" / "neuroflow-core" / "scripts" / "workbench.py"
+FIXTURES = REPO / "tests" / "fixtures" / "workbench"
+spec = importlib.util.spec_from_file_location("nf_workbench_under_test", SCRIPT)
+wb = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(wb)
+
+GIT_ENV = {"GIT_AUTHOR_NAME": "Test", "GIT_AUTHOR_EMAIL": "test@example.org", "GIT_COMMITTER_NAME": "Test",
+           "GIT_COMMITTER_EMAIL": "test@example.org", "GIT_CONFIG_NOSYSTEM": "1"}
+NOW = "2026-10-21T10:00:00Z"
+
+
+def git(cwd: Path, *args: str) -> str:
+    env = dict(os.environ, **GIT_ENV)
+    return subprocess.run(["git", "-c", "core.autocrlf=false", "-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main",
+                           *args], cwd=cwd, env=env, check=True, capture_output=True, text=True).stdout
+
+
+def run(*argv: str) -> tuple[int, dict | str]:
+    out = io.StringIO()
+    err = io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = wb.main(list(argv))
+    text = out.getvalue()
+    try:
+        return code, json.loads(text)
+    except ValueError:
+        return code, text + err.getvalue()
+
+
+def task(title: str, status: str, **keys: str) -> str:
+    lines = ["---", f"title: {title}", f"status: {status}", *[f"{k}: {v}" for k, v in keys.items()], "---", ""]
+    return "\n".join(lines)
+
+
+class Home(unittest.TestCase):
+    """A temporary home with a flowie, a hive and a project, each optionally a real git clone."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self._tmp.name)
+        self.home = self.base / "home"
+        self.flowie = self.home / ".neuroflow" / "flowie"
+        self.hive = self.home / ".neuroflow" / "hives" / "lab-folder"
+        self.project = self.base / "work" / "oddball"
+        self.scratch = self.base / "scratch"
+        self.scratch.mkdir()
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nflowie_handle: alice\n'
+                       'workbench_levels: ["flowie", "hive+example-lab+hive", "project+oddball-eeg"]\n')
+
+    def tearDown(self) -> None:
+        def retry(func, name, _info):
+            os.chmod(name, 0o700)
+            func(name)
+        shutil.rmtree(self.base, onerror=retry)
+
+    def write(self, path: Path, text: str) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(text.encode("utf-8"))
+        return path
+
+    def user_yaml(self, text: str) -> None:
+        self.write(self.home / ".neuroflow" / "user.yaml", text)
+
+    def wb(self, *argv: str) -> tuple[int, dict | str]:
+        return run(*argv, "--home", str(self.home), "--root", str(self.project), "--now", NOW, "--json")
+
+    # levels -------------------------------------------------------------------------------------
+
+    def make_flowie(self, git_repo: bool = False) -> None:
+        self.write(self.flowie / "tasks" / "inbox" / "read-paper.md", task("Read the paper", "inbox", created="2026-10-01"))
+        self.write(self.flowie / "tasks" / "active" / "write-intro.md", task("Write the intro", "active", created="2026-10-02"))
+        if git_repo:
+            self.clone_of(self.flowie, "alice/flowie")
+
+    def make_hive(self, policy: str | None = "allow", git_repo: bool = False) -> None:
+        front = f"---\nworkbench_mirror: {policy}\n---\n" if policy else ""
+        self.write(self.hive / "hive.md", front + "# Example Lab\n\n## Norms\nReview first.\n")
+        self.write(self.hive / "members.md", "| name | email | github | role |\n|---|---|---|---|\n"
+                                             "| Jana Example | jana@uni.example.org | jana | postdoc |\n")
+        self.write(self.hive / "tasks" / "inbox" / "fix-map.md", task("Fix the map", "inbox", owner="jana", created="2026-10-01"))
+        self.write(self.hive / "tasks" / "active" / "rerun-ica.md", task("Rerun ICA", "active", created="2026-10-01"))
+        if git_repo:
+            self.clone_of(self.hive, "example-lab/hive")
+        else:
+            self.write(self.hive / ".git" / "config", '[remote "origin"]\n\turl = https://github.com/example-lab/hive.git\n')
+            self.write(self.hive / ".git" / "HEAD", "ref: refs/heads/main\n")
+
+    def make_project(self, policy: str | None = "allow", git_repo: bool = False, card: bool = True) -> None:
+        front = f"workbench_mirror: {policy}\n" if policy else ""
+        self.write(self.project / ".neuroflow" / "project_config.md",
+                   f"---\nnf_schema: 1\nproject_name: Oddball EEG\nactive_phase: data\n{front}---\n")
+        self.write(self.project / ".neuroflow" / "tasks" / "review" / "qc-report.md", task("QC report", "review", created="2026-10-03"))
+        if card:
+            self.write(self.home / ".neuroflow" / "local-projects.json",
+                       json.dumps({"projects": [{"name": "oddball-eeg", "path": str(self.project)}]}))
+        if git_repo:
+            self.clone_of(self.project, "example-lab/oddball")
+
+    def clone_of(self, folder: Path, name: str) -> None:
+        """Make `folder` a clone of a bare repository (so it has an upstream), with its files committed."""
+        bare = self.base / "remotes" / f"{name.replace('/', '-')}.git"
+        bare.mkdir(parents=True)
+        git(bare, "init", "--bare", "-q")
+        git(folder, "init", "-q")
+        git(folder, "remote", "add", "origin", str(bare))
+        git(folder, "add", "-A")
+        git(folder, "commit", "-q", "-m", "start")
+        git(folder, "push", "-q", "-u", "origin", "main")
+        # the key comes from a remote URL, not the local bare path: point origin at the hosted name, push by path
+        git(folder, "remote", "set-url", "origin", f"https://github.com/{name}.git")
+        git(folder, "remote", "set-url", "--push", "origin", str(bare))
+        git(folder, "config", f"url.{bare.as_posix()}.insteadOf", f"https://github.com/{name}.git")
+
+
+class KeyTests(Home):
+    def test_level_keys_come_from_remotes_or_cards_never_folders(self) -> None:
+        self.assertEqual(wb.hive_key("git@github.com:Example-Lab/Hive.git"), "hive+example-lab+hive")
+        self.assertEqual(wb.hive_key("https://github.com/example-lab/hive"), "hive+example-lab+hive")
+        self.assertIsNone(wb.hive_key("C:/Users/alice/hive"))
+        self.assertEqual(wb.project_key("oddball-eeg", None), "project+oddball-eeg")
+        self.assertRegex(wb.project_key("Oddball EEG", None), r"^project\+oddball~20eeg~~[0-9a-f]{8}$")
+        self.assertNotEqual(wb.project_key("Oddball", None), wb.project_key("oddball", None))
+        self.assertEqual(wb.project_key("a+b~c", None), "project+a~2bb~7ec")
+        self.assertEqual(wb.project_key(None, "git@github.com:org/repo.git"), "project+github.com+org+repo")
+        self.assertIsNone(wb.project_key(None, None))
+        long_key = wb.project_key("x" * 300, None)
+        self.assertTrue(long_key.startswith("project+~~") and len(long_key) <= 200)
+        for key in ("flowie", "hive+example-lab+hive", wb.project_key("Oddball EEG", None), "project+github.com+org+repo", long_key):
+            self.assertTrue(wb.valid_level_key(key), key)
+            # a key is a valid file name everywhere: an ArtifactData listing saved with out_dir names files after it
+            self.assertIsNone(re.search(r'[<>:"/\\|?*A-Z]', key), key)
+        for key in ("prefs", "inbox", "project+a b", "hive", "../x", "", "hive:example-lab:hive"):
+            self.assertFalse(wb.valid_level_key(key), key)
+
+    def test_a_hive_is_keyed_by_its_origin_and_a_project_without_card_or_remote_gets_no_tab(self) -> None:
+        self.make_hive()
+        self.make_project(card=False)
+        code, result = self.wb("levels")
+        keys = {row["level"]: row for row in result["levels"]}
+        self.assertIn("hive+example-lab+hive", keys)
+        self.assertEqual(keys["hive+example-lab+hive"]["board"], "hive:lab-folder")
+        self.assertEqual([item["kind"] for item in result["unkeyed"]], ["project"])
+        self.assertIn("neither a registry card nor an origin remote", result["unkeyed"][0]["reason"])
+
+
+class PathParityTests(unittest.TestCase):
+    """Even segment counts are documents, odd ones collections (the store's grammar): every path the script builds."""
+
+    def test_every_path_has_the_right_parity(self) -> None:
+        for key in ("flowie", "hive+example-lab+hive", "project+github.com+org+repo"):
+            self.assertTrue(wb.is_collection(wb.meta_collection()))
+            self.assertTrue(wb.is_document(f"{wb.meta_collection()}/{key}"), key)                 # 4: the level's meta
+            self.assertTrue(wb.is_collection(wb.parts_collection(key)), key)                     # 5
+            self.assertTrue(wb.is_document(f"{wb.parts_collection(key)}/core"), key)             # 6: a part
+        self.assertTrue(wb.is_collection(wb.intents_collection()))                                # 5
+        self.assertTrue(wb.is_document(f"{wb.intents_collection()}/i-abc123-x7y8"))              # 6: an intent
+        self.assertTrue(wb.is_document(f"{wb.meta_collection()}/{wb.PREFS_DOC}"))                # 4: the preferences
+        self.assertEqual(wb.segments(f"{wb.parts_collection('flowie')}/core"), 6)
+        self.assertEqual(wb.segments(wb.meta_collection("u_abc")), 3)
+
+    def test_the_capabilities_are_owner_only_and_nothing_else(self) -> None:
+        self.assertEqual(wb.CAPABILITIES, {"db": {"rules": [{"path": "", "read": "owner", "write": "owner"}]}, "user": {}})
+
+
+class ExportTests(Home):
+    def export(self, *extra: str) -> tuple[int, dict]:
+        return self.wb("export", "--out", str(self.scratch / "up"), *extra)
+
+    def doc(self, key: str, name: str) -> dict:
+        return json.loads((self.scratch / "up" / "docs" / key.replace(":", "_") / f"{name}.json").read_text(encoding="utf-8"))
+
+    def test_only_levels_the_team_and_the_person_allow_are_exported(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy=None)
+        self.make_project(policy="forbid")
+        code, result = self.export()
+        self.assertEqual([row["level"] for row in result["levels"]], ["flowie"])
+        reasons = {row["level"]: row["reason"] for row in result["not_mirrored"]}
+        self.assertIn("has not opted in", reasons["hive+example-lab+hive"])
+        self.assertIn("forbids", reasons["project+oddball-eeg"])
+        self.user_yaml("workbench: off\nworkbench_machine: laptop\nworkbench_levels: [\"flowie\"]\n")
+        self.assertEqual(self.export()[1]["levels"], [])
+        self.user_yaml("workbench: on\nworkbench_machine: laptop\nworkbench_levels: [\"project+oddball-eeg\"]\n")
+        self.assertEqual(self.export()[1]["levels"], [])
+
+    def test_no_machine_label_is_a_usage_error(self) -> None:
+        self.make_flowie()
+        self.user_yaml("workbench: on\nworkbench_levels: [\"flowie\"]\n")
+        code, result = self.export()
+        self.assertEqual(code, 2)
+        self.assertIn("workbench_machine", result["error"])
+
+    def test_what_leaves_is_the_allowlist_and_nothing_else(self) -> None:
+        self.make_flowie()
+        self.write(self.flowie / "tasks" / "inbox" / "mail.md",
+                   task("Mail jana@uni.example.org", "inbox") + "\nCall +420 777 123 456 or write to bob@uni.example.org.\n")
+        self.write(self.flowie / "tasks" / "inbox" / "secret.md", task("Rotate", "inbox") + '\napi_key = "s3cr3t-value-123"\n')
+        self.write(self.flowie / "wellbeing" / "2026-10-20.json", '{"anxiety": 9}\n')
+        self.write(self.flowie / "profile.md", "## Identity\nemail: alice@uni.example.org\n")
+        self.write(self.flowie / "notes" / "2026-10-05-talk.md", "# Talk\n\nprivate notes body\n")
+        self.write(self.flowie / "meetings" / "2026-10-22-pi.md", "---\ntitle: PI\ndate: 2026-10-22\nattendees: [pi@uni.example.org]\n---\nagenda body\n")
+        code, result = self.export()
+        self.assertEqual(code, 1)  # an item was held back
+        flowie = result["levels"][0]
+        self.assertEqual(flowie["withheld"], [{"source": "tasks", "item": "inbox/secret.md", "reason": "secret-like text"}])
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        for leak in ("jana@", "bob@", "777 123", "anxiety", "alice@", "private notes body", "agenda body", "pi@",
+                     "s3cr3t", str(self.home), self.home.as_posix()):
+            self.assertNotIn(leak, everything, leak)
+        cards = {card["slug"]: card for card in self.doc("flowie", "cards-000")["cards"]}
+        self.assertEqual(cards["mail"]["title"], "Mail [email removed]")
+        self.assertIn("[phone removed]", cards["mail"]["notes"])
+        self.assertNotIn("secret", cards)
+        core = self.doc("flowie", "core")
+        self.assertEqual(core["panel"]["notes"], [{"file": "2026-10-05-talk.md", "title": "Talk", "date": "2026-10-05"}])
+        self.assertEqual(core["panel"]["meetings"][0]["title"], "PI")
+
+    def test_reserved_example_addresses_are_not_personal_data(self) -> None:
+        self.make_flowie()
+        self.write(self.flowie / "tasks" / "inbox" / "docs.md", task("Write to help@example.org", "inbox"))
+        self.export()
+        cards = {card["slug"]: card for card in self.doc("flowie", "cards-000")["cards"]}
+        self.assertEqual(cards["docs"]["title"], "Write to help@example.org")
+
+    def test_people_are_handles_unless_the_team_allows_names(self) -> None:
+        self.make_hive(policy="allow")
+        self.export()
+        self.assertEqual(self.doc("hive+example-lab+hive", "core")["people"], [{"handle": "jana"}])
+        self.make_hive(policy="allow-names")
+        self.export()
+        self.assertEqual(self.doc("hive+example-lab+hive", "core")["people"],
+                         [{"handle": "jana", "name": "Jana Example", "role": "postdoc"}])
+
+    def test_wiki_links_resolve_and_local_files_are_named_not_uploaded(self) -> None:
+        self.make_flowie()
+        pages = self.flowie / "wiki" / "pages"
+        self.write(pages / "concepts" / "n2pc.md", "---\ntitle: N2pc\ntype: concept\n---\n\n[[Alpha Oscillations|alpha]], "
+                   "[[alpha-oscillations#Peak]], [[Nowhere]], ![[fig.png]], ![plot](raw/assets/plot.png), "
+                   "[ICA](../methods/ica.md), [web](https://example.org/a)\n")
+        self.write(pages / "concepts" / "alpha-oscillations.md", "---\ntitle: Alpha Oscillations\n---\nbody\n")
+        self.write(pages / "methods" / "ica.md", "---\ntitle: ICA\n---\nbody\n")
+        self.write(self.flowie / "wiki" / "raw" / "paper.md", "raw source text\n")
+        self.export()
+        body = next(page for page in self.doc("flowie", "wiki-000")["pages"] if page["id"] == "concepts/n2pc")["body"]
+        self.assertIn("[[concepts/alpha-oscillations|alpha]]", body)
+        self.assertIn("[[concepts/alpha-oscillations|alpha-oscillations]]", body)
+        self.assertIn("[[|Nowhere]]", body)
+        self.assertIn("[local file, not mirrored: fig.png]", body)
+        self.assertIn("[local file, not mirrored: plot.png]", body)
+        self.assertIn("[[methods/ica|ICA]]", body)
+        self.assertIn("[web](https://example.org/a)", body)
+        self.assertNotIn("raw source text", json.dumps(self.doc("flowie", "wiki-000")))
+
+    def test_index_only_drops_the_bodies(self) -> None:
+        self.make_flowie()
+        self.write(self.flowie / "wiki" / "pages" / "concepts" / "x.md", "---\ntitle: X\n---\nthe body\n")
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["flowie"]\nworkbench_index_only: ["flowie"]\n')
+        code, result = self.export()
+        page = self.doc("flowie", "wiki-000")["pages"][0]
+        self.assertNotIn("body", page)
+        self.assertTrue(result["levels"][0]["index_only"])
+
+    def test_parts_stay_under_the_cap_and_their_hashes_match_the_meta(self) -> None:
+        self.make_flowie()
+        for n in range(30):
+            self.write(self.flowie / "wiki" / "pages" / "concepts" / f"p{n:02d}.md", f"---\ntitle: Page {n}\n---\n" + ("word " * 4000))
+        for n in range(400):
+            self.write(self.flowie / "tasks" / "inbox" / f"t{n:03d}.md", task(f"Task {n}", "inbox") + ("note " * 150))
+        code, result = self.export()
+        meta = self.doc("flowie", "meta")
+        ids = [part["id"] for part in meta["parts"]]
+        self.assertGreater(len([i for i in ids if i.startswith("wiki-")]), 1)
+        self.assertGreater(len([i for i in ids if i.startswith("cards-")]), 1)
+        for part in meta["parts"]:
+            doc = self.doc("flowie", part["id"])
+            self.assertLessEqual(part["bytes"], wb.PART_MAX)
+            self.assertEqual(doc["sha256"], part["sha256"])
+            self.assertEqual(wb.with_hash(doc)["sha256"], doc["sha256"])
+        self.assertEqual(sum(len(self.doc("flowie", i)["cards"]) for i in ids if i.startswith("cards-")), 402)
+
+    def test_the_sources_table_in_the_docs_is_the_allowlist(self) -> None:
+        page = (REPO / "docs" / "concepts" / "workbench.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+        match = re.search(r"<!-- workbench-sources:begin -->\n(.*?)<!-- workbench-sources:end -->", page, re.S)
+        self.assertIsNotNone(match, "docs/concepts/workbench.md needs the generated sources table between its markers")
+        self.assertEqual(match.group(1).strip(), wb.sources_markdown().strip(),
+                         "regenerate it: python skills/neuroflow-core/scripts/workbench.py sources --markdown")
+
+
+class GoldenTests(unittest.TestCase):
+    def test_the_golden_fixtures_are_what_the_exporter_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            code, _ = run("fixtures", "--out", tmp, "--json")
+            self.assertEqual(code, 0)
+            for name in ("snapshot.json", "intents.json"):
+                fresh = json.loads(Path(tmp, name).read_text(encoding="utf-8"))
+                committed = json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+                self.assertEqual(fresh, committed, f"{name} drifted: python skills/neuroflow-core/scripts/workbench.py "
+                                                   "fixtures --out tests/fixtures/workbench")
+
+    def test_the_golden_snapshot_shows_the_privacy_rules(self) -> None:
+        snapshot = json.loads((FIXTURES / "snapshot.json").read_text(encoding="utf-8"))
+        text = json.dumps(snapshot)
+        for leak in ("@uni.example.org", "777 123", "correct-horse", "anxiety", "never leaves", "stay on the machine",
+                     "private session", "something went wrong", "C:/Users"):
+            self.assertNotIn(leak, text, leak)
+        self.assertEqual(sorted(snapshot["metas"]), ["flowie", "hive+example-lab+hive", "project+oddball-eeg"])
+
+
+class GuardTests(Home):
+    def setUp(self) -> None:
+        super().setUp()
+        self.make_hive(git_repo=True)
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["hive+example-lab+hive"]\n')
+
+    def remote(self, meta: dict | None, parts: dict | None = None) -> Path:
+        folder = self.scratch / "remote"
+        shutil.rmtree(folder, ignore_errors=True)
+        base = folder / "data" / "users" / "u_owner"
+        if meta is not None:
+            self.write(base / "hive+example-lab+hive.json", json.dumps({"data": meta, "version": 7}))
+        for name, body in (parts or {}).items():
+            self.write(base / "hive+example-lab+hive" / "parts" / f"{name}.json", json.dumps({"data": body, "version": 3}))
+        return folder
+
+    def export(self, remote: Path, *extra: str) -> tuple[int, dict]:
+        return self.wb("export", "--out", str(self.scratch / "up"), "--remote", str(remote), *extra)
+
+    def first_meta(self) -> dict:
+        code, result = self.export(self.remote(None))
+        self.assertEqual(result["guard"]["hive+example-lab+hive"]["verdict"], "write")
+        return json.loads(Path(result["batches"][0]["writes"][-1]["file_path"]).read_text(encoding="utf-8"))
+
+    def test_a_new_level_is_written_parts_first_meta_last_without_pins(self) -> None:
+        code, result = self.export(self.remote(None))
+        writes = result["batches"][0]["writes"]
+        self.assertEqual([w["doc_id"] for w in writes][-1], "hive+example-lab+hive")
+        self.assertTrue(all("if_version" not in w for w in writes))
+        self.assertTrue(all(wb.is_document(f"{w['collection']}/{w['doc_id']}") for w in writes))
+        meta = json.loads(Path(writes[-1]["file_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(meta["source"]["branch"], "main")
+        self.assertEqual(meta["machine"], "laptop")
+        self.assertEqual(meta["source"]["upstream_head"], meta["source"]["head"])
+
+    def test_the_same_machine_and_branch_overwrite_pinned_and_skip_unchanged_parts(self) -> None:
+        meta = self.first_meta()
+        parts = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in (self.scratch / "up" / "docs" / "hive+example-lab+hive").glob("*.json")
+                 if p.stem != "meta"}
+        parts["wiki-009"] = {"sha256": "old"}
+        code, result = self.export(self.remote(meta, parts))
+        writes = result["batches"][0]["writes"]
+        self.assertEqual(result["guard"]["hive+example-lab+hive"]["verdict"], "write")
+        ops = [(w["op"], w["doc_id"], w.get("if_version")) for w in writes]
+        self.assertEqual(ops, [("set", "hive+example-lab+hive", 7), ("delete", "wiki-009", 3)])
+
+    def test_another_machine_asks_and_names_both_and_yes_overwrites(self) -> None:
+        meta = self.first_meta()
+        meta["machine"] = "desktop"
+        code, result = self.export(self.remote(meta))
+        verdict = result["guard"]["hive+example-lab+hive"]
+        self.assertEqual(verdict["verdict"], "ask")
+        self.assertIn("desktop", verdict["question"])
+        self.assertIn("laptop", verdict["question"])
+        self.assertEqual(result["batches"], [])
+        self.assertEqual(code, 1)
+        code, result = self.export(self.remote(meta), "--overwrite", "hive+example-lab+hive")
+        self.assertEqual(result["guard"]["hive+example-lab+hive"]["verdict"], "write")
+
+    def test_a_clone_whose_upstream_is_behind_the_stored_one_is_skipped(self) -> None:
+        meta = self.first_meta()
+        other = self.base / "other"
+        git(self.base, "clone", "-q", str(self.base / "remotes" / "example-lab-hive.git"), str(other))
+        self.write(other / "ideas.md", "new\n")
+        git(other, "add", "ideas.md")
+        git(other, "commit", "-q", "-m", "more")
+        git(other, "push", "-q", "origin", "main")
+        newer = git(other, "rev-parse", "HEAD").strip()
+        git(self.hive, "fetch", "-q", str(self.base / "remotes" / "example-lab-hive.git"), "main")  # the object is known here
+        meta.update({"machine": "desktop"})
+        meta["source"]["upstream_head"] = newer
+        code, result = self.export(self.remote(meta))
+        verdict = result["guard"]["hive+example-lab+hive"]
+        self.assertEqual(verdict["verdict"], "skip")
+        self.assertIn("behind", verdict["reason"])
+
+    def test_an_unknown_stored_upstream_is_skipped_and_says_why(self) -> None:
+        meta = self.first_meta()
+        meta.update({"machine": "desktop"})
+        meta["source"]["upstream_head"] = "f" * 40
+        code, result = self.export(self.remote(meta))
+        verdict = result["guard"]["hive+example-lab+hive"]
+        self.assertEqual(verdict["verdict"], "skip")
+        self.assertIn("not in this clone", verdict["reason"])
+
+    def test_a_newer_snapshot_format_is_never_overwritten(self) -> None:
+        meta = self.first_meta()
+        meta["snap_schema"] = wb.SNAP_SCHEMA + 1
+        code, result = self.export(self.remote(meta), "--overwrite", "hive+example-lab+hive")
+        verdict = result["guard"]["hive+example-lab+hive"]
+        self.assertEqual(verdict["verdict"], "refuse")
+        self.assertIn("newer neuroflow", verdict["reason"])
+
+    def test_versions_missing_from_the_listing_are_asked_for(self) -> None:
+        meta = self.first_meta()
+        folder = self.remote(None)
+        self.write(folder / "data" / "users" / "me" / "hive+example-lab+hive.json", json.dumps(meta))
+        code, result = self.export(folder)
+        self.assertEqual(code, 2)
+        self.assertIn("--versions", result["error"])
+        versions = self.write(self.scratch / "versions.json", json.dumps({"data/users/me/hive+example-lab+hive": 4}))
+        code, result = self.export(folder, "--versions", str(versions))
+        self.assertEqual(result["batches"][0]["writes"][-1]["if_version"], 4)
+
+    def test_batches_respect_the_limits(self) -> None:
+        entries = [{"op": "set", "collection": "c", "doc_id": f"d{n}", "_bytes": 150_000} for n in range(14)]
+        batches = wb.plan_batches(entries)
+        self.assertTrue(all(len(batch["writes"]) <= wb.BATCH_WRITES and batch["bytes"] <= wb.BATCH_BYTES for batch in batches))
+        self.assertEqual(sum(len(batch["writes"]) for batch in batches), 14)
+        many = wb.plan_batches([{"op": "delete", "collection": "c", "doc_id": f"d{n}"} for n in range(120)])
+        self.assertEqual([len(batch["writes"]) for batch in many], [50, 50, 20])
+
+
+def intent(op: str, level: str, created: str, status: str = "claimed", machine: str = "laptop", **fields) -> dict:
+    body = {"intent_schema": 1, "op": op, "level": level, "created_at": f"2026-10-21T10:{created}:00.000Z", "status": status, **fields}
+    if status == "claimed":
+        body["claim"] = {"machine": machine, "claimed_at": "2026-10-21T09:59:00Z"}
+    return body
+
+
+class IntentTests(Home):
+    """Pickup, validation (chains, merges, cancels, conflicts) and apply, on real clones."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.make_flowie(git_repo=True)
+        self.make_hive(git_repo=True)
+        self.make_project()
+
+    def intents(self, docs: dict[str, dict], version: int = 2) -> Path:
+        folder = self.scratch / "intents"
+        shutil.rmtree(folder, ignore_errors=True)
+        for iid, body in docs.items():
+            self.write(folder / "data" / "users" / "me" / "inbox" / "intents" / f"{iid}.json", json.dumps({"data": body, "version": version}))
+        return folder
+
+    def base_of(self, path: Path) -> str:
+        return wb.pj.task_hash(path.read_text(encoding="utf-8"))
+
+    def validate(self, docs: dict[str, dict]) -> tuple[int, dict, dict]:
+        plan = self.scratch / "plan.json"
+        code, result = self.wb("validate", "--intents", str(self.intents(docs)), "--out", str(plan))
+        data = json.loads(plan.read_text(encoding="utf-8"))
+        verdicts = {iid: v for level in data["levels"] for iid, v in level["verdicts"].items()}
+        verdicts.update(data["rejected"])
+        return code, data, verdicts
+
+    def test_pickup_claims_what_this_session_can_apply(self) -> None:
+        hive = "hive+example-lab+hive"
+        docs = {
+            "i-a1-aaaa": intent("move", hive, "01", status="pending", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base="0" * 64),
+            "i-a2-bbbb": intent("move", "project+other-study", "02", status="pending", target={"slug": "x"}, **{"from": "a"}, to="b", base="0" * 64),
+            "i-a3-cccc": intent("move", hive, "03", status="claimed", machine="desktop", target={"slug": "x"}, **{"from": "a"}, to="b", base="0" * 64),
+            "i-a4-dddd": dict(intent("move", hive, "04", status="claimed", machine="desktop", target={"slug": "x"}, **{"from": "a"}, to="b", base="0" * 64),
+                              claim={"machine": "desktop", "claimed_at": "2026-10-21T09:00:00Z"}),
+            "i-a5-eeee": intent("move", "not a key", "05", status="pending"),
+            "i-a6-ffff": intent("add", "flowie", "06", status="done", fields={"title": "Done"}),
+        }
+        code, result = self.wb("pickup", "--intents", str(self.intents(docs)), "--out", str(self.scratch / "claims"))
+        claimed = sorted(w["doc_id"] for batch in result["batches"] for w in batch["writes"])
+        self.assertEqual(claimed, ["i-a1-aaaa", "i-a4-dddd", "i-a5-eeee"])  # pending here, an expired claim, a malformed one
+        reasons = {item["intent"]: item["reason"] for item in result["skipped"]}
+        self.assertEqual(reasons["i-a2-bbbb"], "open Claude Code in the project other-study")
+        self.assertIn("claimed by desktop", reasons["i-a3-cccc"])
+        write = next(w for batch in result["batches"] for w in batch["writes"] if w["doc_id"] == "i-a1-aaaa")
+        self.assertEqual((write["op"], write["if_version"]), ("update", 2))
+        body = json.loads(Path(write["file_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(body, {"status": "claimed", "claim": {"machine": "laptop", "claimed_at": NOW}})
+
+    def test_two_moves_of_one_card_merge_into_one(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        code, plan, verdicts = self.validate({
+            "i-b1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base),
+            "i-b2-bbbb": intent("move", hive, "02", target={"slug": "fix-map"}, **{"from": "active"}, to="review", after="i-b1-aaaa", base=base),
+        })
+        self.assertEqual(verdicts["i-b1-aaaa"], {"result": "coalesced", "into": "i-b2-bbbb"})
+        self.assertEqual(verdicts["i-b2-bbbb"]["result"], "applied")
+        actions = plan["levels"][0]["actions"]
+        self.assertEqual([(a["op"], a["from"], a["to"], a["intents"]) for a in actions],
+                         [("move", "inbox", "review", ["i-b1-aaaa", "i-b2-bbbb"])])
+
+    def test_a_card_added_on_the_board_is_moved_by_its_add(self) -> None:
+        code, plan, verdicts = self.validate({
+            "i-c1-aaaa": intent("add", "flowie", "01", fields={"title": "Read paper"}, to="inbox"),
+            "i-c2-bbbb": intent("move", "flowie", "02", target={"intent": "i-c1-aaaa"}, **{"from": "inbox"}, to="active", after="i-c1-aaaa"),
+        })
+        self.assertEqual(verdicts["i-c1-aaaa"]["slug"], "read-paper-2")  # read-paper exists: the slug rules apply
+        self.assertEqual(verdicts["i-c1-aaaa"]["column"], "active")
+        self.assertEqual(verdicts["i-c2-bbbb"], {"result": "coalesced", "into": "i-c1-aaaa"})
+        self.assertEqual([(a["op"], a["to"]) for a in plan["levels"][0]["actions"]], [("add", "active")])
+
+    def test_an_added_cards_slug_is_taken_from_an_earlier_outcome(self) -> None:
+        code, plan, verdicts = self.validate({
+            "i-d1-aaaa": dict(intent("add", "flowie", "01", status="done", fields={"title": "Read the paper"}),
+                              outcome={"result": "applied", "slug": "read-paper"}),
+            "i-d2-bbbb": intent("move", "flowie", "02", target={"intent": "i-d1-aaaa"}, **{"from": "inbox"}, to="active", after="i-d1-aaaa"),
+        })
+        self.assertEqual(plan["levels"][0]["actions"][0]["slug"], "read-paper")
+        self.assertEqual(verdicts["i-d2-bbbb"]["result"], "applied")
+
+    def test_a_cancel_cancels_and_what_depended_on_it_is_rejected(self) -> None:
+        base = self.base_of(self.flowie / "tasks" / "inbox" / "read-paper.md")
+        code, plan, verdicts = self.validate({
+            "i-e1-aaaa": intent("move", "flowie", "01", target={"slug": "read-paper"}, **{"from": "inbox"}, to="active", base=base),
+            "i-e2-bbbb": intent("move", "flowie", "02", target={"slug": "read-paper"}, **{"from": "active"}, to="done", after="i-e1-aaaa", base=base),
+            "i-e3-cccc": intent("cancel", "flowie", "03", target={"intent": "i-e1-aaaa"}),
+        })
+        self.assertEqual(verdicts["i-e1-aaaa"], {"result": "cancelled", "by": "i-e3-cccc"})
+        self.assertEqual(verdicts["i-e2-bbbb"], {"result": "rejected", "reason": "depends on i-e1-aaaa"})
+        self.assertEqual(verdicts["i-e3-cccc"]["result"], "applied")
+        self.assertEqual(plan["levels"][0]["actions"], [])
+        self.assertEqual(code, 1)
+
+    def test_a_release_on_the_page_cancels_a_stuck_claim(self) -> None:
+        base = self.base_of(self.flowie / "tasks" / "inbox" / "read-paper.md")
+        code, plan, verdicts = self.validate({
+            "i-f1-aaaa": intent("move", "flowie", "01", target={"slug": "read-paper"}, **{"from": "inbox"}, to="active", base=base,
+                                cancel_requested_at="2026-10-21T10:30:00Z")})
+        self.assertEqual(verdicts["i-f1-aaaa"], {"result": "cancelled", "by": "release"})
+
+    def test_cancelling_what_is_applied_is_rejected(self) -> None:
+        code, plan, verdicts = self.validate({
+            "i-g1-aaaa": dict(intent("move", "flowie", "01", status="done", target={"slug": "read-paper"}, **{"from": "inbox"}, to="active",
+                                     base="0" * 64), outcome={"result": "applied"}),
+            "i-g2-bbbb": intent("cancel", "flowie", "02", target={"intent": "i-g1-aaaa"}),
+        })
+        self.assertEqual(verdicts["i-g2-bbbb"]["result"], "rejected")
+        self.assertIn("already applied", verdicts["i-g2-bbbb"]["reason"])
+
+    def test_conflicts_rejections_and_the_schema(self) -> None:
+        path = self.hive / "tasks" / "inbox" / "fix-map.md"
+        base = self.base_of(path)
+        path.write_text(path.read_text(encoding="utf-8") + "\nA teammate's note.\n", encoding="utf-8")
+        hive = "hive+example-lab+hive"
+        code, plan, verdicts = self.validate({
+            "i-h1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base),
+            "i-h2-bbbb": intent("move", hive, "02", target={"slug": "rerun-ica"}, **{"from": "inbox"}, to="review",
+                                base=self.base_of(self.hive / "tasks" / "active" / "rerun-ica.md")),
+            "i-h3-cccc": intent("move", hive, "03", target={"slug": "rerun-ica"}, **{"from": "active"}, to="someday",
+                                base=self.base_of(self.hive / "tasks" / "active" / "rerun-ica.md")),
+            "i-h4-dddd": intent("add", hive, "04", fields={"title": "New", "owner": "stranger"}),
+            "i-h5-eeee": dict(intent("add", hive, "05", fields={"title": "New"}), intent_schema=9),
+            "i-h6-ffff": intent("move", hive, "06", target={"slug": "gone"}, **{"from": "inbox"}, to="active", base="0" * 64),
+            "i-h7-gggg": intent("add", hive, "07", fields={"title": "Fine", "owner": "jana", "due": "2026-11-01"}),
+        })
+        self.assertEqual(verdicts["i-h1-aaaa"]["result"], "conflict")
+        self.assertIn("changed since", verdicts["i-h1-aaaa"]["reason"])
+        self.assertEqual((verdicts["i-h2-bbbb"]["result"], verdicts["i-h2-bbbb"]["column"]), ("conflict", "active"))
+        self.assertIn("no column someday", verdicts["i-h3-cccc"]["reason"])
+        self.assertIn("not on the level's roster", verdicts["i-h4-dddd"]["reason"])
+        self.assertTrue(verdicts["i-h5-eeee"]["reason"].startswith("schema:"))
+        self.assertEqual(verdicts["i-h6-ffff"]["result"], "conflict")
+        self.assertEqual(verdicts["i-h7-gggg"]["result"], "applied")
+
+    def test_a_move_back_where_it_began_changes_nothing(self) -> None:
+        base = self.base_of(self.flowie / "tasks" / "inbox" / "read-paper.md")
+        code, plan, verdicts = self.validate({
+            "i-k1-aaaa": intent("move", "flowie", "01", target={"slug": "read-paper"}, **{"from": "inbox"}, to="active", base=base),
+            "i-k2-bbbb": intent("move", "flowie", "02", target={"slug": "read-paper"}, **{"from": "active"}, to="inbox", after="i-k1-aaaa", base=base),
+        })
+        self.assertEqual(plan["levels"][0]["actions"], [])
+        self.assertTrue(verdicts["i-k2-bbbb"]["noop"])
+
+    def test_legacy_and_conflicted_files_offer_no_moves(self) -> None:
+        self.write(self.flowie / "tasks" / "T-1-old.md", task("Old", "inbox", assignee="jana"))
+        self.write(self.flowie / "tasks" / "inbox" / "broken.md", task("Broken", "inbox") + "<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> b\n")
+        code, plan, verdicts = self.validate({
+            "i-l1-aaaa": intent("move", "flowie", "01", target={"slug": "old"}, **{"from": "inbox"}, to="active",
+                                base=self.base_of(self.flowie / "tasks" / "T-1-old.md")),
+            "i-l2-bbbb": intent("move", "flowie", "02", target={"slug": "broken"}, **{"from": "inbox"}, to="active",
+                                base=self.base_of(self.flowie / "tasks" / "inbox" / "broken.md")),
+        })
+        self.assertIn("legacy", verdicts["i-l1-aaaa"]["reason"])
+        self.assertIn("conflict markers", verdicts["i-l2-bbbb"]["reason"])
+
+    def apply(self, level: str) -> tuple[int, dict]:
+        return self.wb("apply", "--plan", str(self.scratch / "plan.json"), "--level", level, "--today", "2026-10-21")
+
+    def test_apply_moves_stages_and_the_commit_carries_the_trailers(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {
+            "i-m1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base),
+            "i-m2-bbbb": intent("move", hive, "02", target={"slug": "fix-map"}, **{"from": "active"}, to="review", after="i-m1-aaaa", base=base),
+            "i-m3-cccc": intent("add", hive, "03", fields={"title": "Check the stats", "owner": "jana", "tags": ["qc"]}),
+        }
+        self.validate(docs)
+        code, result = self.apply(hive)
+        self.assertEqual(code, 0, result)
+        moved = self.hive / "tasks" / "review" / "fix-map.md"
+        self.assertFalse((self.hive / "tasks" / "inbox" / "fix-map.md").exists())
+        text = moved.read_text(encoding="utf-8")
+        self.assertIn("status: review", text)
+        self.assertIn("updated: 2026-10-21", text)
+        added = (self.hive / "tasks" / "inbox" / "check-the-stats.md").read_text(encoding="utf-8")
+        self.assertIn('title: "Check the stats"\nstatus: inbox\nowner: jana\ntags: [qc]\ncreated: 2026-10-21', added)
+        staged = git(self.hive, "diff", "--cached", "--name-status")
+        self.assertIn("tasks/review/fix-map.md", staged)
+        commit = result["commit"]
+        self.assertIn("Neuroflow-Intent: i-m1-aaaa\nNeuroflow-Intent: i-m2-bbbb\nNeuroflow-Intent: i-m3-cccc", commit["message"])
+        subprocess.run(commit["argv"], check=True, capture_output=True, env=dict(os.environ, **GIT_ENV))
+        self.assertEqual(git(self.hive, "status", "--porcelain").strip(), "")
+        self.assertEqual(set(wb.trailer_commits(self.hive)), {"i-m1-aaaa", "i-m2-bbbb", "i-m3-cccc"})
+        # outcomes: what landed is applied, with its state from git; the coalesced one points at its lead
+        listed = self.intents(docs, version=5)
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--remote", str(self.scratch / "empty"),
+                               "--outcomes", str(self.scratch / "plan.json"), "--intents", str(listed), "--level", hive)
+        updates = {w["doc_id"]: (w, json.loads(Path(w["file_path"]).read_text(encoding="utf-8")))
+                   for batch in result["batches"] for w in batch["writes"] if w["collection"] == wb.intents_collection()}
+        self.assertEqual(updates["i-m2-bbbb"][0]["if_version"], 5)
+        self.assertEqual(updates["i-m2-bbbb"][1]["outcome"]["state"], "committed")
+        self.assertEqual(updates["i-m1-aaaa"][1]["outcome"]["result"], "coalesced")
+        self.assertEqual(updates["i-m3-cccc"][1]["outcome"]["slug"], "check-the-stats")
+        meta = json.loads((self.scratch / "up" / "docs" / "hive+example-lab+hive" / "meta.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta["applied"]["i-m2-bbbb"]["state"], "committed")
+        # pushed to a branch (a protected main: the pull request is open) is pushed; on the default branch it is merged
+        git(self.hive, "push", "-q", "origin", "HEAD:refs/heads/workbench-changes")
+        self.assertEqual(wb.landed_states(self.hive, wb.trailer_commits(self.hive))["i-m2-bbbb"]["state"], "pushed")
+        git(self.hive, "push", "-q", "origin", "main")
+        git(self.hive, "fetch", "-q", "origin")
+        self.assertEqual(wb.landed_states(self.hive, wb.trailer_commits(self.hive))["i-m2-bbbb"]["state"], "merged")
+
+    def test_a_run_that_stopped_before_the_commit_is_finished_not_repeated(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-n1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        self.apply(hive)  # moved and staged, never committed
+        code, plan, verdicts = self.validate(docs)
+        action = plan["levels"][0]["actions"][0]
+        self.assertTrue(action["half_done"])
+        code, result = self.apply(hive)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(sorted(result["commit"]["paths"]), ["tasks/active/fix-map.md", "tasks/inbox/fix-map.md"])
+        subprocess.run(result["commit"]["argv"], check=True, capture_output=True, env=dict(os.environ, **GIT_ENV))
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual(verdicts["i-n1-aaaa"]["note"], "already in git")
+        self.assertEqual(plan["levels"][0]["actions"], [])
+
+    def test_a_project_move_stays_in_the_working_tree_and_the_ledger_remembers_it(self) -> None:
+        self.make_project(git_repo=True)
+        key = "project+oddball-eeg"
+        base = self.base_of(self.project / ".neuroflow" / "tasks" / "review" / "qc-report.md")
+        docs = {"i-p1-aaaa": intent("move", key, "01", target={"slug": "qc-report"}, **{"from": "review"}, to="done", base=base)}
+        self.validate(docs)
+        code, result = self.apply(key)
+        self.assertEqual(code, 0, result)
+        self.assertNotIn("commit", result)
+        self.assertTrue((self.project / ".neuroflow" / "tasks" / "done" / "qc-report.md").is_file())
+        ledger = json.loads((self.home / ".neuroflow" / "workbench" / "ledger.json").read_text(encoding="utf-8"))
+        self.assertEqual(ledger["levels"][key]["i-p1-aaaa"]["to"], "done")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--level", key)
+        meta = json.loads((self.scratch / "up" / "docs" / "project+oddball-eeg" / "meta.json").read_text(encoding="utf-8"))
+        self.assertEqual(meta["applied"], {"i-p1-aaaa": {"state": "worktree"}})
+        self.assertEqual(meta["source"]["uncommitted_tasks"], 1)  # one staged rename
+
+    def test_pending_json_tells_the_mod_which_cards_wait(self) -> None:
+        hive = "hive+example-lab+hive"
+        docs = {"i-q1-aaaa": intent("move", hive, "01", status="pending", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active",
+                                    base="0" * 64),
+                "i-q2-bbbb": intent("add", "flowie", "02", status="pending", fields={"title": "X"}),
+                "i-q3-cccc": intent("add", "flowie", "03", status="done", fields={"title": "Y"})}
+        code, result = self.wb("pending", "--intents", str(self.intents(docs)))
+        data = json.loads((self.home / ".neuroflow" / "workbench" / "pending.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["count"], 2)
+        levels = {item["level"]: item for item in data["levels"]}
+        self.assertEqual(levels[hive]["board"], "hive:lab-folder")
+        self.assertEqual(levels[hive]["slugs"], ["fix-map"])
+        self.assertEqual(levels["flowie"]["adds"], 1)
+        self.assertEqual(data["command"], "/neuroflow:tasks --apply-web")
+
+
+class GcTests(Home):
+    def test_old_intents_purged_levels_and_orphans_go_parts_before_their_meta(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy="forbid")
+        intents = self.scratch / "intents" / "data" / "users" / "me" / "inbox" / "intents"
+        self.write(intents / "i-old-aaaa.json", json.dumps({"data": {"status": "done", "outcome": {"at": "2026-10-01T00:00:00Z"}}, "version": 2}))
+        self.write(intents / "i-new-bbbb.json", json.dumps({"data": {"status": "done", "outcome": {"at": "2026-10-20T00:00:00Z"}}, "version": 2}))
+        self.write(intents / "i-wait-cccc.json", json.dumps({"data": {"status": "pending"}, "version": 1}))
+        users = self.scratch / "remote" / "data" / "users" / "me"
+        self.write(users / "hive+example-lab+hive.json", json.dumps({"data": {"parts": [{"id": "core"}]}, "version": 3}))
+        self.write(users / "hive+example-lab+hive" / "parts" / "core.json", json.dumps({"data": {}, "version": 4}))
+        self.write(users / "flowie.json", json.dumps({"data": {"parts": [{"id": "core"}]}, "version": 5}))
+        self.write(users / "flowie" / "parts" / "core.json", json.dumps({"data": {}, "version": 6}))
+        self.write(users / "flowie" / "parts" / "wiki-007.json", json.dumps({"data": {}, "version": 7}))
+        self.write(users / "prefs.json", json.dumps({"data": {"theme": "dark"}, "version": 8}))
+        code, result = self.wb("gc", "--intents", str(self.scratch / "intents"), "--remote", str(self.scratch / "remote"))
+        self.assertEqual(code, 1)
+        deletes = [(w["collection"].split("/")[-1], w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]]
+        self.assertEqual(deletes, [("intents", "i-old-aaaa", 2), ("parts", "core", 4), ("me", "hive+example-lab+hive", 3),
+                                   ("parts", "wiki-007", 7)])
+        self.assertIn("forbids", result["purge"][0]["reason"])
+
+
+class RecordTests(Home):
+    def test_without_a_flowie_the_record_lives_in_user_yaml_and_other_lines_stay(self) -> None:
+        self.write(self.home / ".neuroflow" / "user.yaml", "flowie_handle: alice\r\nworkbench: on\r\nhives: [example-lab/hive]\r\n")
+        code, result = self.wb("record", "--set", "url=https://claude.ai/artifact/abc", "--set", "account=personal",
+                               "--set", "template_version=1", "--set", "contract=0.2.87")
+        self.assertEqual(result["where"], "user.yaml")
+        raw = (self.home / ".neuroflow" / "user.yaml").read_bytes().decode("utf-8")
+        self.assertIn("hives: [example-lab/hive]\r\n", raw)
+        self.assertIn("workbench_account: personal\r\n", raw)
+        self.assertEqual(wb.read_user_yaml(self.home)["workbench_records"][0]["url"], "https://claude.ai/artifact/abc")
+        code, result = self.wb("record")
+        self.assertEqual(result["active"]["template_version"], 1)
+
+    def test_with_a_flowie_the_record_syncs_there_and_prefs_are_copied_once(self) -> None:
+        self.make_flowie(git_repo=True)
+        prefs = self.write(self.scratch / "prefs.json", json.dumps({"data": {"prefs_schema": 1, "theme": "light"}, "version": 3}))
+        code, result = self.wb("record", "--set", "url=https://claude.ai/artifact/abc", "--set", "account=institute", "--prefs", str(prefs))
+        self.assertEqual(result["where"], "flowie")
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["commit"]["argv"][-1], "workbench.json")
+        stored = json.loads((self.flowie / "workbench.json").read_text(encoding="utf-8"))
+        self.assertEqual(stored["workbenches"][0]["prefs"], {"prefs_schema": 1, "theme": "light"})
+        code, result = self.wb("record", "--prefs", str(prefs))
+        self.assertFalse(result["changed"])
+
+
+class UserYamlTests(Home):
+    def test_reading_and_merging_keys(self) -> None:
+        self.write(self.home / ".neuroflow" / "user.yaml",
+                   "name: Alice Example\nworkbench_levels:\n  - flowie\n  - \"hive+example-lab+hive\"\nwiki_auto: ask  # comment\n")
+        data = wb.read_user_yaml(self.home)
+        self.assertEqual(data["workbench_levels"], ["flowie", "hive+example-lab+hive"])
+        self.assertEqual(data["wiki_auto"], "ask")
+        wb.set_user_yaml(self.home, "workbench_levels", ["flowie"])
+        text = (self.home / ".neuroflow" / "user.yaml").read_text(encoding="utf-8")
+        self.assertEqual(text, 'name: Alice Example\nworkbench_levels: ["flowie"]\nwiki_auto: ask  # comment\n')
+        self.assertFalse(wb.set_user_yaml(self.home, "workbench_levels", ["flowie"]))
+
+
+class CliTests(unittest.TestCase):
+    def test_help_and_usage_errors(self) -> None:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), self.assertRaises(SystemExit) as stop:
+            wb.main(["--help"])
+        self.assertEqual(stop.exception.code, 0)
+        self.assertIn("exit codes", out.getvalue())
+        code, result = run("validate", "--json")
+        self.assertEqual(code, 2)
+        self.assertIn("--intents", result["error"])
+
+    def test_the_sources_table_names_every_source_once(self) -> None:
+        code, text = run("sources")
+        self.assertEqual(code, 0)
+        rows = [line for line in text.splitlines() if line.startswith("| ") and not line.startswith("| Source")]
+        self.assertEqual(len(rows), len(wb.SOURCES))
+        self.assertIn("never an email address", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

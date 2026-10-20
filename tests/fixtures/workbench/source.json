@@ -1,0 +1,113 @@
+{
+ "_comment": "Fixture levels for tests/fixtures/workbench/snapshot.json: python skills/neuroflow-core/scripts/workbench.py fixtures --out tests/fixtures/workbench writes the golden files from this source.",
+ "now": "2026-10-21T10:00:00Z",
+ "project": "work/oddball",
+ "link_project_as": [
+  "oddball-eeg"
+ ],
+ "files": {
+  "home/.neuroflow/user.yaml": "flowie_handle: alice\nworkbench: on\nworkbench_machine: fixture-machine\nworkbench_levels: [\"flowie\", \"hive+example-lab+hive\", \"project+oddball-eeg\"]\nworkbench_index_only: [\"hive+example-lab+hive\"]\n",
+  "home/.neuroflow/flowie/projects/projects.json": "{\n  \"projects\": [\n    {\n      \"id\": \"oddball-eeg\",\n      \"ref\": \"hive:example-lab/hive\"\n    },\n    {\n      \"id\": \"solo-review\",\n      \"description\": \"Reading list for the review; questions to alice@uni.example.org\",\n      \"status\": \"active\",\n      \"current_phase\": \"ideation\",\n      \"repos\": [\n        \"https://github.com/alice/solo\",\n        \"C:/Users/alice/solo\"\n      ]\n    }\n  ]\n}",
+  "home/.neuroflow/flowie/tasks/inbox/read-n2pc-review.md": "---\ntitle: Read the N2pc review\nstatus: inbox\ndue: 2026-10-20\ncreated: 2026-10-01\nupdated: 2026-10-01\nproject: oddball-eeg\n---\n",
+  "home/.neuroflow/flowie/tasks/active/write-intro.md": "---\ntitle: Write the introduction\nstatus: active\ntags: [paper]\ncreated: 2026-10-02\nupdated: 2026-10-10\nproject: solo-review\n---\n\nAsk jana.example@uni.example.org or +420 777 123 456 for the figure.\n",
+  "home/.neuroflow/flowie/tasks/done/book-room.md": "---\ntitle: Book the room\nstatus: done\ncreated: 2026-09-01\nupdated: 2026-09-02\n---\n",
+  "home/.neuroflow/flowie/tasks/inbox/rotate-the-key.md": "---\ntitle: Rotate the key\nstatus: inbox\ncreated: 2026-10-03\n---\n\npassword: \"correct-horse-battery-staple\"\n",
+  "home/.neuroflow/flowie/ideas.md": "# Ideas\n\n- Does alpha phase predict the N2pc latency?\n",
+  "home/.neuroflow/flowie/ideas-inbox.md": "- 2026-10-12 try a hierarchical model\n",
+  "home/.neuroflow/flowie/notes/2026-10-05-talk.md": "# Talk notes: attention\n\nThese notes stay on the machine.\n",
+  "home/.neuroflow/flowie/meetings/2026-10-22-pi.md": "---\ntitle: PI check-in\ndate: 2026-10-22T10:00:00\nattendees: [pi@uni.example.org]\n---\n\nThe agenda stays on the machine.\n",
+  "home/.neuroflow/flowie/wellbeing/2026-10-20.json": "{\"anxiety\": 3, \"energy\": 6, \"happiness\": 7}\n",
+  "home/.neuroflow/flowie/profile.md": "## Identity\nname: Alice Example\nemail: alice@uni.example.org\n",
+  "home/.neuroflow/flowie/wiki/index.md": "# Wiki Index\n\n## Concepts\n| Page | Summary | Updated | Sources |\n|---|---|---|---|\n| [N2pc](pages/concepts/n2pc.md) | Lateralised attention component | 2026-10-01 | 1 |\n",
+  "home/.neuroflow/flowie/wiki/pages/concepts/n2pc.md": "---\ntitle: N2pc\ntype: concept\ntags: [erp, attention]\nupdated: 2026-10-01\nsources: [raw/luck-2012.md]\nstatus: current\n---\n\nThe N2pc relates to [[Alpha Oscillations]] and [[Missing Page|a gap]].\n\n![[figure-1.png]]\n\nSee [the source](../../raw/luck-2012.md), [ICA](../methods/ica.md) and [Luck 2012](https://doi.org/10.1016/example).\n",
+  "home/.neuroflow/flowie/wiki/pages/concepts/alpha-oscillations.md": "---\ntitle: Alpha Oscillations\ntype: concept\nupdated: 2026-09-30\n---\n\n<script>alert(1)</script> **Alpha** and *attention*.\n",
+  "home/.neuroflow/flowie/wiki/pages/methods/ica.md": "---\ntitle: ICA cleaning\ntype: method\n---\n\n1. Fit\n2. Reject\n",
+  "home/.neuroflow/flowie/wiki/raw/luck-2012.md": "A raw source that never leaves.\n",
+  "home/.neuroflow/hives/example-lab-hive/.git/config": "[remote \"origin\"]\n\turl = https://github.com/example-lab/hive.git\n",
+  "home/.neuroflow/hives/example-lab-hive/.git/HEAD": "ref: refs/heads/main\n",
+  "home/.neuroflow/hives/example-lab-hive/hive.md": "---\nworkbench_mirror: allow-names\n---\n# Example Lab\n\nWe study attention.\n\n## Norms\nCode review before merge.\n\n## Active research directions\n- Alpha and attention\n",
+  "home/.neuroflow/hives/example-lab-hive/members.md": "# Team Members\n\n| name | email | github | role |\n|---|---|---|---|\n| Jana Example | jana@uni.example.org | jana | postdoc |\n| Alice Example | alice@uni.example.org | alice | student |\n",
+  "home/.neuroflow/hives/example-lab-hive/ideas.md": "# Team Ideas\n\n- A shared preprocessing pipeline\n",
+  "home/.neuroflow/hives/example-lab-hive/projects/projects.json": "{\n  \"projects\": [\n    {\n      \"id\": \"oddball-eeg\",\n      \"description\": \"P300 in an auditory oddball\",\n      \"status\": \"active\",\n      \"current_phase\": \"data-analyze\",\n      \"repos\": [\n        \"https://github.com/example-lab/oddball\"\n      ]\n    }\n  ]\n}",
+  "home/.neuroflow/hives/example-lab-hive/tasks/config.json": "{\n  \"columns\": [\n    {\n      \"id\": \"inbox\",\n      \"label\": \"Inbox\"\n    },\n    {\n      \"id\": \"active\",\n      \"label\": \"Doing\"\n    },\n    {\n      \"id\": \"review\",\n      \"label\": \"Review\"\n    },\n    {\n      \"id\": \"done\",\n      \"label\": \"Done\"\n    },\n    {\n      \"id\": \"archive\",\n      \"label\": \"Archive\",\n      \"archive\": true\n    }\n  ],\n  \"archive_after_days\": 30\n}",
+  "home/.neuroflow/hives/example-lab-hive/tasks/active/rerun-ica.md": "---\ntitle: Rerun ICA on sub-07\nstatus: active\nowner: jana\ndue: 2026-10-15\nblocked_by: [fix-channel-map]\ncreated: 2026-10-01\nupdated: 2026-10-14\nproject: oddball-eeg\n---\n",
+  "home/.neuroflow/hives/example-lab-hive/tasks/inbox/fix-channel-map.md": "---\ntitle: Fix the channel map\nstatus: inbox\nowner: alice\ncreated: 2026-10-01\nupdated: 2026-10-01\nproject: oddball-eeg\n---\n",
+  "home/.neuroflow/hives/example-lab-hive/errata/oddball-eeg-2024.md": "# Errata — oddball-eeg-2024\n\n| date | scope | problem | workaround | reported_by |\n|---|---|---|---|---|\n| 2026-10-01 | sub-07, run-2 | Trigger offset +12 ms | Shift events by -12 ms | @jana |\n",
+  "home/.neuroflow/hives/example-lab-hive/meetings/2026-10-23-lab.md": "---\ntitle: Lab meeting\ndate: 2026-10-23T14:00:00\n---\n",
+  "home/.neuroflow/hives/example-lab-hive/wiki/pages/methods/ica.md": "---\ntitle: ICA cleaning\ntype: method\n---\n\nA long method page.\n",
+  "work/oddball/.neuroflow/project_config.md": "---\nnf_schema: 1\nproject_name: Oddball EEG study\nactive_phase: data-analyze\nrecommended_phases: [ideation, preregistration, data, data-analyze, paper]\nworkbench_mirror: allow\ncollaborators:\n  - name: Jana Example\n    email: jana@uni.example.org\n    handle: jana\nplugin_version: 0.2.25\n---\n\nNotes.\n",
+  "work/oddball/.neuroflow/ethics/status.md": "---\nnf_schema: 1\nstatus: approved\nexpires: 2027-06-30\nset_by: person\n---\n",
+  "work/oddball/.neuroflow/preregistration/status.md": "---\nnf_schema: 1\nstatus: frozen\nfrozen_at: 2026-10-01T10:00:00Z\nset_by: model\n---\n",
+  "work/oddball/.neuroflow/timeline.md": "| Date | What | Gates |\n|---|---|---|\n| 2026-10-08 | Abstract deadline | paper |\n| 2026-12-01 | Ethics report | |\n",
+  "work/oddball/.neuroflow/ideation/flow.md": "| File / Folder | Description | Last changed |\n|---|---|---|\n",
+  "work/oddball/.neuroflow/data-analyze/flow.md": "| File / Folder | Description | Last changed |\n|---|---|---|\n",
+  "work/oddball/.neuroflow/sessions/2026-10-20.md": "## 10:00 — [data] a private session line\n",
+  "work/oddball/.neuroflow/fails/core.md": "- 2026-10-01 — [data] something went wrong\n",
+  "work/oddball/.neuroflow/tasks/review/qc-report.md": "---\ntitle: QC report\nstatus: review\ncreated: 2026-10-03\nupdated: 2026-10-09\n---\n",
+  "work/oddball/.neuroflow/wiki/pages/concepts/montage.md": "---\ntitle: Montage\ntype: concept\n---\n\nSee [[Unknown]].\n"
+ },
+ "intents": {
+  "i-mh2a0001-aaaa": {
+   "intent_schema": 1,
+   "op": "move",
+   "level": "hive+example-lab+hive",
+   "target": {
+    "slug": "fix-channel-map"
+   },
+   "from": "inbox",
+   "to": "active",
+   "base": "@export",
+   "created_at": "2026-10-21T10:05:00.000Z",
+   "status": "pending"
+  },
+  "i-mh2a0002-bbbb": {
+   "intent_schema": 1,
+   "op": "move",
+   "level": "hive+example-lab+hive",
+   "target": {
+    "slug": "fix-channel-map"
+   },
+   "from": "active",
+   "to": "review",
+   "after": "i-mh2a0001-aaaa",
+   "created_at": "2026-10-21T10:06:00.000Z",
+   "status": "pending",
+   "base": "@export"
+  },
+  "i-mh2a0003-cccc": {
+   "intent_schema": 1,
+   "op": "add",
+   "level": "flowie",
+   "fields": {
+    "title": "Draft the methods",
+    "project": "solo-review"
+   },
+   "to": "inbox",
+   "created_at": "2026-10-21T10:07:00.000Z",
+   "status": "pending"
+  },
+  "i-mh2a0004-dddd": {
+   "intent_schema": 1,
+   "op": "move",
+   "level": "flowie",
+   "target": {
+    "intent": "i-mh2a0003-cccc"
+   },
+   "from": "inbox",
+   "to": "active",
+   "after": "i-mh2a0003-cccc",
+   "created_at": "2026-10-21T10:08:00.000Z",
+   "status": "pending"
+  },
+  "i-mh2a0005-eeee": {
+   "intent_schema": 1,
+   "op": "cancel",
+   "level": "flowie",
+   "target": {
+    "intent": "i-mh2a0004-dddd"
+   },
+   "created_at": "2026-10-21T10:09:00.000Z",
+   "status": "pending"
+  }
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "i-mh2a0001-aaaa": {
+  "base": "278c87afaea06767dd0084356695d089697cbf5e169541123a44b4faa1465a65",
+  "created_at": "2026-10-21T10:05:00.000Z",
+  "from": "inbox",
+  "intent_schema": 1,
+  "level": "hive+example-lab+hive",
+  "op": "move",
+  "status": "pending",
+  "target": {
+   "slug": "fix-channel-map"
+  },
+  "to": "active"
+ },
+ "i-mh2a0002-bbbb": {
+  "after": "i-mh2a0001-aaaa",
+  "base": "278c87afaea06767dd0084356695d089697cbf5e169541123a44b4faa1465a65",
+  "created_at": "2026-10-21T10:06:00.000Z",
+  "from": "active",
+  "intent_schema": 1,
+  "level": "hive+example-lab+hive",
+  "op": "move",
+  "status": "pending",
+  "target": {
+   "slug": "fix-channel-map"
+  },
+  "to": "review"
+ },
+ "i-mh2a0003-cccc": {
+  "created_at": "2026-10-21T10:07:00.000Z",
+  "fields": {
+   "project": "solo-review",
+   "title": "Draft the methods"
+  },
+  "intent_schema": 1,
+  "level": "flowie",
+  "op": "add",
+  "status": "pending",
+  "to": "inbox"
+ },
+ "i-mh2a0004-dddd": {
+  "after": "i-mh2a0003-cccc",
+  "created_at": "2026-10-21T10:08:00.000Z",
+  "from": "inbox",
+  "intent_schema": 1,
+  "level": "flowie",
+  "op": "move",
+  "status": "pending",
+  "target": {
+   "intent": "i-mh2a0003-cccc"
+  },
+  "to": "active"
+ },
+ "i-mh2a0005-eeee": {
+  "created_at": "2026-10-21T10:09:00.000Z",
+  "intent_schema": 1,
+  "level": "flowie",
+  "op": "cancel",
+  "status": "pending",
+  "target": {
+   "intent": "i-mh2a0004-dddd"
+  }
+ }
+}
