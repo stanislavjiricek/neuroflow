@@ -206,6 +206,16 @@ gh workflow run deploy-docs.yml --ref main
 
 ---
 
+## Brand images (`scripts/automation/brand_assets.py`)
+
+The ring and every image made from it come from one generator: the site logo and favicon, the link-preview card, the README lockups and the plugin icon in `docs/assets/brand/`. Colours come from `docs/stylesheets/nf.css`, shapes from the generator's constants; the Visual style section of the `neuroflow-develop` skill has the asset table.
+
+- `python scripts/automation/brand_assets.py` (`--check`, the default) fails when a committed SVG differs from what the generator writes, an image has the wrong size or weight, or an SVG breaks a rule (no `<text>`, no external references). `tests/automation/test_brand_assets.py` runs it in CI; it needs no browser.
+- `--write` rewrites the SVGs. `--png` renders the PNGs with a local Chrome or Edge (`--browser PATH`) and needs the network, because the images with text load Albert Sans and DM Mono from Google Fonts, as the landing page does.
+- No workflow sets the GitHub social preview: upload `docs/assets/brand/social-card.png` by hand under Settings → General → Social preview.
+
+---
+
 ## Shared posting script
 
 **File:** `scripts/automation/post_discussion.py`
