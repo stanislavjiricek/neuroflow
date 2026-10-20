@@ -13,10 +13,11 @@
 </div>
 
 <a id="whats-new"></a>
-## What's new in 0.2.25
+## What's new in 0.2.26
 
-- **Safer project registry and flowie sync** — a final review of 0.2.24 found three problems, now fixed: folding two cards of one project never puts a folder from one of your machines on the team's card (it goes to `~/.neuroflow/local-projects.json`); [`/sentinel`](commands/sentinel.md) shows the registry findings in the session and never writes your private flowie's project names into the committed `sentinel.md`; and [`/flowie --sync`](commands/flowie.md) resolves files an `--autostash` pull could not give back, with you, so no conflict markers are ever committed — the auto-sync hook and the mod skip and log such a state instead of pushing it
-- **Smaller fixes** — a hive member's state moves only their own values out of an old tracked `sync.json`; `repos` written as a single string counts as one repository; a task may name a project whose card is on another level; `/phase --sync` records the current phase on your cards; the board cache uses your own ssh setup when you have one ([#251](https://github.com/stanislavjiricek/neuroflow/issues/251)–[#256](https://github.com/stanislavjiricek/neuroflow/issues/256) follow-ups)
+- **A new face** — the ring replaces the old logos on the website, in link previews and here, and [`/neuroflow`](commands/neuroflow.md) greets with it; one generator makes every image ([`brand_assets.py`](scripts/automation/brand_assets.py)), and each install is 5.9 MB lighter
+- **Watch the intro** — a 4:33 video on the landing page and the [Overview](https://stanislavjiricek.github.io/neuroflow/overview/#intro-video), fetched from a release when the site deploys, never stored in git
+- **One What's new** — this README shows only the newest release; every earlier one is in the [changelog](docs/changelog.md), and [`repo_checks.py`](scripts/automation/repo_checks.py) keeps it that way
 
 Every earlier release is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/).
 

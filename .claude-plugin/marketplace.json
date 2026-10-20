@@ -11,7 +11,7 @@
       "name": "neuroflow",
       "source": "./",
       "description": "Your team's shared memory, inside Claude Code: a complete research system for neuroscience teams, from hypothesis to publication. Supports EEG, iEEG, fMRI, eye tracking, ECG, and multimodal recordings.",
-      "version": "0.2.25",
+      "version": "0.2.26",
       "author": {
         "name": "Stanislav Jiricek"
       },

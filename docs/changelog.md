@@ -6,6 +6,16 @@ title: Changelog
 
 Every neuroflow release, newest first. The README on GitHub shows only the newest one.
 
+## 0.2.26
+
+A new front page and one look:
+
+- The ring replaces the old logos everywhere: the site logo and favicon, link previews (a 1280×640 card), the README lockups and the plugin icon all come from one generator, `scripts/automation/brand_assets.py`. The old `logo.png` and the brain SVGs are gone, so every installed version is 5.9 MB lighter, and [`/neuroflow`](commands/neuroflow.md) greets with a ring of nineteen dots instead of the ASCII logo
+- The 4:33 intro video plays on the landing page and on the [Overview](overview.md#intro-video); the docs deploy fetches it from the `intro-video` release, so it never enters git or a plugin install
+- The README shows only the newest release, with links to the website, the documentation and this changelog, which now holds every release (0.1.7 to 0.2.3 backfilled). `validate_pr.py` V12 fails on a second What's new section, and V10 checks the whole README: links, images, anchors and the pages its site links point to
+- The docs now hold what only the README said: the flowie hook's hold-back of machine-local paths and its `--autostash` pulls, the Google Workspace CLI install, and the mod's paper, X-ray and wiki-review panes; `research_radar.py` reads this changelog
+- The plugin and marketplace descriptions open with "Your team's shared memory, inside Claude Code"; `plugin.json` names an icon and the documentation site
+
 ## 0.2.25
 
 Fixes from a final review of 0.2.24:
