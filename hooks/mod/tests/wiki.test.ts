@@ -1,6 +1,7 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify, takenTitles } from '../lib/wikiqueue'
+import { buttons } from './drawn'
 import { fakeFs } from './fakefs'
 
 /** A card file from an earlier day, already settled by the person. */
@@ -60,17 +61,25 @@ describe('auto wiki in a session', () => {
     '*/commands/data-analyze.md': '---\nname: data-analyze\nphase: data-analyze\nlifecycle: full\n---\n',
   }
 
-  test('a logged decision becomes a card; review opens it; skip drops it for good', { options: { runtime: 'on' } }, async ($, on) => {
+  test('a logged decision becomes a card; review opens it holding the keys; n skips it for good', { options: { runtime: 'on' } }, async ($, on) => {
     const fs = fakeFs(on, files, root)
     mock.env(on, { HOME: '/home/me' })
-    mock.clock(on, { now: new Date(2026, 9, 7, 14, 10).getTime() })
+    const clock = mock.clock(on, { now: new Date(2026, 9, 7, 14, 10).getTime() })
     mock.store(on)
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('session.model', () => ({ value: 'claude-test' }))
     on('ui.status', () => ({ value: undefined }))
-    on('ui.toast', () => ({ value: undefined }))
+    const toasts: string[] = []
+    on('ui.toast', ($, e) => {
+      toasts.push(JSON.stringify(e))
+      return { value: undefined }
+    })
     on('ui.log', () => ({ value: undefined }))
-    on('ui.open', () => ({ value: undefined }))
+    const opens: { id: string; focus?: boolean; rows?: number }[] = []
+    on('ui.open', ($, e) => {
+      opens.push(e as never)
+      return { value: undefined }
+    })
     on('ui.close', () => ({ value: undefined }))
     on('turn.complete', () => ({ text: 'done' }))
     on('command.run', () => ({ text: '', ref: 1 }))
@@ -94,14 +103,20 @@ describe('auto wiki in a session', () => {
     const card = `${root}/.neuroflow/wiki/.pending/2026-10-07-fdr-across-electrodes.md`
     expect(parseCard(fs.files[card] ?? '')?.title).toBe('FDR across electrodes')
     expect(fs.files[`${root}/.neuroflow/wiki/.pending/.gitignore`]).toBe('*\n')
+    // The toast names a path that works from the prompt; the band's key needs ^X Tab first.
+    expect(toasts.join(' ')).toContain('1 wiki card to review — /neuroflow:wiki --review, or ^X Tab then w on the band')
 
     const review = await $.command.run({ command: 'neuroflow:wiki', args: '--review' })
-    expect(review.text).toContain('1 wiki card waiting')
+    expect(review.text).toContain('1 wiki card waiting — y accepts')
+    expect(opens.map(open => [open.id, open.focus, open.rows])).toEqual([['nf-wiki', true, 12]])
     const pane = await $.ui.mount({
       plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-wiki',
       props: { title: 'wiki cards', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 12 }, view: {} },
     } as never)
-    expect(JSON.stringify(await pane.drawn())).toContain('FDR across electrodes')
+    const drawn = await pane.drawn()
+    expect(JSON.stringify(drawn)).toContain('FDR across electrodes')
+    expect(Object.fromEntries(buttons(drawn).map(button => [button.key, button.hotkey]))).toEqual({ 'nf-wiki-accept': 'y', 'nf-wiki-skip': 'n', 'nf-wiki-close': 'q' })
+    await clock.advance(500)
     await pane.press({ key: 'nf-wiki-skip' })
     expect(parseCard(fs.files[card])?.status).toBe('skipped')
   })
