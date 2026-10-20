@@ -19,6 +19,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 ├── private/                         ← local-only personal files that never sync (e.g. interview notes about candidates); not a git repo
 ├── local-projects.json              ← machine-local project registry (flowie project name → local folder), written by /flowie --link, never synced
 ├── boards/                          ← machine-local cache of other repositories' task boards (shallow, sparse clones holding only .neuroflow/tasks/), written by projects.py view/refresh, never synced
+├── workbench/                       ← machine-local state of your claude.ai workbench (Workbench snapshot): pending.json, ledger.json — never synced
 ├── flowie-sync.log                  ← one line per failed flowie auto-sync, plus one per sync the neuroflow mod attempts (its `synced` lines are no failure), machine-local, cleared by /flowie --sync
 ├── flowie/                          ← ONE global clone of github.com/{handle}/flowie
 │   ├── .gitignore                   ← integrations.json
@@ -26,6 +27,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 │   ├── ideas.md
 │   ├── ideas-inbox.md
 │   ├── sync.json
+│   ├── workbench.json               ← your claude.ai workbench record (Workbench snapshot), when you set one up
 │   ├── integrations.json            ← NON-SECRET settings only (custom LLM provider/base_url/model — never api_key); gitignored, stays on this machine
 │   ├── projects/
 │   ├── tasks/
@@ -46,7 +48,7 @@ Defines the shared structure and lifecycle that every neuroflow command and agen
 - `~/.neuroflow/hives/{org-repo}/` is a git clone of the hive repo (shallow is fine) — one per hive the user belongs to
 - Integration settings live in `~/.neuroflow/integrations.json` (global, device-wide; non-secret — `/setup` never stores a token or key), with an optional per-project override at `.neuroflow/integrations.json` (gitignored, excluded from `/output` exports). `~/.neuroflow/flowie/integrations.json` carries **non-secret** settings only (custom LLM provider/base_url/model/proxy_port), kept on this machine: it is gitignored in the flowie repo and never committed (the auto-sync hook skips it) — `api_key` never enters the flowie repo
 - Neither `flowie/` nor `hive/` ever appears inside a project's `.neuroflow/`
-- `user.yaml`, `private/`, `local-projects.json`, `boards/` and `flowie-sync.log` are local only: never copied into a project, pushed or exported
+- `user.yaml`, `private/`, `local-projects.json`, `boards/`, `workbench/` and `flowie-sync.log` are local only: never copied into a project, pushed or exported
 
 ---
 
@@ -115,6 +117,9 @@ auto_issue_reporting: no          # consent: yes | no — absent means no
 default_mode: critic              # optional: overrides the project's team default for this person
 zotero: no                        # optional: yes | no — whether the person uses Zotero, asked once by /ideation
 wiki_auto: off                    # optional: ask | off — queue wiki cards from this person's sessions for review (/wiki --auto); absent means off
+workbench: on                     # optional: on | off — this person's own claude.ai workbench (/dashboard --web); absent means off
+workbench_levels: ["flowie", "hive+example-lab+hive"]   # optional: the levels this person mirrors there (keys: Workbench snapshot)
+workbench_machine: laptop         # optional: a name this person gives this machine, shown on every level it exports
 ```
 
 - Consent is read **only** from this file. An `auto_issue_reporting` value in a project file is a legacy leftover: ignore it and offer `/neuroflow:migrate`, which moves personal fields here after asking.
@@ -122,6 +127,7 @@ wiki_auto: off                    # optional: ask | off — queue wiki cards fro
 - `hives:` names the team hives the person joined, each as `org/repo` (inline, as above, or one `- org/repo` per line); its clone is `~/.neuroflow/hives/{org-repo}/`. An entry may instead be a map — `repo: org/repo` and `local: {path of the clone}` — for a clone whose folder has another name: the last folder of `local` is then the hive's folder. Readers take both forms; a writer keeps the form the file uses.
 - Team defaults the collaborators agree on (e.g. `default_mode`) may stay in `project_config.md`; a value here overrides them for this person only.
 - Merge, never replace: when writing a key, keep every other line of the file.
+- The workbench keys — `workbench`, `workbench_levels`, `workbench_index_only`, `workbench_machine`, `workbench_account`, and `workbench_records` while no flowie is linked — are this person's own; **Workbench snapshot** says what each holds. A project's or hive's consent is a different key, `workbench_mirror`, in the shared file.
 
 ### Root folders
 
@@ -282,9 +288,10 @@ set_at: 2026-09-12T09:00:00Z
 
 | Tier | What | Rule |
 |---|---|---|
-| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json`, `~/.neuroflow/boards/`, `~/.neuroflow/flowie-sync.log`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/wiki/.pending/` (wiki capture cards awaiting review), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
+| `local` | `~/.neuroflow/integrations.json`, `~/.neuroflow/user.yaml`, `~/.neuroflow/local-projects.json`, `~/.neuroflow/boards/`, `~/.neuroflow/workbench/`, `~/.neuroflow/flowie-sync.log`, `.neuroflow/integrations.json`, `.neuroflow/review/` (manuscripts under confidential peer review), `.neuroflow/paper/xray-*` (sentence-level critique of an unpublished manuscript), `.neuroflow/wiki/.pending/` (wiki capture cards awaiting review), `.neuroflow/sessions/`, `.neuroflow/flowie/` | Never committed (scaffold `.gitignore`), never exported, never uploaded. |
 | `team` | everything else under `.neuroflow/` | Committed to the project repo; visible to collaborators. |
 | `public` | what `/output`, `/hive` share, NotebookLM, slides, posters and papers send outside | Only after the person confirms what leaves. Never includes `local` paths, `fails/`, `finance/`, or participant-identifying `ethics/` content. |
+| `workbench` | the levels a person mirrors into their own owner-only claude.ai workbench (**Workbench snapshot**) | Uploaded only after a one-line preview and the person's yes in that turn; hive and project data only with the team's `workbench_mirror` opt-in; never `local` paths, `fails/`, `finance/`, reasoning logs, the flowie's profile or wellbeing, wiki `raw/`, or an email address. |
 
 The scaffold (and `/neuroflow:migrate`) adds these lines to the project's `.gitignore`:
 
@@ -298,7 +305,7 @@ The scaffold (and `/neuroflow:migrate`) adds these lines to the project's `.giti
 ```
 
 <!-- nf-rule: EGRESS-CONFIRM -->
-**Egress:** every outbound data movement — uploads, pushes to shared remotes, exports, opening an issue URL — needs the person's explicit confirmation in the turn it happens. Nothing leaves "automatically", with one exception: the person's own private flowie repository is a sync target they set up explicitly, so the flowie auto-sync hook commits the file Claude wrote there, pulls with rebase and pushes (`/flowie` → Git operations pattern). Shared targets — a hive, exports, NotebookLM, public repositories — always need the confirmation.
+**Egress:** every outbound data movement — uploads, pushes to shared remotes, exports, opening an issue URL — needs the person's explicit confirmation in the turn it happens. Nothing leaves "automatically", with one exception: the person's own private flowie repository is a sync target they set up explicitly, so the flowie auto-sync hook commits the file Claude wrote there, pulls with rebase and pushes (`/flowie` → Git operations pattern). Shared targets — a hive, exports, NotebookLM, public repositories — always need the confirmation. The person's own claude.ai workbench is no exception: its first publish, every refresh and every outcome write-back is previewed in one line and uploaded only after their yes in that turn — nothing on a timer, nothing at the end of another command (**Workbench snapshot**).
 
 ### Project registry — one card per project
 
@@ -315,6 +322,57 @@ The card holds the project's facts: `id`, `description`, `repos` (remote URLs on
 - **Two cards for one project** (registries written before this rule): `/neuroflow:migrate` folds them with `python <neuroflow-core skill base dir>/scripts/projects.py fold` — the hive card stays, the flowie entry becomes a pointer, a field that differs keeps the value the person picks, and the hive is written only after their yes. A project with cards in two hives is reported, never folded.
 - **Checks.** `python <neuroflow-core skill base dir>/scripts/projects.py check` reports two cards for one project, pointers that lead nowhere or carry copies, `blocked_by` entries that name no task on their board, and open tasks whose `project:` names no registered project (exit `0` clean, `1` findings, `2` error); `/sentinel` and `/neuroflow:migrate` run it.
 - **Tasks.** The boards stay three (`/tasks` → Levels) and a task's `project:` is the card's `id` at every level; where a task belongs is `/tasks` → Placement. `python <neuroflow-core skill base dir>/scripts/projects.py view --project {id}` reads one project's open tasks at every level — the flowie, each hive, this repository's board and the boards of the card's other repositories, through a shallow, sparse cache in `~/.neuroflow/boards/` (local tier) that is refreshed from their remotes each time; `--no-remote` reads the cache as it is.
+
+### Workbench snapshot
+
+A person may keep one private claude.ai page — the **workbench** — over their own levels: a tab for their flowie, each hive they joined and each project they export from that project, each drawn the same way (a Kanban with drag and drop and keyboard moves, the project list, the wiki, the level's panel). It is a derived mirror plus an outbox of clicks. **Git stays the only store**: the page never writes a task file, and what is on it can always be rebuilt from git. `/dashboard --web` publishes and refreshes it; `/tasks --apply-web` applies its clicks; both run `python <neuroflow-core skill base dir>/scripts/workbench.py`, the one executable home of every rule below (`--help` lists its subcommands). The page itself is `assets/workbench/workbench.html` with its logic in `workbench.mjs`, both in this skill.
+
+**Who decides what is mirrored.**
+
+| Level | The person (`~/.neuroflow/user.yaml`) | The team (shared file) |
+|---|---|---|
+| flowie | `workbench: on` and the key in `workbench_levels` | — (it is theirs) |
+| hive | the same | `workbench_mirror` in the frontmatter of the hive's `hive.md` |
+| project | the same | `workbench_mirror` in the `project_config.md` frontmatter |
+
+`workbench_mirror` is `allow`, `allow-names` (also the names and roles the roster lists — never an email address) or `forbid`; **absent means not mirrored**. Only the team's own decision writes it (a commit the team can see), never `/dashboard --web` on its own. `workbench_index_only` (user.yaml) lists levels whose wiki goes up as an index without page bodies.
+
+**Level keys** name a level the same way on every machine, in the store's segment characters and as a valid file name everywhere (an `ArtifactData` listing saved with `out_dir` names files after them): `flowie`; `hive+{org}+{repo}` from the hive clone's `origin`; `project+{card id}` (lower case, other characters escaped as `~hh`, a short hash added when the id has capitals) or, without a card, `project+{host}+{owner}+{repo}` from its `origin`. Never a folder name or a local path. A project with neither a card nor a remote gets no tab, and `/dashboard --web` says why.
+
+**The store.** The page declares exactly `capabilities: {db: {rules: [{path: "", read: "owner", write: "owner"}]}, user: {}}` — nothing else (no `artifact`, `comments`, `room`, `sample`, `mcp` or `files`) — and every document lives in the owner's private subtree. The page addresses it as `"data/users/" + (await user.id())`; Claude's `ArtifactData` tool addresses the same place as `data/users/me`. Even segment counts are documents, odd ones collections:
+
+| Document | Collection · document id | Segments |
+|---|---|---|
+| a level's meta | `data/users/me` · `{level key}` | 4 |
+| a level's parts | `data/users/me/{level key}/parts` · `core`, `cards-000`, `wiki-000`, … | 6 |
+| an intent (a click) | `data/users/me/inbox/intents` · `{intent id}` | 6 |
+| the page's preferences | `data/users/me` · `prefs` | 4 |
+
+- **Meta** — `snap_schema` (1), `intent_schema` (1), `level`, `kind`, `label`, `exported_at`, `machine`, `policy`, `working_tree`, `index_only`, `source` (`git`, `branch`, `head`, `upstream`, `upstream_head`, `ahead`, `behind`, `fetched_at`, `shallow`, `uncommitted_tasks`), `parts` (`id`, `sha256`, `bytes`), `applied` (intent id → `state`: `worktree`, `committed`, `pushed` or `merged`, and `commit`), `withheld` (`source`, `item`, `reason` — never a value) and `counts`. It is written last; the page draws a level only when every part matches the hash its meta lists.
+- **Parts**, at most 200 KB each: `core` (columns from `tasks/config.json` with `closed` and `archive`, people as roster handles, the registry, the level's panel, the phase list, the project's card id), `cards-NNN` (every card with its raw fields — `slug`, `file`, `column`, `title`, `owner`, `due`, `created`, `updated`, `phase`, `tags`, `project`, `blocked_by`, `notes` (1,000 characters), `legacy`, `readable` — and its content hash `sha256`: the task file's sha256 with the `status` and `updated` lines left out, LF line endings and no BOM) and `wiki-NNN` (pages with `[[links]]` resolved by the exporter to `[[{page id}|{label}]]`, an unresolved one as `[[|{label}]]`; `raw/` files and images become `[local file, not mirrored: {name}]`). No derived date travels: overdue and "this project" come from the viewer's own date and the open tab.
+- **What leaves, per source**, is one allowlist: `workbench.py sources` prints it, the preview shows it and the docs page (`docs/concepts/workbench.md`) carries it, and a test keeps the three equal. Free text goes through `pii_scan.py`'s patterns without its allowance for the addresses a project lists: an email address becomes `[email removed]`, a phone number `[phone removed]`, an ID your pii_scan config names `[id removed]`; an item with secret-like text or a name from your participant roster is held back whole and named. Never mirrored: the `local` tier, `fails/`, `finance/`, `reasoning/`, the flowie's `profile.md` and `wellbeing/`, wiki `raw/`, meeting attendees, agendas and notes, local paths.
+
+**Intents** — the page writes them; Claude Code never creates one, it only sets their `status`, `claim` and `outcome` with a pinned update (`if_version`):
+
+```json
+{"intent_schema": 1, "op": "move", "level": "hive+example-lab+hive", "target": {"slug": "rerun-ica"},
+ "from": "active", "to": "review", "base": "3f5a…", "after": "i-mh2a01-k3j2h1",
+ "created_at": "2026-10-21T10:05:00.000Z", "status": "pending"}
+```
+
+- `op` is `move`, `add` (`fields`: `title`, optional `owner`, `due`, `phase`, `tags`, `project`; `to`, default `inbox`) or `cancel` (`target: {"intent": id}` — undo is a cancel, never a delete, so it cannot race a claim). A move names an exported card by `{"slug"}` and carries its content hash as `base`, or a card added on the board by `{"intent": add id}`, without one. `after` names the waiting intent it builds on. `status` is `pending`, `claimed` (`claim`: `machine`, `claimed_at`) or `done` (`outcome`: `result` — `applied` with `slug`, `column`, `state` and `commit`; `coalesced` with `into`; `conflict` with `reason` and the current `column`; `rejected` with `reason`; `cancelled` with `by` — and `at`). The page's release of a claim that never finished sets `cancel_requested_at`.
+- Each level's intents are checked in creation order: an accepted intent's result is the base of the next; consecutive moves of one card merge into one move and the earlier ones are `coalesced`; an added card's slug comes from the add (the `/tasks` slug rules); a link whose earlier link was rejected or cancelled is rejected with `depends on {id}`; a card whose content hash or column changed since the export is a `conflict`, and nothing is written. An unknown `intent_schema` is rejected with the reason `schema`, never dropped.
+- A claim expires after 30 minutes: a pickup takes pending intents and expired claims (and its own), claims them with `if_version` and keeps a chain whole. Before it applies anything it checks git for the intent's effect — its trailer in the log, or the task already in its target column — so a run that stopped half way is finished, never repeated.
+- An accepted intent is applied the way `/tasks` → Moves moves a task; a flowie or hive commit names every intent it holds in a `Neuroflow-Intent: {id}` trailer, and pushes follow each level's rule — the flowie's private sync, the hive's push only after the person's yes, the project's working tree left uncommitted (a machine-local ledger remembers those).
+- Every export lists, per level, the intent ids its files already contain (`applied`), with their state recomputed from git (`git branch -r --contains`), so the page keeps a click's overlay until a snapshot contains it or its outcome failed — and stays right after a later push from `/hive` or `/git`.
+
+**Freshness and the refresh guard.** A tab states what its export saw and what it could not: `working tree on {branch} @ {head} + N uncommitted task changes · upstream fetched {time} · from {machine}`. An export compares upstream heads, never HEADs: it fetches first (read-only); the same machine and branch always overwrite (a rebase included); another machine or branch overwrites only after a one-line question that names both; a clone whose upstream is behind the stored one is skipped, and so is one that does not know the stored upstream commit even after deepening a shallow clone once — each said why. A level written by a newer neuroflow (`snap_schema` above 1) is never overwritten: *"a newer neuroflow on another machine wrote this; update neuroflow here first"*; the page shows the same instead of guessing. A new store layout rebuilds every level from git and carries over only the intents and the preferences.
+
+**The record** of each workbench — `url`, the `account` label the person chose (claude.ai accounts and organizations differ: a personal plan, an institute's), `template_version`, `contract` (the runtime version the template was tested on), `page_sha256` and a copy of the page's preferences — lives in the flowie's `workbench.json` when a flowie is linked, else as `workbench_records` in `user.yaml`; `workbench_account` picks this machine's. Before a session's first `ArtifactData` call, read the URL with the Artifact tool: if the result does not say the person is a writer, stop with one line that names the recorded account label, and never create a second workbench without asking.
+
+**Machine-local** (`~/.neuroflow/workbench/`, local tier): `pending.json` (what waits on the workbench, as of when it was checked — the mod's board and band read it) and `ledger.json` (workbench moves applied to a project's working tree).
+
+**Limits.** 256 KiB per document (parts stay under 200 KB), 25,000 documents per artifact, 50 writes and 1 MiB per batch. Finished intents are deleted after 7 days, and a level no longer mirrored is purged — parts first, then its meta (deleting a document never deletes the ones below it). A `quota_exceeded` refusal is shown to the person and never retried in a loop.
 
 ---
 
@@ -569,7 +627,7 @@ Every rule a mod guard may enforce has an HTML comment marker on the line before
 | `GIT-NO-SECRETS` | Never stage `integrations.json`, `sessions/`, `review/`, `paper/xray-*`, `wiki/.pending/`, `user.yaml`; never `git clean -x` | `/git` |
 | `GIT-ALIAS-SCOPE` | Git aliases act only on the scope the person named | `/git` |
 | `ETHICS-GATE` | No data collection steps before the ethics status is approved | `/ethics`, `/data`, `/experiment` |
-| `EGRESS-CONFIRM` | Every outbound upload, push or export needs explicit confirmation | neuroflow-core (Sharing tiers), review-neuro skill |
+| `EGRESS-CONFIRM` | Every outbound upload, push or export needs explicit confirmation | neuroflow-core (Sharing tiers, Workbench snapshot), review-neuro skill, `/dashboard --web`, `/tasks --apply-web` |
 | `PARTICIPANT-ROUTE` | Participant data is read by the model only if `ai_processing` allows it | `/ethics`, neuroflow-core, phase-paper skill |
 | `LOGIN-NODE` | No heavy compute on HPC login nodes | phase-brain-run skill |
 | `INTEGRITY-MARKER` | The model never writes `set_by: person` without the person's confirmation in the same turn | neuroflow-core (Integrity markers), `/ethics`, `/preregistration` |
