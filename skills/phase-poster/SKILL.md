@@ -1,6 +1,6 @@
 ---
 name: phase-poster
-description: Phase guidance for the neuroflow /poster command. LaTeX academic conference poster generation — template selection (A0/A1/A2, portrait/landscape, custom conference sizes), QR code integration, content extraction from project memory, and iterative poster-critic review loop.
+description: Phase guidance for the neuroflow /poster command. LaTeX academic conference poster generation — template selection (A0 portrait or landscape, A1 portrait, 90×120 cm, 48×36 in), QR code integration, content extraction from project memory, and iterative poster-critic review loop.
 user-invocable: false
 ---
 

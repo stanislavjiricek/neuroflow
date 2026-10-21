@@ -116,6 +116,7 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
 html:has(.nfo-film[open]){overflow:hidden}
 @media (max-width: 600px){.nfo-film-note{display:none}}
 @container (width < 28.3em){.nfo-cta .nfo-watch time{display:none}}
+@container (width < 24em){.nfo-cta .nfo-watch .nfo-watch-what{display:none}}
 @media (prefers-reduced-motion: reduce){.nfo-rise,.nfo-cue,.nfo-film[open]{animation:none!important}[data-at],[data-at][data-on]{transition:none}}
 @media (min-width: 901px) and (max-height: 600px){
 .nfo-hero p{display:none}
@@ -198,7 +199,7 @@ html:has(.nfo-film[open]){overflow:hidden}
 
 <div class="nfo-cta">
 <code>/plugin install neuroflow --marketplace stanislavjiricek/neuroflow</code>
-<a class="nfo-watch" href="{{ 'overview/' | url }}#intro-video" data-nf-watch="">Watch the intro <time datetime="PT4M33S">4:33</time></a>
+<a class="nfo-watch" href="{{ 'overview/' | url }}#intro-video" data-nf-watch="" aria-label="Watch the intro, 4 minutes 33 seconds">Watch<span class="nfo-watch-what"> the intro</span> <time datetime="PT4M33S">4:33</time></a>
 <span class="nfo-links"><a class="nfo-docs" href="{{ 'overview/' | url }}">Documentation</a>
 <a class="nfo-src" href="https://github.com/stanislavjiricek/neuroflow">Source</a></span>
 </div>

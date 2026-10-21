@@ -56,7 +56,7 @@ flowchart LR
 | [`/data-analyze`](data-analyze.md) | data-analyze | ERPs, time-frequency, connectivity, decoding, GLM |
 | [`/paper`](paper.md) | paper | Unified manuscript writing — draft section by section, write→critique loop |
 | [`/review`](review.md) | review | Peer review a colleague's paper — structured referee report |
-| [`/poster`](poster.md) | poster | LaTeX conference poster from project memory — template (A0/A1/A2, portrait/landscape, custom sizes), QR code, poster-critic review loop |
+| [`/poster`](poster.md) | poster | LaTeX conference poster from project memory — template (A0 portrait or landscape, A1 portrait, 90×120 cm, 48×36 in), QR code, poster-critic review loop |
 | [`/notes`](notes.md) | notes | Live note-taking — capture rough input, reformat into a clean document |
 | [`/write-report`](write-report.md) | write-report | Generate a structured report from `.neuroflow/` for any phase or the whole project |
 

@@ -103,10 +103,10 @@ gws auth setup --login
 
 Without `gcloud`, do this once in [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
 
-1. Create a project (or pick one), then **Create Credentials → OAuth client ID**, application type **Desktop app**.
-2. **Download JSON** and save the file as `~/.config/gws/client_secret.json` (on Windows `%USERPROFILE%\.config\gws\client_secret.json`). If you keep it elsewhere, set `GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE` to its path in your shell profile.
+1. Create a project (or pick one). On its **OAuth consent screen**, choose **External** and add your own Google account under **Test users** — without it, sign-in ends in a generic "Access blocked" error.
+2. **Create Credentials → OAuth client ID**, application type **Desktop app**, then **Download JSON** and save the file as `~/.config/gws/client_secret.json` (on Windows `%USERPROFILE%\.config\gws\client_secret.json`). If you keep it elsewhere, set `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` to the folder that holds it (gws then keeps all its configuration there), or use the client ID and secret variables below.
 3. Enable the APIs you want to use in the project's API library: Calendar, Gmail, Drive, Sheets, Docs, Slides, Tasks.
-4. Run `gws auth login`. It opens the browser for your consent; Google may warn that the app is unverified, which is expected for your own OAuth client (**Advanced → Continue**). `gws auth status` then shows the signed-in account.
+4. Run `gws auth login -s calendar,gmail,drive,sheets,docs,slides,tasks`. An unverified app (your own OAuth client) gets only about 25 scopes, so name the services instead of asking for the full preset. The browser opens for your consent; Google may warn that the app is unverified, which is expected (**Advanced → Continue**). `gws auth status` then shows the signed-in account.
 
 Instead of the file, you can set `GOOGLE_WORKSPACE_CLI_CLIENT_ID` and `GOOGLE_WORKSPACE_CLI_CLIENT_SECRET` in your shell profile and run `gws auth login`. Either way the OAuth secret stays with `gws`: neuroflow never asks for it in the chat and never stores it.
 

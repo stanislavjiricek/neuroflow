@@ -224,15 +224,18 @@ python scripts/automation/brand_assets.py           # --check: the same check th
 - **Neutral:** no Claude Code orange and no vendor marks in neuroflow's images; the words "Claude Code" are fine.
 - **Research outputs keep their own styles.** Posters, slides, reports and figures that the commands make for a person are that person's work, not neuroflow images: `/poster`, `/slideshow` and the others do not take this look.
 
-**In the terminal** the hex palette does not apply: the mod draws with Claude Code's theme colours. Text that marks phases or dates uses one glyph legend — the `/neuroflow` welcome ring, phase maps, timelines and the mod's views; a file that still uses other marks moves to it when it is next changed:
+**In the terminal** the hex palette does not apply: the mod draws with Claude Code's theme colours. Marks for phases and dates follow one legend, the one `/phase` and the `/neuroflow` welcome ring use, so each glyph means one thing everywhere:
 
 | Glyph | Means |
 |---|---|
-| `◌` | the neuroflow mark |
 | `◉` | current phase |
 | `●` | visited phase |
-| `○` | recommended phase |
-| `⚠` | overdue, or due soon |
+| `→` | recommended next |
+| `○` | not started |
+| `·` | a phase drawn without a state (the welcome ring's other dots) |
+| `⚠` | overdue, or due within three days |
+
+`/dashboard` and the mod's panes still draw the current phase as `●` and a visited one as `✔`; they move to this legend when the mod's views are redrawn, and so does any other file with other marks when it is next changed.
 
 ## Release workflow
 

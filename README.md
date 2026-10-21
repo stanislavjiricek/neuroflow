@@ -15,9 +15,9 @@
 <a id="whats-new"></a>
 ## What's new in 0.2.26
 
-- **A new face** — the ring replaces the old logos on the website, in link previews and here, and [`/neuroflow`](commands/neuroflow.md) greets with it; one generator makes every image ([`brand_assets.py`](scripts/automation/brand_assets.py)), and each install is 5.9 MB lighter
+- **A new face** — the ring replaces the old logos on the website, in link previews and here, and [`/neuroflow`](commands/neuroflow.md) greets with it; one generator makes every image ([`brand_assets.py`](scripts/automation/brand_assets.py)), and each install is 5.5 MB lighter
 - **Watch the intro** — a 4:33 video on the landing page and the [Overview](https://stanislavjiricek.github.io/neuroflow/overview/#intro-video), fetched from a release when the site deploys, never stored in git
-- **One What's new** — this README shows only the newest release; every earlier one is in the [changelog](docs/changelog.md), and [`repo_checks.py`](scripts/automation/repo_checks.py) keeps it that way
+- **One What's new** — this README shows only the newest release; every earlier one is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/), and [`repo_checks.py`](scripts/automation/repo_checks.py) keeps it that way
 
 Every earlier release is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/).
 
@@ -148,7 +148,7 @@ Claude loads a skill on its own when it is relevant, or when you name it.
 | [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) | Phase guidance for /flowie — profile read and apply rules, write rules for `~/.neuroflow/flowie/`, one git pattern for sync |
 | [`neuroflow:phase-meeting`](skills/phase-meeting/SKILL.md) | Phase guidance for /meeting — meeting file format, recurring templates, attendee resolution, calendar integration, and `meeting_close.py` |
 | [`neuroflow:wiki-protocol`](skills/wiki-protocol/SKILL.md) | Knowledge base protocol — LLM-maintained wiki at three levels (personal/flowie, project, team/hive); ingest/query/lint/add workflows, branch-safe sync |
-| [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) | LaTeX poster generation — five templates (A0/A1/A2, portrait/landscape, US size), QR code integration, compile-and-preview between critic rounds |
+| [`neuroflow:phase-poster`](skills/phase-poster/SKILL.md) | LaTeX poster generation — five templates (A0 portrait and landscape, A1 portrait, 90×120 cm, 48×36 in), QR code integration, compile-and-preview between critic rounds |
 | [`neuroflow:notebooklm`](skills/notebooklm/SKILL.md) | Google NotebookLM — notebooks, sources (each upload confirmed), artifacts (podcast, video, slides, infographic, report, quiz, flashcards, mind map) and downloads |
 | [`neuroflow:phase-hive`](skills/phase-hive/SKILL.md) | Team-level knowledge layer — a shared GitHub org repo for team directions, cross-project findings, dataset errata and recommended methods; all sharing is explicit |
 | [`neuroflow:phase-slideshow`](skills/phase-slideshow/SKILL.md) | Phase guidance for /slideshow — audience calibration, slide count heuristics, Markdown/reveal.js and structured outline output formats |
@@ -186,8 +186,10 @@ Agents are autonomous subprocesses launched by commands when deeper, focused wor
 Contributions from neuroscience labs are welcome: a skill for a modality or a method, a command for a workflow, an agent for a focused task. Open an issue to talk an idea through before you build it, and start from the development guide, [`neuroflow:neuroflow-develop`](skills/neuroflow-develop/SKILL.md). Before a pull request, run what CI runs:
 
 ```bash
-python scripts/automation/validate_pr.py
+python scripts/automation/validate_pr.py --base origin/main
 python -m unittest discover -s tests -p "test_*.py" -v
+mkdocs build --strict                      # with requirements.txt installed
+claude plugin validate . && claude plugin test . && python scripts/automation/mod_policy.py
 ```
 
 ## License
