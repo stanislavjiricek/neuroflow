@@ -485,9 +485,9 @@ def level_rows(sources: list[Source], person: dict) -> list[dict]:
             reason = ("the team forbids mirroring it" if src.policy == "forbid" else
                       f"the team has not opted in (workbench_mirror in {where})")
             if src.local_policy in ("allow", "allow-names"):
-                reason += f" — so says the upstream {where}; pull this clone"
+                reason += f" — so says the upstream {where}; this clone's copy differs"
             elif src.upstream_policy in ("allow", "allow-names"):
-                reason += f" — here; the upstream {where} allows it: pull this clone"
+                reason += f" — so says this clone; the upstream {where} allows it"
         elif not person["on"]:
             reason = "your workbench is off (workbench: on in ~/.neuroflow/user.yaml)"
         elif not consented:

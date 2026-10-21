@@ -691,7 +691,7 @@ class UpstreamPolicyTests(Home):
         code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch")
         self.assertEqual(result["levels"], [])
         row = next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)
-        self.assertEqual(row["reason"], "the team forbids mirroring it — so says the upstream hive.md; pull this clone")
+        self.assertEqual(row["reason"], "the team forbids mirroring it — so says the upstream hive.md; this clone's copy differs")
         self.assertEqual([row["level"] for row in result["purge"]], [self.HIVE])
         code, result = self.wb("gc", "--remote", str(self.stored()))
         self.assertEqual([(w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]],
@@ -702,8 +702,8 @@ class UpstreamPolicyTests(Home):
         self.teammate_sets("allow")
         code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch")
         self.assertEqual(result["levels"], [])  # the stricter value: not until this clone has the team's opt-in
-        self.assertIn("the upstream hive.md allows it: pull this clone",
-                      next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)["reason"])
+        self.assertEqual(next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)["reason"],
+                         "the team has not opted in (workbench_mirror in hive.md) — so says this clone; the upstream hive.md allows it")
         self.assertEqual(result["purge"], [])  # another machine with a current clone may mirror it rightly
         code, result = self.wb("gc", "--remote", str(self.stored()))
         self.assertEqual((code, result["deletes"]), (0, 0))
