@@ -9,8 +9,9 @@
 //  - /neuroflow:tasks opens the task boards of every level — project, flowie, each hive (M070, M163); a move runs
 //    on Enter at project and flowie level, and goes into the prompt at a hive's for the person to send (rule 16)
 // Every view a command opens takes the keyboard, keys typed through that open are dropped, and every hotkey comes
-// from the one key map in lib/keys.ts. Without the mod, commands/phase.md, commands/dashboard.md and
-// commands/tasks.md do the same in prose.
+// from the one key map in lib/keys.ts. Each draws the one look (skills/neuroflow-develop → Visual style) for the width
+// and height it gets, from the pure helpers of lib/layout.ts; tabLines and the row helpers below are its text form.
+// Without the mod, commands/phase.md, commands/dashboard.md and commands/tasks.md do the same in prose.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
@@ -297,7 +298,6 @@ export const cardKeys = (level: Pick<NfTaskLevel, 'kind' | 'board'>): string[][]
 /** The column of a card the board draws, or null. */
 export const cardColumn = (board: NfBoard, slug: string): string | null =>
   board.columns.find(column => column.cards.some(card => card.slug === slug))?.id ?? null
-
 
 /** The target the ring goes to once a card is picked: the column after the card's, else the first target. */
 export const firstTarget = (board: NfBoard, from: string | null): string | null => {
@@ -1743,7 +1743,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
                   <Text wrap="truncate-end">{row.what}</Text>
                 </Box>
                 <Box flexShrink={0} width={11}>
-                  <Text color={color(row.tone)} dimColor={row.tone === undefined}>
+                  <Text color={color(row.tone)} dimColor={row.tone === undefined} wrap="truncate-end">
                     {row.when}
                   </Text>
                 </Box>

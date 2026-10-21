@@ -69,7 +69,7 @@ export const pickerOrder = (current: string | null, recommended: readonly string
 export const nextPhase = (current: string | null, recommended: readonly string[]): string | null => {
   const chain = recommended.length > 0 ? recommended.filter(isPhase) : PHASES.map(phase => phase.id)
   const at = current === null ? -1 : chain.indexOf(current)
-  return at >= 0 && at + 1 < chain.length ? chain[at + 1] : null
+  return at >= 0 ? (chain[at + 1] ?? null) : null
 }
 
 export type PhaseNode = { id: string; short: string; state: PhaseState; glyph: string }
