@@ -28,6 +28,7 @@ import {
   runQuestion,
   sparkline,
   tabLines,
+  gatesColumnWidth,
 } from '../features/views'
 import { VIEW_KEYS, lineNeighbour } from '../lib/keys'
 import { answerAsks } from './ask'
@@ -922,8 +923,9 @@ describe('phase switching', () => {
     expect(filled).toEqual(['/neuroflow:phase --sync'])
   })
 
-  test('the picker switches on a pick', { options: { runtime: 'observe' } }, async ($, on) => {
+  test('the picker switches on a pick, after a yes', { options: { runtime: 'observe' } }, async ($, on) => {
     const { fs, clock } = setup(on)
+    const dialog = answerAsks(on)
     await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
     const opened = await $.command.run({ command: 'neuroflow:phase', args: '' })
     expect(opened.text).toContain('Phase picker open')
@@ -944,12 +946,25 @@ describe('phase switching', () => {
       props: { title: 'Switch phase', isFocused: true, bodyColumns: 60, placement: 'inline', scroll: { offset: 0, bodyRows: 12 }, view: {} },
     } as never)
     // The legend says how the list works; an Enter typed through the open switches nothing.
-    expect(lines(await ui.drawn())).toEqual(expect.arrayContaining(['↓ or enter: open · ↑↓: move · a letter: jump · enter: switch', 'esc: close', 'now: data']))
+    expect(lines(await ui.drawn())).toEqual(expect.arrayContaining(['↓ or enter: open · ↑↓: move · a letter: jump · enter: switch (asks)', 'esc: close', 'now: data']))
     await ui.select({ key: 'nf-phase-select', value: 'data-analyze' })
     expect(fs.files[`${project}/.neuroflow/project_config.md`]).toContain('active_phase: data\n')
     await clock.advance(500)
+    // A stray Enter in the question answers its first option, Not now: nothing is switched.
+    await ui.select({ key: 'nf-phase-select', value: 'data-analyze' })
+    expect(dialog.asked.map(asked => asked.options)).toEqual([['Not now', 'Switch to data-analyze']])
+    expect(fs.files[`${project}/.neuroflow/project_config.md`]).toContain('active_phase: data\n')
+    dialog.answer(() => 'Switch to data-analyze')
     await ui.select({ key: 'nf-phase-select', value: 'data-analyze' })
     expect(fs.files[`${project}/.neuroflow/project_config.md`]).toContain('active_phase: data-analyze\n')
+  })
+
+  test('the gates column is capped, so a long gates text leaves the date names their room', () => {
+    const rows = [{ gates: 'ethics amendment must be approved before recording' }, { gates: null }]
+    expect(gatesColumnWidth(rows, 76, 'medium')).toBe(19)
+    expect(gatesColumnWidth(rows, 116, 'wide')).toBe(22)
+    expect(gatesColumnWidth([{ gates: 'paper' }], 116, 'wide')).toBe(11)
+    expect(gatesColumnWidth(rows, 44, 'narrow')).toBe(0)
   })
 
   test('a switch writes active_phase only: plugin_version and the version notice stay', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {

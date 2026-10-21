@@ -694,6 +694,13 @@ const actOn =
 const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string): Promise<boolean> =>
   (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
 
+/**
+ * The deadlines tab's gates column: as wide as its longest `gates …` text, but never more than 22 cells or a quarter of
+ * the pane, so free text in timeline.md cannot squeeze the date names to nothing; a longer text is cut at its end.
+ */
+export const gatesColumnWidth = (rows: readonly { gates: string | null }[], width: number, size: string): number =>
+  size === 'narrow' ? 0 : Math.min(Math.max(0, ...rows.map(row => (row.gates ? cells(`gates ${row.gates}`) : 0))), 22, Math.floor(width / 4))
+
 /** The question before a key's command runs: a model turn the person starts. */
 export const runQuestion = (command: string, args: string): string =>
   `Run /${command}${args === '' ? '' : ` ${args}`} now? It starts a model turn.`
@@ -1340,7 +1347,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     if (arg !== '' && isPhase(arg)) return { text: await switchPhase($, arg, 'phase command') }
     if (arg !== '' || !(await isPersonThere($))) return next(e)
     await openPicker($)
-    return { text: 'Phase picker open — ↓ or Enter opens the list, ↑↓ move, Enter switches, Esc closes. (Any argument runs the full /phase flow.)' }
+    return { text: 'Phase picker open — ↓ or Enter opens the list, ↑↓ move, Enter switches after a yes, Esc closes. (Any argument runs the full /phase flow.)' }
   }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'neuroflow:dashboard' }, async ($, e, next) => {
@@ -1853,7 +1860,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       // A ruler of the coming weeks with each date's mark on its day, then the dates as a list.
       const dates = dateRows(snap)
       const scale = term && size !== 'narrow' && dates.length > 0 ? ruler(width, dates) : null
-      const gatesWidth = size === 'narrow' ? 0 : Math.max(0, ...dates.map(row => (row.gates ? cells(`gates ${row.gates}`) : 0)))
+      const gatesWidth = gatesColumnWidth(dates, width, size)
       body =
         dates.length === 0 ? (
           <Text dimColor>No upcoming dates in .neuroflow/timeline.md.</Text>
@@ -1889,7 +1896,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
                     {row.when}
                   </Text>
                 </Box>
-                {gatesWidth > 0 ? <Box flexShrink={0} width={gatesWidth}>{row.gates ? <Text dimColor>{`gates ${row.gates}`}</Text> : null}</Box> : null}
+                {gatesWidth > 0 ? <Box flexShrink={0} width={gatesWidth}>{row.gates ? <Text dimColor wrap="truncate-end">{`gates ${row.gates}`}</Text> : null}</Box> : null}
               </Box>
             ))}
           </Box>
@@ -2155,6 +2162,8 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const pick = async (value: string): Promise<void> => {
       // An Enter typed through the open would switch to the highlighted phase: dropped (lib/keys.ts).
       if (!isPastTypeThrough(await $.clock.now(), (await read($, openedAtAtom))[PICKER])) return
+      // A switch is recorded as the person's choice (project_config.md and a reasoning entry): asked, safe answer first.
+      if (!(await confirm($, `Make ${value} the active phase? It is recorded as your choice.`, 'Not now', `Switch to ${value}`, 'phase'))) return
       const message = await switchPhase($, value, 'phase picker')
       if (message.startsWith('Active phase')) {
         await $.ui.close({ id: PICKER })
@@ -2213,7 +2222,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           <Box flexDirection={widthClass(width) === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
             <Box flexShrink={1}>
               <Text dimColor wrap="wrap">
-                ↓ or enter: open · ↑↓: move · a letter: jump · enter: switch
+                ↓ or enter: open · ↑↓: move · a letter: jump · enter: switch (asks)
               </Text>
             </Box>
             <Box flexShrink={0}>

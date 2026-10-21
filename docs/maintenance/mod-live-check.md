@@ -242,7 +242,7 @@ And on every state:
 ### The picker and the review panes
 
 - [ ] Picker (`/neuroflow:phase`): each option names the phase first, then its mark and state (`◉ current`,
-  `→ next`). Down or Enter opens the list, a letter jumps to the phase that starts with it, Enter switches, Esc
+  `→ next`). Down or Enter opens the list, a letter jumps to the phase that starts with it, Enter asks and a yes switches, Esc
   closes. *Note* whether the list takes letters for itself.
 - [ ] Wiki cards (`/neuroflow:wiki --review`): `y` and `n` do nothing; Tab to *accept* and Enter asks first, and the yes
   runs `/neuroflow:wiki --add`; *skip* asks before it skips the card for good; `j` and `k`, `q`.
