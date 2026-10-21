@@ -39,7 +39,7 @@ and 24 rows over SSH.
 <span class="dim">NOW</span>    data-analyze — analysis
 <span class="dim">NEXT</span>   /neuroflow:paper — manuscript
 
-<span class="dim">◉ current  ● visited  → recommended next</span>                     <span class="nf-key"><i>g:</i> go to phase…</span>
+<span class="dim">◉ current  ● visited  → recommended next</span>                     <span class="nf-key act"><i>g:</i> go to phase…</span>
 
 <span class="dim">────────────────────────────────────────────────────────────────────────────</span>
 <span class="nf-key"><i>h:</i> ‹</span>  <span class="nf-key"><i>l:</i> ›</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>                                  <span class="dim">esc: prompt</span></div></div>
@@ -51,13 +51,13 @@ and 24 rows over SSH.
 <span class="nf-key"><i>1:</i> now</span>   <span class="nf-key"><i>2:</i> phase</span>   <span class="nf-key"><i>3:</i> deadlines</span>   <span class="nf-key on">4: integrity</span>   <span class="nf-key"><i>5:</i> tasks</span>   <span class="nf-key"><i>6:</i> loop</span>
 <span class="dim">───────────────────────────────────</span>━━━━━━━━━━━━<span class="dim">─────────────────────────────</span>
 
-<span class="ok">✔</span> ethics           approved · expires 2027-06-30             <span class="dim">set by a person</span>
+<span class="ok g">✔</span> ethics           approved · expires 2027-06-30             <span class="dim">set by a person</span>
                    <span class="dim">model may read: pseudonymised data</span>
 <span class="ok">■</span> preregistration  frozen 2026-10-01 · 2 files               <span class="dim">set by a person</span>
                    <span class="dim">planned N: 24</span>
 ■ raw data         read-only: sourcedata/
 
-<span class="nf-key"><i>v:</i> verify hashes</span>   unfreeze…
+<span class="nf-key act"><i>v:</i> verify hashes</span>   unfreeze…
 
 <span class="dim">────────────────────────────────────────────────────────────────────────────</span>
 <span class="nf-key"><i>h:</i> ‹</span>  <span class="nf-key"><i>l:</i> ›</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>                <span class="dim">tab, enter: act · esc: prompt</span></div></div>
@@ -65,11 +65,11 @@ and 24 rows over SSH.
 </figure>
 
 <figure class="nf-shot">
-<div class="nf-term"><span class="dim">◌</span> <span class="err">⚠ Abstract deadline — tomorrow</span>  <span class="nf-key"><i>d:</i> dashboard</span>  <span class="nf-key"><i>x:</i> hide today</span>  <span class="dim">^X Tab: keys</span> <span class="dim">[-]</span>
+<div class="nf-term"><span class="dim">◌</span> <span class="err"><span class="g">⚠</span> Abstract deadline — tomorrow</span>  <span class="nf-key act"><i>d:</i> dashboard</span>  <span class="nf-key act"><i>x:</i> hide today</span>  <span class="dim">^X Tab: keys</span> <span class="dim">[-]</span>
 <span class="dim">────────────────────────────────────────────────────────────────────────────────</span>
 <span class="b">&gt;</span> <span class="nf-caret"></span>
 <span class="dim">────────────────────────────────────────────────────────────────────────────────</span>
-<span class="dim">  neuroflow: ⚠ Abstract deadline tomorrow</span>      <span class="dim">neuroflow · data-analyze · critic</span></div>
+<span class="dim">  neuroflow: <span class="g">⚠</span> Abstract deadline tomorrow</span>      <span class="dim">neuroflow · data-analyze · critic</span></div>
 <figcaption>The band above the prompt names the most urgent item on one row, after the ring mark — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two where they fit) — then <code>d: dashboard</code> and <code>x: hide today</code>. Its keys work once ^X Tab has given it the keyboard, and until you have done that three times it says so wherever the row has room for the item beside it — ahead of a second item and of the keys' long words. An item's own keys, such as a meeting's <code>p: prepare</code> and <code>o: notes</code>, appear when it is first; the version notice's <code>m: migrate</code> appears whenever the notice is shown. On an 80-column terminal the keys take their short words (<code>x: hide</code>, <code>+2</code>) to keep that hint, or when they would crowd the item out; beside a meeting's keys there is no room left for the hint. While a check-in still waits to sync to your flowie, a key puts its command in the prompt instead: press Esc and then Enter, and the sync runs first. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
 </figure>
 
@@ -85,13 +85,13 @@ and 24 rows over SSH.
 
 <span class="dim">╭──────────────────────╮ ╭──────────────────────╮ ╭──────────────────────╮</span>
 <span class="dim">│ </span><span class="dim">INBOX</span>              <span class="dim">1</span><span class="dim"> │</span> <span class="dim">│ </span><span class="dim">ACTIVE</span>             <span class="dim">2</span><span class="dim"> │</span> <span class="dim">│ </span><span class="dim">REVIEW</span>             <span class="dim">1</span><span class="dim"> │</span>
-<span class="dim">│ </span>  Fix marker channe…<span class="dim"> │</span> <span class="dim">│ </span>▸ ⚠ Rerun ICA @li d…<span class="dim"> │</span> <span class="dim">│ </span>  QC report         <span class="dim"> │</span>
+<span class="dim">│ </span>  Fix marker channe…<span class="dim"> │</span> <span class="dim">│ </span>▸ <span class="g">⚠</span> Rerun ICA @li d…<span class="dim"> │</span> <span class="dim">│ </span>  QC report         <span class="dim"> │</span>
 <span class="dim">│ </span>                    <span class="dim"> │</span> <span class="dim">│ </span>  Spin tests        <span class="dim"> │</span> <span class="dim">│ </span>                    <span class="dim"> │</span>
 <span class="dim">╰──────────────────────╯ ╰──────────────────────╯ ╰──────────────────────╯</span>
 
 move "Rerun ICA" →  inbox  ready  <span class="nf-ring">review</span>  meeting  done  <span class="nf-key"><i>x:</i> cancel</span>
 
-<span class="dim">done 3 · archived 0 · level: project · ⚠ overdue</span>
+<span class="dim">done 3 · archived 0 · level: project · <span class="g">⚠</span> overdue</span>
 <span class="dim">────────────────────────────────────────────────────────────────────────────</span>
 <span class="nf-key"><i>h:</i> ◂</span>  <span class="nf-key"><i>l:</i> ▸</span>  <span class="nf-key"><i>j:</i> ▾</span>  <span class="nf-key"><i>k:</i> ▴</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>  <span class="dim">enter: move there · esc: prompt</span></div></div>
 <figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies, each column a round box with its name and count. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card — <code>j</code> past a column's fifth shows its next five — Enter picks it (▸) and Enter on a column moves it: at project and flowie level after your yes in Claude Code's question dialog, whose safe answer comes first; at a hive's as one command in the prompt for you to send. Where a column would get under 18 cells — a narrow dock, or five columns on an 80-column terminal — they stand one under the other.</figcaption>

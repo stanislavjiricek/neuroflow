@@ -328,12 +328,16 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 
 /* ── Harness figures: the terminal as Claude Code draws it, dark in either colour scheme ──
    Character for character, as the mod draws its views: the rules, the round board columns and the phase flow line
-   are box-drawing characters, so the lines sit close enough to join, in a terminal font that has them (DM Mono has
-   none: its fallback would draw them narrower than the letters). Colours stand for the theme keys the mod uses
-   (text, dim, warning, success, error); a key letter is in the accent Claude Code draws it in. */
+   are box-drawing characters, in a terminal font that has them (DM Mono has none: its fallback would draw them
+   narrower than the letters), on rows at about a terminal's line height. A symbol such fonts often lack (⚠ ✔ ✖ ✎ ↻)
+   sits in .g, which holds it to one cell whatever font draws it, so a row keeps the terminal's grid. Colours stand
+   for the theme keys the mod uses (text, dim, warning, success, error); a key letter is in the accent Claude Code
+   draws it in. */
 .md-typeset .nf-shot { display: block; width: 100%; max-width: 46rem; margin: 1.6rem 0 2rem; text-align: left; }
 .md-typeset .nf-shot figcaption { margin: .6rem 0 0; max-width: 40rem; text-align: left; font-style: normal; font-family: var(--md-code-font-family); font-size: .58rem; line-height: 1.6; color: var(--nf-dim); }
-.md-typeset .nf-term { box-sizing: border-box; text-align: left; overflow-x: auto; padding: 1rem 1.1rem .9rem; border: 1px solid #1C1D22; border-radius: 8px; background: #0B0C0F; color: #D9D7D1; font-family: ui-monospace, "Cascadia Mono", "SF Mono", SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: .62rem; line-height: 1.4; white-space: pre; }
+.md-typeset .nf-term { box-sizing: border-box; text-align: left; overflow-x: auto; padding: 1rem 1.1rem .9rem; border: 1px solid #1C1D22; border-radius: 8px; background: #0B0C0F; color: #D9D7D1; font-family: ui-monospace, "Cascadia Mono", "SF Mono", SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace; font-size: .62rem; line-height: 1.2; white-space: pre; }
+/* One cell for a symbol a fallback font draws wider than the letters. */
+.md-typeset .nf-term .g { display: inline-block; width: 1ch; text-align: center; }
 .md-typeset .nf-term .dim { color: #77756F; }
 .md-typeset .nf-term .ok { color: #93C49A; }
 .md-typeset .nf-term .warn { color: #E2B66C; white-space: pre-wrap; }
@@ -342,10 +346,11 @@ a:focus-visible, label:focus-visible, input:focus-visible, summary:focus-visible
 .md-typeset .nf-term code { padding: 0; background: none; color: inherit; font-size: 1em; }
 /* The engine's inline frame around a pane: a thin line; the mod's tree inside it. */
 .md-typeset .nf-pane { display: inline-block; box-sizing: border-box; min-width: 100%; margin: .55rem 0 .15rem; padding: .45rem .8rem; border: 1px solid #34343A; border-radius: 3px; white-space: pre; }
-/* A key as a plain Button draws it: the letter in the accent, a colon, the label dim; the shown tab at full strength. */
+/* A key as a plain Button draws it: the letter in the accent, a colon, then the label — dim when the Button is
+   dimColor (.nf-key), in the text colour when it is not (.act). The shown tab or level is in the text colour (.on). */
 .md-typeset .nf-key { color: #8E8C86; }
 .md-typeset .nf-key i { font-style: normal; color: #B8B3E6; }
-.md-typeset .nf-key.on { color: #F4F2EC; }
+.md-typeset .nf-key.act, .md-typeset .nf-key.on { color: #D9D7D1; }
 .md-typeset .nf-key.on i { color: inherit; }
 /* The engine's focus ring: the element it is on, drawn inverse. */
 .md-typeset .nf-term .nf-ring { background: #D9D7D1; color: #0B0C0F; }
