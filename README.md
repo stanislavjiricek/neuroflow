@@ -13,10 +13,10 @@
 </div>
 
 <a id="whats-new"></a>
-## What's new in 0.2.29
+## What's new in 0.2.30
 
-- **Checked in a real terminal** — after you answer *Not now* to one of the mod's questions, the board, the dashboard, the picker or the review pane takes the keys back, so you go on where you were; the status line no longer reads `neuroflow: neuroflow:` ([Keyboard and SSH](https://stanislavjiricek.github.io/neuroflow/concepts/mods/#keyboard-and-ssh))
-- **The mod, from the keyboard, in a new look** (0.2.27, finished in 0.2.28) — one key map for every view, holding the keys over SSH without a mouse; anything that writes, consents or starts a turn asks first
+- **Pane footers say what works** — a pane without the keys now names only the way back in: run its command again (the dashboard also opens from the band's `d`). A live check in Claude Code 2.1.306, in a plain console and inside tmux at 80×24, found that ^X Tab reaches the band but not an open pane ([Keyboard and SSH](https://stanislavjiricek.github.io/neuroflow/concepts/mods/#keyboard-and-ssh))
+- **The mod, from the keyboard, in a new look** (0.2.27, finished in 0.2.28 and 0.2.29) — one key map for every view, holding the keys over SSH without a mouse; anything that writes, consents or starts a turn asks first, and a pane takes the keys back after *Not now*
 - **Your workbench on claude.ai** (0.2.27) — [`/neuroflow:dashboard --web`](commands/dashboard.md) and [`/neuroflow:tasks --apply-web`](commands/tasks.md): a private page with your boards, project lists and wikis, with git as the only store ([the workbench](https://stanislavjiricek.github.io/neuroflow/concepts/workbench/))
 
 Every earlier release is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/).

@@ -6,6 +6,13 @@ title: Changelog
 
 Every neuroflow release, newest first. The README on GitHub shows only the newest one.
 
+## 0.2.30
+
+From a live check of the mod in Claude Code 2.1.306, in a plain console and inside tmux at 80×24:
+
+- A pane that does not hold the keys names only the way back: running its command again (`… gives it the keys`); it no longer says ^X Tab reaches it after the band, because ^X Tab moves the keys between the prompt and the band but not into an open pane
+- The [mods](concepts/mods.md) page and the live check say so; for the dashboard, `d` on the band (after ^X Tab) also gives it the keys
+
 ## 0.2.29
 
 Fixes from a live check of the mod in a terminal (Claude Code 2.1.306):
