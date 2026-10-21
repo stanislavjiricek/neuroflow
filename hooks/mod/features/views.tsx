@@ -15,6 +15,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { NfBoard, NfCard, NfDashboardTab, NfDraftedDecision, NfDrive, NfFlowieSync, NfLoopView, NfSnapshot, NfTaskLevel, NfTaskView } from '../../../types'
+import { completions } from '../lib/complete'
 import { setActivePhase } from '../lib/config'
 import { NO_SYNC, SYNC_QUEUE, asQueue, checkRemoteEntry, enqueue, syncState } from '../lib/flowiesync'
 import type { NfIo } from '../lib/io'
@@ -50,7 +51,7 @@ import { join, resolveFrom, toSlash } from '../lib/paths'
 import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseState, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
-import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
+import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, moveTargets, openColumnsOf, openingLevel, topCards } from '../lib/tasks'
 import { pendingBandItem, pendingText } from '../lib/workbench'
 import { isQuiet } from './scope'
 
@@ -297,11 +298,6 @@ export const cardKeys = (level: Pick<NfTaskLevel, 'kind' | 'board'>): string[][]
 export const cardColumn = (board: NfBoard, slug: string): string | null =>
   board.columns.find(column => column.cards.some(card => card.slug === slug))?.id ?? null
 
-/** The board's open columns in board order, drawn or not (an empty `review` is a place to move to all the same). */
-const openColumnsOf = (board: NfBoard): string[] => ((board.openColumns ?? []).length > 0 ? board.openColumns : board.columns.map(column => column.id))
-
-/** Where a picked card can move: every other open column of the board, then done. */
-export const moveTargets = (board: NfBoard, from: string | null): string[] => [...openColumnsOf(board).filter(id => id !== from && id !== 'done'), 'done']
 
 /** The target the ring goes to once a card is picked: the column after the card's, else the first target. */
 export const firstTarget = (board: NfBoard, from: string | null): string | null => {
@@ -1181,6 +1177,17 @@ const TONE_COLOR: Record<Tone, 'error' | 'warning' | 'success' | 'suggestion' | 
 const unfocusedHint = (command: string): string => `${CHORD}: use the keys here · ${command} focuses it`
 
 export const registerViews = (on: On, opts: NfOptions): void => {
+  // Typeahead for the typed paths into the views (lib/complete.ts): code only, from the state the mod holds — no
+  // file is read while the person types (charter rule 20). The engine's own rows stay first.
+  on('prompt.autocomplete', async ($, e, next) => {
+    const result = await next(e)
+    const scope = await read($, scopeAtom)
+    if (!scope?.isActive) return result
+    const snap = await read($, snapshotAtom)
+    const rows = completions(e, { phase: snap?.phase ?? null, visited: snap?.phasesVisited ?? [], recommended: snap?.recommendedPhases ?? [], tasks: await read($, taskViewAtom) })
+    return rows.length === 0 ? result : { suggestions: [...result.suggestions, ...rows] }
+  }).catch(($, e, next) => next(e))
+
   // M065: the current phase's command and the recommended next one are marked in the slash menu.
   on('command.describe', { command: /^neuroflow:/ }, async ($, e, next) => {
     const result = await next(e)

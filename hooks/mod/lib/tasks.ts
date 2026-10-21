@@ -469,6 +469,12 @@ export const openingLevel = (view: NfTaskView): string =>
 export const levelArgs = (level: Pick<NfTaskLevel, 'kind' | 'name'>): string =>
   level.kind === 'project' ? '' : level.kind === 'flowie' ? ' --level flowie' : ` --level hive --hive ${level.name}`
 
+/** The board's open columns in board order, drawn or not (an empty `review` is a place to move to all the same). */
+export const openColumnsOf = (board: NfBoard): string[] => ((board.openColumns ?? []).length > 0 ? board.openColumns : board.columns.map(column => column.id))
+
+/** Where a card can move: every other open column of the board, then done. */
+export const moveTargets = (board: NfBoard, from: string | null): string[] => [...openColumnsOf(board).filter(id => id !== from && id !== 'done'), 'done']
+
 /** The command a move on the board puts in the prompt: /tasks moves the file and records it. */
 export const moveCommand = (level: Pick<NfTaskLevel, 'kind' | 'name'>, slug: string, column: string): string =>
   `/neuroflow:tasks${levelArgs(level)} --move ${slug} ${column}`

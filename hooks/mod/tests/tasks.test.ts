@@ -12,6 +12,7 @@ import {
   loadTaskView,
   locationKey,
   moveCommand,
+  moveTargets,
   openingLevel,
   orderHives,
   originUrl,
@@ -20,7 +21,7 @@ import {
   topCards,
   userHives,
 } from '../lib/tasks'
-import { boardRingTarget, cardKeys, firstTarget, moveTargets, taskLines } from '../features/views'
+import { boardRingTarget, cardKeys, firstTarget, taskLines } from '../features/views'
 import { buttons, elements, lines } from './drawn'
 import { fakeFs } from './fakefs'
 import type { FakeFs } from './fakefs'

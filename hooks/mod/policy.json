@@ -3,6 +3,7 @@
   "events": [
     "command.describe",
     "command.run",
+    "prompt.autocomplete",
     "prompt.compose",
     "prompt.submit",
     "session.start",
