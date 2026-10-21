@@ -527,7 +527,8 @@ SOURCES = [
      "note": "extra marks a folder that config.json does not name"},
     {"source": "registry", "levels": "flowie, hive", "from": "projects/projects.json",
      "fields": ["core.registry", *every("registry")],
-     "note": "remote repository URLs only; a flowie pointer as its id and hive only"},
+     "note": "remote repository URLs only, without a user name, password or query; a flowie pointer as its id and hive "
+             "only"},
     {"source": "wiki", "levels": "flowie, hive, project", "from": "wiki/pages/**, wiki/index.md",
      "fields": ["part.pages", *every("page")],
      "note": "no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded"},
@@ -767,6 +768,19 @@ def export_cards(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dic
     return cards
 
 
+def public_url(url: str) -> str:
+    """A repository URL as it may leave: without a user name or password (`https://user:token@host/…`, a clone made
+    with a token), a query or a fragment; an scp-style address keeps only the generic `git@` user."""
+    url = url.strip()
+    match = re.match(r"^([a-z][a-z0-9+.-]*://)(?:[^/?#]*@)?([^?#]*)", url, re.I)
+    if match:
+        return match.group(1) + match.group(2)
+    scp = re.match(r"^([^@/\\:\s]+)@([^:/\s]+:\S+)$", url)
+    if scp:
+        return url if scp.group(1).lower() == "git" else scp.group(2)
+    return url
+
+
 def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dict]:
     if src.kind == "project":
         return []
@@ -781,6 +795,12 @@ def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[
         if pj.is_pointer(entry):
             out.append(allow("registry", {"id": pid, "pointer": True, "hive": entry["ref"][len("hive:"):].strip()}))
             continue
+        # a URL travels unchanged, like a name: personal data or a secret left in it holds the entry back
+        repos = [public_url(url) for url in pj.repo_values(entry) if pj.is_remote(url) and not url.lower().startswith("file:")]
+        reason = name_held(scrub, *repos)
+        if reason:
+            withheld.append({"source": "registry", "item": pid, "reason": reason})
+            continue
         description, hits = scrub.text(str(entry.get("description") or ""))
         if held(hits):
             withheld.append({"source": "registry", "item": pid, "reason": held(hits)})
@@ -788,7 +808,7 @@ def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[
         out.append(allow("registry", {
             "id": pid, "description": description, "status": str(entry.get("status") or "") or None,
             "current_phase": str(entry.get("current_phase") or "") or None, "visited_phases": pj.as_list(entry.get("visited_phases")),
-            "repos": [url for url in pj.repo_values(entry) if pj.is_remote(url) and not url.lower().startswith("file:")]}))
+            "repos": repos}))
     return out
 
 

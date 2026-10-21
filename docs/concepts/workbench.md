@@ -99,7 +99,7 @@ and a test keeps the two equal.
 |---|---|---|---|
 | tasks | flowie, hive, project | `tasks/{column}/{slug}.md` | `cards`, `slug`, `file`, `column`, `title`, `owner`, `due`, `created`, `updated`, `phase`, `tags`, `project`, `blocked_by`, `sha256`, `notes`, `legacy`, `readable` — owner only as a roster handle; the first 1,000 characters of the notes; sha256 is the content hash; legacy and readable say whether the file is in an older format or carries a merge conflict |
 | columns | flowie, hive, project | `tasks/config.json` | `columns`, `id`, `label`, `archive`, `closed`, `extra`, `archive_after_days` — extra marks a folder that config.json does not name |
-| registry | flowie, hive | `projects/projects.json` | `registry`, `id`, `description`, `status`, `current_phase`, `visited_phases`, `repos`, `pointer`, `hive` — remote repository URLs only; a flowie pointer as its id and hive only |
+| registry | flowie, hive | `projects/projects.json` | `registry`, `id`, `description`, `status`, `current_phase`, `visited_phases`, `repos`, `pointer`, `hive` — remote repository URLs only, without a user name, password or query; a flowie pointer as its id and hive only |
 | wiki | flowie, hive, project | `wiki/pages/**, wiki/index.md` | `pages`, `id`, `title`, `type`, `tags`, `status`, `updated`, `summary`, `sources`, `body` — no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded |
 | people | flowie, hive, project | `your handle, members.md, collaborators` | `people`, `handle`, `name`, `role` — name and role only with allow-names; your own handle only at flowie level; never an email address |
 | ideas | flowie, hive | `ideas.md, ideas-inbox.md (flowie)` | `ideas`, `ideas_inbox` — the text |

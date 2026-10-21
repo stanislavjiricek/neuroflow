@@ -359,6 +359,26 @@ class ExportTests(Home):
         for leak in (token, "jana@", "deploy", "Catch-up"):
             self.assertNotIn(leak, everything, leak)
 
+    def test_registry_urls_leave_without_user_info_and_a_secret_holds_the_entry_back(self) -> None:
+        self.make_flowie()
+        token = "ghp_" + "A1b2C3d4" * 5
+        self.write(self.flowie / "projects" / "projects.json", json.dumps({"projects": [
+            {"id": "oddball", "repos": [f"https://jana:{token}@github.com/example-lab/oddball.git",
+                                        "git@github.com:example-lab/oddball.git", "ssh://jana@lab.example.org/git/oddball.git",
+                                        "https://gitlab.example.org/lab/oddball?private_token=abc123#readme", "C:/Users/jana/oddball"]},
+            {"id": "leaky", "repos": [f"https://example.org/{token}/leaky.git"]}]}))
+        code, result = self.export()
+        registry = {entry["id"]: entry for entry in self.doc("flowie", "core")["registry"]}
+        self.assertEqual(registry["oddball"]["repos"], [
+            "https://github.com/example-lab/oddball.git", "git@github.com:example-lab/oddball.git",
+            "ssh://lab.example.org/git/oddball.git", "https://gitlab.example.org/lab/oddball"])
+        self.assertNotIn("leaky", registry)
+        self.assertIn({"source": "registry", "item": "leaky", "reason": "secret-like text"}, result["levels"][0]["withheld"])
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        for leak in (token, "jana", "abc123"):
+            self.assertNotIn(leak, everything, leak)
+        self.assertEqual(wb.public_url("jana@lab-server:repos/x.git"), "lab-server:repos/x.git")
+
     def test_a_large_export_warns_and_names_index_only(self) -> None:
         self.make_flowie()
         self.write(self.flowie / "wiki" / "pages" / "concepts" / "big.md", "---\ntitle: Big\n---\n" + "word " * 2000)
