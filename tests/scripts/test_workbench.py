@@ -1270,6 +1270,17 @@ class ProseTests(unittest.TestCase):
         self.assertIn("Without a yes, claim nothing and stop", claim)
         self.assertIn("every claim of its clicks", prose("skills", "neuroflow-core", "SKILL.md"))
 
+    def test_the_rule_on_intents_carries_the_marker_its_guard_cites(self) -> None:
+        lines = REPO.joinpath("skills", "neuroflow-core", "SKILL.md").read_bytes().decode("utf-8").splitlines()
+        at = next(n for n, line in enumerate(lines) if line.startswith("**Intents** — the page writes them; Claude Code never creates one"))
+        self.assertEqual(lines[at - 1].strip(), "<!-- nf-rule: EGRESS-CONFIRM -->")  # the guard's deny cites this id
+
+    def test_the_docs_give_the_write_limit_per_batch(self) -> None:
+        text = prose("docs", "concepts", "workbench.md")
+        self.assertIn("50 writes and 1 MiB per batch — an upload is split into as many batches as it needs", text)
+        self.assertNotIn("50 writes per upload", text)
+        self.assertEqual((wb.BATCH_WRITES, wb.BATCH_BYTES < 1024 * 1024), (50, True))
+
 
 class RecordTests(Home):
     def test_without_a_flowie_the_record_lives_in_user_yaml_and_other_lines_stay(self) -> None:
