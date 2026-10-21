@@ -28,7 +28,7 @@ import {
   sparkline,
   tabLines,
 } from '../features/views'
-import { lineNeighbour } from '../lib/keys'
+import { VIEW_KEYS, lineNeighbour } from '../lib/keys'
 import { answerAsks } from './ask'
 import type { Asked } from './ask'
 import { buttons, elements, hotkeys, keyProblems, lines } from './drawn'
@@ -562,7 +562,9 @@ describe('keyboard first', () => {
       ['nf-board', true, 16],
       ['nf-phase', true, 12],
     ])
-    expect(seen.opens[3]?.closeOnEscape).toBe(true)
+    // Esc gives the keys back and leaves a pane open; only the picker, a dialog, closes on Esc — and has no q.
+    expect(seen.opens.map(open => open.closeOnEscape)).toEqual([undefined, undefined, undefined, true])
+    expect(Object.entries(VIEW_KEYS).filter(([, keys]) => keys.q === 'close').map(([view]) => view)).toEqual(['dashboard', 'board', 'wiki', 'xray', 'paper'])
     // Docked beside a fullscreen transcript, each view asks for its width too.
     expect(seen.opens.map(open => open.columns)).toEqual([64, 64, 84, 56])
     // 24 rows over SSH: the compact height, so the transcript keeps room.
@@ -626,6 +628,9 @@ describe('keyboard first', () => {
     expect(seen.closes).toEqual(['nf-dashboard'])
     expect(seen.opens.map(open => [open.id, open.focus])).toEqual([['nf-dashboard', true], ['nf-board', true]])
     await ui.unmount()
+    // The boards hold the keys now: a 2 picks their second level and g is none of theirs, so the picker is reached
+    // from the dashboard opened again (the live check says so).
+    expect([VIEW_KEYS.board['2'], VIEW_KEYS.board.g]).toEqual(['pick', undefined])
     await $.command.run({ command: 'neuroflow:dashboard', args: 'phase' })
     const again = await $.ui.mount(pane('nf-dashboard') as never)
     expect(buttons(await again.drawn()).find(button => button.key === 'nf-dash-switch')).toMatchObject({ hotkey: 'g', label: 'go to phase…', plain: true })

@@ -67,7 +67,7 @@ With the [neuroflow mod](../concepts/mods.md) set to `runtime: on`, `/autoresear
 to the mod: each turn runs exactly one iteration, and between turns the mod checks the loop's caps with `ar.py status`
 before it starts the next one. The band above the prompt shows `↻ driving autoresearch "{name}" · turn N` with a stop
 key (`x`, once ^X Tab has given the band the keys); Esc interrupts the current turn and ends the drive;
-`/autoresearch stop` ends it too, and so does the stop on the dashboard's now tab. Short turns keep the
+`/autoresearch stop` ends it too, and so does the stop on the dashboard's now tab, after a yes. Short turns keep the
 context small and make every iteration a clean point to stop at. The dashboard's loop tab (`/dashboard loop`) shows the
 quality curve and the open questions.
 

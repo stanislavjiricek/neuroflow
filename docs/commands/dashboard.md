@@ -17,21 +17,21 @@ current as files change.
 
 | Key | Tab |
 |---|---|
-| `1` | **Now** — everything the band above the prompt can show, whatever its `band` setting, each with its action: a drafted decision to keep or drop, a meeting to prepare or close, a flowie sync, wiki cards to review, the loop being driven, the next phase; under them the phase, task and loop lines (beside them in a wide pane). An action runs only with Enter on its row (`j` and `k` move between the rows), never on a letter, so typing a prompt into the pane cannot migrate, keep or sync anything |
+| `1` | **Now** — everything the band above the prompt can show, whatever its `band` setting, each with its action: a drafted decision to keep or drop, a meeting to prepare or close, a flowie sync, wiki cards to review, the loop being driven, the next phase; under them the phase, task and loop lines (beside them in a wide pane). An action is Enter on its row, never a letter, and asks first in Claude Code's question dialog with the safe answer on top (the workbench's apply only puts its command in the prompt); `j` and `k` move between the rows, starting on the tab's own name, and an Enter that comes right after another key does nothing — so a prompt typed into the pane by mistake does not migrate, keep or sync anything without your yes |
 | `2` | **Phase** — the phases as a flow line (`◉` current, `●` visited, `→` recommended next) with the current and the next step; `g` opens the phase picker |
 | `3` | **Deadlines** — a ruler of the coming weeks with each date's mark on its day (`⚠` within three days, `▸` within two weeks, `·` later), then the dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left and the phase each gates |
-| `4` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
+| `4` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; Enter on *freeze prereg…* freezes the preregistration after your explicit yes, `v` re-checks its hashes, Enter on *unfreeze…* unfreezes it with a reason (Tab reaches both: setting a person's marker never hangs on a letter) |
 | `5` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it, then the project's other repositories from the local cache of their boards), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards |
 | `6` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions |
 
 On every tab `h` and `l` go to the previous and the next tab, `r` reads the files again, `q` closes the dashboard and
 Esc gives the keys back to the prompt (the pane stays). `/neuroflow:dashboard loop` opens it on a tab, and running
-`/neuroflow:dashboard` again gives an open dashboard the keys again. The band above the prompt opens it on the now tab
-with `d`. When the project is on an older neuroflow than the one installed, an `Update` line sits under the title, with
-a migrate action that runs [`/neuroflow:migrate`](migrate.md) on Enter — or, while a wellbeing check-in still waits to
-sync to your flowie, puts it in the prompt: press Esc and then Enter, and the sync runs first, so the migration finds
-your flowie clean. All keys, the chord that reaches the band and the panes, and working over SSH:
-[The neuroflow mod → Keyboard and SSH](../concepts/mods.md#keyboard-and-ssh).
+`/neuroflow:dashboard` again gives an open dashboard the keys again. The band above the prompt opens it with `d`: on the
+now tab, or on the loop tab while a loop is driven. When the project is on an older neuroflow than the one installed, an
+`Update` line sits under the title, with a migrate action that runs [`/neuroflow:migrate`](migrate.md) on Enter and your
+yes — or, while a wellbeing check-in still waits to sync to your flowie, puts it in the prompt: press Esc and then
+Enter, and the sync runs first, so the migration finds your flowie clean. All keys, the chord that reaches the band and
+the panes, and working over SSH: [The neuroflow mod → Keyboard and SSH](../concepts/mods.md#keyboard-and-ssh).
 
 Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader. The pane lays
 itself out for its width — side by side in a wide terminal, stacked in a narrow dock — and drops its blank rows on a
@@ -67,7 +67,7 @@ and the command says why. With the mod active, `--web` runs the full command too
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/timeline.md`, `.neuroflow/ethics/status.md`, `.neuroflow/preregistration/status.md`, `.neuroflow/tasks/`, `~/.neuroflow/flowie/tasks/` and each `~/.neuroflow/hives/{org-repo}/tasks/` (the local copies, never pulled), `~/.neuroflow/local-projects.json` and `~/.neuroflow/flowie/projects/projects.json` (which flowie project this is), each hive's `projects/projects.json` (which lab project it is there), `~/.neuroflow/user.yaml` (hive order), `.neuroflow/{phase}/autoresearch-loops.md` and the loops' `results.md` / `report.md`; with `--web` also the levels it mirrors, `~/.neuroflow/workbench/` and the workbench record (`~/.neuroflow/flowie/workbench.json`) |
-| Writes | nothing, unless you freeze or unfreeze the preregistration from the integrity tab: then `freeze.py` writes `.neuroflow/preregistration/status.md`, the banners and `deviations.md`, and the mod adds a session line and a reasoning entry. `--web` writes your consent and levels to `~/.neuroflow/user.yaml`, `~/.neuroflow/workbench/pending.json`, the workbench record, and a session line — and uploads, after your yes, to your own claude.ai workbench |
+| Writes | nothing, unless you freeze or unfreeze the preregistration from the integrity tab: then `freeze.py` writes `.neuroflow/preregistration/status.md`, the banners and `deviations.md`, and the mod adds a session line and a reasoning entry; keeping a drafted decision on the now tab adds its entry to `.neuroflow/reasoning/{phase}.jsonl`. `--web` writes your consent and levels to `~/.neuroflow/user.yaml`, `~/.neuroflow/workbench/pending.json`, the workbench record, and a session line — and uploads, after your yes, to your own claude.ai workbench |
 
 ## Related
 

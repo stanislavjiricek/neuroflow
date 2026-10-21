@@ -99,8 +99,10 @@ keyboard, on the project board when it has open tasks, else on the first level w
 on the first with any; the digits pick the level. Tab, or `h` `j` `k` `l`, reaches a card; Enter picks it (marked
 `▸`), and Enter on a column moves it. A column shows five cards at a time, as below; `j` past the fifth shows the next
 five. Where the pane is too narrow for the columns side by side (a dock beside the conversation), they stand one under
-the other. At project and flowie level the mod runs the move itself —
-`/neuroflow:tasks --move {slug} {column}`, with `--level flowie` before `--move` there — and the move runs as below. At
+the other. The pane holds the keys while the person may be typing for the prompt, so an Enter that comes right after
+another key does nothing, and at project and flowie level the mod runs the move only after the person's yes in a
+question whose safe answer comes first — `/neuroflow:tasks --move {slug} {column}`, with `--level flowie` before
+`--move` there — and the move runs as below. At
 hive level it only puts `/neuroflow:tasks --level hive --hive {org-repo} --move {slug} {column}` in the prompt for the
 person to send, because that move ends in a push to the team's repository (At end). `x` cancels a pick, `r` reads the
 boards again, `q` closes. Any argument (`--list`, `--add`, `--move`, `--level`, `--hive`, …) runs this prose.

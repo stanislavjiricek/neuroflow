@@ -56,11 +56,11 @@ out for the width and height they get, from a narrow dock to a wide terminal and
                    <span class="dim">planned N: 24</span>
 ■ raw data         read-only: sourcedata/
 
-<span class="nf-key"><i>v:</i> verify hashes</span>   <span class="nf-key"><i>u:</i> unfreeze…</span>
+<span class="nf-key"><i>v:</i> verify hashes</span>   unfreeze…
 
 <span class="dim">────────────────────────────────────────────────────────────────────────────</span>
-<span class="nf-key"><i>h:</i> ‹</span>  <span class="nf-key"><i>l:</i> ›</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>                                  <span class="dim">esc: prompt</span></div></div>
-<figcaption>The integrity tab (<code>4</code>): each marker with its glyph, its state and who set it. A person freezes the preregistration here (<code>f</code>, after an explicit yes), re-checks its hashes (<code>v</code>) or unfreezes it with a reason (<code>u</code>).</figcaption>
+<span class="nf-key"><i>h:</i> ‹</span>  <span class="nf-key"><i>l:</i> ›</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>                <span class="dim">tab, enter: act · esc: prompt</span></div></div>
+<figcaption>The integrity tab (<code>4</code>): each marker with its glyph, its state and who set it. A person freezes the preregistration here, re-checks its hashes (<code>v</code>) or unfreezes it with a reason. Freezing and unfreezing set a person's marker, so they have no letter: Tab reaches the button, Enter presses it, and an explicit yes in Claude Code's question dialog does the rest.</figcaption>
 </figure>
 
 <figure class="nf-shot">
@@ -93,7 +93,7 @@ move "Rerun ICA" →  inbox  ready  <span class="nf-ring">review</span>  meeting
 <span class="dim">done 3 · archived 0 · level: project</span>
 <span class="dim">────────────────────────────────────────────────────────────────────────────</span>
 <span class="nf-key"><i>h:</i> ◂</span>  <span class="nf-key"><i>l:</i> ▸</span>  <span class="nf-key"><i>j:</i> ▾</span>  <span class="nf-key"><i>k:</i> ▴</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>  <span class="dim">enter: move there · esc: prompt</span></div></div>
-<figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies, each column a round box with its name and count. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card — <code>j</code> past a column's fifth shows its next five — Enter picks it (▸) and Enter on a column moves it: at once at project and flowie level, as one command in the prompt for you to send at a hive's. In a dock too narrow for the columns side by side, they stand one under the other.</figcaption>
+<figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies, each column a round box with its name and count. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card — <code>j</code> past a column's fifth shows its next five — Enter picks it (▸) and Enter on a column moves it: at project and flowie level after your yes in Claude Code's question dialog, whose safe answer comes first; at a hive's as one command in the prompt for you to send. In a dock too narrow for the columns side by side, they stand one under the other.</figcaption>
 </figure>
 
 ---
@@ -149,22 +149,34 @@ cards after `--move ` and then the columns that card can move to. The hives and 
 read in the session — opening the dashboard is enough; nothing is read while you type.
 
 Keys you type in the first 400 ms after a view opened holding the keys do nothing: a quick Enter or the start of your
-next sentence never acts in a pane you did not mean to type into. Esc always gives the keys back to the prompt and leaves
-the pane open; `q` closes it. A pane that does not hold the keys says so at its foot: `^X Tab: use the keys here ·
-/neuroflow:dashboard focuses it`. While the band shows keys of its own, ^X Tab can land on the band before a pane, so
-running the pane's command again is the sure way back into it.
+next sentence never acts in a pane you did not mean to type into. Esc gives the keys back to the prompt and leaves the
+pane open — only the phase picker, a dialog, closes on Esc; `q` closes the dashboard, the boards and the review panes.
+A pane that does not hold the keys says so at its foot: `/neuroflow:dashboard gives it the keys · ^X Tab reaches it
+after the band`. ^X Tab gives the keys to the band first whenever the band shows keys of its own, so running the pane's
+command again is the sure way back into it.
+
+A pane holds the keys while you may think you are typing into the prompt, so no letter in a pane writes, consents or
+starts a model turn. Every action on the dashboard's now tab and its Update line — keeping or dropping a drafted
+decision, migrating, a flowie sync, a meeting's prepare, notes or close, stopping a driven loop —, a move on a project
+or flowie board, accepting or skipping a wiki card, accepting or rejecting an X-ray finding, syncing the living paper,
+and freezing or unfreezing the preregistration is Enter on its button — Tab, `j` or `k` put the highlight there — and
+asks first in Claude Code's question dialog, the safe answer on top, so a stray Enter there answers no. (The
+workbench's apply only puts its command in the prompt, for you to send.) An Enter that comes within 400 ms of another
+key of the pane does nothing, and on the now tab `j` and `k` start on the tab's own name, never on an action: `ok` and
+Enter typed for the prompt press nothing. The band keeps its letters — `y` keeps, `n` drops — because it holds the
+keys only after ^X Tab.
 
 ### The keys
 
 One key means one thing everywhere. Letters work on the band only after ^X Tab; digits work only in a pane that holds
 the keys, so a number you type into the prompt ("2026", "128 channels") never presses anything.
 
-| In every pane | |
+| Key | What it means wherever a view offers it |
 |---|---|
 | `h` `l` | previous, next — tab, column or move target |
 | `j` `k` | down, up — row, card, finding or wiki card |
-| `y` | yes: keep, accept |
-| `n` | no: drop, skip, reject |
+| `y` | yes: keep a drafted decision — on the band only |
+| `n` | no: drop a drafted decision — on the band only |
 | `x` | cancel, stop |
 | `r` | read the files again |
 | `q` | close |
@@ -172,13 +184,13 @@ the keys, so a number you type into the prompt ("2026", "128 channels") never pr
 
 | View | Its keys |
 |---|---|
-| Band | `d` dashboard (opens on now) · `x` hide today, not today, stop a driven loop or a note capture · `p` prepare and `o` notes for a meeting soon · `c` close a meeting left open · `m` migrate · `w` review wiki cards · `s` sync the flowie · `a` apply your workbench changes (puts the command in the prompt for you to send) · `y` keep and `n` drop a drafted decision · the wellbeing check-in is a field: ^X Tab lands in it |
-| Dashboard | `1` now · `2` phase · `3` deadlines · `4` integrity · `5` tasks · `6` loop; on phase `g` go to a phase; on integrity `f` freeze (asks first), `v` verify, `u` unfreeze (asks first); on tasks `b` the boards. On now, every action runs with Enter on its row, never on a letter |
-| Task boards | `1`–`9` level · `h` `j` `k` `l` or Tab to a card, `j` past a column's fifth to its next five · Enter picks it (▸), Enter on a column moves it · `x` cancel · a hive's move goes into the prompt for you to send |
-| Phase picker | Down or Enter opens the list · the arrows move · a letter jumps to the phases that start with it · Enter switches · Esc closes |
-| Wiki cards | `y` accept (runs `/neuroflow:wiki --add`) · `n` skip · `j` `k` next, previous |
-| X-ray | `y` accept · `n` reject, with a reason · `j` `k` next, previous finding, red first, eight to a page |
-| Living paper | `s` sync now · `r` read again |
+| Band | `d` dashboard (opens on now; on loop while a loop is driven) · `x` hide today, not today, stop a driven loop or a note capture · `p` prepare and `o` notes for a meeting soon · `c` close a meeting left open · `m` migrate · `w` review wiki cards · `s` sync the flowie · `a` apply your workbench changes (puts the command in the prompt for you to send) · `y` keep and `n` drop a drafted decision · the wellbeing check-in is a field: ^X Tab lands in it |
+| Dashboard | `1` now · `2` phase · `3` deadlines · `4` integrity · `5` tasks · `6` loop · `h` `l` · `r` · `q`; on phase `g` go to a phase; on integrity `v` verify, and Enter on freeze or unfreeze, each after a yes; on tasks `b` the boards. On now every action is Enter on its row, after a yes (the workbench's apply only fills the prompt); `j` and `k` walk the rows from the tab's own name |
+| Task boards | `1`–`9` level · `h` `j` `k` `l` or Tab to a card, `j` past a column's fifth to its next five · Enter picks it (▸), Enter on a column moves it — after a yes at project and flowie level, into the prompt for you to send at a hive's · `x` cancel · `r` · `q` |
+| Phase picker | Down or Enter opens the list · the arrows move · a letter jumps to the phases that start with it · Enter switches · Esc closes (no `q`) |
+| Wiki cards | Enter on accept (runs `/neuroflow:wiki --add`) or skip (for good), each after a yes · `j` `k` next, previous · `q` |
+| X-ray | Enter on accept, or on reject with a reason, each after a yes · `j` `k` next, previous finding, red first, eight to a page · `q` |
+| Living paper | Enter on sync now, after a yes · `r` read again · `q` |
 
 ### One chord per view
 
@@ -288,7 +300,10 @@ promise in a research setting.
 6. **No UI the person did not ask for.** Panes open on request; the band is a single slot shown by priority; toasts
    only for actionable changes; nothing appears during `lifecycle: quiet` commands such as `/idk`.
 7. **Letter hotkeys only in the band.** Digits typed into the prompt ("2026", "128 channels") must never become
-   button presses; digits are allowed only in focused panes. The band yields while a survey is showing.
+   button presses; digits are allowed only in focused panes. The band yields while a survey is showing. A pane holds
+   the keys while the person may be typing for the prompt, so its letters only move, read, close, cancel or open
+   another view: what writes, consents or starts a model turn is Enter on its button, never right after another key,
+   and asks first with the safe answer on top.
 8. **Every visual has a text form.** Status uses a glyph, a word and a colour together; heat maps have a keyboard-reachable
    text summary; palettes are colour-vision safe. Surfaces differ (images draw only in some terminals, the mobile app has
    no inputs), so every view has a plain-text path.
@@ -405,8 +420,8 @@ frozen files for collaborators without the mod, and records that state what they
   `hooks/mod/policy.json` (allowlist).
 - Keys: every hotkey comes from `hooks/mod/lib/keys.ts`, the one key map (by view, each key with its meaning). The
   map is frozen: a change to how a view looks never moves a letter. `hooks/mod/tests/keys.test.ts` fails on a digit
-  in the band, a key with two meanings, a key drawn twice in one view, or one the map does not list. A Button with a
-  hotkey is `plain`, so the key shows.
+  in the band, a key with two meanings, a key drawn twice in one view, one the map does not list, or a pane letter
+  that would write, consent or start a model turn (charter rule 7). A Button with a hotkey is `plain`, so the key shows.
 - Look: the views draw the one look of [neuroflow-develop](../skills/neuroflow-develop/SKILL.md) → Visual style from
   the pure helpers of `hooks/mod/lib/layout.ts` — width classes, rules, the phase flow line, the dates ruler, the board's
   grid and pages, band packing — each with a text form, in theme colours only. `hooks/mod/tests/layout.test.ts` checks
