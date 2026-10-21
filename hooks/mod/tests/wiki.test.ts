@@ -1,8 +1,9 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
+import { wikiCardsToast } from '../features/user'
 import { captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify, takenTitles } from '../lib/wikiqueue'
 import { answerAsks } from './ask'
-import { buttons, lines } from './drawn'
+import { buttons, hotkeys, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
 /** A card file from an earlier day, already settled by the person. */
@@ -76,6 +77,8 @@ describe('auto wiki in a session', () => {
       return { value: undefined }
     })
     on('ui.log', () => ({ value: undefined }))
+    // Where the mod draws no band, the engine draws its own.
+    on('ui.render', () => ({ type: 'Text', children: ['(the engine draws its own band)'] }) as never)
     const opens: { id: string; focus?: boolean; rows?: number }[] = []
     on('ui.open', ($, e) => {
       opens.push(e as never)
@@ -114,8 +117,17 @@ describe('auto wiki in a session', () => {
     const card = `${root}/.neuroflow/wiki/.pending/2026-10-07-fdr-across-electrodes.md`
     expect(parseCard(fs.files[card] ?? '')?.title).toBe('FDR across electrodes')
     expect(fs.files[`${root}/.neuroflow/wiki/.pending/.gitignore`]).toBe('*\n')
-    // The toast names a path that works from the prompt; the band's key needs ^X Tab first.
-    expect(toasts.join(' ')).toContain('1 wiki card to review — /neuroflow:wiki --review, or ^X Tab then w on the band')
+    // The toast names the ways in that every band setting has: the default quiet band never shows the cards, so it
+    // offers no `w` to press; the dashboard's now tab lists them whatever the setting.
+    expect(toasts.join(' ')).toContain('1 wiki card to review — /neuroflow:wiki --review, or the dashboard\'s now tab')
+    expect(toasts.join(' ')).not.toContain('on the band')
+    const quietBand = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 116, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    expect(hotkeys(await quietBand.drawn())).not.toContain('w')
+    await quietBand.unmount()
+    expect(wikiCardsToast(2)).toBe('neuroflow: 2 wiki cards to review — /neuroflow:wiki --review, or the dashboard\'s now tab')
 
     const review = await $.command.run({ command: 'neuroflow:wiki', args: '--review' })
     expect(review.text).toContain('1 wiki card waiting — Tab to accept (runs /neuroflow:wiki --add for the card) or skip (for good), Enter, then your yes')

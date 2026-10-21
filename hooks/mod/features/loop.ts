@@ -37,6 +37,15 @@ export const costCapUsd = (raw: unknown): number | null => {
   return match === null ? null : Number(match[1])
 }
 
+/**
+ * The toast as a drive starts: when it stops by itself, and the person's stops — Esc, the command and, unless the
+ * person set `band: off` (no band is drawn then), the band's x.
+ */
+export const driveToast = (name: string, maxErrors: number, band: NfOptions['band']): string =>
+  `neuroflow: driving "${name}" — one iteration per turn until a cap, ${maxErrors} errored turns in a row, or your stop (${
+    band === 'off' ? 'Esc or /neuroflow:autoresearch stop' : `Esc, /neuroflow:autoresearch stop, or ${CHORD} then ${BAND.dismiss} on the band`
+  })`
+
 export type ArStatus = { findings?: { kind: string; detail: string }[]; caps?: { max_consecutive_errors?: string; max_cost?: string }; iterations?: number }
 
 /** What stops the drive after an answered turn, from ar.py's status (exit code + JSON) and the measured cost. */
@@ -113,7 +122,7 @@ const startDrive = async ($: EngineInterface, name: string, opts: NfOptions): Pr
   }
   await update($, driveAtom, () => drive)
   await appendLine(ioOf($), sessionLogPath(scope.root, drive.startedAt), sessionLine(drive.startedAt, `autoresearch/${loop.name}`, 'driver started — one iteration per turn'))
-  $.ui.toast(`neuroflow: driving "${loop.name}" — one iteration per turn until a cap, ${maxErrors} errored turns in a row, or your stop (Esc, /neuroflow:autoresearch stop, or ${CHORD} then ${BAND.dismiss} on the band)`)
+  $.ui.toast(driveToast(loop.name, maxErrors, opts.band))
   return null
 }
 

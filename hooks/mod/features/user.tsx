@@ -25,7 +25,7 @@ import type { EngineInterface, On } from 'claude-code'
 
 import type { NfPaperView, NfWikiCard, NfXrayView } from '../../../types'
 import type { NfIo } from '../lib/io'
-import { BAND, CHORD, NAV, isPastTypeThrough, paneRows, unfocusedHint } from '../lib/keys'
+import { NAV, isPastTypeThrough, paneRows, unfocusedHint } from '../lib/keys'
 import { MARK, fit, isCompact, measuredRows, paneColumns, rememberViewport, rule, widthClass } from '../lib/layout'
 import { isoDate } from '../lib/memory'
 import { mayWrite } from '../lib/options'
@@ -79,6 +79,14 @@ export const syncQuestion = (frozen: boolean): string =>
   frozen
     ? 'Sync the living paper now? It is frozen (a submission or revision exists): a model turn reports what changed and rewrites nothing.'
     : 'Sync the living paper now? A model turn rewrites skeleton.md, paper-ledger.md and gaps.md from their sources.'
+
+/**
+ * The toast when the judge queued wiki cards: the ways in that work whatever the `band` setting — the command, and the
+ * dashboard's now tab, which lists every band item. Not the band's `w`: a quiet band (the default) never shows the cards,
+ * and a normal one offers `w` only while they are its first item.
+ */
+export const wikiCardsToast = (count: number): string =>
+  `neuroflow: ${count} wiki card${count === 1 ? '' : 's'} to review — /neuroflow:wiki --review, or the dashboard's now tab`
 
 /** A red finding is a countable defect (✖, as a failed check reads), an orange one a judgement to look at (!). */
 const SEVERITY_GLYPH: Record<string, string> = { red: '✖', orange: '!' }
@@ -401,7 +409,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     if (!scope?.isActive || scope.root === null || command === null || command.lifecycle === 'quiet' || baseline === null) return result
     const snap = await read($, snapshotAtom)
     const written = await judgeNewDecisions($, scope.root, command.name, baseline.path, baseline.lines, snap?.wikiCapture ?? null).catch(() => 0)
-    if (written > 0 && !scope.isHeadless) $.ui.toast(`neuroflow: ${written} wiki card${written === 1 ? '' : 's'} to review — /neuroflow:wiki --review, or ${CHORD} then ${BAND.review} on the band`)
+    if (written > 0 && !scope.isHeadless) $.ui.toast(wikiCardsToast(written))
     return result
   }).catch(($, e, next) => next(e))
 
