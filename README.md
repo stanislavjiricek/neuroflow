@@ -13,11 +13,11 @@
 </div>
 
 <a id="whats-new"></a>
-## What's new in 0.2.27
+## What's new in 0.2.28
 
-- **The mod, from the keyboard, in a new look** — the dashboard, the task boards, the phase picker and the review panes open holding the keys, with one key map (digits for tabs and levels, `h` `j` `k` `l` to move, Enter to act, `q` to close) that works over SSH without a mouse. Anything that writes, consents or starts a turn asks first, so typing never acts. The views take the ring's look: a phase flow line, a dates ruler, rounded board columns, and a `now` tab with everything that needs you ([Keyboard and SSH](https://stanislavjiricek.github.io/neuroflow/concepts/mods/#keyboard-and-ssh))
-- **Your workbench on claude.ai** — [`/neuroflow:dashboard --web`](commands/dashboard.md) publishes a private page with the task boards, project lists and wikis of your flowie, hives and projects, after a preview and your yes; a card you move there comes back through [`/neuroflow:tasks --apply-web`](commands/tasks.md), checked against git, which stays the only store ([the workbench](https://stanislavjiricek.github.io/neuroflow/concepts/workbench/))
-- **Typeahead** — with the mod, typing a neuroflow command completes phases, dashboard tabs, hives, levels and card names
+- **The new look, finished** — the fixes from a review of 0.2.27's mod views: long labels and wide (CJK, emoji) text fit their columns, the board says what `⚠` means, the picker and the typeahead mark each phase the same way, `/phase` and meeting agendas mark dates like the dashboard, and the docs' figures draw in true terminal widths ([Keyboard and SSH](https://stanislavjiricek.github.io/neuroflow/concepts/mods/#keyboard-and-ssh))
+- **The mod, from the keyboard, in a new look** (0.2.27) — one key map for every view, holding the keys over SSH without a mouse; anything that writes, consents or starts a turn asks first
+- **Your workbench on claude.ai** (0.2.27) — [`/neuroflow:dashboard --web`](commands/dashboard.md) and [`/neuroflow:tasks --apply-web`](commands/tasks.md): a private page with your boards, project lists and wikis, with git as the only store ([the workbench](https://stanislavjiricek.github.io/neuroflow/concepts/workbench/))
 
 Every earlier release is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/).
 
