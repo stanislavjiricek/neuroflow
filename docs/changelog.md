@@ -6,6 +6,14 @@ title: Changelog
 
 Every neuroflow release, newest first. The README on GitHub shows only the newest one.
 
+## 0.2.29
+
+Fixes from a live check of the mod in a terminal (Claude Code 2.1.306):
+
+- Claude Code's question dialog hands the keys to the prompt when it closes, so after *Not now* the next key of a pane went into the prompt; the board, the dashboard, the phase picker and the wiki, X-ray and living-paper panes now take the keys back after a no
+- The mod's status line text no longer starts with `neuroflow:`, which Claude Code already prints before a plugin's status entry
+- The [mods](concepts/mods.md) page and the live check say what the check saw: a letter that is no key of a pane gives the keys back to the prompt and lands there
+
 ## 0.2.28
 
 Fixes from a review of 0.2.27's mod views:

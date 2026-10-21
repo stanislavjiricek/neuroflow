@@ -13,10 +13,10 @@
 </div>
 
 <a id="whats-new"></a>
-## What's new in 0.2.28
+## What's new in 0.2.29
 
-- **The new look, finished** — the fixes from a review of 0.2.27's mod views: long labels and wide (CJK, emoji) text fit their columns, the board says what `⚠` means, the picker and the typeahead mark each phase the same way, `/phase` and meeting agendas mark dates like the dashboard, and the docs' figures draw in true terminal widths ([Keyboard and SSH](https://stanislavjiricek.github.io/neuroflow/concepts/mods/#keyboard-and-ssh))
-- **The mod, from the keyboard, in a new look** (0.2.27) — one key map for every view, holding the keys over SSH without a mouse; anything that writes, consents or starts a turn asks first
+- **Checked in a real terminal** — after you answer *Not now* to one of the mod's questions, the board, the dashboard, the picker or the review pane takes the keys back, so you go on where you were; the status line no longer reads `neuroflow: neuroflow:` ([Keyboard and SSH](https://stanislavjiricek.github.io/neuroflow/concepts/mods/#keyboard-and-ssh))
+- **The mod, from the keyboard, in a new look** (0.2.27, finished in 0.2.28) — one key map for every view, holding the keys over SSH without a mouse; anything that writes, consents or starts a turn asks first
 - **Your workbench on claude.ai** (0.2.27) — [`/neuroflow:dashboard --web`](commands/dashboard.md) and [`/neuroflow:tasks --apply-web`](commands/tasks.md): a private page with your boards, project lists and wikis, with git as the only store ([the workbench](https://stanislavjiricek.github.io/neuroflow/concepts/workbench/))
 
 Every earlier release is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/).
