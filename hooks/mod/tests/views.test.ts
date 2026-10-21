@@ -1,5 +1,6 @@
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
 
 import type { NfMeeting, NfSnapshot } from '../../../types'
 import { setActivePhase } from '../lib/config'
@@ -788,6 +789,87 @@ describe('the band at 80 columns, before the chord is learned', () => {
     expect(lines(tight)).toEqual(['◌', '⚠ Abstract deadline — tomorrow', '+1 more'])
     expect(keys(tight)).toEqual(['d: dashboard', 'x: hide today'])
     await narrow.unmount()
+  })
+})
+
+describe('the live check\'s band states (docs/maintenance/mod-live-check.md → The band)', () => {
+  // What make_fixture.py --band <state> writes, as of 13:00: each state puts one item first on the band.
+  const project = '/work/live'
+  const config = (version: string) =>
+    `---\nnf_schema: 1\nproject_name: Live check\nactive_phase: data-analyze\nplugin_version: ${version}\npaper_auto: on\nrecommended_phases: [ideation, preregistration, data, data-analyze, paper]\n---\n`
+  const SHARED = {
+    [`${project}/.neuroflow/data-analyze/autoresearch-loops.md`]: '| Name | Location | Iterations | Best | Status |\n|---|---|---|---|---|\n| connectivity | analysis/loops/connectivity/ | 6 | v005 | running |\n',
+    [`${project}/.neuroflow/ideation/flow.md`]: '# ideation\n',
+    [`${project}/.neuroflow/preregistration/flow.md`]: '# preregistration\n',
+    [`${project}/.neuroflow/data/flow.md`]: '# data\n',
+  }
+  const LAB = { [`${project}/.neuroflow/meetings/lab-2026-10-07.md`]: '---\ntitle: Lab meeting\ndate: 2026-10-07T13:45\n---\n' }
+  const PI = { [`${project}/.neuroflow/meetings/pi-2026-10-06.md`]: '---\ntitle: PI check-in\ndate: 2026-10-06T13:00\n---\n## Actions\n- [ ] send the data\n- [ ] book the room\n' }
+  const STATES: Record<string, Record<string, string>> = {
+    deadline: { [`${project}/.neuroflow/timeline.md`]: '| Date | What | Gates |\n|---|---|---|\n| 2026-10-08 | Abstract deadline | paper |\n' },
+    meeting: { ...LAB, ...PI },
+    'open-meeting': PI,
+    notice: {},
+    wiki: Object.fromEntries([1, 2].map(n => [`${project}/.neuroflow/wiki/.pending/2026-10-07-card-${n}.md`, `---\ntitle: Card ${n}\ntype: decision\nevidence: reasoning/data-analyze.jsonl\nstatus: pending\nby: mod\n---\nA card to review.\n`])),
+  }
+  /** The band as drawn at 80 and 120 columns: its rows of text, then its keys as `k: label`. */
+  const draw = async ($: Engine, on: On, state: string): Promise<{ narrow: string[][]; wide: string[][] }> => {
+    fakeFs(on, {
+      ...SHARED,
+      ...STATES[state],
+      [`${project}/.neuroflow/project_config.md`]: config(state === 'notice' ? '0.0.1' : '0.2.22'),
+      '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($$, e) => ({ cwd: e.cwd }))
+    on('ui.status', () => ({ value: undefined }))
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const at = async (bodyColumns: number): Promise<string[][]> => {
+      const ui = await $.ui.mount({
+        plugin: 'neuroflow', surface: 'terminal', component: 'AbovePrompt',
+        props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+      } as never)
+      const tree = await ui.drawn()
+      await ui.unmount()
+      return [lines(tree), buttons(tree).map(button => `${button.hotkey}: ${button.label}`)]
+    }
+    return { narrow: await at(75), wide: await at(115) }
+  }
+
+  test('--band deadline: the alert alone, d and x in full words, and the hint at 80 columns too', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const { narrow, wide } = await draw($, on, 'deadline')
+    for (const band of [narrow, wide]) expect(band).toEqual([['◌', '⚠ Abstract deadline — tomorrow', '^X Tab: keys'], ['d: dashboard', 'x: hide today']])
+  })
+
+  test('--band meeting: p and o; at 80 columns +1 and x: hide and no room for the hint, at 120 all of it', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const { narrow, wide } = await draw($, on, 'meeting')
+    expect(narrow).toEqual([['◌', '▸ meeting "Lab meeting" in 45 min', '+1'], ['p: prepare', 'o: notes', 'd: dashboard', 'x: hide']])
+    expect(wide).toEqual([['◌', '▸ meeting "Lab meeting" in 45 min', '+1 more', '^X Tab: keys'], ['p: prepare', 'o: notes', 'd: dashboard', 'x: hide today']])
+  })
+
+  test('--band open-meeting: c, and the hint at 120 columns only', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const { narrow, wide } = await draw($, on, 'open-meeting')
+    const item = '! meeting "PI check-in" not closed — 2 open action item(s)'
+    expect(narrow).toEqual([['◌', item], ['c: close meeting', 'd: dashboard', 'x: hide today']])
+    expect(wide).toEqual([['◌', item, '^X Tab: keys'], ['c: close meeting', 'd: dashboard', 'x: hide today']])
+  })
+
+  test('--band notice: m, with x: hide and the hint at 80 columns', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const { narrow, wide } = await draw($, on, 'notice')
+    const item = '↑ neuroflow 0.2.22 is installed; this project is on 0.0.1 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date'
+    expect(narrow).toEqual([['◌', item, '^X Tab: keys'], ['m: migrate', 'd: dashboard', 'x: hide']])
+    expect(wide).toEqual([['◌', item, '^X Tab: keys'], ['m: migrate', 'd: dashboard', 'x: hide today']])
+  })
+
+  test('--band wiki, band normal: w; at 120 columns the running loop beside the cards', { options: { runtime: 'observe', band: 'normal' } }, async ($, on) => {
+    const { narrow, wide } = await draw($, on, 'wiki')
+    expect(narrow).toEqual([['◌', '✎ 2 wiki cards waiting for review', '+2 more'], ['w: review', 'd: dashboard', 'x: hide today']])
+    expect(wide).toEqual([
+      ['◌', '✎ 2 wiki cards waiting for review', '↻ autoresearch connectivity: iteration 6, best v005', '+1 more', '^X Tab: keys'],
+      ['w: review', 'd: dashboard', 'x: hide today'],
+    ])
   })
 })
 
