@@ -2,7 +2,7 @@
 // the dashboard's tabs after `/neuroflow:dashboard `, levels after `--level `, hive folders after `--hive `, and after
 // `/neuroflow:tasks … --move ` the open cards of the level the line names, then the columns that card can move to.
 // Pure (no `$`, no file read — charter rule 20): the hook hands it the state the mod already holds, so the cards and
-// hives come once the boards have been read this session (the dashboard, its now tab included, or the boards).
+// hives come once the boards have been read this session (the boards, or the dashboard's now or tasks tab).
 import type { NfTaskLevel, NfTaskView } from '../../../types'
 import { DASHBOARD_TABS } from './keys'
 import { PHASE_GLYPH, PHASE_WORD, nextPhase, phaseState, pickerOrder } from './phases'
@@ -27,9 +27,12 @@ const LEVELS: readonly { id: string; what: string }[] = [
   { id: 'hive', what: 'a team\'s board, with --hive' },
 ]
 
-/** The commands that take `--level` (commands/tasks.md, meeting.md, flowie.md) and `--hive` (tasks.md, migrate.md). */
+/**
+ * The commands that take `--level` (commands/tasks.md, meeting.md, flowie.md) and `--hive` (tasks.md only: the
+ * `--hive` in migrate.md is a flag of its scripts, which the prose builds itself).
+ */
 const TAKES_LEVEL: ReadonlySet<string> = new Set(['tasks', 'meeting', 'flowie'])
-const TAKES_HIVE: ReadonlySet<string> = new Set(['tasks', 'migrate'])
+const TAKES_HIVE: ReadonlySet<string> = new Set(['tasks'])
 
 /** The words of the line before the token, the command first: `/neuroflow:tasks`, `--level`, `hive`, … */
 const wordsBefore = (input: CompleteInput): string[] => input.text.slice(0, input.start).trim().split(/\s+/).filter(word => word !== '')
@@ -43,13 +46,17 @@ const optionValue = (words: readonly string[], option: string): string | null =>
   return at >= 0 ? (words[at + 1] ?? null) : null
 }
 
-/** The board a `/tasks` line names with `--level` and `--hive`: the project's when it names none. */
+/**
+ * The board a `/tasks` line names with `--level` and `--hive`: the project's when it names none. At hive level without
+ * `--hive`, the one hive board there is (commands/tasks.md: a single joined hive needs no flag); none among several.
+ */
 const namedLevel = (tasks: NfTaskView, words: readonly string[]): NfTaskLevel | undefined => {
   const level = optionValue(words, '--level')
   if (level === 'flowie') return tasks.levels.find(item => item.kind === 'flowie')
   if (level === 'hive') {
     const hive = optionValue(words, '--hive')
-    return tasks.levels.find(item => item.kind === 'hive' && item.name === hive)
+    const hives = tasks.levels.filter(item => item.kind === 'hive')
+    return hive === null ? (hives.length === 1 ? hives[0] : undefined) : hives.find(item => item.name === hive)
   }
   return tasks.levels.find(item => item.kind === 'project')
 }

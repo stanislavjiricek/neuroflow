@@ -69,6 +69,18 @@ describe('typeahead for the typed paths', () => {
     expect(rows('/neuroflow:tasks --level hive --hive l', { ...CONTEXT, tasks: null })).toEqual([])
     expect(rows('/neuroflow:git --level p')).toEqual([])
     expect(rows('please --level p')).toEqual([])
+    // /migrate takes no --hive of its own: the flag belongs to the scripts its prose runs.
+    expect(rows('/neuroflow:migrate --hive l')).toEqual([])
+    expect(rows('/migrate --hive a')).toEqual([])
+  })
+
+  test('at hive level a single joined hive needs no --hive; among several the line must name one', () => {
+    const one: CompleteContext = { ...CONTEXT, tasks: { levels: TASKS.levels.filter(item => item.id !== 'hive:alpha-team') } }
+    expect(rows('/neuroflow:tasks --level hive --move a', one)).toEqual(['agenda-item | Agenda item · meeting'])
+    expect(rows('/neuroflow:tasks --level hive --move agenda-item i', one)).toEqual(['inbox | move agenda-item here'])
+    // Two hives and no --hive: /tasks would ask which, so nothing is offered.
+    expect(rows('/neuroflow:tasks --level hive --move a')).toEqual([])
+    expect(rows('/neuroflow:tasks --level hive --hive alpha-team --move a')).toEqual([])
   })
 
   test('after --move, the open cards of the level the line names; after the card, the columns it can move to', () => {
