@@ -288,9 +288,6 @@ export const nowRingKeys = (rows: readonly NowRow[], isBehind: boolean): string[
   ...rows.flatMap(row => row.actions.map(action => action.key)),
 ]
 
-/** The element keys the focus ring is tracked on in a pane: cards, move targets and now-tab actions. */
-export const isRowKey = (key: string): boolean => /^nf-(card|move|now)-/.test(key) || key === 'nf-dash-migrate'
-
 /** The keys of the cards a board draws, column by column; none on a read-only board, whose cards are text. */
 export const cardKeys = (level: Pick<NfTaskLevel, 'kind' | 'board'>): string[][] =>
   level.kind === 'remote' ? [] : level.board.columns.map(column => column.cards.map(card => `nf-card-${card.slug}`))
@@ -602,10 +599,24 @@ const reload = async ($: EngineInterface, root: string): Promise<void> => {
   await update($, snapshotAtom, () => snapshot)
 }
 
-/** A pane opens asking for the keys: from now, keys typed within TYPE_THROUGH_MS are taken as typed through. */
+/**
+ * Forgets where a pane's ring stood: it is on none of the pane's elements now (an open, a tab change, one of the
+ * engine's own stops), so j, k, h and l start again where they start from nothing.
+ */
+const forgetRing = ($: EngineInterface, pane: string): Promise<unknown> =>
+  update($, paneRingAtom, ring => {
+    const { [pane]: _forgotten, ...rest } = ring
+    return rest
+  })
+
+/**
+ * A pane opens asking for the keys: from now, keys typed within TYPE_THROUGH_MS are taken as typed through, and its
+ * ring starts afresh — on nothing, or on the element drawn `autoFocus` (whose take the ui.focus hook records).
+ */
 const markOpened = async ($: EngineInterface, id: string): Promise<void> => {
   const now = await $.clock.now()
   await update($, openedAtAtom, opened => ({ ...opened, [id]: now }))
+  await forgetRing($, id)
 }
 
 /**
@@ -625,11 +636,14 @@ const focusRing = async ($: EngineInterface, pane: string, key: string): Promise
   if (result.deny === undefined) await update($, paneRingAtom, ring => ({ ...ring, [pane]: key }))
 }
 
-/** j and k in a list of rows: the next or the previous one from where the ring is, the first when it is elsewhere. */
+/**
+ * j and k in a list of rows: the next or the previous one from where the ring is, the first when it is elsewhere.
+ * The ring is moved even onto the element the mod last recorded: should the record be stale, the move mends it.
+ */
 const stepRing = async ($: EngineInterface, pane: string, keys: readonly string[], step: 1 | -1): Promise<void> => {
   const at = (await read($, paneRingAtom))[pane] ?? null
   const to = lineNeighbour(keys, at, step)
-  if (to !== null && to !== at) await focusRing($, pane, to)
+  if (to !== null) await focusRing($, pane, to)
 }
 
 /**
@@ -759,8 +773,10 @@ const loadTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> =
   if (tab === 'now') void loadTasks($, false).catch(() => undefined)
 }
 
+/** Shows a tab. The ring was on the last tab's rows or on a tab key: j and k start on this one afresh. */
 const selectTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
   await update($, tabAtom, () => tab)
+  await forgetRing($, DASHBOARD)
   await loadTab($, tab)
 }
 
@@ -858,7 +874,7 @@ const boardStep = async ($: EngineInterface, direction: Direction): Promise<void
   if (level === undefined) return
   const at = (await read($, paneRingAtom))[BOARD] ?? null
   const to = boardRingTarget(level, await read($, boardPickAtom), at, direction)
-  if (to !== null && to !== at) await ringTo($, BOARD, to)
+  if (to !== null) await ringTo($, BOARD, to)
 }
 
 /**
@@ -1405,14 +1421,16 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     return result
   }).catch(($, e, next) => next(e))
 
-  // Where the focus ring is in the dashboard and the boards, so j, k, h and l move it on from there. The panes and
-  // the nf- keys are the mod's own, whatever name the engine gives the plugin's copy.
+  // Where the focus ring is in the dashboard and the boards, so j, k, h and l move it on from there: every move is
+  // recorded, onto a row or anywhere else (a tab key, the legend), and one onto an engine stop forgets it, so the
+  // record never points at a row the ring has left. The panes and the nf- keys are the mod's own, whatever name the
+  // engine gives the plugin's copy.
   on('ui.focus', { requestId: [DASHBOARD, BOARD] }, async ($, e, next) => {
     const result = await next(e)
+    if (result.deny !== undefined) return result
     const element = e.element
-    if (result.deny === undefined && element !== undefined && isRowKey(element)) {
-      await update($, paneRingAtom, ring => ({ ...ring, [e.requestId]: element }))
-    }
+    if (element === undefined) await forgetRing($, e.requestId)
+    else await update($, paneRingAtom, ring => ({ ...ring, [e.requestId]: element }))
     return result
   }).catch(($, e, next) => next(e))
 

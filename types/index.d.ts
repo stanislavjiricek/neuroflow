@@ -356,7 +356,11 @@ declare module 'claude-code' {
        * until it reaches three.
        */
       keysLearned: number | null
-      /** Per pane id, the row element (a card, a move target, a now-tab action) the focus ring was last on. */
+      /**
+       * Per pane id, the element the focus ring was last moved onto (a card, a move target, a now-tab action, a
+       * key). Absent while the ring is on none of the pane's elements: since the pane opened, its tab changed or
+       * the ring went to one of the engine's own stops.
+       */
       paneRing: Record<string, string>
       // </feature:views>
       // <feature:loop>

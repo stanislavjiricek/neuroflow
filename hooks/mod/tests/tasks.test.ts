@@ -477,6 +477,32 @@ describe('the boards in a session', () => {
     await ui.unmount()
   })
 
+  test('the ring is followed onto every element and forgotten when the boards open again: j, k, h and l never go on from a card it left', { options: { runtime: 'observe' } }, async ($, on) => {
+    const files = { ...FILES, ...Object.fromEntries(Array.from({ length: 7 }, (_, at) => [`${ROOT}/.neuroflow/tasks/ready/step-${at + 1}.md`, task(`Step ${at + 1}`, `due: 2026-11-0${at + 1}\n`)])) }
+    const { clock } = setUp(on, files)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    const ui = await $.ui.mount(pane('nf-board') as never)
+    await clock.advance(500)
+    // A column shows the page of the card the ring is on: what the mod records of the ring is drawn.
+    const cards = async () => buttons(await ui.drawn()).filter(button => button.key.startsWith('nf-card-step-')).map(button => button.key.slice('nf-card-step-'.length))
+    const tab = (element?: string) => $.ui.focus({ component: 'Pane', requestId: 'nf-board', plugin: 'neuroflow', ...(element === undefined ? {} : { element }), origin: { kind: 'person' } } as never)
+    await tab('nf-card-step-6')
+    expect(await cards()).toEqual(['6', '7'])
+    // Onto the legend, then onto one of the engine's own stops: the ring left the cards, and the record with it.
+    await tab('nf-board-refresh')
+    expect(await cards()).toEqual(['1', '2', '3', '4', '5'])
+    await tab('nf-card-step-6')
+    await tab()
+    expect(await cards()).toEqual(['1', '2', '3', '4', '5'])
+    // Closed on the sixth card and opened again: the ring starts afresh, not on the card it stood on before.
+    await tab('nf-card-step-6')
+    await ui.press({ key: 'nf-board-close' })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    expect(await cards()).toEqual(['1', '2', '3', '4', '5'])
+    await ui.unmount()
+  })
+
   test('the boards follow the files when a turn ends', { options: { runtime: 'observe' } }, async ($, on) => {
     const { fs } = setUp(on)
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
