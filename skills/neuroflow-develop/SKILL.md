@@ -236,7 +236,7 @@ python scripts/automation/brand_assets.py           # --check: the same check th
 | `·` | a phase drawn without a state (the welcome ring's other dots) |
 | `⚠` | overdue, or due within three days |
 
-A file that still draws other marks — `/flowie`'s project timeline (`✓`), the workbench page (`✔`) — moves to this legend when it is next changed.
+A file that still draws other marks — `/flowie`'s project timeline (`✓`) — moves to this legend when it is next changed.
 
 The mod's views (`hooks/mod/features/views.tsx`, `user.tsx`) draw this look with what every terminal has:
 
