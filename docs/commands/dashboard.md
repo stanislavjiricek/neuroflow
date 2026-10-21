@@ -47,7 +47,7 @@ a request that [`/neuroflow:tasks --apply-web`](tasks.md) checks and applies.
 | Mode | What it does |
 |---|---|
 | `--web` | The first time: explains what would leave your machine, asks your consent, a name for this machine and which levels to mirror, then — after a one-line preview and your yes — publishes the page and uploads. After that: refreshes the levels, upgrades the page when the installed neuroflow ships a newer one, cleans up finished requests, and copies your page settings into your flowie |
-| `--web --status` | Which account and page, the page's version against the plugin's, each level's consent and the team's opt-in, how many changes wait — nothing is uploaded |
+| `--web --status` | Which account and page, the page's version against the plugin's, each level's consent and the team's opt-in, how many changes wait and since when — nothing is uploaded |
 | `--web --levels` | Choose again which levels are mirrored; one you take off is purged from the page |
 
 Every upload asks first, every time: nothing is sent on a timer or at the end of another command. A hive or project is

@@ -127,7 +127,9 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      `workbench_mirror` yourself. Write `workbench_levels` as a JSON list, and `workbench_index_only` for levels whose
      wiki should go up without page bodies.
 3. **Export.** `{wb} export --out {scratch}/wb`: per level the documents, the size, the cards and wiki pages, the
-   freshness label, and every item held back with its reason (exit `1`).
+   freshness label, and every item held back with its reason (exit `1`). A `warnings` line flags an export over 8 MB as
+   slow for the page to load and names the level whose wiki weighs most: offer to add it to `workbench_index_only`
+   (AskUserQuestion) and export again after a yes.
 4. **The record and the account.** `{wb} record`.
    - With a record: read its URL with the Artifact tool (`action: read`) before any ArtifactData call. If the result does
      not say you can edit it, Claude Code is signed into another account than the workbench's: stop with one line that
@@ -155,7 +157,9 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
    `--overwrite {level}`; `skip` or `refuse` — say why, nothing is written for that level. Exit `2` because the listing
    shows no versions: write the versions the ArtifactData results named as `{"path": version}` into a file and rerun with
    `--versions {file}`. Send each of its `batches` with ArtifactData `batch`, `writes` exactly as printed (parts first,
-   the meta last). A batch refused because a document changed: list again and redo it — never force.
+   the meta last). A batch refused because a document changed: list again and redo it — never force. When the page
+   holds no preferences yet (a new or rebuilt page) and the record keeps a copy, the export says `prefs: restored from
+   the record` and the first batch puts them back.
 8. **Clean up.** ArtifactData `list` of `data/users/me/inbox/intents` (`out_dir` `{scratch}/intents`), then
    `{wb} gc --intents {scratch}/intents --remote {scratch}/remote`: finished intents older than 7 days, and every document
    of a level no longer mirrored (parts first, then the meta). A delete sends nothing; send its batches.
@@ -171,6 +175,7 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
 
 `--web --status` reads local files only — the record, `{wb} levels` and `~/.neuroflow/workbench/pending.json` — and
 prints the account, the URL, the page's template against the plugin's, each level with its consent and the team's
-opt-in, and how many changes wait. It uploads nothing.
+opt-in, and how many changes wait and since when (`oldest`, as of the time pending.json was written). It uploads
+nothing.
 
 `--web --levels` asks step 2's level question again; a level taken off is purged in step 8, after the step 5 yes.
