@@ -14,7 +14,9 @@
 //    user.yaml, a project that does not forbid it, and runtime on. `/neuroflow:wiki --review` opens the cards
 //    as a pane: accept (`y`) runs the normal `/neuroflow:wiki --add --from-pending`; skip (`n`) marks the card
 //    skipped.
-// Each pane opens holding the keys, on the one key map of lib/keys.ts; keys typed through that open are dropped.
+// Each pane opens holding the keys, on the one key map of lib/keys.ts; keys typed through that open are dropped. They
+// share the views' look (skills/neuroflow-develop → Visual style): the ring mark and the pane's name, rules on the
+// terminal, UPPERCASE dim labels, a quiet legend; an X-ray's red finding reads ✖, an orange one !.
 // The figure check (U4) is prose only: a viewer cannot show figures or take pointer input on most terminals.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -22,7 +24,7 @@ import type { EngineInterface, On } from 'claude-code'
 import type { NfPaperView, NfWikiCard, NfXrayView } from '../../../types'
 import type { NfIo } from '../lib/io'
 import { BAND, CHORD, NAV, PAPER, isPastTypeThrough, paneRows } from '../lib/keys'
-import { fit, measuredRows, rememberViewport } from '../lib/layout'
+import { MARK, fit, isCompact, measuredRows, paneColumns, rememberViewport, rule, widthClass } from '../lib/layout'
 import { isoDate } from '../lib/memory'
 import { mayWrite } from '../lib/options'
 import type { NfOptions } from '../lib/options'
@@ -60,6 +62,8 @@ const PAPER_PANE = 'nf-paper'
 const XRAY_PANE = 'nf-xray'
 const WIKI_PANE = 'nf-wiki'
 const PAPER_DIR = '.neuroflow/paper'
+/** The column the panes' UPPERCASE labels (EVIDENCE, CHANGED, FIX) stand in. */
+const LABEL = 10
 
 /** The allow-listed source folders a sync reads (phase-paper → Living paper skeleton), for the staleness count. */
 export const SKELETON_SOURCES = [
@@ -67,7 +71,8 @@ export const SKELETON_SOURCES = [
   'data-analyze', 'brain-build', 'brain-optimize', 'brain-run', 'reasoning',
 ]
 
-const SEVERITY_GLYPH: Record<string, string> = { red: '●', orange: '◐' }
+/** A red finding is a countable defect (✖, as a failed check reads), an orange one a judgement to look at (!). */
+const SEVERITY_GLYPH: Record<string, string> = { red: '✖', orange: '!' }
 
 /** One line per finding, as the pane and its text form show it. */
 export const findingLabel = (item: XrayFinding): string =>
@@ -357,7 +362,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     const cards = await loadCards($, scope.root)
     if (cards.length === 0) return { text: 'No wiki cards are waiting for review.' }
     await markOpened($, WIKI_PANE)
-    await $.ui.open({ id: WIKI_PANE, title: 'wiki cards', focus: true, rows: paneRows('wiki', measuredRows()) })
+    await $.ui.open({ id: WIKI_PANE, title: 'wiki cards', focus: true, rows: paneRows('wiki', measuredRows()), columns: paneColumns('wiki') })
     return {
       text: `${cards.length} wiki card${cards.length === 1 ? '' : 's'} waiting — y accepts (runs /neuroflow:wiki --add for the card), n skips it for good, j/k move between cards, q closes.`,
     }
@@ -374,24 +379,79 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     const run = (fn: () => unknown) => act($, WIKI_PANE, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
     const step = (by: 1 | -1): string => cards[(index + by + cards.length) % cards.length]?.file ?? card.file
+    const width = e.props.bodyColumns
+    const term = e.surface === 'terminal'
+    const compact = isCompact(e.viewport?.rows ?? measuredRows())
+    /** Rows under UPPERCASE dim labels (the card's type, EVIDENCE), the labels in a column of their own. */
+    const labelled = (items: readonly { label: string; value: string; dim?: boolean }[]): JSX.Element => (
+      <Box flexDirection="column">
+        {items.map(item => (
+          <Box flexDirection="row">
+            <Box width={LABEL} flexShrink={0}>
+              <Text dimColor wrap="truncate-end">
+                {item.label}
+              </Text>
+            </Box>
+            <Box flexShrink={1}>
+              <Text dimColor={item.dim === true} wrap="wrap">
+                {item.value}
+              </Text>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    )
     return (
-      <Box flexDirection="column" gap={1}>
-        <Text bold wrap="truncate-end">{`${index + 1}/${cards.length} · ${card.type}: ${card.title}`}</Text>
-        <Text wrap="wrap">{card.body}</Text>
-        <Text dimColor wrap="truncate-end">{`evidence: ${card.evidence} · captured by ${card.by === 'mod' ? 'the mod' : 'the model'}`}</Text>
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          <Button key="nf-wiki-accept" label="accept → /wiki --add" hotkey={NAV.yes} plain onPress={run(() => settleCard($, card.file, true))} />
-          <Button key="nf-wiki-skip" label="skip" hotkey={NAV.no} plain onPress={run(() => settleCard($, card.file, false))} />
-          {cards.length > 1
-            ? [
-                <Button key="nf-wiki-next" label="next" hotkey={NAV.down} plain dimColor onPress={run(() => update($, wikiPickAtom, () => step(1)))} />,
-                <Button key="nf-wiki-prev" label="previous" hotkey={NAV.up} plain dimColor onPress={run(() => update($, wikiPickAtom, () => step(-1)))} />,
-              ]
-            : null}
-          <Button key="nf-wiki-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: WIKI_PANE }))} />
-          {e.surface === 'terminal' && keysHere ? <Text dimColor>esc: prompt</Text> : null}
+      <Box flexDirection="column">
+        <Box flexDirection="row" justifyContent="space-between" columnGap={2}>
+          <Box flexShrink={0}>
+            <Text>{`${MARK} wiki cards`}</Text>
+          </Box>
+          <Box flexShrink={1}>
+            <Text dimColor wrap="truncate-end">{`${index + 1} of ${cards.length}`}</Text>
+          </Box>
         </Box>
-        {keysHere ? null : <Text dimColor wrap="truncate-end">{unfocusedHint('/neuroflow:wiki --review')}</Text>}
+        {term ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
+        ) : null}
+        <Box flexDirection="column" marginY={compact || !term ? 0 : 1}>
+          {labelled([
+            { label: (card.type || 'card').toUpperCase(), value: card.title },
+            { label: '', value: card.body },
+            { label: 'EVIDENCE', value: [card.evidence, `captured by ${card.by === 'mod' ? 'the mod' : 'the model'}`].filter(part => part !== '').join(' · '), dim: true },
+          ])}
+        </Box>
+        {term && !compact ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
+        ) : null}
+        {keysHere ? (
+          <Box flexDirection={widthClass(width) === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
+            <Box flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={1}>
+              <Button key="nf-wiki-accept" label={widthClass(width) === 'wide' ? 'accept → /wiki --add' : 'accept'} hotkey={NAV.yes} plain onPress={run(() => settleCard($, card.file, true))} />
+              <Button key="nf-wiki-skip" label="skip" hotkey={NAV.no} plain onPress={run(() => settleCard($, card.file, false))} />
+              {cards.length > 1
+                ? [
+                    <Button key="nf-wiki-next" label="next" hotkey={NAV.down} plain dimColor onPress={run(() => update($, wikiPickAtom, () => step(1)))} />,
+                    <Button key="nf-wiki-prev" label="previous" hotkey={NAV.up} plain dimColor onPress={run(() => update($, wikiPickAtom, () => step(-1)))} />,
+                  ]
+                : null}
+              <Button key="nf-wiki-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: WIKI_PANE }))} />
+            </Box>
+            {term ? (
+              <Box flexShrink={0}>
+                <Text dimColor>esc: prompt</Text>
+              </Box>
+            ) : null}
+          </Box>
+        ) : (
+          <Text dimColor wrap="truncate-end">
+            {unfocusedHint('/neuroflow:wiki --review')}
+          </Text>
+        )}
       </Box>
     )
   }).catch(($, e, next) => next(e))
@@ -407,7 +467,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
       await update($, paperViewAtom, () => view)
       if (await isPersonThere($)) {
         await markOpened($, PAPER_PANE)
-        await $.ui.open({ id: PAPER_PANE, title: 'living paper', focus: true, rows: paneRows('paper', measuredRows()) })
+        await $.ui.open({ id: PAPER_PANE, title: 'living paper', focus: true, rows: paneRows('paper', measuredRows()), columns: paneColumns('paper') })
       }
       return { text: view.status + (view.stale.length > 0 ? ` | ${view.stale.length} source file(s) changed since the last sync` : '') }
     }
@@ -417,7 +477,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
       await update($, xrayPickAtom, () => xrayPage(view.findings.filter(item => item.status === 'open'), null, 1).first?.id ?? null)
       if (await isPersonThere($)) {
         await markOpened($, XRAY_PANE)
-        await $.ui.open({ id: XRAY_PANE, title: `X-ray ${view.title}`, focus: true, rows: paneRows('xray', measuredRows()) })
+        await $.ui.open({ id: XRAY_PANE, title: `X-ray ${view.title}`, focus: true, rows: paneRows('xray', measuredRows()), columns: paneColumns('xray') })
       }
       const counts = xrayCounts(view.findings)
       return { text: `X-ray ${view.title}: ${counts.red} red, ${counts.orange} orange open; ${counts.decided} decided.` }
@@ -436,48 +496,97 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     const root = scope.root
     const run = (fn: () => unknown) => act($, PAPER_PANE, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
+    const width = e.props.bodyColumns
+    const term = e.surface === 'terminal'
+    const compact = isCompact(e.viewport?.rows ?? measuredRows())
+    /** A row under an UPPERCASE dim label: CHANGED, RESULTS, GAPS. */
+    const labelled = (label: string, children: JSX.Element): JSX.Element => (
+      <Box flexDirection="row">
+        <Box width={LABEL} flexShrink={0}>
+          <Text dimColor>{label}</Text>
+        </Box>
+        <Box flexDirection="column" flexShrink={1}>
+          {children}
+        </Box>
+      </Box>
+    )
     return (
-      <Box flexDirection="column" gap={1}>
-        <Text bold wrap="truncate-end">{view.status}</Text>
-        {view.frozen ? <Text color="warning">The paper is frozen (a submission or revision exists): sync reports changes and rewrites nothing.</Text> : null}
-        {view.stale.length > 0 ? (
-          <Text color="warning" wrap="truncate-end">{`${view.stale.length} source file(s) changed since the last sync: ${view.stale.slice(0, 4).join(', ')}${view.stale.length > 4 ? ' …' : ''}`}</Text>
+      <Box flexDirection="column">
+        <Text>{`${MARK} living paper`}</Text>
+        {term ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
         ) : null}
-        {view.slots.length > 0 ? <Text>{`Results slots without a final result: ${view.slots.join(', ')}`}</Text> : null}
-        <Box flexDirection="column">
-          {view.gaps.length === 0 ? <Text dimColor>No reporting gaps listed.</Text> : <Text>Reporting gaps:</Text>}
-          {view.gaps.slice(0, 8).map(gap => (
-            <Text wrap="truncate-end">{`· ${gap.gap} — ${gap.item} → ${gap.fill}`}</Text>
-          ))}
-          {view.gaps.length > 8 ? <Text dimColor>{`… ${view.gaps.length - 8} more in .neuroflow/paper/gaps.md`}</Text> : null}
+        <Box flexDirection="column" marginY={compact || !term ? 0 : 1}>
+          <Text wrap="wrap">{view.status}</Text>
+          {view.frozen ? <Text color="warning" wrap="wrap">The paper is frozen (a submission or revision exists): sync reports changes and rewrites nothing.</Text> : null}
+          <Box flexDirection="column" marginTop={compact ? 0 : 1}>
+            {view.stale.length > 0
+              ? labelled(
+                  'CHANGED',
+                  <Text color="warning" wrap="truncate-end">{`${view.stale.length} source file(s) since the last sync: ${view.stale.slice(0, 4).join(', ')}${view.stale.length > 4 ? ' …' : ''}`}</Text>,
+                )
+              : null}
+            {view.slots.length > 0 ? labelled('RESULTS', <Text wrap="wrap">{`without a final result: ${view.slots.join(', ')}`}</Text>) : null}
+            {labelled(
+              'GAPS',
+              view.gaps.length === 0 ? (
+                <Text dimColor>No reporting gaps listed.</Text>
+              ) : (
+                <Box flexDirection="column">
+                  {view.gaps.slice(0, 8).map(gap => (
+                    <Text wrap="truncate-end">{`· ${gap.gap} — ${gap.item} → ${gap.fill}`}</Text>
+                  ))}
+                  {view.gaps.length > 8 ? <Text dimColor>{`… ${view.gaps.length - 8} more in .neuroflow/paper/gaps.md`}</Text> : null}
+                </Box>
+              ),
+            )}
+          </Box>
         </Box>
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          <Button
-            key="nf-paper-sync"
-            label="sync now"
-            hotkey={PAPER.sync}
-            plain
-            onPress={run(async () => {
-              await $.ui.close({ id: PAPER_PANE })
-              await $.command.run({ command: 'neuroflow:paper', args: '--auto sync' })
-            })}
-          />
-          <Button
-            key="nf-paper-refresh"
-            label="reread"
-            hotkey={NAV.reread}
-            plain
-            dimColor
-            onPress={run(async () => {
-              const snap = await read($, snapshotAtom)
-              const fresh = await loadPaperView($, root, snap?.paperAuto === true)
-              await update($, paperViewAtom, () => fresh)
-            })}
-          />
-          <Button key="nf-paper-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: PAPER_PANE }))} />
-          {e.surface === 'terminal' && keysHere ? <Text dimColor>esc: prompt</Text> : null}
-        </Box>
-        {keysHere ? null : <Text dimColor wrap="truncate-end">{unfocusedHint('/neuroflow:paper --auto status')}</Text>}
+        {term && !compact ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
+        ) : null}
+        {keysHere ? (
+          <Box flexDirection={widthClass(width) === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
+            <Box flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={1}>
+              <Button
+                key="nf-paper-sync"
+                label="sync now"
+                hotkey={PAPER.sync}
+                plain
+                onPress={run(async () => {
+                  await $.ui.close({ id: PAPER_PANE })
+                  await $.command.run({ command: 'neuroflow:paper', args: '--auto sync' })
+                })}
+              />
+              <Button
+                key="nf-paper-refresh"
+                label="reread"
+                hotkey={NAV.reread}
+                plain
+                dimColor
+                onPress={run(async () => {
+                  const snap = await read($, snapshotAtom)
+                  const fresh = await loadPaperView($, root, snap?.paperAuto === true)
+                  await update($, paperViewAtom, () => fresh)
+                })}
+              />
+              <Button key="nf-paper-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: PAPER_PANE }))} />
+            </Box>
+            {term ? (
+              <Box flexShrink={0}>
+                <Text dimColor>esc: prompt</Text>
+              </Box>
+            ) : null}
+          </Box>
+        ) : (
+          <Text dimColor wrap="truncate-end">
+            {unfocusedHint('/neuroflow:paper --auto status')}
+          </Text>
+        )}
       </Box>
     )
   }).catch(($, e, next) => next(e))
@@ -493,53 +602,105 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     // XRAY_PAGE rows at a time, the page that holds the picked finding: j and k turn the pages as they go (#255).
     const page = xrayPage(open, pick, XRAY_PAGE)
     const picked = view.findings.find(item => item.id === pick) ?? page.first
-    const header = `${view.title} · ${counts.red} red · ${counts.orange} orange open · ${counts.decided} decided`
     const run = (fn: () => unknown) => act($, XRAY_PANE, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
-    const width = Math.max(20, e.props.bodyColumns - 2)
+    const width = e.props.bodyColumns
+    const term = e.surface === 'terminal'
+    const compact = isCompact(e.viewport?.rows ?? measuredRows())
     const stepTo = (step: 1 | -1) => run(() => update($, xrayPickAtom, () => xrayStep(open, picked?.id ?? null, step)?.id ?? null))
-    return (
-      <Box flexDirection="column" gap={1}>
-        <Text bold wrap="truncate-end">{header}</Text>
-        {open.length === 0 ? (
-          <Text color="success">Every finding is decided.</Text>
-        ) : (
-          <Box flexDirection="column">
-            {page.shown.map(item => (
-              <Button
-                key={`nf-xray-${item.id}`}
-                label={fit(`${item.id === picked?.id ? '▸' : ' '} ${findingLabel(item)}`, width)}
-                plain
-                onPress={run(() => update($, xrayPickAtom, () => item.id))}
-              />
-            ))}
-            {page.total > page.shown.length ? <Text dimColor>{`showing ${page.from}–${page.to} of ${page.total} open, red first`}</Text> : null}
-          </Box>
-        )}
-        {picked !== null ? (
-          <Box flexDirection="column">
-            <Text wrap="wrap">{`${picked.id} (${picked.scope}${picked.line ? `, line ${picked.line}` : ''}, ${picked.basis ?? 'model'}): ${picked.finding}`}</Text>
-            {picked.fix ? <Text dimColor wrap="wrap">{`Fix: ${picked.fix}`}</Text> : null}
-          </Box>
-        ) : null}
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          {picked !== null && picked.status === 'open'
-            ? [
-                <Button key="nf-xray-accept" label="accept" hotkey={NAV.yes} plain onPress={run(() => decide($, picked.id, 'accepted'))} />,
-                <Button key="nf-xray-reject" label="reject…" hotkey={NAV.no} plain onPress={run(() => decide($, picked.id, 'rejected'))} />,
-              ]
-            : null}
-          {open.length > 1
-            ? [
-                <Button key="nf-xray-next" label="next" hotkey={NAV.down} plain dimColor onPress={stepTo(1)} />,
-                <Button key="nf-xray-prev" label="previous" hotkey={NAV.up} plain dimColor onPress={stepTo(-1)} />,
-              ]
-            : null}
-          <Button key="nf-xray-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: XRAY_PANE }))} />
-          {e.surface === 'terminal' && keysHere ? <Text dimColor>esc: prompt</Text> : null}
+    /** A row under an UPPERCASE dim label (or the finding's id), the labels in a column of their own. */
+    const labelled = (label: string, value: string, dim = false): JSX.Element => (
+      <Box flexDirection="row">
+        <Box width={LABEL} flexShrink={0}>
+          <Text dimColor wrap="truncate-end">
+            {label}
+          </Text>
         </Box>
-        {keysHere ? null : <Text dimColor wrap="truncate-end">{unfocusedHint('/neuroflow:paper --xray view')}</Text>}
-        <Text dimColor>Accepted findings are applied only when you ask Claude to apply them: to a -r1 copy, under the --revise rule.</Text>
+        <Box flexShrink={1}>
+          <Text dimColor={dim} wrap="wrap">
+            {value}
+          </Text>
+        </Box>
+      </Box>
+    )
+    return (
+      <Box flexDirection="column">
+        <Box flexDirection="row" justifyContent="space-between" columnGap={2}>
+          <Box flexShrink={1}>
+            <Text wrap="truncate-end">
+              {`${MARK} X-ray`}
+              <Text dimColor>{` · ${view.title}`}</Text>
+            </Text>
+          </Box>
+          <Box flexShrink={0}>
+            <Text dimColor>{`${counts.red} red · ${counts.orange} orange open · ${counts.decided} decided`}</Text>
+          </Box>
+        </Box>
+        {term ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
+        ) : null}
+        <Box flexDirection="column" marginY={compact || !term ? 0 : 1}>
+          {open.length === 0 ? (
+            <Text color="success">✔ Every finding is decided.</Text>
+          ) : (
+            <Box flexDirection="column">
+              {page.shown.map(item => (
+                <Button
+                  key={`nf-xray-${item.id}`}
+                  label={fit(`${item.id === picked?.id ? '▸' : ' '} ${findingLabel(item)}`, Math.max(20, width))}
+                  plain
+                  onPress={run(() => update($, xrayPickAtom, () => item.id))}
+                />
+              ))}
+              {page.total > page.shown.length ? <Text dimColor>{`  showing ${page.from}–${page.to} of ${page.total} open, red first`}</Text> : null}
+            </Box>
+          )}
+          {picked !== null ? (
+            <Box flexDirection="column" marginTop={compact ? 0 : 1}>
+              {labelled(picked.id, `${picked.scope}${picked.line ? `, line ${picked.line}` : ''} · ${picked.basis ?? 'model'}`, true)}
+              {labelled('', picked.finding)}
+              {picked.fix ? labelled('FIX', picked.fix) : null}
+            </Box>
+          ) : null}
+        </Box>
+        {term && !compact ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
+        ) : null}
+        {keysHere ? (
+          <Box flexDirection={widthClass(width) === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
+            <Box flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={1}>
+              {picked !== null && picked.status === 'open'
+                ? [
+                    <Button key="nf-xray-accept" label="accept" hotkey={NAV.yes} plain onPress={run(() => decide($, picked.id, 'accepted'))} />,
+                    <Button key="nf-xray-reject" label="reject…" hotkey={NAV.no} plain onPress={run(() => decide($, picked.id, 'rejected'))} />,
+                  ]
+                : null}
+              {open.length > 1
+                ? [
+                    <Button key="nf-xray-next" label="next" hotkey={NAV.down} plain dimColor onPress={stepTo(1)} />,
+                    <Button key="nf-xray-prev" label="previous" hotkey={NAV.up} plain dimColor onPress={stepTo(-1)} />,
+                  ]
+                : null}
+              <Button key="nf-xray-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: XRAY_PANE }))} />
+            </Box>
+            {term ? (
+              <Box flexShrink={0}>
+                <Text dimColor>esc: prompt</Text>
+              </Box>
+            ) : null}
+          </Box>
+        ) : (
+          <Text dimColor wrap="truncate-end">
+            {unfocusedHint('/neuroflow:paper --xray view')}
+          </Text>
+        )}
+        <Text dimColor wrap="wrap">
+          Accepted findings are applied only when you ask Claude to apply them: to a -r1 copy, under the --revise rule.
+        </Text>
       </Box>
     )
   }).catch(($, e, next) => next(e))

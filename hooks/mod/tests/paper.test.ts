@@ -12,7 +12,7 @@ import {
   skeletonDate,
 } from '../lib/paper'
 import { XRAY_PAGE, findingLabel, xrayCounts, xrayPage, xrayStep } from '../features/user'
-import { buttons } from './drawn'
+import { buttons, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
 const ledger = [
@@ -64,7 +64,8 @@ describe('x-ray files', () => {
     const findings = parseXray(`${xrayLines}\nnot json\n`)
     expect(findings.map(item => item.id)).toEqual(['S3.2-1', 'S3-1'])
     expect(xrayCounts(findings)).toEqual({ red: 1, orange: 1, open: 2, decided: 0 })
-    expect(findingLabel(findings[0])).toBe('● S3.2-1 red · Area 4 · reported p does not match t and df')
+    expect(findingLabel(findings[0])).toBe('✖ S3.2-1 red · Area 4 · reported p does not match t and df')
+    expect(findingLabel(findings[1]).startsWith('! S3-1 orange')).toBe(true)
     expect(newestXray(['xray-results-2026-10-01.jsonl', 'xray-results-2026-10-07.jsonl', 'xray-changes-2026-10-08.md', 'xray-results-2026-10-07.md'])).toBe('xray-results-2026-10-07.jsonl')
   })
 
@@ -98,7 +99,7 @@ describe('paper commands in a session', () => {
     const clock = mock.clock(on, { now: 0 })
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('ui.status', () => ({ value: undefined }))
-    const opens: { id: string; focus?: boolean; rows?: number }[] = []
+    const opens: { id: string; focus?: boolean; rows?: number; columns?: number }[] = []
     on('ui.open', ($, e) => {
       opens.push(e as never)
       return { value: undefined }
@@ -116,17 +117,20 @@ describe('paper commands in a session', () => {
       props: { title: 'living paper', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
     } as never)
     expect(Object.fromEntries(buttons(await paper.drawn()).map(button => [button.key, button.hotkey]))).toEqual({ 'nf-paper-sync': 's', 'nf-paper-refresh': 'r', 'nf-paper-close': 'q' })
+    // The new look: the mark and the pane's name, the prose's status line, the sections under UPPERCASE labels.
+    expect(lines(await paper.drawn())).toEqual(expect.arrayContaining(['◌ living paper', 'RESULTS', 'without a final result: H2', 'GAPS']))
     await paper.unmount()
     const opened = await $.command.run({ command: 'neuroflow:paper', args: '--xray view' })
     expect(opened.text).toBe('X-ray results-2026-10-07: 1 red, 1 orange open; 0 decided.')
     expect(ranProse).toBe(false)
     // Both panes open holding the keys, at the height they ask for.
-    expect(opens.map(open => [open.id, open.focus, open.rows])).toEqual([['nf-paper', true, 14], ['nf-xray', true, 16]])
+    expect(opens.map(open => [open.id, open.focus, open.rows, open.columns])).toEqual([['nf-paper', true, 14, 64], ['nf-xray', true, 16, 72]])
     const pane = await $.ui.mount({
       plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-xray',
       props: { title: 'X-ray', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
     } as never)
     expect(JSON.stringify(await pane.drawn())).toContain('S3.2-1')
+    expect(lines(await pane.drawn())).toEqual(expect.arrayContaining(['◌ X-ray · results-2026-10-07', '1 red · 1 orange open · 0 decided', 'FIX']))
     // y right after the open is typed through: nothing is decided.
     await pane.press({ key: 'nf-xray-accept' })
     expect(parseXray(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.jsonl`])[0].status).toBe('open')
@@ -200,7 +204,7 @@ describe('a long X-ray (#255)', () => {
     const drawn = await pane.drawn()
     expect(JSON.stringify(drawn)).toContain('showing 1–8 of 145 open, red first')
     // The picked finding is marked; every hotkey is the key map's: y, n, j, k, q.
-    expect(buttons(drawn).find(button => button.key === 'nf-xray-S1.1-1')?.label).toContain('▸ ● S1.1-1 red')
+    expect(buttons(drawn).find(button => button.key === 'nf-xray-S1.1-1')?.label).toContain('▸ ✖ S1.1-1 red')
     expect(buttons(drawn).flatMap(button => (button.hotkey === undefined ? [] : [button.hotkey]))).toEqual(['y', 'n', 'j', 'k', 'q'])
     for (let step = 0; step < 8; step += 1) await pane.press({ key: 'nf-xray-next' })
     expect(JSON.stringify(await pane.drawn())).toContain('showing 9–16 of 145 open')

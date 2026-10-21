@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { captureAllowed, cardText, parseCard, parseJudge, setCardStatus, slugify, takenTitles } from '../lib/wikiqueue'
-import { buttons } from './drawn'
+import { buttons, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
 /** A card file from an earlier day, already settled by the person. */
@@ -115,6 +115,7 @@ describe('auto wiki in a session', () => {
     } as never)
     const drawn = await pane.drawn()
     expect(JSON.stringify(drawn)).toContain('FDR across electrodes')
+    expect(lines(drawn)).toEqual(expect.arrayContaining(['◌ wiki cards', '1 of 1', 'DECISION', 'FDR across electrodes', 'EVIDENCE']))
     expect(Object.fromEntries(buttons(drawn).map(button => [button.key, button.hotkey]))).toEqual({ 'nf-wiki-accept': 'y', 'nf-wiki-skip': 'n', 'nf-wiki-close': 'q' })
     await clock.advance(500)
     await pane.press({ key: 'nf-wiki-skip' })
