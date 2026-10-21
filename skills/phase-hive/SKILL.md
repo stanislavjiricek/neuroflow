@@ -75,6 +75,17 @@ Hive is the **team-level counterpart to flowie**. Where flowie is the personal r
 {Directions as bullet list or ## subsections — maintained by PI/leads}
 ```
 
+`hive.md` may open with an optional YAML frontmatter; one without it reads exactly as before. Its one key today is the team's opt-in to the claude.ai workbench, which a new hive never gets by default:
+
+```markdown
+---
+workbench_mirror: allow      # allow | allow-names | forbid — absent means not mirrored
+---
+# {Team name}
+```
+
+`workbench_mirror` is the team's decision (`neuroflow:neuroflow-core` → **Workbench snapshot**): a member records it only after the team agreed — for example in a meeting, noted under `## Norms` — commits `hive.md` by path and pushes after the person's yes (Pushing to the hive). `/dashboard --web` reads it and never writes it. `allow` lets members mirror the hive's board, project registry, wiki, ideas, errata and meeting titles into their own owner-only workbench, with people as roster handles; `allow-names` adds the names and roles `members.md` lists (never an email address); `forbid`, or no key at all, keeps the hive off every workbench — a member who had mirrored it has it purged at their next `/dashboard --web`, which reads the value the team pushed even before that member's clone has pulled it.
+
 **`members.md`** — team roster with contacts for meeting invitations:
 ```markdown
 # Team Members
@@ -307,6 +318,7 @@ When a new team member joins a project that already has neuroflow set up, they f
 | Presence, activity, working hours, progress or mood — observed or inferred | **Never** — a member's status in the hive is only what they write themselves |
 | Pull/push times (`.git/neuroflow-sync.json`) | **Never** — kept on the member's machine |
 | A dataset erratum | Only via `--errata --add`, after confirmation; dataset labels only |
+| A member's own claude.ai workbench | Nothing goes to the hive. The hive's own files reach a member's private workbench only with the team's `workbench_mirror` opt-in, after that member's preview and yes; no presence or activity is shown there either |
 | Something the user explicitly approves via `--wiki-ingest` | Yes, after confirmation |
 
 The Hive is **pull-first**: the researcher benefits from team knowledge without being required to share anything back.

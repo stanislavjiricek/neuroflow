@@ -398,5 +398,51 @@ class PreMergeTests(RegistryTests):
         self.assertEqual(plan["hive_writes"], {"repos": ["https://github.com/example-lab/oddball"]})
 
 
+class BoardDetailsTests(unittest.TestCase):
+    """read_board(details=True): the fields the workbench snapshot carries (neuroflow-core → Workbench snapshot)."""
+
+    def setUp(self) -> None:
+        self.tasks = Path(tempfile.mkdtemp()) / "tasks"
+        self.addCleanup(lambda: shutil.rmtree(self.tasks.parent, ignore_errors=True))
+
+    def write(self, rel: str, text: str) -> Path:
+        path = self.tasks / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(text.encode("utf-8"))
+        return path
+
+    def test_details_carry_the_raw_fields_and_the_content_hash(self) -> None:
+        self.write("active/rerun-ica.md", "---\ntitle: \"Rerun ICA\"\nstatus: active\nowner: jana\ndue: 2026-08-20\n"
+                                          "phase: data-preprocess\ntags: [eeg, qc]\nblocked_by: [fix-map]\ncreated: 2026-08-13\n"
+                                          "updated: 2026-08-14\nproject: Oddball EEG\n---\n\nAfter the channel repair.\n")
+        plain = pj.read_board(self.tasks)[0]
+        self.assertNotIn("sha256", plain)  # the default output stays as projects.py view prints it
+        task = pj.read_board(self.tasks, details=True)[0]
+        self.assertEqual((task["status"], task["created"], task["updated"], task["phase"], task["tags"]),
+                         ("active", "2026-08-13", "2026-08-14", "data-preprocess", ["eeg", "qc"]))
+        self.assertEqual(task["notes"], "After the channel repair.")
+        self.assertFalse(task["legacy"] or task["conflicted"])
+        self.assertRegex(task["sha256"], r"^[0-9a-f]{64}$")
+
+    def test_the_hash_ignores_what_a_move_writes_and_line_endings(self) -> None:
+        text = "---\ntitle: A\nstatus: inbox\ncreated: 2026-10-01\n---\n\nnotes\n"
+        base = pj.task_hash(text)
+        moved = text.replace("status: inbox", "status: active").replace("created: 2026-10-01", "created: 2026-10-01\nupdated: 2026-10-21")
+        self.assertEqual(pj.task_hash(moved), base)
+        self.assertEqual(pj.task_hash("\ufeff" + text.replace("\n", "\r\n")), base)
+        self.assertNotEqual(pj.task_hash(text.replace("title: A", "title: B")), base)
+        self.assertNotEqual(pj.task_hash(text.replace("notes", "more notes")), base)
+        # a status line in the notes is the notes' own text, not the move's
+        self.assertNotEqual(pj.task_hash(text + "status: x\n"), base)
+
+    def test_legacy_and_conflicted_files_are_marked(self) -> None:
+        self.write("T-001-old-task.md", "---\ntitle: Old\nstatus: ready\nassignee: jana\n---\n")
+        self.write("inbox/broken.md", "---\ntitle: Broken\nstatus: inbox\n<<<<<<< HEAD\nowner: a\n=======\nowner: b\n>>>>>>> x\n---\n")
+        tasks = {task["slug"]: task for task in pj.read_board(self.tasks, details=True)}
+        self.assertTrue(tasks["old-task"]["legacy"])
+        self.assertEqual(tasks["old-task"]["column"], "ready")
+        self.assertTrue(tasks["broken"]["conflicted"])
+
+
 if __name__ == "__main__":
     unittest.main()

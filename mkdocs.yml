@@ -74,7 +74,7 @@ markdown_extensions:
   - pymdownx.smartsymbols
 
 extra:
-  version: "0.2.26"
+  version: "0.2.27"
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/stanislavjiricek/neuroflow
@@ -137,6 +137,7 @@ nav:
       - "hive": commands/hive.md
       - "tasks": commands/tasks.md
       - "dashboard": commands/dashboard.md
+      - Your workbench: concepts/workbench.md
       - "meeting": commands/meeting.md
       - "wiki": commands/wiki.md
   - Commands:
@@ -220,4 +221,5 @@ nav:
   - Reference:
       - Integrations: integrations.md
       - Maintenance: maintenance/automation.md
+      - Mod live check: maintenance/mod-live-check.md
       - Changelog: changelog.md

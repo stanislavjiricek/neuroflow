@@ -3,13 +3,14 @@
 // each answered turn the mod asks the loop's own bookkeeping script (skills/autoresearch-protocol/scripts/ar.py
 // status — the single executable home of caps, plateau and snapshot logic) whether the next iteration
 // may start. It stops at a cap, after max_consecutive_errors errored turns, when the person interrupts a
-// turn (Esc), refuses, or presses stop (band key s, or `/neuroflow:autoresearch stop`). Charter: no
+// turn (Esc), refuses, or presses stop (band key x, or `/neuroflow:autoresearch stop`). Charter: no
 // paid turn without a visible cap and a stop control; never restarted without the person.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { NfDrive } from '../../../types'
 import type { NfIo } from '../lib/io'
+import { BAND, CHORD } from '../lib/keys'
 import { appendLine, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { resolveFrom } from '../lib/paths'
@@ -35,6 +36,15 @@ export const costCapUsd = (raw: unknown): number | null => {
   const match = /^\s*\$?\s*(\d+(?:\.\d+)?)\s*(usd|\$)?\s*$/i.exec(raw)
   return match === null ? null : Number(match[1])
 }
+
+/**
+ * The toast as a drive starts: when it stops by itself, and the person's stops — Esc, the command and, unless the
+ * person set `band: off` (no band is drawn then), the band's x.
+ */
+export const driveToast = (name: string, maxErrors: number, band: NfOptions['band']): string =>
+  `neuroflow: driving "${name}" — one iteration per turn until a cap, ${maxErrors} errored turns in a row, or your stop (${
+    band === 'off' ? 'Esc or /neuroflow:autoresearch stop' : `Esc, /neuroflow:autoresearch stop, or ${CHORD} then ${BAND.dismiss} on the band`
+  })`
 
 export type ArStatus = { findings?: { kind: string; detail: string }[]; caps?: { max_consecutive_errors?: string; max_cost?: string }; iterations?: number }
 
@@ -112,7 +122,7 @@ const startDrive = async ($: EngineInterface, name: string, opts: NfOptions): Pr
   }
   await update($, driveAtom, () => drive)
   await appendLine(ioOf($), sessionLogPath(scope.root, drive.startedAt), sessionLine(drive.startedAt, `autoresearch/${loop.name}`, 'driver started — one iteration per turn'))
-  $.ui.toast(`neuroflow: driving "${loop.name}" — one iteration per turn until a cap, ${maxErrors} errored turns in a row, or your stop (s in the band, Esc, or /neuroflow:autoresearch stop)`)
+  $.ui.toast(driveToast(loop.name, maxErrors, opts.band))
   return null
 }
 

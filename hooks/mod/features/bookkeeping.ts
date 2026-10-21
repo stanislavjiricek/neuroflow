@@ -8,6 +8,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { NfIo } from '../lib/io'
+import { BAND, CHORD } from '../lib/keys'
 import { appendLine, clockTime, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import { mayWrite } from '../lib/options'
 import type { NfOptions } from '../lib/options'
@@ -58,6 +59,15 @@ export const hasSessionLineSince = (log: string, tags: readonly string[], since:
   })
 
 const countLines = (text: string | null): number => (text ?? '').split(/\r?\n/).filter(line => line.trim() !== '').length
+
+/**
+ * The toast when a decision is drafted: where to keep or drop it. The band shows it, with y and n once ^X Tab has given
+ * it the keys, unless the person set `band: off`; the dashboard's now tab lists it whatever the setting.
+ */
+export const draftToast = (band: NfOptions['band']): string =>
+  band === 'off'
+    ? 'neuroflow drafted a decision for the reasoning log — keep or drop it on the dashboard\'s now tab (/neuroflow:dashboard)'
+    : `neuroflow drafted a decision for the reasoning log — keep or drop it on the band (${CHORD}, then ${BAND.keep} or ${BAND.drop}) or on the dashboard's now tab`
 
 /** The decision drafter's instructions (M009): extract, never invent; one decision or none. */
 export const DRAFT_SYSTEM = [
@@ -146,7 +156,7 @@ export const registerBookkeeping = (on: On, opts: NfOptions): void => {
         const draft = reply.isAnswered ? parseDraft(reply.text) : null
         if (draft !== null) {
           await update($, draftAtom, () => ({ path: baseline.path, phase: command.phase, command: command.name, ...draft, at: now }))
-          $.ui.toast('neuroflow drafted a decision for the reasoning log — keep it (k) or drop it (n) in the band')
+          $.ui.toast(draftToast(opts.band))
         }
       }
     }

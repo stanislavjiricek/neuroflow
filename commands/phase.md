@@ -31,7 +31,7 @@ lifecycle: light
 
 Shows a visual phase map of the project — current phase, visited phases, recommended phases, and untouched phases. Lets the user switch phase if they want.
 
-With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the map with a picker you move through with the arrow keys and Enter (or a click), and the switch is written to `active_phase` in code. When the project is linked to a flowie project or a team card, the mod then puts `/neuroflow:phase --sync` in the prompt: sent with Enter, it records the new phase there (steps 7 and 8). This file is the fallback for Claude Code without the mod, and it asks the same question with `AskUserQuestion`.
+With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the map with a picker that opens holding the keyboard, each phase by its name, marked with the legend of step 4 and its state in words (current, next, recommended, visited, not started) — Down or Enter opens the list, the arrow keys move, a letter jumps to the phases that start with it, Enter switches after a yes (the question's safe answer comes first, so a stray Enter switches nothing) and Esc closes (or a click) — and the switch is written to `active_phase` in code. When the project is linked to a flowie project or a team card, the mod then puts `/neuroflow:phase --sync` in the prompt: sent with Enter, it records the new phase there (steps 7 and 8). This file is the fallback for Claude Code without the mod, and it asks the same question with `AskUserQuestion`.
 
 `/neuroflow:phase --sync` switches nothing: it runs steps 7 and 8 for the current `active_phase` — the flowie phase sync and, after the person's yes, the team card — and reports what it recorded.
 

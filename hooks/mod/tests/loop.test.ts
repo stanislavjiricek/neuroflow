@@ -1,6 +1,7 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
-import { costCapUsd, iterationPrompt, stopReason } from '../features/loop'
+import { costCapUsd, driveToast, iterationPrompt, stopReason } from '../features/loop'
+import { buttons, hotkeys, keyProblems } from './drawn'
 import { fakeFs } from './fakefs'
 
 describe('driver rules', () => {
@@ -74,6 +75,118 @@ describe('driving in a session', () => {
     await $.turn.complete({ reason: 'answer', answer: 'iteration 6 done', durationMs: 1, isAborted: false, turnId: 't2' } as never)
     expect(submitted.length).toBe(1)
     expect((await $.command.run({ command: 'neuroflow:autoresearch', args: 'stop' })).text).toBe('No loop is being driven.')
+  })
+
+  test('the band shows the drive with x to stop it, and the start says which keys stop it', { options: { runtime: 'on' } }, async ($, on) => {
+    const fs = fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 11, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('session.usage', () => ({ value: { startedAt: 0, context: {}, rateLimits: [] } }))
+    const toasts: string[] = []
+    on('ui.toast', ($, e) => {
+      toasts.push(JSON.stringify(e))
+      return { value: undefined }
+    })
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.log', () => ({ value: undefined }))
+    on('process.run', ($, e) => ({
+      value: /ar\.py/.test(JSON.stringify(e))
+        ? { exitCode: 0, stdout: JSON.stringify({ caps: { max_consecutive_errors: '3', max_cost: 'n/a' }, findings: [] }), stderr: '' }
+        : { exitCode: 2, stdout: '', stderr: 'x' },
+    }))
+    on('command.run', () => ({ text: '', ref: 7 }))
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:autoresearch', args: 'drive connectivity' })
+    expect(toasts.join(' ')).toContain('or your stop (Esc, /neuroflow:autoresearch stop, or ^X Tab then x on the band)')
+    const band = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: true, maxRows: 4, bodyColumns: 116, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    const tree = await band.drawn()
+    expect(JSON.stringify(tree)).toContain('↻ driving autoresearch \\"connectivity\\" · turn 1')
+    expect(buttons(tree).map(button => `${button.hotkey}: ${button.label}`)).toEqual(['x: stop', 'd: dashboard'])
+    expect(keyProblems(tree, 'band')).toEqual([])
+    await band.press({ key: 'nf-drive-stop' })
+    expect(Object.values(fs.files).join('\n')).toContain('driver stopped after 1 turn(s): stopped by the person')
+    expect((await $.command.run({ command: 'neuroflow:autoresearch', args: 'stop' })).text).toBe('No loop is being driven.')
+    await band.unmount()
+  })
+
+  test('while a loop is driven, the band\'s d opens the dashboard on its loop tab, not on now', { options: { runtime: 'on' } }, async ($, on) => {
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 11, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('session.usage', () => ({ value: { startedAt: 0, context: {}, rateLimits: [] } }) as never)
+    on('ui.toast', () => ({ value: undefined }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.log', () => ({ value: undefined }))
+    const opens: string[] = []
+    on('ui.open', ($, e) => {
+      opens.push(e.id)
+      return { value: { isPlaced: true } }
+    })
+    on('process.run', ($, e) => ({
+      value: /ar\.py/.test(JSON.stringify(e))
+        ? { exitCode: 0, stdout: JSON.stringify({ caps: { max_consecutive_errors: '3', max_cost: 'n/a' }, findings: [] }), stderr: '' }
+        : { exitCode: 2, stdout: '', stderr: 'x' },
+    }) as never)
+    on('command.run', () => ({ text: '', ref: 7 }))
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:autoresearch', args: 'drive connectivity' } as never)
+    const band = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: true, maxRows: 4, bodyColumns: 116, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    await band.press({ key: 'nf-band-dashboard' })
+    await band.unmount()
+    expect(opens).toEqual(['nf-dashboard'])
+    const dashboard = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-dashboard',
+      props: { title: 'neuroflow', isFocused: true, bodyColumns: 116, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
+    } as never)
+    // The shown tab is the one with no digit to press: 6, the loop.
+    expect(buttons(await dashboard.drawn()).filter(button => button.key.startsWith('nf-tab-') && button.hotkey === undefined).map(button => button.label)).toEqual(['6: loop'])
+    await dashboard.unmount()
+  })
+
+  test('with band: off the start names only the stops that exist: Esc and /neuroflow:autoresearch stop', { options: { runtime: 'on', band: 'off' } }, async ($, on) => {
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 11, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('session.usage', () => ({ value: { startedAt: 0, context: {}, rateLimits: [] } }) as never)
+    const toasts: string[] = []
+    on('ui.toast', ($, e) => {
+      toasts.push(String((e as unknown as { text: string }).text))
+      return { value: undefined }
+    })
+    // Where the mod draws no band, the engine draws its own.
+    on('ui.render', () => ({ type: 'Text', children: ['(the engine draws its own band)'] }) as never)
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.log', () => ({ value: undefined }))
+    on('process.run', ($, e) => ({
+      value: /ar\.py/.test(JSON.stringify(e))
+        ? { exitCode: 0, stdout: JSON.stringify({ caps: { max_consecutive_errors: '3', max_cost: 'n/a' }, findings: [] }), stderr: '' }
+        : { exitCode: 2, stdout: '', stderr: 'x' },
+    }) as never)
+    on('command.run', () => ({ text: '', ref: 7 }))
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:autoresearch', args: 'drive connectivity' } as never)
+    expect(toasts).toContain('neuroflow: driving "connectivity" — one iteration per turn until a cap, 3 errored turns in a row, or your stop (Esc or /neuroflow:autoresearch stop)')
+    expect(driveToast('connectivity', 3, 'quiet')).toContain('or your stop (Esc, /neuroflow:autoresearch stop, or ^X Tab then x on the band)')
+    // No band is drawn: there is no x to press.
+    const band = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'AbovePrompt',
+      props: { hasSurvey: false, isWorking: true, maxRows: 4, bodyColumns: 116, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+    } as never)
+    expect(hotkeys(await band.drawn())).toEqual([])
+    await band.unmount()
+    expect((await $.command.run({ command: 'neuroflow:autoresearch', args: 'stop' } as never)).text).toBe('Stopped driving "connectivity". The current iteration, if any, finishes; no new one starts.')
   })
 
   test('an interrupted turn ends the drive, and observe mode never drives', { options: { runtime: 'observe' } }, async ($, on) => {

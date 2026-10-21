@@ -1,0 +1,733 @@
+{
+ "metas": {
+  "flowie": {
+   "applied": {},
+   "counts": {
+    "cards": 3,
+    "open": 2,
+    "pages": 3
+   },
+   "exported_at": "2026-10-21T10:00:00Z",
+   "index_only": false,
+   "intent_schema": 1,
+   "kind": "flowie",
+   "label": "flowie",
+   "level": "flowie",
+   "machine": "fixture-machine",
+   "parts": [
+    {
+     "bytes": 1514,
+     "id": "core",
+     "sha256": "7ce982ed935db5864587ea0858ae3c97faccf89c182e7c9d7cd2ef81c6fd671e"
+    },
+    {
+     "bytes": 1256,
+     "id": "cards-000",
+     "sha256": "1b0d73941c7cc69b1a03e09f598dd1f737166751ee43365cf1668e54f26c7a22"
+    },
+    {
+     "bytes": 962,
+     "id": "wiki-000",
+     "sha256": "7424eb7bad5cc5f91df51a1864610fdae659e350f3883038fdbeae51de01617f"
+    }
+   ],
+   "policy": "own",
+   "snap_schema": 1,
+   "source": {
+    "git": false
+   },
+   "withheld": [
+    {
+     "reason": "secret-like text",
+     "source": "tasks"
+    }
+   ],
+   "working_tree": false
+  },
+  "hive+example-lab+hive": {
+   "applied": {},
+   "counts": {
+    "cards": 3,
+    "open": 3,
+    "pages": 1
+   },
+   "exported_at": "2026-10-21T10:00:00Z",
+   "index_only": true,
+   "intent_schema": 1,
+   "kind": "hive",
+   "label": "example-lab/hive",
+   "level": "hive+example-lab+hive",
+   "machine": "fixture-machine",
+   "parts": [
+    {
+     "bytes": 1698,
+     "id": "core",
+     "sha256": "a4dabd673cd6658efc84caf4aaf312a289437fe01a8bd1e1abe93b777bcac97b"
+    },
+    {
+     "bytes": 1271,
+     "id": "cards-000",
+     "sha256": "cbb094ee118a346f216297453af11a33e315fd0b66de176392b7dee665982029"
+    },
+    {
+     "bytes": 278,
+     "id": "wiki-000",
+     "sha256": "7abd9234ac8182051f7dc013f24871001dcf67bdc2ce0e361cb976c3bc6c8fe4"
+    }
+   ],
+   "policy": "allow-names",
+   "snap_schema": 1,
+   "source": {
+    "git": false
+   },
+   "withheld": [],
+   "working_tree": false
+  },
+  "project+oddball-eeg": {
+   "applied": {},
+   "counts": {
+    "cards": 1,
+    "open": 1,
+    "pages": 1
+   },
+   "exported_at": "2026-10-21T10:00:00Z",
+   "index_only": false,
+   "intent_schema": 1,
+   "kind": "project",
+   "label": "Oddball EEG study",
+   "level": "project+oddball-eeg",
+   "machine": "fixture-machine",
+   "parts": [
+    {
+     "bytes": 1516,
+     "id": "core",
+     "sha256": "196cca187133f91379905b9503150c3689370beacbfcb4eab9ca6389fb77ae51"
+    },
+    {
+     "bytes": 482,
+     "id": "cards-000",
+     "sha256": "4915232f44da587bc4fdb6f9d28ac341d234de145743cd9bd3d4e435eefd1c1a"
+    },
+    {
+     "bytes": 304,
+     "id": "wiki-000",
+     "sha256": "7b397f7c8262c5e5e57405c15c6b3b465342589dbc773f63b8514d919967f35c"
+    }
+   ],
+   "policy": "allow",
+   "snap_schema": 1,
+   "source": {
+    "git": false
+   },
+   "withheld": [],
+   "working_tree": true
+  }
+ },
+ "parts": {
+  "flowie": {
+   "cards-000": {
+    "cards": [
+     {
+      "blocked_by": [],
+      "column": "active",
+      "created": "2026-10-02",
+      "due": null,
+      "file": "active/write-intro.md",
+      "legacy": false,
+      "notes": "Ask [email removed] or [phone removed] for the figure.",
+      "owner": null,
+      "phase": null,
+      "project": "solo-review",
+      "readable": true,
+      "sha256": "00bbf3afc9be512bc486f63976f27ebc0636a058aae5ca4b26ac27238d60d3e9",
+      "slug": "write-intro",
+      "tags": [
+       "paper"
+      ],
+      "title": "Write the introduction",
+      "updated": "2026-10-10"
+     },
+     {
+      "blocked_by": [],
+      "column": "done",
+      "created": "2026-09-01",
+      "due": null,
+      "file": "done/book-room.md",
+      "legacy": false,
+      "notes": "",
+      "owner": null,
+      "phase": null,
+      "project": null,
+      "readable": true,
+      "sha256": "26bb38d1d961e007749405d4bc363a90e37c0ccf688a8ccabc622781c1de5840",
+      "slug": "book-room",
+      "tags": [],
+      "title": "Book the room",
+      "updated": "2026-09-02"
+     },
+     {
+      "blocked_by": [],
+      "column": "inbox",
+      "created": "2026-10-01",
+      "due": "2026-10-20",
+      "file": "inbox/read-n2pc-review.md",
+      "legacy": false,
+      "notes": "",
+      "owner": null,
+      "phase": null,
+      "project": "oddball-eeg",
+      "readable": true,
+      "sha256": "120651d31d9506b1523f705297187002c87c600807e98a64746ced592286779b",
+      "slug": "read-n2pc-review",
+      "tags": [],
+      "title": "Read the N2pc review",
+      "updated": "2026-10-01"
+     }
+    ],
+    "level": "flowie",
+    "part": "cards-000",
+    "sha256": "1b0d73941c7cc69b1a03e09f598dd1f737166751ee43365cf1668e54f26c7a22",
+    "snap_schema": 1
+   },
+   "core": {
+    "archive_after_days": 90,
+    "card": null,
+    "columns": [
+     {
+      "archive": false,
+      "closed": false,
+      "id": "inbox",
+      "label": "inbox"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "ready",
+      "label": "ready"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "active",
+      "label": "active"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "review",
+      "label": "review"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "meeting",
+      "label": "meeting"
+     },
+     {
+      "archive": false,
+      "closed": true,
+      "id": "done",
+      "label": "done"
+     },
+     {
+      "archive": true,
+      "closed": true,
+      "id": "archive",
+      "label": "archive"
+     }
+    ],
+    "kind": "flowie",
+    "label": "flowie",
+    "level": "flowie",
+    "panel": {
+     "ideas": "# Ideas\n\n- Does alpha phase predict the N2pc latency?",
+     "ideas_inbox": "- 2026-10-12 try a hierarchical model",
+     "meetings": [
+      {
+       "date": "2026-10-22T10:00:00",
+       "slug": "2026-10-22-pi",
+       "title": "PI check-in"
+      }
+     ],
+     "notes": [
+      {
+       "date": "2026-10-05",
+       "file": "2026-10-05-talk.md",
+       "title": "Talk notes: attention"
+      }
+     ]
+    },
+    "part": "core",
+    "people": [
+     {
+      "handle": "alice"
+     }
+    ],
+    "phases": [
+     "brain-build",
+     "brain-optimize",
+     "brain-run",
+     "data",
+     "data-analyze",
+     "data-preprocess",
+     "experiment",
+     "finance",
+     "grant-proposal",
+     "ideation",
+     "notes",
+     "output",
+     "paper",
+     "poster",
+     "preregistration",
+     "review",
+     "tool-build",
+     "tool-validate",
+     "write-report"
+    ],
+    "registry": [
+     {
+      "hive": "example-lab/hive",
+      "id": "oddball-eeg",
+      "pointer": true
+     },
+     {
+      "current_phase": "ideation",
+      "description": "Reading list for the review; questions to [email removed]",
+      "id": "solo-review",
+      "repos": [
+       "https://github.com/alice/solo"
+      ],
+      "status": "active",
+      "visited_phases": []
+     }
+    ],
+    "sha256": "7ce982ed935db5864587ea0858ae3c97faccf89c182e7c9d7cd2ef81c6fd671e",
+    "snap_schema": 1
+   },
+   "wiki-000": {
+    "level": "flowie",
+    "pages": [
+     {
+      "body": "<script>alert(1)</script> **Alpha** and *attention*.",
+      "id": "concepts/alpha-oscillations",
+      "sources": [],
+      "status": null,
+      "summary": "",
+      "tags": [],
+      "title": "Alpha Oscillations",
+      "type": "concept",
+      "updated": "2026-09-30"
+     },
+     {
+      "body": "The N2pc relates to [[concepts/alpha-oscillations|Alpha Oscillations]] and [[|a gap]].\n\n[local file, not mirrored: figure-1.png]\n\nSee [local file, not mirrored: luck-2012.md], [[methods/ica|ICA]] and [Luck 2012](https://doi.org/10.1016/example).",
+      "id": "concepts/n2pc",
+      "sources": [
+       "luck-2012.md"
+      ],
+      "status": "current",
+      "summary": "Lateralised attention component",
+      "tags": [
+       "erp",
+       "attention"
+      ],
+      "title": "N2pc",
+      "type": "concept",
+      "updated": "2026-10-01"
+     },
+     {
+      "body": "1. Fit\n2. Reject",
+      "id": "methods/ica",
+      "sources": [],
+      "status": null,
+      "summary": "",
+      "tags": [],
+      "title": "ICA cleaning",
+      "type": "method",
+      "updated": null
+     }
+    ],
+    "part": "wiki-000",
+    "sha256": "7424eb7bad5cc5f91df51a1864610fdae659e350f3883038fdbeae51de01617f",
+    "snap_schema": 1
+   }
+  },
+  "hive+example-lab+hive": {
+   "cards-000": {
+    "cards": [
+     {
+      "blocked_by": [
+       "fix-channel-map"
+      ],
+      "column": "active",
+      "created": "2026-10-01",
+      "due": "2026-10-15",
+      "file": "active/rerun-ica.md",
+      "legacy": false,
+      "notes": "",
+      "owner": "jana",
+      "phase": null,
+      "project": "oddball-eeg",
+      "readable": true,
+      "sha256": "ef9931eb598ac36196b6ac1d69a16be08934d46946016282d4ba11065daa8428",
+      "slug": "rerun-ica",
+      "tags": [],
+      "title": "Rerun ICA on sub-07",
+      "updated": "2026-10-14"
+     },
+     {
+      "blocked_by": [],
+      "column": "blocked",
+      "created": "2026-10-05",
+      "due": null,
+      "file": "blocked/wait-for-amendment.md",
+      "legacy": false,
+      "notes": "",
+      "owner": null,
+      "phase": null,
+      "project": "oddball-eeg",
+      "readable": true,
+      "sha256": "154a5b4488b3f7026850a46b213650fd7b3d9759feedb567c6b3dcf5e2a9a997",
+      "slug": "wait-for-amendment",
+      "tags": [],
+      "title": "Wait for the ethics amendment",
+      "updated": "2026-10-05"
+     },
+     {
+      "blocked_by": [],
+      "column": "inbox",
+      "created": "2026-10-01",
+      "due": null,
+      "file": "inbox/fix-channel-map.md",
+      "legacy": false,
+      "notes": "",
+      "owner": "alice",
+      "phase": null,
+      "project": "oddball-eeg",
+      "readable": true,
+      "sha256": "278c87afaea06767dd0084356695d089697cbf5e169541123a44b4faa1465a65",
+      "slug": "fix-channel-map",
+      "tags": [],
+      "title": "Fix the channel map",
+      "updated": "2026-10-01"
+     }
+    ],
+    "level": "hive+example-lab+hive",
+    "part": "cards-000",
+    "sha256": "cbb094ee118a346f216297453af11a33e315fd0b66de176392b7dee665982029",
+    "snap_schema": 1
+   },
+   "core": {
+    "archive_after_days": 30,
+    "card": null,
+    "columns": [
+     {
+      "archive": false,
+      "closed": false,
+      "id": "inbox",
+      "label": "Inbox"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "active",
+      "label": "Doing"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "review",
+      "label": "Review"
+     },
+     {
+      "archive": false,
+      "closed": true,
+      "id": "done",
+      "label": "Done"
+     },
+     {
+      "archive": true,
+      "closed": true,
+      "id": "archive",
+      "label": "Archive"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "extra": true,
+      "id": "blocked",
+      "label": "blocked"
+     }
+    ],
+    "kind": "hive",
+    "label": "example-lab/hive",
+    "level": "hive+example-lab+hive",
+    "panel": {
+     "errata": [
+      {
+       "columns": [
+        "date",
+        "scope",
+        "problem",
+        "workaround",
+        "reported_by"
+       ],
+       "dataset": "oddball-eeg-2024",
+       "rows": [
+        [
+         "2026-10-01",
+         "sub-07, run-2",
+         "Trigger offset +12 ms",
+         "Shift events by -12 ms",
+         "@jana"
+        ]
+       ]
+      }
+     ],
+     "ideas": "# Team Ideas\n\n- A shared preprocessing pipeline",
+     "meetings": [
+      {
+       "date": "2026-10-23T14:00:00",
+       "slug": "2026-10-23-lab",
+       "title": "Lab meeting"
+      }
+     ],
+     "team": "# Example Lab\n\nWe study attention.\n\n## Norms\nCode review before merge.\n\n## Active research directions\n- Alpha and attention"
+    },
+    "part": "core",
+    "people": [
+     {
+      "handle": "alice",
+      "name": "Alice Example",
+      "role": "student"
+     },
+     {
+      "handle": "jana",
+      "name": "Jana Example",
+      "role": "postdoc"
+     }
+    ],
+    "phases": [
+     "brain-build",
+     "brain-optimize",
+     "brain-run",
+     "data",
+     "data-analyze",
+     "data-preprocess",
+     "experiment",
+     "finance",
+     "grant-proposal",
+     "ideation",
+     "notes",
+     "output",
+     "paper",
+     "poster",
+     "preregistration",
+     "review",
+     "tool-build",
+     "tool-validate",
+     "write-report"
+    ],
+    "registry": [
+     {
+      "current_phase": "data-analyze",
+      "description": "P300 in an auditory oddball",
+      "id": "oddball-eeg",
+      "repos": [
+       "https://github.com/example-lab/oddball"
+      ],
+      "status": "active",
+      "visited_phases": []
+     }
+    ],
+    "sha256": "a4dabd673cd6658efc84caf4aaf312a289437fe01a8bd1e1abe93b777bcac97b",
+    "snap_schema": 1
+   },
+   "wiki-000": {
+    "level": "hive+example-lab+hive",
+    "pages": [
+     {
+      "id": "methods/ica",
+      "sources": [],
+      "status": null,
+      "summary": "",
+      "tags": [],
+      "title": "ICA cleaning",
+      "type": "method",
+      "updated": null
+     }
+    ],
+    "part": "wiki-000",
+    "sha256": "7abd9234ac8182051f7dc013f24871001dcf67bdc2ce0e361cb976c3bc6c8fe4",
+    "snap_schema": 1
+   }
+  },
+  "project+oddball-eeg": {
+   "cards-000": {
+    "cards": [
+     {
+      "blocked_by": [],
+      "column": "review",
+      "created": "2026-10-03",
+      "due": null,
+      "file": "review/qc-report.md",
+      "legacy": false,
+      "notes": "",
+      "owner": null,
+      "phase": null,
+      "project": null,
+      "readable": true,
+      "sha256": "4fbee1425d7418cb1ceea52bab02133f10724bb651e427d5457be25245e4007a",
+      "slug": "qc-report",
+      "tags": [],
+      "title": "QC report",
+      "updated": "2026-10-09"
+     }
+    ],
+    "level": "project+oddball-eeg",
+    "part": "cards-000",
+    "sha256": "4915232f44da587bc4fdb6f9d28ac341d234de145743cd9bd3d4e435eefd1c1a",
+    "snap_schema": 1
+   },
+   "core": {
+    "archive_after_days": 90,
+    "card": "oddball-eeg",
+    "columns": [
+     {
+      "archive": false,
+      "closed": false,
+      "id": "inbox",
+      "label": "inbox"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "ready",
+      "label": "ready"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "active",
+      "label": "active"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "review",
+      "label": "review"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "id": "meeting",
+      "label": "meeting"
+     },
+     {
+      "archive": false,
+      "closed": true,
+      "id": "done",
+      "label": "done"
+     },
+     {
+      "archive": true,
+      "closed": true,
+      "id": "archive",
+      "label": "archive"
+     }
+    ],
+    "kind": "project",
+    "label": "Oddball EEG study",
+    "level": "project+oddball-eeg",
+    "panel": {
+     "active_phase": "data-analyze",
+     "dates": [
+      {
+       "date": "2026-10-08",
+       "gates": "paper",
+       "what": "Abstract deadline"
+      },
+      {
+       "date": "2026-12-01",
+       "gates": null,
+       "what": "Ethics report"
+      }
+     ],
+     "ethics": {
+      "by_person": true,
+      "expires": "2027-06-30",
+      "status": "approved"
+     },
+     "ethics_not_applicable": false,
+     "meetings": [],
+     "prereg": {
+      "by_person": false,
+      "frozen_at": "2026-10-01T10:00:00Z",
+      "status": "frozen"
+     },
+     "project_name": "Oddball EEG study",
+     "recommended_phases": [
+      "ideation",
+      "preregistration",
+      "data",
+      "data-analyze",
+      "paper"
+     ],
+     "visited": [
+      "data-analyze",
+      "ideation",
+      "preregistration"
+     ]
+    },
+    "part": "core",
+    "people": [
+     {
+      "handle": "jana"
+     }
+    ],
+    "phases": [
+     "brain-build",
+     "brain-optimize",
+     "brain-run",
+     "data",
+     "data-analyze",
+     "data-preprocess",
+     "experiment",
+     "finance",
+     "grant-proposal",
+     "ideation",
+     "notes",
+     "output",
+     "paper",
+     "poster",
+     "preregistration",
+     "review",
+     "tool-build",
+     "tool-validate",
+     "write-report"
+    ],
+    "registry": [],
+    "sha256": "196cca187133f91379905b9503150c3689370beacbfcb4eab9ca6389fb77ae51",
+    "snap_schema": 1
+   },
+   "wiki-000": {
+    "level": "project+oddball-eeg",
+    "pages": [
+     {
+      "body": "See [[|Unknown]].",
+      "id": "concepts/montage",
+      "sources": [],
+      "status": null,
+      "summary": "",
+      "tags": [],
+      "title": "Montage",
+      "type": "concept",
+      "updated": null
+     }
+    ],
+    "part": "wiki-000",
+    "sha256": "7b397f7c8262c5e5e57405c15c6b3b465342589dbc773f63b8514d919967f35c",
+    "snap_schema": 1
+   }
+  }
+ }
+}

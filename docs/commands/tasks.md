@@ -35,6 +35,7 @@ At flowie and hive level, the tasks of **this project** come first in each colum
 | `--done {slug}` | Complete a task |
 | `--archive` | Archive done tasks older than `archive_after_days` (default 90) |
 | `--project {id}` | One project across every board: your flowie, each hive, this repository and the project's other repositories (their boards fetched into a local cache in `~/.neuroflow/boards/` each time, never synced) |
+| `--apply-web` | Apply the changes you made on [your claude.ai workbench](../concepts/workbench.md) (see below) |
 
 **Where a task goes.** On the narrowest board that everyone who must see it can read: only you — your flowie; the team — the hive (the default for a team project); the people working in this repository, about its code or files — the project board. `--add` proposes the board and says why; you can pick another.
 
@@ -42,9 +43,39 @@ Every board display is a rendered ASCII Kanban — never a flat list, except `--
 
 ---
 
+## Changes from your workbench (`--apply-web`)
+
+A card you move or add on [your claude.ai workbench](../concepts/workbench.md) is a request; `--apply-web` is where it
+lands in git. It picks up the waiting requests (a project's only when you run it in that project), claims them — after
+a one-line preview and your yes — so a second machine cannot apply them too, and checks each against git: a task that
+changed or moved since your snapshot is
+a conflict and nothing is written. Accepted changes move the task files exactly as `--move` does — two moves of one card
+become one move, a card you added on the page gets its slug here — and every flowie or hive commit names the requests it
+holds, so nothing is applied twice. Your flowie is synced; a hive's push waits for your yes; a project's change stays in
+your working tree. The outcomes and the refreshed boards go back to the page in one upload, after a one-line preview and
+your yes.
+
+`--move` warns you when a workbench change waits for the same card, and the board marks such cards `↻`.
+
+---
+
 ## With the neuroflow mod
 
-A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are, and — read-only — the boards of the project's other repositories, from a local cache that is refreshed in the background when the boards open. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
+A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are, and — read-only — the boards of the project's other repositories, from a local cache that is refreshed in the background when the boards open. It opens holding the keyboard, on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks.
+
+| Key | What it does |
+|---|---|
+| `1`–`9` | Show a level's board: the level row reads `1: project 3   2: flowie 12 (◆ 2)   3: example-lab-hive 4`, with this project's share marked `◆` |
+| Tab, `h` `j` `k` `l` | Move to a card — `h` and `l` between columns, `j` and `k` within one; a column shows five cards at a time, and `j` past the fifth shows the next five |
+| Enter | On a card: pick it to move (it is marked `▸`); on a column: move it there — after your yes at project and flowie level. An Enter that comes right after another key does nothing |
+| `x` | Cancel the pick |
+| `r` · `q` · Esc | Read the boards again · close the pane · give the keys back to the prompt |
+
+The columns have round corners, each headed by its name in capitals and its count; a card too long for its column ends
+in `…`. In a pane too narrow for the columns side by side — a dock beside the conversation — they stand one under the
+other.
+
+The pane holds the keys while you may think you are typing into the prompt, so at project and flowie level a move first asks in Claude Code's question dialog, the safe answer on top: after your yes it runs as one `/tasks` command (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level), and `/tasks` moves the file as usual; a stray Enter in the question moves nothing and leaves the card picked. At a hive's level the move only goes into the prompt (`/neuroflow:tasks --level hive --hive {org-repo} --move {slug} {column}`) for you to send with Esc and then Enter: it ends in a push to the team's repository, which `/tasks` shows you and makes only after your yes. Any argument runs the full command.
 
 ---
 

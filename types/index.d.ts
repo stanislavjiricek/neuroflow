@@ -94,6 +94,21 @@ export type NfSnapshot = {
   /** Things the loader could not read or understand, in plain words. */
   problems: string[]
   loadedAt: number
+  /** Changes on the person's claude.ai workbench waiting for /neuroflow:tasks --apply-web (pending.json); null when none. */
+  workbench?: NfWebPending | null
+}
+
+/**
+ * ~/.neuroflow/workbench/pending.json as workbench.py last wrote it (neuroflow-core → Workbench snapshot): how many
+ * workbench changes wait for Claude Code, since when (`oldest`), and per level the board and the slugs they touch. As of
+ * `checkedAt` only.
+ */
+export type NfWebPending = {
+  checkedAt: string | null
+  oldest: string | null
+  count: number
+  /** `root`: a project's folder as workbench.py reached it; `roots`: that and the folder it resolves to. */
+  levels: { level: string; kind: string | null; board: string | null; root: string | null; roots: string[]; slugs: string[]; count: number }[]
 }
 
 /** One row of a wiki's index.md: which wiki, the page title, its file and one-line summary. */
@@ -145,7 +160,8 @@ export type NfLoopView = {
   questions: string[]
 }
 
-export type NfDashboardTab = 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
+/** The dashboard's tabs, in their digit order (1–6); `now` lists every band item with its action. */
+export type NfDashboardTab = 'now' | 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
 
 export type NfCard = {
   slug: string
@@ -157,11 +173,16 @@ export type NfCard = {
   project: string | null
   /** The task belongs to this project: every task at project level, a matching `project:` elsewhere. */
   isMine: boolean
+  /** A change from the claude.ai workbench waits for this card (pending.json). */
+  web?: boolean
 }
 
 /** One level's task board as the board pane draws it (commands/tasks.md format). */
 export type NfBoard = {
+  /** The drawn columns, each with every open card in board order (the pane shows five at a time and pages on). */
   columns: { id: string; label: string; cards: NfCard[]; total: number }[]
+  /** Every open column of the board's config in board order, drawn or not (an empty one is not): where a card can move. */
+  openColumns: string[]
   done: number
   archived: number
 }
@@ -201,6 +222,8 @@ export type NfTaskView = {
   card?: string | null
   /** Whether the card lists other repositories, whose boards the cache can hold. */
   hasRemote?: boolean
+  /** Workbench changes waiting for Claude Code (pending.json): when it was written, since when the oldest waits, how many. */
+  web?: { checkedAt: string | null; oldest?: string | null; count: number } | null
 }
 
 /** A flowie sync the mod queued (in $.store): the files it wrote there and the commit message. */
@@ -285,6 +308,17 @@ declare module 'claude-code' {
       quietSince: number | null
       /** The mod's own flowie syncs: queued by the wellbeing band (views) and the idea capture, run by capture. */
       flowieSync: NfFlowieSync
+      /**
+       * When each pane (by id) last opened asking for the keyboard, in `$.clock` time: keys typed within
+       * TYPE_THROUGH_MS after it (lib/keys.ts) are dropped as typed through (views and user panes).
+       */
+      openedAt: Record<string, number>
+      /**
+       * When each pane (by id) last saw one of its keys pressed, or its ring moved by the mod, in `$.clock` time: an
+       * Enter on an action (a row, a card, a move target, accept, sync) within TYPE_THROUGH_MS after it is dropped as
+       * typed through, so a word typed for the prompt never presses what its `j` or `k` moved the ring onto.
+       */
+      keyAt: Record<string, number>
       // Feature slices: each feature file owns the keys between its markers.
       // <feature:context>
       /** Page titles and one-line summaries of the initialized wikis (index.md rows), for prompt-time lookups. */
@@ -323,6 +357,18 @@ declare module 'claude-code' {
       wellbeingCheck: NfWellbeingCheck | null
       /** The task card picked on the board, to move it. */
       boardPick: string | null
+      /**
+       * How often the band took the keys (^X Tab or a click): a mirror of the `$.store` key `keys.learned`,
+       * which stays the truth across sessions; null until the session read it. The band teaches the chord
+       * until it reaches three.
+       */
+      keysLearned: number | null
+      /**
+       * Per pane id, the element the focus ring was last moved onto (a card, a move target, a now-tab action, a
+       * key). Absent while the ring is on none of the pane's elements: since the pane opened, its tab changed or
+       * the ring went to one of the engine's own stops.
+       */
+      paneRing: Record<string, string>
       // </feature:views>
       // <feature:loop>
       /** The autoresearch loop the mod is driving, one iteration per turn (null when none). */

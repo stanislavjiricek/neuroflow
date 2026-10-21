@@ -116,7 +116,7 @@ describe('wiki lookup and profile digest', () => {
 
 describe('menu marks and quiet mode', () => {
   test('the current and next phase commands are marked', () => {
-    expect(phaseMark('data-analyze', 'data-analyze', 'paper')).toBe('● current phase ·')
+    expect(phaseMark('data-analyze', 'data-analyze', 'paper')).toBe('◉ current phase ·')
     expect(phaseMark('paper', 'data-analyze', 'paper')).toBe('→ next ·')
     expect(phaseMark('poster', 'data-analyze', 'paper')).toBe(null)
   })

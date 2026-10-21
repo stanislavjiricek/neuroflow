@@ -79,15 +79,17 @@ KNOWN_SCHEMA = sc.SCHEMA_VERSION
 
 FRONTMATTER_ORDER = [
     "nf_schema", "project_name", "active_phase", "default_mode", "target_journal",
-    "recommended_phases", "raw_roots", "paper_auto", "hive_repo", "ethics", "collaborators",
+    "recommended_phases", "raw_roots", "paper_auto", "hive_repo", "ethics", "workbench_mirror", "collaborators",
     "flowie_profiles", "plugin_version",
 ]
 SETTABLE = {"project_name", "active_phase", "default_mode", "target_journal", "recommended_phases",
-            "raw_roots", "paper_auto", "hive_repo"}
+            "raw_roots", "paper_auto", "hive_repo", "workbench_mirror"}
 LIST_KEYS = {"recommended_phases", "raw_roots"}
 RECORD_KEYS = {"collaborators", "flowie_profiles"}
-RAW_EMIT_KEYS = {"active_phase", "default_mode", "paper_auto"}
+RAW_EMIT_KEYS = {"active_phase", "default_mode", "paper_auto", "workbench_mirror"}
 MODES = {"teacher", "executor", "critic"}
+# The team's opt-in to the claude.ai workbench (neuroflow-core → Workbench snapshot); absent means not mirrored.
+WORKBENCH_MIRROR = {"allow", "allow-names", "forbid"}
 
 # Legacy spellings (normalised: lowercase, non-alphanumerics -> "_") -> contract key.
 KEY_ALIASES = {
@@ -101,6 +103,7 @@ KEY_ALIASES = {
     "paper_auto": "paper_auto",
     "hive_repo": "hive_repo", "hive": "hive_repo",
     "ethics": "ethics",  # `ethics: not-applicable` (see /ethics) keeps working as a frontmatter fact
+    "workbench_mirror": "workbench_mirror",
     "collaborators": "collaborators",
     "flowie_profiles": "flowie_profiles",
     "plugin_version": "plugin_version",
@@ -301,6 +304,13 @@ def normalise(key: str, value, phases: set[str], problems: Problems, origin: str
         if flag in {"off", "no", "false"}:
             return "off"
         problems.notes.append(f"paper_auto {value!r} ({origin}) is not on or off; left in the notes.")
+        return None
+    if key == "workbench_mirror":
+        policy = str(value).strip().lower()
+        if policy in WORKBENCH_MIRROR:
+            return policy
+        problems.notes.append(f"workbench_mirror {value!r} ({origin}) is not allow, allow-names or forbid; "
+                              "left in the notes.")
         return None
     if key in RECORD_KEYS:
         if isinstance(value, list) and all(isinstance(x, dict) for x in value):

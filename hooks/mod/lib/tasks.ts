@@ -7,6 +7,7 @@ import type { NfBoard, NfCard, NfTaskLevel, NfTaskView } from '../../../types'
 import { asList, asString, parseYamlSubset, splitFrontmatter } from './frontmatter'
 import type { NfIo } from './io'
 import { dirname, isWindowsPath, join, resolveFrom, toSlash } from './paths'
+import { loadPending, pendingSlugs } from './workbench'
 
 export type Column = { id: string; label: string; archive: boolean }
 
@@ -54,7 +55,10 @@ export const parseTask = (text: string, slug: string, today: string, isDone: boo
 export const byPriority = (a: NfCard, b: NfCard): number =>
   Number(b.isMine) - Number(a.isMine) || Number(b.overdue) - Number(a.overdue) || (a.due ?? '9999').localeCompare(b.due ?? '9999')
 
-/** The board as the Rendering rules say: board order, this project's and overdue cards first, done/archive counted not drawn. */
+/**
+ * The board as the Rendering rules say: board order, this project's and overdue cards first, done/archive counted not
+ * drawn. Each column keeps every open card: the views show five at a time (lib/layout.ts → BOARD_PAGE) and page on.
+ */
 export const buildBoard = (columns: readonly Column[], cards: Readonly<Record<string, NfCard[]>>): NfBoard => {
   const drawn = columns.filter(column => !isClosed(column))
   const done = (cards.done ?? []).length
@@ -63,17 +67,18 @@ export const buildBoard = (columns: readonly Column[], cards: Readonly<Record<st
     columns: drawn
       .map(column => {
         const list = [...(cards[column.id] ?? [])].sort(byPriority)
-        return { id: column.id, label: column.label, cards: list.slice(0, 5), total: list.length }
+        return { id: column.id, label: column.label, cards: list, total: list.length }
       })
       .filter(column => column.total > 0 || column.id === 'inbox' || column.id === 'active'),
+    openColumns: drawn.map(column => column.id),
     done,
     archived,
   }
 }
 
-/** A card as one text line: `⚠ rerun-ica @li due 08-20`. */
+/** A card as one text line: `⚠ rerun-ica @li due 08-20`; `↻` when a workbench change waits for it. */
 export const cardLine = (card: NfCard): string =>
-  `${card.overdue ? '⚠ ' : ''}${card.title}${card.owner ? ` @${card.owner}` : ''}${card.due ? ` due ${card.due.slice(5)}` : ''}`
+  `${card.web ? '↻ ' : ''}${card.overdue ? '⚠ ' : ''}${card.title}${card.owner ? ` @${card.owner}` : ''}${card.due ? ` due ${card.due.slice(5)}` : ''}`
 
 /** The mark of this project's cards on flowie and hive boards (the prose's rendering rules use the same). */
 export const MINE = '◆'
@@ -404,7 +409,18 @@ export const loadTaskView = async (io: NfIo, root: string, home: string | null, 
   // The card id: the flowie's link, else the first hive that lists this repo (board order).
   const card = named.get('flowie') ?? refs.map(ref => named.get(ref.id) ?? null).find(id => id !== null) ?? null
   const levels: NfTaskLevel[] = []
-  for (const ref of refs) levels.push(await loadLevel(io, ref, today, ref.kind === 'project' ? null : named.get(ref.id) ?? card))
+  // Changes queued on the claude.ai workbench (pending.json, as of when workbench.py wrote it) mark their cards.
+  const pending = await loadPending(io, home === null ? null : toSlash(home))
+  for (const ref of refs) {
+    const level = await loadLevel(io, ref, today, ref.kind === 'project' ? null : named.get(ref.id) ?? card)
+    const waiting = pendingSlugs(pending, ref, root)
+    const mark = (item: NfCard): NfCard => (waiting.has(item.slug) ? { ...item, web: true } : item)
+    levels.push(waiting.size === 0 ? level : {
+      ...level,
+      board: { ...level.board, columns: level.board.columns.map(column => ({ ...column, cards: column.cards.map(mark) })) },
+      top: level.top.map(mark),
+    })
+  }
   let hasRemote = false
   if (home !== null && card !== null) {
     const entry = await projectCard(io, home, hiveDirs, card)
@@ -421,7 +437,7 @@ export const loadTaskView = async (io: NfIo, root: string, home: string | null, 
       levels.push({ ...level, fetched: stamp === '' ? null : stamp })
     }
   }
-  return { levels, card, hasRemote }
+  return { levels, card, hasRemote, web: pending === null ? null : { checkedAt: pending.checkedAt, oldest: pending.oldest, count: pending.count } }
 }
 
 // ── what the views say ────────────────────────────────────────────────────────────────────────
@@ -452,6 +468,12 @@ export const openingLevel = (view: NfTaskView): string =>
 /** The /tasks options that select a level, as commands/tasks.md spells them (nothing for the project level). */
 export const levelArgs = (level: Pick<NfTaskLevel, 'kind' | 'name'>): string =>
   level.kind === 'project' ? '' : level.kind === 'flowie' ? ' --level flowie' : ` --level hive --hive ${level.name}`
+
+/** The board's open columns in board order, drawn or not (an empty `review` is a place to move to all the same). */
+export const openColumnsOf = (board: NfBoard): string[] => ((board.openColumns ?? []).length > 0 ? board.openColumns : board.columns.map(column => column.id))
+
+/** Where a card can move: every other open column of the board, then done. */
+export const moveTargets = (board: NfBoard, from: string | null): string[] => [...openColumnsOf(board).filter(id => id !== from && id !== 'done'), 'done']
 
 /** The command a move on the board puts in the prompt: /tasks moves the file and records it. */
 export const moveCommand = (level: Pick<NfTaskLevel, 'kind' | 'name'>, slug: string, column: string): string =>

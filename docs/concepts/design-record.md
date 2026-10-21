@@ -101,7 +101,7 @@ warning, kept as a rule of the mod's charter.
 | M136 | @people autocomplete with roster context | X | Built differently | Rule added: never invent an email address or handle. |
 | M137 | Upstream change digests: hive norms and teammate activity | X | Not built | Not built: /hive --sync already prints a change digest (now computed by git diff), and a teammate 'who changed what' feed would break the hive's no-surveillance rule. |
 | M138 | Authorship stamps on shared memory | X | Not built | Not built: git blame already records authorship for everyone, and silently stamping the model's writes would break the files and the reasoning-log format. |
-| M139 | Supervisor status page and feedback through a private Artifact | X | Not built | Not built: supervisor accounts, hosting rules and comment intake are outside the plugin, and a --share step would belong in /write-report, which is not in this package. |
+| M139 | Supervisor status page and feedback through a private Artifact | X | Not built | Not built: supervisor accounts, hosting rules and comment intake are outside the plugin, and a --share step would belong in /write-report, which is not in this package. Revisited in W01: still not built. |
 | M140 | Lab-curated agents and checklists from the hive | X | Built differently | Defined an optional review_checklist.md format in the hive repo, which reaches members through the clone on --sync. |
 | M141 | Lab policy edition at the managed tier | X | Not built | Not built: this is an enterprise lockdown product that would promise PHI protection with holes (Bash, MCP), well outside a research plugin. |
 | M142 | Cross-session loop steering and GitHub event intake | X | Not built | Not built: answers.md and SendMessage already cover steering a loop, and GitHub event intake for local sessions cannot be verified. |
@@ -215,7 +215,7 @@ warning, kept as a rule of the mod's charter.
 | M194 | Clean-room reproduction gate | T3 | Built | cleanroom.py clones at the recorded commit, then builds the environment from --requirements (venv), --python or --current-python. |
 | M195 | Autoresearch branch tournament in worktrees | X | Not built | Breaks autoresearch's one-agent design and its history/ snapshot model, which is not git. |
 | M196 | Interactive raw and spike browser as a Client module | X | Not built | MNE raw.plot()/mne-qt-browser over X11 or VNC, or annotate_* functions plus an MNE Report, beat a braille terminal browser. |
-| M197 | Drag-and-drop Kanban in the terminal | X | Not built | Not built: /tasks --move already does this in one line; drag-and-drop in a terminal is fragile. |
+| M197 | Drag-and-drop Kanban in the terminal | X | Not built | Not built: /tasks --move already does this in one line; drag-and-drop in a terminal is fragile. Revisited in W01: drag and drop is built in the browser, on the claude.ai workbench, not in the terminal. |
 | M198 | Overnight lab shift with a morning briefing | X | Folded into another | Folded into M220: the overnight budget brake is max_iterations / max_wall_clock / max_cost; report.md (STOPPED line plus open questions) is the morning briefing; /loop covers pacing. |
 
 ## Onboarding
@@ -309,7 +309,7 @@ warning, kept as a rule of the mod's charter.
 | M160 | Machine-readable integrity state contract | T0 | Built | C2 writers in this package: /ethics writes ethics/status.md frontmatter (set_by semantics, legacy migration); freeze.py writes preregistration/status.md. |
 | M161 | Context diet: slice heavy skills and trim the listing | T0 | Built | Done now: the V9 lint caught the three shadowed skills, renamed in C13 to autoresearch-protocol, wiki-protocol and setup-guide. |
 | M162 | Runtime capability handshake | X | Not built | No duty is delegated to the mod. |
-| M163 | Code-answered commands with CI exit codes | T2 | In the mod | `/phase`, `/dashboard`, `/tasks`, `/doctor` and paper status views answered in code, with the prose as fallback. |
+| M163 | Code-answered commands with CI exit codes | T2 | In the mod | `/phase`, `/dashboard`, `/tasks`, `/doctor` and paper status views answered in code, with the prose as fallback; each view opens holding the keyboard, on one key map (lib/keys.ts). |
 | M164 | Generated command manifest and single rules file | X | Folded into another | Covered by M210. |
 | M165 | Rule provenance markers | T1 | Built | New check V8. |
 | M166 | Feature-module architecture | X | Not built | The engine already nests features, budgets hooks and catches failures; one file per feature is enough. |
@@ -363,8 +363,8 @@ warning, kept as a rule of the mod's charter.
 | M066 | Research-aware autocomplete | X | Not built | A per-keystroke hook for a small gain; @-mentions already complete wiki and task paths. |
 | M067 | Branded greeting with live version and research vocabulary | X | Not built | No greeting: the mod stays quiet by default. |
 | M068 | End-of-command decision band | X | Not built | It only swaps typing Y for pressing a digit and adds a stray-digit hazard; the prose prompt is kept. |
-| M069 | On-demand project dashboard pane | T1 | In the mod | `/neuroflow:dashboard`: phase map, deadlines, integrity, tasks and the autoresearch loop. |
-| M070 | Native Kanban board pane | T2 | In the mod | `/neuroflow:tasks` opens the boards of the project, the flowie and each hive as a pane, `v` switching the level; a picked card and column put the move in the prompt as one `/tasks` command. |
+| M069 | On-demand project dashboard pane | T1 | In the mod | `/neuroflow:dashboard`: what needs attention, the phases as a flow line, a dates ruler, integrity, tasks and the autoresearch loop, laid out for the pane's width and the terminal's height. |
+| M070 | Native Kanban board pane | T2 | In the mod | `/neuroflow:tasks` opens the boards of the project, the flowie and each hive as a pane holding the keyboard, the digits picking the level; Enter on a card and then a column runs the move as one `/tasks` command, or, at a hive's level, puts it in the prompt for the person to send; a column shows five cards at a time and `j` pages on. |
 | M071 | Grant word counts and section board | X | Built differently | Grant word counts come from a tool (wc -w), page limits are checked in the funder template, and section drafts are saved to draft-*.md. |
 | M072 | Writing boards for worker-critic loops | X | Built differently | critic-log gets one block per section (worker-critic format); /paper already asks the person after the third rejection. |
 | M073 | Research-aware transcript rows | X | Not built | It re-skins rows the engine already annotates, and collapsed receipts cannot honour ctrl+o. |
@@ -374,8 +374,17 @@ warning, kept as a rule of the mod's charter.
 | M077 | Parsed scientific CLI output: digests for the model, tables for the person | T2 | Built | bids_digest.py turns bids-validator --json (schema validator and legacy 1.x layouts) into counts per issue code with first locations, plus a summary that omits participant age/sex. |
 | M078 | Context, rate-limit and spend meter | X | Not built | Duplicates the status line, /cost and Claude Code's own limit warnings, and per-phase spend is only notional. |
 | M079 | Talk preview, lint and rehearsal coach | X | Built differently | The Limitations slide now draws only on preregistration deviations and recorded analysis or manuscript limitations, never on .neuroflow/fails/. |
-| M080 | Welcome-back and My Day band | T1 | In the mod | One quiet band above the prompt: deadlines, meetings, drafted decisions, the loop being driven; letter hotkeys. |
+| M080 | Welcome-back and My Day band | T1 | In the mod | One quiet band row above the prompt: deadlines, meetings, drafted decisions, the loop being driven; letter hotkeys once ^X Tab gives it the keys, a chord it names until the person has used it, wherever the row has room beside the item. The dashboard's now tab lists every item with its action. |
 | M081 | Selection clipper | X | Not built | Not built: selecting text already copies it, so pasting into /tasks --add or /notes does the same; it would also only work in the fullscreen terminal. |
 | M082 | Meeting radar | T2 | In the mod | The band names the next meeting (prepare, notes) and a past one left unclosed (close). |
 | M083 | Live progress in the model's Bash rows | X | Built differently | The ~10-minute rule lives in long-runs.md plus pointers in the phase skills: use run_in_background or a detached launch with progress lines. |
 | M084 | Autoresearch dashboard pane (retires server.py) | T2 | In the mod | The dashboard's loop tab: iteration, best snapshot, a quality sparkline and open questions. |
+
+## Revisited
+
+Decisions taken after the review that reopen one of its ideas. They are not among the 270 ideas counted above, and the
+ideas they answer keep their tier and outcome there, with a pointer here.
+
+| ID | Idea | Tier | Outcome | Note |
+|---|---|---|---|---|
+| W01 | The claude.ai workbench: one private page per person over their flowie, hives and projects (answers M139 and M197) | — | Built | Each person may publish one owner-only claude.ai artifact with a tab per level: a Kanban with drag and drop and keyboard moves, the project list, the wiki and the level's panel, all from one template (neuroflow-core → Workbench snapshot). Git stays the only store: a click is an intent that the owner's own Claude Code checks against git and applies through /tasks Moves and each level's push rule (/tasks --apply-web); every upload needs a one-line preview and the person's yes, and hive or project data needs the team's workbench_mirror opt-in. M139 stays not built: there is no shared editable board and no read-only window for a supervisor. A shared board would make every writer an editor who can republish the page and its rules, add a second access list Claude Code cannot read, and have one member commit others' clicks; a window would add a keeper role and comment intake. Both are a separate, later decision. M197 stays out of the terminal: drag and drop lives in the browser, and the terminal keeps /tasks --move and the mod's board pane. |

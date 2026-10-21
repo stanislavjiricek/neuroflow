@@ -1,0 +1,1148 @@
+<!-- neuroflow-workbench:begin -->
+<title>neuroflow workbench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="neuroflow:workbench-template" content="1">
+<meta name="neuroflow:workbench-contract" content="0.2.87">
+<meta name="description" content="Your private neuroflow workbench: task boards, project lists and wikis mirrored from git.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one column — the brand bar, the level tabs, then the level: a board whose columns scroll sideways inside
+     their own frame, or its projects, wiki or level panel. Dark first (the neuroflow look), light as the alternative. */
+  :root {
+    color-scheme: dark;
+    --bg: #06070A; --raise: #0C0D11; --field: #0E0F13; --line: #1C1D22; --line2: #2A2C33;
+    --ink: #E9E9E4; --strong: #FFFFFF; --text: #C8C9CC; --mute: #A2A4A9; --dim: #7C7E84; --faint: #43464E;
+    --sage: #B7C4B0; --sand: #D9C5A3; --lavender: #C9B7D8; --warn: #C9A26B; --alert: #E39A88;
+    --chip: rgba(255, 255, 255, 0.03); --hover: rgba(255, 255, 255, 0.05); --shade: rgba(0, 0, 0, 0.55);
+    --sans: "Albert Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --s1: 11px; --s2: 12px; --s3: 14px; --s4: 15px; --s5: 18px; --s6: 24px;
+    --r-card: 10px; --r-panel: 16px; --r-input: 4px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --bg: #F4F3EF; --raise: #ECEBE6; --field: #E8E6E0; --line: #DAD7CF; --line2: #C9C6BD;
+      --ink: #141416; --strong: #000000; --text: #2E2E30; --mute: #55544F; --dim: #6E6C66; --faint: #A9A69E;
+      --sage: #3E5B3C; --sand: #7A5A2E; --lavender: #5B3F75; --warn: #8A5A1F; --alert: #9C3B2E;
+      --chip: rgba(0, 0, 0, 0.03); --hover: rgba(0, 0, 0, 0.05); --shade: rgba(20, 20, 22, 0.25);
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #F4F3EF; --raise: #ECEBE6; --field: #E8E6E0; --line: #DAD7CF; --line2: #C9C6BD;
+    --ink: #141416; --strong: #000000; --text: #2E2E30; --mute: #55544F; --dim: #6E6C66; --faint: #A9A69E;
+    --sage: #3E5B3C; --sand: #7A5A2E; --lavender: #5B3F75; --warn: #8A5A1F; --alert: #9C3B2E;
+    --chip: rgba(0, 0, 0, 0.03); --hover: rgba(0, 0, 0, 0.05); --shade: rgba(20, 20, 22, 0.25);
+  }
+  /* the person's own choice in the settings wins over the viewer's theme, inside the page */
+  .app[data-look="light"] {
+    color-scheme: light;
+    --bg: #F4F3EF; --raise: #ECEBE6; --field: #E8E6E0; --line: #DAD7CF; --line2: #C9C6BD;
+    --ink: #141416; --strong: #000000; --text: #2E2E30; --mute: #55544F; --dim: #6E6C66; --faint: #A9A69E;
+    --sage: #3E5B3C; --sand: #7A5A2E; --lavender: #5B3F75; --warn: #8A5A1F; --alert: #9C3B2E;
+    --chip: rgba(0, 0, 0, 0.03); --hover: rgba(0, 0, 0, 0.05); --shade: rgba(20, 20, 22, 0.25);
+  }
+  .app[data-look="dark"] {
+    color-scheme: dark;
+    --bg: #06070A; --raise: #0C0D11; --field: #0E0F13; --line: #1C1D22; --line2: #2A2C33;
+    --ink: #E9E9E4; --strong: #FFFFFF; --text: #C8C9CC; --mute: #A2A4A9; --dim: #7C7E84; --faint: #43464E;
+    --sage: #B7C4B0; --sand: #D9C5A3; --lavender: #C9B7D8; --warn: #C9A26B; --alert: #E39A88;
+    --chip: rgba(255, 255, 255, 0.03); --hover: rgba(255, 255, 255, 0.05); --shade: rgba(0, 0, 0, 0.55);
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font: 400 var(--s3)/1.5 var(--sans); }
+  * { box-sizing: border-box; }
+  .app {
+    min-height: 100%; background: var(--bg); color: var(--text);
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 14px 40px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .app > * { min-width: 0; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  a { color: var(--ink); text-underline-offset: 3px; }
+  code, kbd { font-family: var(--mono); font-size: 0.92em; }
+  .label { font: 500 var(--s1)/1.2 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); }
+  .dim { color: var(--dim); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  /* brand bar */
+  .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .mark { width: 28px; height: 28px; flex: none; }
+  .mark .ring { fill: none; stroke: var(--ink); stroke-opacity: 0.5; stroke-width: 7; }
+  .mark circle.dot { fill: var(--dim); }
+  .mark circle.now { fill: var(--strong); }
+  .word { font: 500 var(--s5)/1 var(--sans); letter-spacing: -0.01em; color: var(--ink); }
+  .bar-right { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line2); border-radius: 999px;
+    background: var(--chip); padding: 2px 10px; font: 400 var(--s2)/1.6 var(--sans); color: var(--mute); white-space: nowrap;
+  }
+  .chip.mono { font-family: var(--mono); font-size: var(--s1); letter-spacing: 0.04em; }
+  .chip.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .chip.alert { color: var(--alert); border-color: color-mix(in srgb, var(--alert) 45%, transparent); }
+  .chip.ok { color: var(--sage); border-color: color-mix(in srgb, var(--sage) 40%, transparent); }
+  .chip.wait { color: var(--lavender); border-color: color-mix(in srgb, var(--lavender) 45%, transparent); }
+  .btn {
+    border: 1px solid var(--line2); background: var(--raise); color: var(--ink); border-radius: 999px;
+    padding: 5px 14px; font-size: var(--s2); line-height: 1.4;
+  }
+  .btn:hover { background: var(--hover); }
+  .btn.quiet { background: transparent; border-color: transparent; color: var(--mute); padding-inline: 8px; }
+  .btn.quiet:hover { color: var(--ink); background: var(--hover); }
+  .btn[aria-pressed="true"], .btn.on { border-color: var(--ink); color: var(--strong); }
+
+  /* tabs */
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+  .tab {
+    flex: none; display: flex; align-items: baseline; gap: 8px; border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; padding: 6px 14px; color: var(--mute);
+  }
+  .tab:hover { color: var(--ink); background: var(--hover); }
+  .tab[aria-selected="true"] { border-color: var(--line2); background: var(--raise); color: var(--strong); }
+  .tab .kind { font: 500 10px/1 var(--mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+  .tab .count { font: 400 var(--s1)/1 var(--mono); color: var(--lavender); }
+
+  /* the waiting line */
+  .waiting {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; border: 1px solid color-mix(in srgb, var(--lavender) 35%, var(--line));
+    border-radius: var(--r-panel); background: var(--raise); padding: 10px 14px; color: var(--ink);
+  }
+  .waiting code { background: var(--field); border: 1px solid var(--line2); border-radius: var(--r-input); padding: 2px 8px; color: var(--strong); user-select: all; }
+  .notice { border: 1px solid var(--line2); border-radius: var(--r-panel); background: var(--raise); padding: 12px 14px; color: var(--ink); }
+  .notice.alert { border-color: color-mix(in srgb, var(--alert) 50%, var(--line)); }
+  .notice p { margin: 0; }
+  .notice p + p { margin-top: 6px; }
+
+  /* level head */
+  .level-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 20px; }
+  .level-head > div { min-width: 0; }
+  .level-title { margin: 0; font: 400 var(--s6)/1.15 var(--sans); letter-spacing: -0.015em; color: var(--ink); text-wrap: balance; }
+  .fresh { margin: 4px 0 0; font: 400 var(--s1)/1.5 var(--mono); color: var(--dim); max-width: 72ch; overflow-wrap: anywhere; }
+  .views { display: inline-flex; gap: 2px; border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .views button { border: 0; background: transparent; border-radius: 999px; padding: 4px 12px; color: var(--mute); font-size: var(--s2); }
+  .views button[aria-selected="true"] { background: var(--raise); color: var(--strong); box-shadow: inset 0 0 0 1px var(--line2); }
+
+  /* toolbar */
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .field, .toolbar select, .toolbar input[type="search"] {
+    background: var(--field); border: 1px solid var(--line2); border-radius: var(--r-input); padding: 5px 9px; color: var(--ink);
+    font-size: var(--s2); min-width: 0;
+  }
+  .toolbar input[type="search"] { width: min(260px, 100%); }
+  .toggle { display: inline-flex; align-items: center; gap: 6px; font-size: var(--s2); color: var(--mute); }
+
+  /* board */
+  .board { overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; }
+  .columns { display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
+  .column {
+    flex: 1 0 236px; max-width: 380px; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--raise);
+    padding: 10px; min-height: 120px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.12s, background 0.12s;
+  }
+  .column.closed { flex: 0 0 210px; background: transparent; border-style: dashed; }
+  .column.drop { border-color: var(--ink); background: var(--hover); }
+  .col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 2px 4px; min-height: 28px; }
+  .col-name { display: inline-flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .col-head .count { font: 400 var(--s1)/1 var(--mono); color: var(--dim); }
+  .col-head .count.over { color: var(--warn); }
+  .lane { font: 500 10px/1.2 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--mute); padding: 6px 2px 0; }
+  .cards { display: flex; flex-direction: column; gap: 8px; }
+  .card {
+    position: relative; border: 1px solid var(--line2); border-radius: var(--r-card); background: var(--bg); padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 6px; transition: border-color 0.12s, transform 0.12s;
+  }
+  .card:hover { border-color: var(--faint); }
+  .card:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .card[draggable="true"] { cursor: grab; }
+  .card.dragging { opacity: 0.45; }
+  .card.pending { border-style: dashed; border-color: color-mix(in srgb, var(--lavender) 60%, var(--line2)); }
+  .card.picked { box-shadow: 0 0 0 2px var(--lavender); }
+  .card.mine::before { content: ""; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 2px; background: var(--sand); border-radius: 2px; }
+  .card-title { margin: 0; color: var(--ink); font-size: var(--s3); line-height: 1.35; overflow-wrap: anywhere; }
+  .card-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font: 400 var(--s1)/1.5 var(--mono); color: var(--dim); }
+  .card-meta .overdue { color: var(--warn); }
+  .card-notes { margin: 0; font-size: var(--s2); color: var(--mute); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; }
+  .badges .chip { font-size: var(--s1); padding: 0 8px; }
+  .card-actions { display: flex; flex-wrap: wrap; gap: 2px; margin: 0 -6px -4px; }
+  .card-actions .btn { font-size: var(--s1); padding: 2px 8px; }
+  .density-compact .card { padding: 7px 10px; gap: 4px; }
+  .density-compact .card-notes { display: none; }
+  .menu {
+    display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--line2); border-radius: var(--r-card); background: var(--raise);
+    padding: 6px; box-shadow: 0 12px 30px var(--shade);
+  }
+  .menu button { text-align: left; border: 0; background: transparent; border-radius: 6px; padding: 5px 9px; color: var(--ink); font-size: var(--s2); }
+  .menu button:hover, .menu button:focus-visible { background: var(--hover); outline: none; box-shadow: inset 0 0 0 1px var(--line2); }
+  .menu .here { color: var(--dim); }
+  .more { border: 0; background: transparent; color: var(--dim); font-size: var(--s2); text-align: left; padding: 2px; }
+  .more:hover { color: var(--ink); }
+
+  /* forms */
+  .form { border: 1px solid var(--line2); border-radius: var(--r-panel); background: var(--raise); padding: 14px; display: grid; gap: 12px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 10px 14px; }
+  .form label { display: grid; gap: 4px; font-size: var(--s2); color: var(--mute); min-width: 0; }
+  .form input, .form select { width: 100%; }
+  .form .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* lists, wiki, panels */
+  .stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .stack > * { min-width: 0; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 12px; }
+  .panel { border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--raise); padding: 14px 16px; min-width: 0; display: grid; gap: 10px; align-content: start; }
+  .panel h3 { margin: 0; }
+  .panel.wide { grid-column: 1 / -1; }
+  .rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .rows li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; border-top: 1px solid var(--line); padding-top: 6px; }
+  .rows li:first-child { border-top: 0; padding-top: 0; }
+  .rows .when { font: 400 var(--s1)/1.6 var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; }
+  .project { display: grid; gap: 6px; }
+  .project-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+  .project-head strong { color: var(--ink); font-weight: 500; }
+  .wiki { display: grid; grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 720px) { .wiki { grid-template-columns: minmax(0, 1fr); } }
+  .wiki-index { display: grid; gap: 12px; }
+  .wiki-index ul { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
+  .wiki-index button { width: 100%; text-align: left; border: 0; background: transparent; border-radius: 6px; padding: 4px 8px; color: var(--text); }
+  .wiki-index button:hover { background: var(--hover); color: var(--ink); }
+  .wiki-index button[aria-current="page"] { background: var(--raise); color: var(--strong); box-shadow: inset 0 0 0 1px var(--line2); }
+  .prose { color: var(--text); max-width: 72ch; overflow-wrap: anywhere; }
+  .prose > :first-child { margin-top: 0; }
+  .prose h1, .prose h2, .prose h3, .prose h4 { color: var(--ink); font-weight: 500; line-height: 1.25; text-wrap: balance; margin: 1.2em 0 0.4em; }
+  .prose h1 { font-size: 22px; } .prose h2 { font-size: 18px; } .prose h3, .prose h4 { font-size: 15px; }
+  .prose p, .prose ul, .prose ol, .prose blockquote, .prose pre, .prose .table { margin: 0 0 0.8em; }
+  .prose ul, .prose ol { padding-left: 1.3em; }
+  .prose blockquote { border-left: 2px solid var(--line2); padding-left: 12px; color: var(--mute); }
+  .prose pre { background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; overflow-x: auto; font: 400 var(--s2)/1.5 var(--mono); }
+  .prose code { background: var(--field); border-radius: 4px; padding: 0 4px; }
+  .prose pre code { background: none; padding: 0; }
+  .prose hr { border: 0; border-top: 1px solid var(--line); margin: 1.2em 0; }
+  .prose .table { overflow-x: auto; }
+  .prose table { border-collapse: collapse; font-size: var(--s2); }
+  .prose th, .prose td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+  .wikilink { border: 0; background: none; padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+  .missing { color: var(--dim); text-decoration: underline dashed; text-underline-offset: 3px; }
+  .local { font: 400 var(--s1)/1.5 var(--mono); color: var(--dim); border: 1px dashed var(--line2); border-radius: 4px; padding: 0 6px; }
+  .phase-map { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tbl { overflow-x: auto; }
+  .tbl table { border-collapse: collapse; font-size: var(--s2); }
+  .tbl th, .tbl td { border-bottom: 1px solid var(--line); padding: 4px 10px 4px 0; text-align: left; vertical-align: top; }
+  .tbl th { font: 500 10px/1.4 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+
+  /* settings */
+  .settings { border: 1px solid var(--line2); border-radius: var(--r-panel); background: var(--raise); padding: 16px; display: grid; gap: 16px; }
+  .settings fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; min-width: 0; align-content: start; }
+  .settings legend { padding: 0; margin-bottom: 6px; }
+  .opts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: var(--s2); }
+  .opts label { display: inline-flex; align-items: center; gap: 6px; }
+  .order { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .order li { display: flex; align-items: center; gap: 8px; font-size: var(--s2); }
+  .order li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .num { width: 64px; }
+  .empty { border: 1px dashed var(--line2); border-radius: var(--r-panel); padding: 28px 20px; display: grid; gap: 10px; justify-items: start; }
+  .empty .big { width: 72px; height: 72px; }
+  .empty h2 { margin: 0; font: 400 20px/1.3 var(--sans); color: var(--ink); }
+  .empty p { margin: 0; max-width: 62ch; color: var(--mute); }
+  .foot { font: 400 var(--s1)/1.6 var(--mono); color: var(--faint); }
+</style>
+
+<div class="app" id="app">
+  <header class="bar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 440 440" aria-hidden="true" focusable="false">
+        <circle class="ring" cx="220" cy="220" r="176"></circle>
+        <circle class="now" cx="220.0" cy="44.0" r="18"></circle><circle class="dot" cx="277.1" cy="53.5" r="13"></circle><circle class="dot" cx="328.1" cy="81.1" r="13"></circle><circle class="dot" cx="367.3" cy="123.7" r="13"></circle><circle class="dot" cx="390.6" cy="176.8" r="13"></circle><circle class="dot" cx="395.4" cy="234.5" r="13"></circle><circle class="dot" cx="381.2" cy="290.7" r="13"></circle><circle class="dot" cx="349.5" cy="339.2" r="13"></circle><circle class="dot" cx="303.8" cy="374.8" r="13"></circle><circle class="dot" cx="249.0" cy="393.6" r="13"></circle><circle class="dot" cx="191.0" cy="393.6" r="13"></circle><circle class="dot" cx="136.2" cy="374.8" r="13"></circle><circle class="dot" cx="90.5" cy="339.2" r="13"></circle><circle class="dot" cx="58.8" cy="290.7" r="13"></circle><circle class="dot" cx="44.6" cy="234.5" r="13"></circle><circle class="dot" cx="49.4" cy="176.8" r="13"></circle><circle class="dot" cx="72.7" cy="123.7" r="13"></circle><circle class="dot" cx="111.9" cy="81.1" r="13"></circle><circle class="dot" cx="162.9" cy="53.5" r="13"></circle>
+      </svg>
+      <span class="word">neuroflow</span>
+      <span class="label">workbench</span>
+    </div>
+    <div class="bar-right">
+      <span class="chip mono" id="privacy">owner only</span>
+      <button class="btn quiet" id="keys-toggle" type="button" aria-expanded="false" aria-controls="keys">Keys</button>
+      <button class="btn" id="settings-toggle" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
+    </div>
+  </header>
+  <section class="notice" id="keys" hidden>
+    <p><strong>Keyboard.</strong> Tab to a card. <kbd>Enter</kbd> or <kbd>M</kbd> opens “Move to”. <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd> moves it one column. <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> go between cards. <kbd>U</kbd> undoes the card's last waiting move. <kbd>N</kbd> adds a task. <kbd>Esc</kbd> closes a menu.</p>
+    <p>A move here is a request: Claude Code checks it against git and moves the task file when you run <code>/neuroflow:tasks --apply-web</code>.</p>
+  </section>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Levels"></nav>
+  <section class="waiting" id="waiting" hidden></section>
+  <section class="notice" id="notice" role="status" hidden></section>
+  <section class="settings" id="settings" hidden aria-label="Settings"></section>
+  <main id="main" class="stack">
+    <div class="empty">
+      <svg class="big mark" viewBox="0 0 440 440" aria-hidden="true" focusable="false"><circle class="ring" cx="220" cy="220" r="176"></circle><circle class="now" cx="220" cy="44" r="14"></circle></svg>
+      <h2>Opening your workbench…</h2>
+      <p>It shows the task boards, project lists and wikis you mirror from git: your flowie, your hives and your projects.</p>
+    </div>
+  </main>
+  <p class="sr-only" id="live" aria-live="polite"></p>
+  <footer class="foot" id="foot">neuroflow workbench · template 1 · git holds every change</footer>
+</div>
+
+<script type="module">
+/* @@WORKBENCH_LOGIC@@ */
+
+// ── the page: state, the store, drawing (elements only, every text through textContent) ─────────────
+
+const $ = id => document.getElementById(id)
+const app = $('app')
+const state = {
+  phase: 'loading', db: null, uid: null, owner: false,
+  metas: {}, prefsDoc: null, prefs: defaultPrefs(), intents: [], parts: {}, lastGood: {},
+  current: null, partsLevel: null, unsubscribeParts: null,
+  filter: { text: '', owner: '', project: '', tag: '', overdue: false },
+  menu: null, adding: null, wikiPage: {}, wikiQuery: '', settings: false, keys: false,
+  notice: null, writing: false, expanded: {},
+}
+// a republished page keeps the open tab, the filters and a half-written task (the viewer's own update hook)
+const hot = window.claude && window.claude.hot ? window.claude.hot : null
+if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ current: state.current, filter: state.filter, wikiPage: state.wikiPage, adding: state.adding }))
+function start(kept) {
+  if (kept && typeof kept === 'object') {
+    if (typeof kept.current === 'string') state.current = kept.current
+    if (kept.filter && typeof kept.filter === 'object') Object.assign(state.filter, kept.filter)
+    if (kept.wikiPage && typeof kept.wikiPage === 'object') state.wikiPage = kept.wikiPage
+    if (kept.adding && typeof kept.adding === 'object') state.adding = kept.adding
+  }
+  boot().catch(error => { state.phase = 'broken'; state.notice = { tone: 'alert', lines: [`The workbench could not start (${error && error.message ? error.message : 'unknown error'}).`] }; render() })
+}
+
+function remembered() {
+  try { return window.localStorage.getItem('nf-workbench-level') } catch { return null }
+}
+function remember(key) {
+  try { window.localStorage.setItem('nf-workbench-level', key) } catch { /* private window: the tab is not remembered */ }
+}
+
+/** One element: h('div', {class: 'x', onclick: fn}, child, 'text', …); strings become text nodes. */
+function h(tag, attrs, ...children) {
+  const svg = tag.startsWith('svg:')
+  const el = svg ? document.createElementNS('http://www.w3.org/2000/svg', tag.slice(4)) : document.createElement(tag)
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (value === null || value === undefined || value === false) continue
+    if (key.startsWith('on') && typeof value === 'function') el.addEventListener(key.slice(2), value)
+    else if (key === 'class') el.setAttribute('class', value)
+    else if (key === 'dataset') Object.assign(el.dataset, value)
+    else if (key === 'text') el.textContent = String(value)
+    else if (value === true) el.setAttribute(key, '')
+    else el.setAttribute(key, String(value))
+  }
+  for (const child of children.flat()) {
+    if (child === null || child === undefined || child === false) continue
+    el.append(typeof child === 'string' || typeof child === 'number' ? document.createTextNode(String(child)) : child)
+  }
+  return el
+}
+
+function say(text) {
+  $('live').textContent = text
+}
+
+function when(value) {
+  const match = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}))?/.exec(String(value || ''))
+  return match ? `${match[1]}${match[2] ? ` ${match[2]}` : ''}` : String(value || '')
+}
+
+function shortDate(value) {
+  const match = /^\d{4}-(\d{2})-(\d{2})/.exec(String(value || ''))
+  return match ? `${match[1]}-${match[2]}` : String(value || '')
+}
+
+function timeText(iso) {
+  const at = Date.parse(iso || '')
+  if (Number.isNaN(at)) return String(iso || 'an unknown time')
+  return `${new Date(at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })} (${relativeAge(iso, Date.now())})`
+}
+
+const KIND_WORD = { flowie: 'your flowie', hive: 'hive', project: 'project' }
+
+// ── the store ───────────────────────────────────────────────────────────────────────────────────
+
+function problem(error, doing) {
+  const code = error && error.code
+  const text = {
+    quota_exceeded: 'The workbench database is full. In Claude Code, run /neuroflow:dashboard --web: it deletes finished changes and old parts.',
+    resource_exhausted: 'The page is asking the store too often. Wait a moment and try again.',
+    revoked: 'This view lost access to the workbench. Reload the page.',
+    invalid_argument: `The store refused ${doing}. Reload the page; if it happens again, run /neuroflow:dashboard --web in Claude Code.`,
+  }[code] || `${doing[0].toUpperCase()}${doing.slice(1)} did not go through (${code || 'unknown error'}). Try again in a moment.`
+  state.notice = { tone: 'alert', lines: [text] }
+  render()
+}
+
+async function writeIntent(intent, message) {
+  if (!intent || !state.db || !state.owner) return
+  try {
+    await state.db.collection(intentsPath(state.uid)).doc(intent.id).set(intentDocument(intent))
+    say(message)
+  } catch (error) {
+    problem(error, 'saving the change')
+  }
+}
+
+// settings: a local change is written once the person pauses; another tab's or device's settings are taken whenever
+// no local change waits to be written (prefsKeeper)
+const prefsSync = prefsKeeper({
+  write: body => (state.db && state.owner ? state.db.doc(prefsPath(state.uid)).set(body) : undefined),
+  timer: { set: (run, ms) => setTimeout(run, ms), clear: id => clearTimeout(id) },
+})
+function savePrefs() {
+  if (!state.db || !state.owner) return
+  prefsSync.change(() => ({ ...state.prefs, prefs_schema: PREFS_SCHEMA, updated_at: new Date().toISOString() }),
+    error => problem(error, 'saving your settings'))
+}
+
+function setPrefs(change) {
+  state.prefs = normalizePrefs({ ...state.prefs, ...change })
+  render()
+  savePrefs()
+}
+
+function newId() {
+  const bytes = new Uint8Array(20)
+  crypto.getRandomValues(bytes)
+  return newIntentId(Array.from(bytes, b => (b % 36).toString(36)).join(''))
+}
+
+function subscribeParts(key) {
+  if (state.partsLevel === key) return
+  if (state.unsubscribeParts) state.unsubscribeParts()
+  state.partsLevel = key
+  state.unsubscribeParts = null
+  if (!key || !state.db) return
+  state.unsubscribeParts = state.db.collection(partsPath(state.uid, key)).onSnapshot(snap => {
+    state.parts[key] = snap.docs.map(doc => doc.data()).filter(Boolean)
+    render()
+  }, error => problem(error, 'reading the level'))
+}
+
+function chooseLevel(order) {
+  if (state.current && order.includes(state.current)) return state.current
+  const wanted = [state.prefs.default_level, remembered()].find(key => key && order.includes(key))
+  return wanted || order[0] || null
+}
+
+async function boot() {
+  const api = window.claude
+  if (!api || typeof api.use !== 'function') return finish('no-runtime')
+  const [db, user] = await Promise.all([api.use('db').catch(() => null), api.use('user').catch(() => null)])
+  if (!db || !user) return finish('no-runtime')
+  const [uid, owner] = await Promise.all([user.id(), user.isOwner()])
+  if (!uid) return finish('no-id')
+  Object.assign(state, { db, uid, owner })
+  if (!owner) return finish('not-owner')
+  state.phase = 'ready'
+  db.collection(userRoot(uid)).onSnapshot(snap => {
+    const metas = {}
+    let prefsDoc = null
+    for (const doc of snap.docs) {
+      if (doc.id === 'prefs') prefsDoc = doc.data()
+      else if (validLevelKey(doc.id) && doc.data()) metas[doc.id] = doc.data()
+    }
+    state.metas = metas
+    state.prefs = prefsSync.take(prefsDoc, state.prefs)
+    state.prefsDoc = prefsDoc
+    const order = levelOrder(metas, state.prefs)
+    state.current = chooseLevel(order)
+    subscribeParts(state.current)
+    render()
+  }, error => problem(error, 'reading the workbench'))
+  db.collection(intentsPath(uid)).onSnapshot(snap => {
+    state.intents = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }))
+    render()
+  }, error => problem(error, 'reading your waiting changes'))
+  render()
+}
+
+function finish(phase) {
+  state.phase = phase
+  render()
+}
+
+// ── gestures ────────────────────────────────────────────────────────────────────────────────────
+
+function moveCard(card, to, how) {
+  const level = state.current
+  const intent = makeMove({ level, card, to, nowMs: Date.now(), id: newId() })
+  state.menu = null
+  state.focusKey = card.key
+  if (intent) {
+    const label = (currentBoard().columns.find(column => column.id === to) || {}).label || to
+    writeIntent(intent, `${card.title}: moved to ${label}${how ? ` (${how})` : ''} — waiting for Claude Code`)
+  }
+  render()
+}
+
+function undoCard(card) {
+  if (!card.pending) return
+  writeIntent(makeCancel({ level: state.current, target: card.pending.last, nowMs: Date.now(), id: newId() }), `${card.title}: undone`)
+}
+
+async function release(card) {
+  if (!card.pending || !state.db) return
+  try {
+    await state.db.doc(`${intentsPath(state.uid)}/${card.pending.last}`).update(releasePatch(Date.now()))
+    say(`${card.title}: released — Claude Code cancels it at the next run`)
+  } catch (error) {
+    problem(error, 'releasing the change')
+  }
+}
+
+function addTask(form, level) {
+  const data = new FormData(form)
+  const fields = {
+    title: String(data.get('title') || ''), owner: String(data.get('owner') || ''), due: String(data.get('due') || ''),
+    project: String(data.get('project') || ''), phase: String(data.get('phase') || ''),
+    tags: String(data.get('tags') || '').split(',').map(tag => tag.trim()).filter(Boolean),
+  }
+  const intent = makeAdd({ level: level.key, fields, to: String(data.get('column') || 'inbox'), nowMs: Date.now(), id: newId() })
+  if (!intent) return
+  state.adding = null
+  writeIntent(intent, `${fields.title.trim()}: added — waiting for Claude Code`)
+}
+
+// ── drawing ────────────────────────────────────────────────────────────────────────────────────
+
+function currentLevel() {
+  const key = state.current
+  if (!key || !state.metas[key]) return null
+  const assembled = assembleLevel(state.metas[key], state.parts[key] || [])
+  if (assembled.status === 'ready') state.lastGood[key] = assembled.level
+  return { ...assembled, level: assembled.level || state.lastGood[key] || null }
+}
+
+function boardOptions(level) {
+  return {
+    today: localDate(Date.now()), nowMs: Date.now(), filter: levelFilter(level, state.filter), focusProject: state.prefs.focus_project,
+    hiddenColumns: [...(state.prefs.hidden_columns[level.key] || []), ...(state.prefs.show_archive ? [] : level.columns.filter(c => c.archive).map(c => c.id))],
+    wip: state.prefs.wip[level.key] || {},
+  }
+}
+
+function currentBoard() {
+  const current = currentLevel()
+  return current && current.level ? boardModel(current.level, state.intents, boardOptions(current.level)) : { columns: [] }
+}
+
+function render() {
+  // a snapshot can arrive while the person types or picks: the field that had the focus gets it back, caret included
+  const active = document.activeElement
+  const activeId = active && active.id && !active.classList.contains('card') ? active.id : null
+  const caret = active && typeof active.selectionStart === 'number' ? [active.selectionStart, active.selectionEnd] : null
+  const focusKey = state.focusKey || (active && active.classList && active.classList.contains('card') ? active.dataset.key : null)
+  const scroller = document.querySelector('.board')
+  const scrollLeft = scroller ? scroller.scrollLeft : 0
+  app.dataset.look = state.prefs.theme === 'system' ? '' : state.prefs.theme
+  app.classList.toggle('density-compact', state.prefs.density === 'compact')
+  drawTabs()
+  drawWaiting()
+  drawNotice()
+  drawSettings()
+  $('keys').hidden = !state.keys
+  $('keys-toggle').setAttribute('aria-expanded', String(state.keys))
+  $('settings-toggle').setAttribute('aria-expanded', String(state.settings))
+  $('settings-toggle').hidden = state.phase !== 'ready'
+  $('main').replaceChildren(...drawMain())
+  const board = document.querySelector('.board')
+  if (board) board.scrollLeft = scrollLeft
+  state.focusKey = null
+  if (state.menu) {
+    const first = document.querySelector('.menu button:not([disabled])')
+    if (first) first.focus()
+  } else if (activeId && $(activeId)) {
+    const el = $(activeId)
+    el.focus({ preventScroll: true })
+    if (caret && typeof el.setSelectionRange === 'function') {
+      try { el.setSelectionRange(caret[0], caret[1]) } catch { /* not a text field */ }
+    }
+  } else if (focusKey) {
+    const target = [...document.querySelectorAll('.card')].find(el => el.dataset.key === focusKey)
+    if (target) target.focus({ preventScroll: false })
+  }
+}
+
+function drawTabs() {
+  const tabs = $('tabs')
+  const order = levelOrder(state.metas, state.prefs)
+  const summary = tabSummary(state.metas, state.intents)
+  tabs.hidden = order.length === 0
+  tabs.replaceChildren(...order.map((key, index) => h('button', {
+    class: 'tab', role: 'tab', type: 'button', id: `tab-${index}`, 'aria-selected': String(key === state.current), tabindex: key === state.current ? '0' : '-1',
+    onclick: () => openLevel(key),
+    onkeydown: event => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return
+      event.preventDefault()
+      const next = order[(index + (event.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length]
+      openLevel(next)
+      requestAnimationFrame(() => { const el = [...tabs.children].find(child => child.getAttribute('aria-selected') === 'true'); if (el) el.focus() })
+    },
+  }, h('span', { class: 'kind', text: summary[key].kind === 'flowie' ? 'flowie' : summary[key].kind }), h('span', { text: summary[key].label }),
+  summary[key].waiting ? h('span', { class: 'count', title: 'changes waiting for Claude Code', text: `↻ ${summary[key].waiting}` }) : null)))
+}
+
+function openLevel(key) {
+  if (key !== state.current) state.filter = filterOnOpen(state.filter)  // owner and project belong to a level
+  state.current = key
+  state.menu = null
+  state.adding = null
+  remember(key)
+  subscribeParts(key)
+  render()
+}
+
+function copyButton(text) {
+  return h('button', {
+    class: 'btn', type: 'button', onclick: async event => {
+      const button = event.currentTarget
+      try {
+        await navigator.clipboard.writeText(text)
+        button.textContent = 'Copied'
+      } catch {
+        const code = button.previousElementSibling
+        if (code) {
+          const range = document.createRange()
+          range.selectNodeContents(code)
+          const selection = window.getSelection()
+          selection.removeAllRanges()
+          selection.addRange(range)
+        }
+        button.textContent = 'Selected — copy it'
+      }
+    },
+  }, 'Copy')
+}
+
+function drawWaiting() {
+  const box = $('waiting')
+  const waiting = waitingCount(state.metas, state.intents)
+  box.hidden = state.phase !== 'ready' || waiting === 0
+  if (box.hidden) return box.replaceChildren()
+  const oldest = oldestWaiting(state.metas, state.intents)
+  const since = oldest ? ` (the oldest made ${relativeAge(oldest, Date.now())})` : ''
+  box.replaceChildren(
+    h('span', { text: `${waiting} change${waiting === 1 ? '' : 's'} wait${waiting === 1 ? 's' : ''} for Claude Code${since}. In a terminal, run` }),
+    h('code', { text: APPLY_COMMAND }), copyButton(APPLY_COMMAND),
+    h('span', { class: 'dim', text: 'Each is checked against git first; hive pushes ask you.' }))
+}
+
+function drawNotice() {
+  const box = $('notice')
+  const lines = []
+  let tone = ''
+  if (state.notice) {
+    lines.push(...state.notice.lines)
+    tone = state.notice.tone || ''
+  }
+  box.hidden = lines.length === 0
+  box.className = `notice${tone ? ` ${tone}` : ''}`
+  box.replaceChildren(...lines.map(line => h('p', { text: line })), state.notice ? h('button', { class: 'btn quiet', type: 'button', onclick: () => { state.notice = null; render() } }, 'Dismiss') : null)
+}
+
+function drawMain() {
+  if (state.phase === 'loading') return [emptyState('Opening your workbench…', 'It shows the task boards, project lists and wikis you mirror from git.')]
+  if (state.phase === 'no-runtime') return [emptyState('Open this page in claude.ai', 'This is a neuroflow workbench. It reads its private data only inside claude.ai, signed in to the account that published it.')]
+  if (state.phase === 'no-id') return [emptyState('Sign in to see your workbench', 'claude.ai gives this view no identity, so the workbench cannot open its private data. Sign in and open it again.')]
+  if (state.phase === 'not-owner') return [emptyState('A private workbench', 'This is someone\'s neuroflow workbench. Its data is visible only to its owner, so there is nothing to show you here.')]
+  if (state.phase !== 'ready') return []
+  const order = levelOrder(state.metas, state.prefs)
+  if (order.length === 0) {
+    return [emptyState('Nothing mirrored yet', `In Claude Code, in one of your projects, run ${SETUP_COMMAND}. It asks which levels to mirror — your flowie, your hives, this project — shows what would be uploaded, and uploads only after your yes.`)]
+  }
+  const current = currentLevel()
+  if (!current) return []
+  if (current.status === 'newer') return [notice(`${state.metas[state.current].label || state.current}: ${current.reason}.`)]
+  if (!current.level) return [emptyState('Waiting for the export to finish', 'Claude Code is still writing this level. It appears here as soon as every part has arrived.')]
+  const level = current.level
+  const view = state.prefs.views[level.key] || 'board'
+  const out = [drawLevelHead(level, view)]
+  if (current.status === 'updating') out.push(notice('A newer export is being written; the board shows the last complete one.'))
+  if (level.meta.withheld && level.meta.withheld.length) {
+    out.push(notice(`${level.meta.withheld.length} item${level.meta.withheld.length === 1 ? ' was' : 's were'} held back on export (${[...new Set(level.meta.withheld.map(item => item.reason))].join('; ')}). They stay in git on your machine.`))
+  }
+  if (view === 'projects') out.push(drawProjects(level))
+  else if (view === 'wiki') out.push(drawWiki(level))
+  else if (view === 'level') out.push(drawPanel(level))
+  else out.push(...drawBoard(level))
+  return out
+}
+
+function notice(text) {
+  return h('section', { class: 'notice' }, h('p', { text }))
+}
+
+function emptyState(title, text) {
+  return h('div', { class: 'empty' },
+    h('svg:svg', { class: 'big mark', viewBox: '0 0 440 440', 'aria-hidden': 'true' }, h('svg:circle', { class: 'ring', cx: 220, cy: 220, r: 176 }), h('svg:circle', { class: 'now', cx: 220, cy: 44, r: 14 })),
+    h('h2', { text: title }), h('p', { text }))
+}
+
+function drawLevelHead(level, view) {
+  const views = [['board', 'Board'], ['projects', 'Projects'], ['wiki', 'Wiki'], ['level', level.kind === 'project' ? 'Project' : level.kind === 'hive' ? 'Team' : 'Flowie']]
+    .filter(([id]) => id !== 'projects' || level.registry.length > 0)
+    .filter(([id]) => id !== 'wiki' || level.pages.length > 0)
+  return h('div', { class: 'level-head' },
+    h('div', {},
+      h('div', { class: 'label', text: KIND_WORD[level.kind] || level.kind }),
+      h('h1', { class: 'level-title', text: level.label }),
+      h('p', { class: 'fresh', text: level.meta.source && level.meta.source.git ? `${freshnessLabel(level.meta, timeText)} · exported ${timeText(level.meta.exported_at)}` : freshnessLabel(level.meta, timeText) })),
+    h('div', { class: 'views', role: 'tablist', 'aria-label': 'What to show' }, ...views.map(([id, label]) => h('button', {
+      type: 'button', role: 'tab', 'aria-selected': String(view === id),
+      onclick: () => setPrefs({ views: { ...state.prefs.views, [level.key]: id } }),
+    }, label))))
+}
+
+// ── the board ──────────────────────────────────────────────────────────────────────────────────
+
+function drawBoard(level) {
+  const board = boardModel(level, state.intents, boardOptions(level))
+  const { owners, projects } = filterChoices(level, state.filter)  // a choice in force is always listed
+  const toolbar = h('div', { class: 'toolbar' },
+    h('label', { class: 'sr-only', for: 'filter-text' }, 'Search the cards'),
+    h('input', { id: 'filter-text', type: 'search', placeholder: 'Search cards', value: state.filter.text, oninput: event => { state.filter.text = event.target.value; render() } }),
+    select('filter-owner', 'Owner', [['', 'Everyone'], ...owners.map(o => [o, `@${o}`])], state.filter.owner, value => { state.filter.owner = value; render() }),
+    level.kind !== 'project' ? select('filter-project', 'Project', [['', 'All projects'], ...projects.map(p => [p, p])], state.filter.project, value => { state.filter.project = value; render() }) : null,
+    h('label', { class: 'toggle' }, h('input', { id: 'filter-overdue', type: 'checkbox', checked: state.filter.overdue, onchange: event => { state.filter.overdue = event.target.checked; render() } }), 'Overdue only'),
+    h('button', { class: 'btn', type: 'button', onclick: () => { state.adding = { column: firstOpen(level) }; render(); const t = $('add-title'); if (t) t.focus() } }, '+ Add task'))
+  const out = [toolbar]
+  if (state.adding) out.push(drawAddForm(level))
+  const columns = board.columns.map(column => drawColumn(level, column, board))
+  out.push(h('div', { class: 'board', role: 'region', 'aria-label': `${level.label} board` }, h('div', { class: 'columns' }, ...columns)))
+  const counted = level.columns.filter(column => column.archive)
+  if (counted.length && !state.prefs.show_archive) {
+    const archived = level.cards.filter(card => counted.some(column => column.id === card.column)).length
+    if (archived) out.push(h('button', { class: 'more', type: 'button', onclick: () => setPrefs({ show_archive: true }) }, `Show the archive (${archived})`))
+  }
+  return out
+}
+
+function firstOpen(level) {
+  return (level.columns.find(column => !column.closed && isMoveTarget(column)) || { id: 'inbox' }).id
+}
+
+function select(id, label, options, value, onchange) {
+  return h('span', {},
+    h('label', { class: 'sr-only', for: id }, label),
+    h('select', { id, class: 'field', onchange: event => onchange(event.target.value) },
+      ...options.map(([v, text]) => h('option', { value: v, selected: v === value }, text))))
+}
+
+/** How many cards a column shows: a closed one its first three until "Show more". */
+function columnLimit(column) {
+  return column.closed && !state.expanded[column.id] ? 3 : Infinity
+}
+
+function drawColumn(level, column, board) {
+  const limit = columnLimit(column)
+  const grouped = lanes(column.cards, state.prefs.group_by).length > 1
+  const body = []
+  // drawnLanes is the order the keyboard follows too (cardKeys)
+  for (const lane of drawnLanes(column.cards, state.prefs.group_by, limit)) {
+    if (lane.name !== null || grouped) body.push(h('div', { class: 'lane', text: lane.name ? (state.prefs.group_by === 'owner' ? `@${lane.name}` : lane.name) : `no ${state.prefs.group_by}` }))
+    body.push(...lane.cards.map(card => drawCard(level, card, board)))
+  }
+  const hiddenCount = column.cards.length - Math.min(column.cards.length, limit)
+  const target = isMoveTarget(column)  // never the archive, never a folder tasks/config.json does not name
+  const el = h('section', {
+    class: `column${column.closed ? ' closed' : ''}`, 'aria-label': `${column.label}, ${column.count} card${column.count === 1 ? '' : 's'}`, dataset: { column: column.id },
+    ondragover: event => { if (target && Array.from(event.dataTransfer.types || []).includes('text/plain')) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; el.classList.add('drop') } },
+    ondragleave: event => { if (!el.contains(event.relatedTarget)) el.classList.remove('drop') },
+    ondrop: event => {
+      event.preventDefault()
+      el.classList.remove('drop')
+      if (!target) return
+      const key = event.dataTransfer.getData('text/plain')
+      const card = board.columns.flatMap(c => c.cards).find(item => item.key === key)
+      if (card) moveCard(card, column.id, 'dragged')
+    },
+  },
+  h('div', { class: 'col-head' },
+    h('span', { class: 'col-name' },
+      h('span', { class: 'label', text: column.label }),
+      h('span', { class: `count${column.overLimit ? ' over' : ''}`, title: column.wip ? `limit ${column.wip} (display only)` : null, text: column.wip ? `${column.count} / ${column.wip}${column.overLimit ? ' · over' : ''}` : String(column.count) })),
+    !column.closed && target ? h('button', { class: 'btn quiet', type: 'button', 'aria-label': `Add a task to ${column.label}`, onclick: () => { state.adding = { column: column.id }; render(); const t = $('add-title'); if (t) t.focus() } }, '+') : null),
+  h('div', { class: 'cards' }, ...body),
+  hiddenCount > 0 ? h('button', { class: 'more', type: 'button', onclick: () => { state.expanded[column.id] = true; render() } }, `Show ${hiddenCount} more`) : null,
+  column.closed && column.count === 0 && target ? h('p', { class: 'dim', text: 'Drop a card here to finish it.' }) : null,
+  column.extra ? h('p', { class: 'dim', text: 'A folder tasks/config.json does not name: cards move out of it, never into it.' }) : null)
+  return el
+}
+
+function cardLabel(card) {
+  const bits = [card.title]
+  if (card.owner) bits.push(`owner ${card.owner}`)
+  if (card.due) bits.push(`due ${card.due}${card.overdue ? ', overdue' : ''}`)
+  if (card.pending) bits.push(card.pending.state === 'claimed' ? `being applied on ${card.pending.by}` : card.pending.state === 'stale' ? `claimed by ${card.pending.by}, never finished` : 'waiting for Claude Code')
+  return bits.join(', ')
+}
+
+function drawCard(level, card, board) {
+  const fields = state.prefs.fields
+  const meta = []
+  if (fields.owner && card.owner) meta.push(h('span', { text: `@${card.owner}` }))
+  if (fields.due && card.due) meta.push(h('span', { class: card.overdue ? 'overdue' : null, text: `${card.overdue ? '⚠ overdue · ' : 'due '}${shortDate(card.due)}` }))
+  if (fields.project && card.project && level.kind !== 'project') meta.push(h('span', { text: `${card.mine ? '◆ ' : ''}${card.project}` }))
+  if (fields.tags && card.tags && card.tags.length) meta.push(h('span', { text: card.tags.map(tag => `#${tag}`).join(' ') }))
+  const badges = []
+  if (card.isNew) badges.push(h('span', { class: 'chip wait', text: 'new · waits for Claude Code' }))
+  else if (card.pending) {
+    const fromLabel = (board.columns.find(c => c.id === card.pending.from) || {}).label || card.pending.from
+    if (card.pending.state === 'pending') badges.push(h('span', { class: 'chip wait', text: `↻ from ${fromLabel} · waits for Claude Code` }))
+    else if (card.pending.state === 'claimed') badges.push(h('span', { class: 'chip wait', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())} — being applied there; wait for it` }))
+    else badges.push(h('span', { class: 'chip warn', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())} — it never finished` }))
+  }
+  if (card.outcome) badges.push(h('span', { class: 'chip alert', text: outcomeText(card.outcome) }))
+  if (card.blocked_by && card.blocked_by.length) badges.push(h('span', { class: 'chip', text: `blocked by ${card.blocked_by.join(', ')}` }))
+  if (card.legacy) badges.push(h('span', { class: 'chip', text: 'legacy file: move it once with /tasks --move' }))
+  if (card.readable === false) badges.push(h('span', { class: 'chip alert', text: 'merge-conflict markers: no moves' }))
+  const actions = []
+  const offers = cardActions(card)  // Release only for a claim that never finished: a live one is being applied
+  if (offers.move) actions.push(h('button', { class: 'btn quiet', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': String(Boolean(state.menu && state.menu.key === card.key)), onclick: () => { state.menu = { key: card.key }; render() } }, 'Move to…'))
+  if (offers.undo) actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => undoCard(card) }, 'Undo'))
+  if (offers.release) actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => release(card) }, 'Release'))
+  const el = h('article', {
+    class: `card${card.pending ? ' pending' : ''}${card.mine ? ' mine' : ''}`, tabindex: '0', draggable: card.movable ? 'true' : null,
+    'aria-label': cardLabel(card), dataset: { key: card.key, column: card.column },
+    ondragstart: event => { event.dataTransfer.setData('text/plain', card.key); event.dataTransfer.effectAllowed = 'move'; el.classList.add('dragging') },
+    ondragend: () => el.classList.remove('dragging'),
+    onkeydown: event => cardKeys(event, level, card, board),
+  },
+  h('p', { class: 'card-title', text: card.title }),
+  meta.length ? h('div', { class: 'card-meta' }, ...meta) : null,
+  fields.notes && card.notes ? h('p', { class: 'card-notes', text: card.notes }) : null,
+  badges.length ? h('div', { class: 'badges' }, ...badges) : null,
+  actions.length ? h('div', { class: 'card-actions' }, ...actions) : null,
+  state.menu && state.menu.key === card.key ? drawMenu(card, board) : null)
+  return el
+}
+
+function drawMenu(card, board) {
+  const targets = board.columns.filter(column => column.id === card.column || isMoveTarget(column))
+  return h('div', {
+    class: 'menu', role: 'menu', 'aria-label': `Move ${card.title} to`,
+    onkeydown: event => {
+      const items = [...event.currentTarget.querySelectorAll('button:not(.here)')]
+      const at = items.indexOf(document.activeElement)
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        event.stopPropagation()
+        items[(at + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        state.menu = null
+        state.focusKey = card.key
+        render()
+      } else event.stopPropagation()
+    },
+  }, h('span', { class: 'label', text: 'Move to' }), ...targets.map(column => h('button', {
+    type: 'button', role: 'menuitem', class: column.id === card.column ? 'here' : null, disabled: column.id === card.column,
+    onclick: () => moveCard(card, column.id, null),
+  }, column.id === card.column ? `${column.label} (here)` : column.label)),
+  h('button', { type: 'button', role: 'menuitem', onclick: () => { state.menu = null; state.focusKey = card.key; render() } }, 'Cancel'))
+}
+
+function cardKeys(event, level, card, board) {
+  if (event.target !== event.currentTarget) return
+  const key = event.key
+  const open = board.columns
+  // the cards in the order drawColumn draws them — lane by lane when grouped, a closed column's first few — so ↑ and ↓
+  // reach the card drawn above or below
+  const drawn = c => (open[c] ? drawnCards(open[c].cards, state.prefs.group_by, columnLimit(open[c])) : [])
+  const ci = open.findIndex(column => column.id === card.column)
+  const index = drawn(ci).findIndex(item => item.key === card.key)
+  const focusCard = (c, i) => {
+    const list = drawn(c)
+    if (!list.length) return
+    const target = list[Math.max(0, Math.min(i, list.length - 1))]
+    const el = [...document.querySelectorAll('.card')].find(item => item.dataset.key === target.key)
+    if (el) el.focus()
+  }
+  if ((key === 'ArrowRight' || key === 'ArrowLeft') && event.shiftKey) {
+    event.preventDefault()
+    const to = neighbourColumn(level.columns.filter(c => !(state.prefs.hidden_columns[level.key] || []).includes(c.id)), card.column, key === 'ArrowRight' ? 1 : -1)
+    if (to) moveCard(card, to, 'keyboard')
+  } else if (key === 'ArrowDown' || key === 'ArrowUp') {
+    event.preventDefault()
+    focusCard(ci, index + (key === 'ArrowDown' ? 1 : -1))
+  } else if (key === 'ArrowRight' || key === 'ArrowLeft') {
+    event.preventDefault()
+    let c = ci
+    do { c += key === 'ArrowRight' ? 1 : -1 } while (c >= 0 && c < open.length && !drawn(c).length)
+    focusCard(c, index)
+  } else if ((key === 'Enter' || key === ' ' || key === 'm' || key === 'M') && card.movable) {
+    event.preventDefault()
+    state.menu = { key: card.key }
+    render()
+  } else if ((key === 'u' || key === 'U' || key === 'Backspace') && card.pending && card.pending.state === 'pending') {
+    event.preventDefault()
+    undoCard(card)
+  } else if (key === 'Escape' && state.menu) {
+    state.menu = null
+    render()
+  }
+}
+
+function drawAddForm(level) {
+  const roster = level.people.map(person => [person.handle, `@${person.handle}${person.name ? ` — ${person.name}` : ''}`])
+  const projects = level.registry.map(entry => entry.id)
+  const draft = state.adding
+  if (draft.project === undefined) draft.project = level.kind !== 'project' && projects.includes(state.prefs.focus_project) ? state.prefs.focus_project : ''
+  const keep = name => event => { draft[name] = event.target.value }
+  const form = h('form', {
+    class: 'form', 'aria-label': 'Add a task',
+    onsubmit: event => { event.preventDefault(); addTask(event.currentTarget, level) },
+    onkeydown: event => { if (event.key === 'Escape') { state.adding = null; render() } },
+  },
+  h('div', { class: 'label', text: `Add a task · ${level.label}` }),
+  h('div', { class: 'form-grid' },
+    h('label', { for: 'add-title' }, 'Title', h('input', { id: 'add-title', name: 'title', class: 'field', required: true, maxlength: 200, autocomplete: 'off', value: draft.title || '', oninput: keep('title') })),
+    h('label', { for: 'add-column' }, 'Column', h('select', { id: 'add-column', name: 'column', class: 'field', onchange: keep('column') },
+      ...level.columns.filter(isMoveTarget).map(column => h('option', { value: column.id, selected: column.id === draft.column }, column.label)))),
+    h('label', { for: 'add-owner' }, 'Owner', h('select', { id: 'add-owner', name: 'owner', class: 'field', onchange: keep('owner') }, h('option', { value: '' }, 'Nobody yet'),
+      ...roster.map(([v, t]) => h('option', { value: v, selected: v === draft.owner }, t)))),
+    h('label', { for: 'add-due' }, 'Due', h('input', { id: 'add-due', name: 'due', type: 'date', class: 'field', value: draft.due || '', oninput: keep('due') })),
+    level.kind !== 'project' ? h('label', { for: 'add-project' }, 'Project', h('select', { id: 'add-project', name: 'project', class: 'field', onchange: keep('project') }, h('option', { value: '' }, 'None'),
+      ...projects.map(p => h('option', { value: p, selected: p === draft.project }, p)))) : null,
+    h('label', { for: 'add-tags' }, 'Tags', h('input', { id: 'add-tags', name: 'tags', class: 'field', placeholder: 'eeg, qc', value: draft.tags || '', oninput: keep('tags') }))),
+  h('div', { class: 'actions' },
+    h('button', { class: 'btn on', type: 'submit' }, 'Add'),
+    h('button', { class: 'btn quiet', type: 'button', onclick: () => { state.adding = null; render() } }, 'Cancel'),
+    h('span', { class: 'dim', text: 'Claude Code creates the task file when it applies your changes.' })))
+  return form
+}
+
+// ── projects, wiki and the level panel ──────────────────────────────────────────────────────────
+
+function drawProjects(level) {
+  const hiveTab = ref => `hive+${String(ref || '').toLowerCase().replace('/', '+')}`
+  return h('div', { class: 'grid-2' }, ...level.registry.map(entry => {
+    if (entry.pointer) {
+      const key = hiveTab(entry.hive)
+      return h('article', { class: 'panel project' },
+        h('div', { class: 'project-head' }, h('strong', { text: entry.id }), h('span', { class: 'chip', text: `card in hive ${entry.hive}` })),
+        state.metas[key] ? h('button', { class: 'btn', type: 'button', onclick: () => openLevel(key) }, `Open ${entry.hive}`) : h('p', { class: 'dim', text: 'That hive is not mirrored in this workbench.' }))
+    }
+    return h('article', { class: 'panel project' },
+      h('div', { class: 'project-head' }, h('strong', { text: entry.id }),
+        entry.status ? h('span', { class: `chip${entry.status === 'active' ? ' ok' : ''}`, text: entry.status }) : null,
+        entry.current_phase ? h('span', { class: 'chip mono', text: entry.current_phase }) : null,
+        h('button', { class: 'btn quiet', type: 'button', 'aria-pressed': String(state.prefs.focus_project === entry.id), onclick: () => setPrefs({ focus_project: state.prefs.focus_project === entry.id ? null : entry.id }) }, state.prefs.focus_project === entry.id ? '◆ in focus' : 'Focus')),
+      entry.description ? h('p', { class: 'prose', text: entry.description }) : null,
+      entry.repos && entry.repos.length ? h('ul', { class: 'rows' }, ...entry.repos.map(url => h('li', {}, safeHref(url) ? h('a', { href: safeHref(url), target: '_blank', rel: 'noopener noreferrer' }, url) : h('code', { text: url })))) : null,
+      entry.visited_phases && entry.visited_phases.length ? h('p', { class: 'dim', text: `visited: ${entry.visited_phases.join(', ')}` }) : null)
+  }))
+}
+
+function inline(tokens, level) {
+  return tokens.map(token => {
+    switch (token.type) {
+      case 'strong': return h('strong', {}, ...inline(token.children, level))
+      case 'em': return h('em', {}, ...inline(token.children, level))
+      case 'code': return h('code', { text: token.text })
+      case 'link': return h('a', { href: token.href, target: '_blank', rel: 'noopener noreferrer' }, ...inline(token.children, level))
+      case 'local': return h('span', { class: 'local', title: 'a local file: it stays on your machine', text: `local file, not mirrored: ${token.name}` })
+      case 'wikilink': {
+        const found = token.target && level && level.pages.some(page => page.id === token.target)
+        return found
+          ? h('button', { class: 'wikilink', type: 'button', onclick: () => { state.wikiPage[level.key] = token.target; setPrefs({ views: { ...state.prefs.views, [level.key]: 'wiki' } }) } }, token.label)
+          : h('span', { class: 'missing', title: 'no page with this name', text: token.label })
+      }
+      default: return document.createTextNode(token.text || '')
+    }
+  })
+}
+
+function blocks(list, level) {
+  return list.map(block => {
+    switch (block.type) {
+      case 'heading': return h(`h${Math.min(4, block.level + 1)}`, {}, ...inline(block.inline, level))
+      case 'paragraph': return h('p', {}, ...inline(block.inline, level))
+      case 'code': return h('pre', {}, h('code', { text: block.text }))
+      case 'quote': return h('blockquote', {}, ...blocks(block.blocks, level))
+      case 'hr': return h('hr', {})
+      case 'table': return h('div', { class: 'table' }, h('table', {},
+        h('thead', {}, h('tr', {}, ...block.header.map(cell => h('th', {}, ...inline(cell, level))))),
+        h('tbody', {}, ...block.rows.map(row => h('tr', {}, ...row.map(cell => h('td', {}, ...inline(cell, level))))))))
+      case 'list': return listEl(block.ordered, block.items, level)
+      default: return null
+    }
+  })
+}
+
+function listEl(ordered, items, level) {
+  return h(ordered ? 'ol' : 'ul', {}, ...items.map(item => h('li', {},
+    item.task === null ? null : h('span', { 'aria-label': item.task ? 'done' : 'open', text: item.task ? '✔ ' : '○ ' }),
+    ...inline(item.inline, level), item.children.length ? listEl(item.children[0].ordered, item.children, level) : null)))
+}
+
+function prose(text, level) {
+  return h('div', { class: 'prose' }, ...blocks(parseMarkdown(text), level))
+}
+
+function drawWiki(level) {
+  const groups = wikiIndex(level.pages, state.wikiQuery)
+  const currentId = state.wikiPage[level.key] && level.pages.some(page => page.id === state.wikiPage[level.key]) ? state.wikiPage[level.key] : (level.pages[0] || {}).id
+  const page = level.pages.find(item => item.id === currentId)
+  const index = h('nav', { class: 'wiki-index', 'aria-label': 'Wiki pages' },
+    h('label', { class: 'sr-only', for: 'wiki-search' }, 'Search the wiki'),
+    h('input', { id: 'wiki-search', type: 'search', class: 'field', placeholder: 'Search pages', value: state.wikiQuery, oninput: event => { state.wikiQuery = event.target.value; render() } }),
+    ...groups.map(group => h('div', {}, h('div', { class: 'label', text: `${group.type} · ${group.pages.length}` }),
+      h('ul', {}, ...group.pages.map(item => h('li', {}, h('button', { type: 'button', 'aria-current': item.id === currentId ? 'page' : null, onclick: () => { state.wikiPage[level.key] = item.id; render() } }, item.title)))))))
+  const body = page ? h('article', { class: 'panel' },
+    h('div', { class: 'badges' }, page.type ? h('span', { class: 'chip mono', text: page.type }) : null, page.status ? h('span', { class: 'chip', text: page.status }) : null,
+      page.updated ? h('span', { class: 'chip', text: `updated ${page.updated}` }) : null, ...(page.tags || []).map(tag => h('span', { class: 'chip', text: `#${tag}` }))),
+    h('h2', { class: 'level-title', text: page.title }),
+    page.summary ? h('p', { class: 'dim', text: page.summary }) : null,
+    'body' in page ? prose(page.body, level) : h('p', { class: 'dim', text: 'Index only: the page bodies of this level stay on your machine (workbench_index_only in ~/.neuroflow/user.yaml).' }),
+    page.sources && page.sources.length ? h('p', { class: 'foot', text: `sources (local files, not mirrored): ${page.sources.join(', ')}` }) : null)
+    : h('p', { class: 'dim', text: 'No page matches.' })
+  return h('div', { class: 'wiki' }, index, body)
+}
+
+function section(title, ...content) {
+  const wide = content[0] && content[0].wide === true && !(content[0] instanceof Node)
+  const kids = (wide ? content.slice(1) : content).filter(Boolean)
+  return kids.length ? h('section', { class: `panel${wide ? ' wide' : ''}` }, h('h3', { class: 'label', text: title }), ...kids) : null
+}
+
+function rows(list, render) {
+  return list && list.length ? h('ul', { class: 'rows' }, ...list.map(render)) : null
+}
+
+function drawPanel(level) {
+  const panel = level.panel
+  const today = localDate(Date.now())
+  const people = rows(level.people, person => h('li', {}, h('span', { text: `@${person.handle}${person.name ? ` — ${person.name}` : ''}` }), person.role ? h('span', { class: 'when', text: person.role }) : null))
+  const meetings = rows(panel.meetings, meeting => h('li', {}, h('span', { text: meeting.title }), h('span', { class: 'when', text: when(meeting.date) })))
+  if (level.kind === 'flowie') {
+    return h('div', { class: 'grid-2' },
+      section('Ideas', panel.ideas ? prose(panel.ideas, level) : null),
+      section('Ideas inbox', panel.ideas_inbox ? prose(panel.ideas_inbox, level) : null),
+      section('Notes', rows(panel.notes, note => h('li', {}, h('span', { text: note.title }), h('span', { class: 'when', text: when(note.date) })))),
+      section('Meetings', meetings))
+  }
+  if (level.kind === 'hive') {
+    return h('div', { class: 'grid-2' },
+      section('Team', panel.team ? prose(panel.team, level) : null),
+      section('People', people),
+      section('Ideas', panel.ideas ? prose(panel.ideas, level) : null),
+      ...(panel.errata || []).map(set => section(`Errata · ${set.dataset}`, { wide: true }, h('div', { class: 'tbl' }, h('table', {},
+        h('thead', {}, h('tr', {}, ...set.columns.map(name => h('th', { text: name })))),
+        h('tbody', {}, ...set.rows.map(row => h('tr', {}, ...row.map(cell => h('td', { text: cell }))))))))),
+      section('Meetings', meetings))
+  }
+  const marker = (name, item, word) => {
+    if (!item) return h('li', {}, h('span', { text: name }), h('span', { class: 'when', text: 'no record' }))
+    const done = ['approved', 'frozen'].includes(item.status)
+    const chip = done && !item.by_person ? h('span', { class: 'chip warn', text: `? ${item.status} — not set by a person` }) : h('span', { class: `chip${done ? ' ok' : ''}`, text: `${item.status || 'unknown'}${item.by_person ? ' · set by a person' : ''}` })
+    return h('li', {}, h('span', { text: name }), h('span', {}, chip, word ? h('span', { class: 'when', text: ` ${word}` }) : null))
+  }
+  return h('div', { class: 'grid-2' },
+    section('Phases', h('div', { class: 'phase-map' }, ...phaseMap(panel).map(item => h('span', { class: `chip${item.state === 'current' ? ' ok' : ''}`, title: item.state, text: `${item.glyph} ${item.phase}` }))),
+      h('p', { class: 'dim', text: '◉ current · ● visited · ○ not started' })),
+    section('Dates', rows(upcomingDates(panel, today), row => h('li', {}, h('span', { text: `${row.days <= 3 ? '⚠ ' : row.days <= 14 ? '▸ ' : ''}${row.what}${row.gates ? ` (${row.gates})` : ''}` }),
+      h('span', { class: 'when', text: `${row.date} · ${row.days === 0 ? 'today' : row.days === 1 ? 'tomorrow' : `in ${row.days} days`}` }))) || h('p', { class: 'dim', text: 'No dates ahead in timeline.md.' })),
+    section('Integrity', h('ul', { class: 'rows' },
+      panel.ethics_not_applicable ? h('li', {}, h('span', { text: 'Ethics' }), h('span', { class: 'chip', text: 'not applicable' })) : marker('Ethics', panel.ethics, panel.ethics && panel.ethics.expires ? `expires ${panel.ethics.expires}` : ''),
+      marker('Preregistration', panel.prereg, panel.prereg && panel.prereg.frozen_at ? `frozen ${shortDate(panel.prereg.frozen_at)}` : '')),
+    h('p', { class: 'dim', text: 'Markers are set in Claude Code, never here.' })),
+    section('People', people),
+    section('Meetings', meetings))
+}
+
+// ── settings ────────────────────────────────────────────────────────────────────────────────────
+
+function radios(name, options, value, onchange) {
+  return h('div', { class: 'opts', role: 'radiogroup' }, ...options.map(([v, text]) => h('label', {}, h('input', { id: `${name}-${v}`, type: 'radio', name, value: v, checked: v === value, onchange: () => onchange(v) }), text)))
+}
+
+function drawSettings() {
+  const box = $('settings')
+  box.hidden = !state.settings || state.phase !== 'ready'
+  if (box.hidden) return box.replaceChildren()
+  const prefs = state.prefs
+  const order = Object.keys(state.metas).filter(validLevelKey)
+  const ordered = [...prefs.order.filter(key => order.includes(key)), ...levelOrder(state.metas, { ...prefs, hidden: [], order: [] }).filter(key => !prefs.order.includes(key))]
+  const move = (key, step) => {
+    const list = [...ordered]
+    const at = list.indexOf(key)
+    const to = at + step
+    if (to < 0 || to >= list.length) return
+    list.splice(at, 1)
+    list.splice(to, 0, key)
+    setPrefs({ order: list })
+  }
+  const current = currentLevel()
+  const level = current && current.level
+  box.replaceChildren(
+    h('div', { class: 'label', text: 'Settings · saved in your private workbench, copied to your flowie by Claude Code' }),
+    h('div', { class: 'grid-2' },
+      h('fieldset', {}, h('legend', { class: 'label', text: 'Look' }),
+        radios('theme', [['system', 'Follow claude.ai'], ['dark', 'Dark'], ['light', 'Light']], prefs.theme, theme => setPrefs({ theme })),
+        radios('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']], prefs.density, density => setPrefs({ density }))),
+      h('fieldset', {}, h('legend', { class: 'label', text: 'Cards show' }),
+        h('div', { class: 'opts' }, ...[['owner', 'Owner'], ['due', 'Due date'], ['project', 'Project'], ['tags', 'Tags'], ['notes', 'Notes']].map(([key, text]) => h('label', {},
+          h('input', { id: `field-${key}`, type: 'checkbox', checked: prefs.fields[key], onchange: event => setPrefs({ fields: { ...prefs.fields, [key]: event.target.checked } }) }), text))),
+        h('label', { class: 'opts' }, 'Group cards by ', h('select', { id: 'group-by', class: 'field', onchange: event => setPrefs({ group_by: event.target.value }) },
+          ...[['none', 'nothing'], ['project', 'project'], ['owner', 'owner']].map(([v, t]) => h('option', { value: v, selected: prefs.group_by === v }, t)))),
+        h('label', { class: 'opts' }, h('input', { id: 'show-archive', type: 'checkbox', checked: prefs.show_archive, onchange: event => setPrefs({ show_archive: event.target.checked }) }), 'Show the archive column')),
+      h('fieldset', {}, h('legend', { class: 'label', text: 'Tabs' }),
+        h('ul', { class: 'order' }, ...ordered.map((key, index) => h('li', {},
+          h('input', { id: `tab-show-${index}`, type: 'checkbox', 'aria-label': `Show ${state.metas[key].label}`, checked: !prefs.hidden.includes(key), onchange: event => setPrefs({ hidden: event.target.checked ? prefs.hidden.filter(k => k !== key) : [...prefs.hidden, key] }) }),
+          h('span', { text: state.metas[key].label }),
+          h('button', { class: 'btn quiet', type: 'button', 'aria-label': `Move ${state.metas[key].label} up`, disabled: index === 0, onclick: () => move(key, -1) }, '↑'),
+          h('button', { class: 'btn quiet', type: 'button', 'aria-label': `Move ${state.metas[key].label} down`, disabled: index === ordered.length - 1, onclick: () => move(key, 1) }, '↓')))),
+        h('label', { class: 'opts' }, 'Open on ', h('select', { id: 'default-level', class: 'field', onchange: event => setPrefs({ default_level: event.target.value || null }) },
+          h('option', { value: '' }, 'the tab I used last'), ...ordered.map(key => h('option', { value: key, selected: prefs.default_level === key }, state.metas[key].label))))),
+      level ? h('fieldset', {}, h('legend', { class: 'label', text: `Columns · ${level.label}` }),
+        h('ul', { class: 'order' }, ...level.columns.filter(column => !column.archive).map(column => h('li', {},
+          h('input', { id: `col-${column.id}`, type: 'checkbox', 'aria-label': `Show ${column.label}`, checked: !(prefs.hidden_columns[level.key] || []).includes(column.id), onchange: event => {
+            const hidden = new Set(prefs.hidden_columns[level.key] || [])
+            if (event.target.checked) hidden.delete(column.id); else hidden.add(column.id)
+            setPrefs({ hidden_columns: { ...prefs.hidden_columns, [level.key]: [...hidden] } })
+          } }),
+          h('span', { text: column.label }),
+          column.closed ? null : h('input', { id: `wip-${column.id}`, type: 'number', class: 'field num', min: 1, max: 999, placeholder: 'limit', 'aria-label': `Card limit for ${column.label} (display only)`, value: (prefs.wip[level.key] || {})[column.id] || '', onchange: event => {
+            const limits = { ...(prefs.wip[level.key] || {}) }
+            const n = Number.parseInt(event.target.value, 10)
+            if (n > 0) limits[column.id] = n; else delete limits[column.id]
+            setPrefs({ wip: { ...prefs.wip, [level.key]: limits } })
+          } }))))) : null),
+    h('p', { class: 'dim', text: 'What is mirrored, and from where, is set in Claude Code (/neuroflow:dashboard --web) and in the levels\' own files; this page never changes it.' }),
+    h('div', {}, h('button', { class: 'btn', type: 'button', onclick: () => { state.settings = false; render() } }, 'Close')))
+}
+
+$('settings-toggle').addEventListener('click', () => { state.settings = !state.settings; render() })
+$('keys-toggle').addEventListener('click', () => { state.keys = !state.keys; render() })
+document.addEventListener('keydown', event => {
+  const typing = event.target && /^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName)
+  if (typing || event.metaKey || event.ctrlKey || event.altKey) return
+  if ((event.key === 'n' || event.key === 'N') && state.phase === 'ready' && state.current && !state.adding) {
+    const current = currentLevel()
+    if (current && current.level && (state.prefs.views[state.current] || 'board') === 'board') {
+      event.preventDefault()
+      state.adding = { column: firstOpen(current.level) }
+      render()
+      const title = $('add-title')
+      if (title) title.focus()
+    }
+  } else if (event.key === '?') {
+    state.keys = !state.keys
+    render()
+  }
+})
+// relative times ("5 min ago", overdue from today's date) stay true while the page is open; drawing only, no writes
+setInterval(() => { if (state.phase === 'ready' && !state.menu && !state.adding && document.visibilityState === 'visible') render() }, 60000)
+
+if (hot && typeof hot.ready === 'function') hot.ready(start)
+else start(hot && hot.data ? hot.data : {})
+</script>
+<!-- neuroflow-workbench:end -->

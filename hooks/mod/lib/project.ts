@@ -7,6 +7,7 @@ import { asList, asMap, asNumber, asString, parseLegacyConfig, parseYamlSubset, 
 import type { Frontmatter } from './frontmatter'
 import type { NfIo } from './io'
 import { dirname, fold, isNetworkPath, join, toSlash } from './paths'
+import { loadPending } from './workbench'
 
 /** The newest project_config schema this mod understands (neuroflow-core → C1). */
 export const KNOWN_SCHEMA = 1
@@ -221,6 +222,7 @@ export const loadSnapshot = async (io: NfIo, root: string): Promise<NfSnapshot> 
     wikiPending,
     problems,
     loadedAt: nowMs,
+    workbench: await loadPending(io, home ? toSlash(home) : null),
   }
 }
 
