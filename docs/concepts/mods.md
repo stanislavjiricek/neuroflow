@@ -234,7 +234,9 @@ opens holding the keys; it works while the prompt has them (Esc first when a pan
   and `a` there (screen's way to send a Ctrl+A through). ^X Tab works as it is.
 - **Colours and glyphs.** The views use your theme's colours, never fixed ones or background fills, and pair each with
   a glyph and a word, so 8- and 16-colour terminals and light themes read the same. Claude Code itself needs a UTF-8
-  terminal; the views' glyphs (◌ ◉ ● → ○ ▸ ◆ ⚠ ↻ and the box-drawing lines) need nothing more.
+  terminal; the views' glyphs need nothing more: `◌ ◉ ● → ○ · ▸ ◂ ▾ ▴ ‹ › ◆ ⚠ ✔ ✖ ✎ ✓ ↻ ↑ ↓ ■`, the sparkline's
+  `▁▂▃▄▅▆▇█` and the box-drawing lines. Some fonts draw `⚠ ✔ ✖ ✎` as emoji or two cells wide, which pushes the rest
+  of the row out of line; a terminal font that has them keeps each glyph to one cell.
 
 ---
 
