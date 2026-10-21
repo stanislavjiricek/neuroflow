@@ -179,7 +179,9 @@ every `{wb}` call takes `--json` (exit `0` clean, `1` findings to name, `2` an e
    the Task file format — and in a flowie or hive clone stages them. It takes a task file only where the check saw it, so
    a task moved since then is left as it is. It prints the commit to run, whose message carries one
    `Neuroflow-Intent: {id}` trailer per intent and names every path the changes touched; a change it could not make is
-   listed with its reason and gets no outcome (the next run checks it again).
+   listed with its reason and gets no outcome (the next run checks it again). Each change it makes is recorded at once in
+   `~/.neuroflow/workbench/ledger.json`, so a run whose commit never ran (refused, the session closed) is finished by the
+   next one: that change is committed as it is, never made a second time.
    - `flowie`: run the printed commit, then `git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push`.
 <!-- nf-rule: EGRESS-CONFIRM -->
    - `hive`: run the printed commit, show `git -C ~/.neuroflow/hives/{org-repo} log --stat @{u}..HEAD` and push only after your yes in this turn; a protected main branch takes a branch and a pull request (`neuroflow:phase-hive` → Pushing to the hive). A push you decline leaves the commit local; its outcome says *committed, not pushed*.

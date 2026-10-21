@@ -143,7 +143,7 @@ text: it is never run as HTML, and only `http` and `https` links leave it.
 |---|---|
 | Claude Code is not running when you move cards | The cards wait, marked as such; nothing is half done in git |
 | A teammate changed or moved the task after your snapshot | A conflict: nothing is written, the card says why and where the task is now |
-| A run stopped half way (closed laptop, a refused approval) | The claim expires after 30 minutes; the next run checks git first and finishes the move instead of repeating it. A stuck card offers *Release* |
+| A run stopped half way (closed laptop, a refused approval) | The claim expires after 30 minutes; the next run finds what the stopped run already changed — in git, and in a note on your machine that lasts until the commit exists — and commits it instead of repeating it, so an added card is never added twice. A stuck card offers *Release*, which cancels only a change that was not made yet |
 | You declined the hive push | The commit stays local and the card says *committed, not pushed*; a later push updates it |
 | Another machine of yours exported the level | Claude Code asks before overwriting, naming both machines; a clone that is behind is skipped |
 | A newer neuroflow wrote the workbench from another machine | It is never overwritten: update neuroflow here first |

@@ -1025,6 +1025,25 @@ def write_ledger(home: Path, ledger: dict, now: datetime) -> None:
     write_json(local_dir(home) / "ledger.json", ledger)
 
 
+def effect_present(src: Source, entry: dict) -> bool:
+    """Whether a ledger entry's change is still in the working tree: its task file where it put it, in its column."""
+    rel = entry.get("path")
+    if not isinstance(rel, str) or not rel.startswith("tasks/"):
+        return False
+    path = src.memory / rel
+    return path.is_file() and scalar(split_fm(read_text(path) or "")[0], "status") == entry.get("to")
+
+
+def staged_entries(src: Source, ledger: dict, ids: set[str], committed: set[str]) -> dict[str, dict]:
+    """A flowie's or hive's changes `apply` made whose commit never ran (no trailer yet), while the working tree still
+    holds them: the next run commits them as they are and never makes them again."""
+    out = {}
+    for intent, entry in (ledger["levels"].get(src.key) or {}).items():
+        if intent in ids and intent not in committed and isinstance(entry, dict) and effect_present(src, entry):
+            out[intent] = entry
+    return out
+
+
 def ledger_states(src: Source, ledger: dict) -> dict[str, dict]:
     """Intents applied to a project's working tree (no trailer exists there): contained while their effect is."""
     out = {}
@@ -1525,11 +1544,18 @@ def unique_slug(title: str, taken: set[str]) -> str:
     return slug
 
 
+RELEASED_LATE = "already applied — the release came after it; move the card back"
+
+
 def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str, dict], machine: str,
-                   people: set[str], phases: set[str], applied: dict[str, dict]) -> dict:
+                   people: set[str], phases: set[str], applied: dict[str, dict], staged: dict[str, dict] | None = None) -> dict:
     """Verdicts and actions for one level's intents, in creation order (neuroflow-core → Workbench snapshot):
     an accepted intent's result is the base of the ones after it, consecutive moves of one card merge into one,
-    an added card's slug comes from the add, and a chain whose first intent failed fails with 'depends on'."""
+    an added card's slug comes from the add, and a chain whose first intent failed fails with 'depends on'.
+    `staged` holds the ledger entries of changes a run made without committing them: each keeps the verdict it had and
+    becomes a `commit` action, never a second change."""
+    staged = staged or {}
+    commits: dict[str, dict] = {}          # lead intent → the commit action of a change a run made, not committed
     state = board_state(src)
     cards = {slug: {"column": task["column"], "sha256": task["sha256"], "file": f"tasks/{task['file']}", "legacy": task["legacy"],
                     "conflicted": task["conflicted"]} for slug, task in state["cards"].items()}
@@ -1556,7 +1582,25 @@ def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str,
         op = body["op"]
         if intent_id in applied:
             # its trailer (flowie, hive) or ledger entry (project) is already there: a run that stopped half way
-            verdicts[intent_id] = {"result": "applied", **applied[intent_id], "note": "already in git"}
+            verdicts[intent_id] = {"result": "applied", **applied[intent_id],
+                                   "note": RELEASED_LATE if body.get("cancel_requested_at") else "already in git"}
+            continue
+        if intent_id in staged:
+            # applied by a run that stopped before its commit: commit it as it is — never add, move or judge it again,
+            # and a release that came after it cannot undo it
+            entry = staged[intent_id]
+            verdict = dict(entry.get("verdict") or {"result": "applied", "slug": entry.get("slug"), "column": entry.get("to")})
+            if body.get("cancel_requested_at"):
+                verdict["note"] = RELEASED_LATE
+            verdicts[intent_id] = verdict
+            lead = entry.get("lead") or intent_id
+            if lead not in commits:
+                commits[lead] = {"op": "commit", "of": entry.get("op"), "intents": [], "lead": lead, "slug": entry.get("slug"),
+                                 "to": entry.get("to"), "path_to": entry.get("path"), "paths": list(entry.get("paths") or [])}
+                actions.append(commits[lead])
+            commits[lead]["intents"].append(intent_id)
+            if entry.get("op") == "add" and entry.get("slug"):
+                planned_slug[intent_id] = entry["slug"]
             continue
         if op == "cancel":
             target = body["target"]["intent"]
@@ -1713,16 +1757,20 @@ def cmd_validate(args, home: Path, now: datetime) -> tuple[int, dict]:
         if body.get("level") in by_level and (body.get("target") or {}).get("intent") in mine:
             by_level[body["level"]].append((iid, body))  # a cancel the page queued after the claim still counts
     plan: dict = {"machine": machine, "validated_at": iso(now), "levels": [], "rejected": rejected}
+    ledger = read_ledger(home)
     for key, items in by_level.items():
         src = here[key]
         items.sort(key=lambda pair: (str(pair[1].get("created_at")), pair[0]))
         people = {entry["handle"].lower() for entry in roster(src, person)}
-        applied = {}
+        ids = {iid for iid, _ in items}
+        applied, staged = {}, {}
         if src.kind != "project" and is_repo(src.repo):
-            applied = landed_states(src.repo, {iid: sha for iid, sha in trailer_commits(src.repo).items() if iid in dict(items)})
+            trailers = trailer_commits(src.repo)
+            applied = landed_states(src.repo, {iid: sha for iid, sha in trailers.items() if iid in ids})
+            staged = staged_entries(src, ledger, ids, set(trailers))
         elif src.kind == "project":
-            applied = {iid: {"state": "worktree"} for iid in (read_ledger(home)["levels"].get(key) or {}) if iid in dict(items)}
-        result = validate_level(src, items, done, machine, people, phases, applied)
+            applied = {iid: {"state": "worktree"} for iid in (ledger["levels"].get(key) or {}) if iid in ids}
+        result = validate_level(src, items, done, machine, people, phases, applied, staged)
         plan["levels"].append({"key": key, "kind": src.kind, "label": src.label, "repo": str(src.repo),
                                "memory": str(src.memory), "push": {"flowie": "flowie", "hive": "hive"}.get(src.kind, "none"),
                                "actions": result["actions"], "verdicts": result["verdicts"]})
@@ -1788,9 +1836,19 @@ def known_to_git(repo: Path, rel: str) -> bool:
 
 
 def summary_of(actions: list[dict]) -> str:
-    words = [f"move {a['slug']} → {a['to']}" if a["op"] == "move" else f"add {a['slug']}" for a in actions]
+    kind = lambda a: a.get("of") if a["op"] == "commit" else a["op"]  # noqa: E731 — a commit names what was done
+    words = [f"add {a['slug']}" if kind(a) == "add" else f"move {a['slug']} → {a['to']}" for a in actions]
     head = ", ".join(words[:3]) + (f" and {len(words) - 3} more" if len(words) > 3 else "")
     return f"tasks: workbench — {head}"
+
+
+def restage(repo: Path, rel: str) -> None:
+    """Stages a path again as the working tree has it (the file, or its deletion); a path git never saw is left alone.
+    A pull with --autostash between two runs can leave a staged rename half unstaged."""
+    if (repo / rel).exists() or git(repo, "ls-files", "--error-unmatch", "--", rel).returncode == 0:
+        proc = git(repo, "add", "-A", "--", rel)
+        if proc.returncode != 0:
+            raise ValueError(pj.first_line(proc))
 
 
 def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
@@ -1804,11 +1862,25 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
     git_level = is_repo(repo)
     applied, failed, paths, intents = [], [], [], []
     ledger = read_ledger(home)
+    entries = ledger["levels"].setdefault(level["key"], {})
+    if level["kind"] != "project" and git_level:
+        # a flowie's or hive's entry lives only until its commit exists
+        landed = set(trailer_commits(repo)) & set(entries)
+        for intent in landed:
+            del entries[intent]
+        if landed:
+            write_ledger(home, ledger, now)
     for action in level["actions"]:
         target = memory / action["path_to"]
         rel_to = f"{tasks_rel}/{action['path_to'][len('tasks/'):]}"
         try:
-            if action["op"] == "add":
+            if action["op"] == "commit":
+                # made by a run that stopped before its commit (the ledger names it): stage it again, change nothing
+                for rel in action.get("paths") or []:
+                    if git_level:
+                        restage(repo, rel)
+                touched = list(action.get("paths") or [])
+            elif action["op"] == "add":
                 if target.exists():
                     raise ValueError(f"{action['path_to']} already exists")
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -1853,15 +1925,18 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
         except (OSError, ValueError, UnicodeDecodeError) as error:
             failed.append({"slug": action["slug"], "intents": action["intents"], "reason": str(error)})
             continue
-        applied.append({"slug": action["slug"], "op": action["op"], "to": action["to"], "intents": action["intents"]})
+        applied.append({"slug": action["slug"], "op": action.get("of") or action["op"], "to": action["to"], "intents": action["intents"]})
         paths += [path for path in dict.fromkeys(touched) if path not in paths]
         intents += action["intents"]
-        if level["kind"] == "project":
-            entries = ledger["levels"].setdefault(level["key"], {})
+        if action["op"] != "commit":
+            # Recorded the moment the change is made, before any commit: a project's entry says the change is in its
+            # working tree; a flowie's or hive's lets the next run commit a change whose commit never ran, never redo it.
+            lead = action.get("lead") or action["intents"][0]
             for intent in action["intents"]:
-                entries[intent] = {"op": action["op"], "slug": action["slug"], "to": action["to"], "path": action["path_to"], "at": iso(now)}
-    if level["kind"] == "project" and applied:
-        write_ledger(home, ledger, now)
+                entries[intent] = {"op": action["op"], "slug": action["slug"], "to": action["to"], "path": action["path_to"],
+                                   "paths": list(dict.fromkeys(touched)), "lead": lead,
+                                   "verdict": dict((level.get("verdicts") or {}).get(intent) or {}), "at": iso(now)}
+            write_ledger(home, ledger, now)
     result: dict = {"level": level["key"], "applied": applied, "failed": failed, "push": level["push"]}
     # a commit by path names only paths git knows (in the index or in HEAD): a file renamed twice in one run leaves an
     # intermediate path git never saw

@@ -748,22 +748,107 @@ class IntentTests(Home):
         git(self.hive, "fetch", "-q", "origin")
         self.assertEqual(wb.landed_states(self.hive, wb.trailer_commits(self.hive))["i-m2-bbbb"]["state"], "merged")
 
+    def ledger(self) -> dict:
+        return json.loads((self.home / ".neuroflow" / "workbench" / "ledger.json").read_text(encoding="utf-8"))
+
+    def commit(self, result: dict) -> None:
+        subprocess.run(result["commit"]["argv"], check=True, capture_output=True, env=dict(os.environ, **GIT_ENV))
+
     def test_a_run_that_stopped_before_the_commit_is_finished_not_repeated(self) -> None:
         hive = "hive+example-lab+hive"
         base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
         docs = {"i-n1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
         self.validate(docs)
         self.apply(hive)  # moved and staged, never committed
+        self.assertEqual(self.ledger()["levels"][hive]["i-n1-aaaa"]["to"], "active")  # recorded before any commit
         code, plan, verdicts = self.validate(docs)
-        action = plan["levels"][0]["actions"][0]
-        self.assertTrue(action["half_done"])
+        self.assertEqual([(a["op"], a["intents"]) for a in plan["levels"][0]["actions"]], [("commit", ["i-n1-aaaa"])])
+        self.assertEqual(verdicts["i-n1-aaaa"], {"result": "applied", "slug": "fix-map", "column": "active"})
         code, result = self.apply(hive)
         self.assertEqual(code, 0, result)
         self.assertEqual(sorted(result["commit"]["paths"]), ["tasks/active/fix-map.md", "tasks/inbox/fix-map.md"])
-        subprocess.run(result["commit"]["argv"], check=True, capture_output=True, env=dict(os.environ, **GIT_ENV))
+        self.assertEqual(result["commit"]["message"].splitlines()[0], "tasks: workbench — move fix-map → active")
+        self.commit(result)
         code, plan, verdicts = self.validate(docs)
         self.assertEqual(verdicts["i-n1-aaaa"]["note"], "already in git")
         self.assertEqual(plan["levels"][0]["actions"], [])
+        self.apply(hive)  # once its commit exists, the entry goes
+        self.assertNotIn("i-n1-aaaa", self.ledger()["levels"][hive])
+
+    def test_without_a_ledger_a_move_found_in_its_target_column_is_committed_not_moved_again(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-n2-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        self.apply(hive)
+        (self.home / ".neuroflow" / "workbench" / "ledger.json").unlink()  # e.g. applied by an older neuroflow
+        code, plan, verdicts = self.validate(docs)
+        self.assertTrue(plan["levels"][0]["actions"][0]["half_done"])
+        code, result = self.apply(hive)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(sorted(result["commit"]["paths"]), ["tasks/active/fix-map.md", "tasks/inbox/fix-map.md"])
+
+    def test_an_add_applied_but_not_committed_is_committed_never_added_twice(self) -> None:
+        hive = "hive+example-lab+hive"
+        docs = {"i-s1-aaaa": intent("add", hive, "01", fields={"title": "Check the stats", "owner": "jana"})}
+        self.validate(docs)
+        self.apply(hive)  # written and staged; the commit was refused
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual(verdicts["i-s1-aaaa"], {"result": "applied", "slug": "check-the-stats", "column": "inbox"})
+        self.assertEqual([a["op"] for a in plan["levels"][0]["actions"]], ["commit"])
+        code, result = self.apply(hive)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["commit"]["paths"], ["tasks/inbox/check-the-stats.md"])
+        self.assertEqual(result["commit"]["message"].splitlines()[0], "tasks: workbench — add check-the-stats")
+        self.commit(result)
+        self.assertEqual(sorted(path.name for path in (self.hive / "tasks").rglob("check-the-stats*.md")), ["check-the-stats.md"])
+        self.assertIn("i-s1-aaaa", wb.trailer_commits(self.hive))
+        self.assertEqual(git(self.hive, "status", "--porcelain").strip(), "")
+
+    def test_a_merged_chain_applied_but_not_committed_keeps_its_verdicts(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {
+            "i-u1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base),
+            "i-u2-bbbb": intent("move", hive, "02", target={"slug": "fix-map"}, **{"from": "active"}, to="review", after="i-u1-aaaa", base=base),
+        }
+        self.validate(docs)
+        self.apply(hive)  # inbox → review, staged; the commit never ran
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual(code, 0)  # no conflict and no "depends on"
+        self.assertEqual(verdicts["i-u1-aaaa"], {"result": "coalesced", "into": "i-u2-bbbb"})
+        self.assertEqual(verdicts["i-u2-bbbb"], {"result": "applied", "slug": "fix-map", "column": "review"})
+        self.assertEqual([(a["op"], a["intents"]) for a in plan["levels"][0]["actions"]], [("commit", ["i-u1-aaaa", "i-u2-bbbb"])])
+        code, result = self.apply(hive)
+        self.commit(result)
+        self.assertLessEqual({"i-u1-aaaa", "i-u2-bbbb"}, set(wb.trailer_commits(self.hive)))
+        self.assertEqual(git(self.hive, "ls-tree", "-r", "--name-only", "HEAD", "tasks").split(),
+                         ["tasks/active/rerun-ica.md", "tasks/review/fix-map.md"])
+
+    def test_a_release_or_an_undo_after_the_change_was_made_cannot_undo_it(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-v1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        self.apply(hive)
+        docs["i-v1-aaaa"]["cancel_requested_at"] = "2026-10-21T10:40:00Z"
+        docs["i-v2-bbbb"] = intent("cancel", hive, "02", target={"intent": "i-v1-aaaa"})
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual(verdicts["i-v1-aaaa"]["result"], "applied")
+        self.assertIn("move the card back", verdicts["i-v1-aaaa"]["note"])
+        self.assertEqual(verdicts["i-v2-bbbb"]["result"], "rejected")
+        self.assertIn("already applied", verdicts["i-v2-bbbb"]["reason"])
+        self.assertEqual([a["op"] for a in plan["levels"][0]["actions"]], ["commit"])
+
+    def test_a_ledger_entry_whose_change_is_gone_is_judged_again(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-w1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        self.apply(hive)
+        git(self.hive, "reset", "-q", "--hard")  # the person threw the staged change away
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual([(a["op"], a["from"], a["to"]) for a in plan["levels"][0]["actions"]], [("move", "inbox", "active")])
 
     def test_a_task_moved_after_the_check_is_not_applied_and_is_checked_again(self) -> None:
         hive = "hive+example-lab+hive"
