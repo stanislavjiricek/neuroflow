@@ -425,7 +425,8 @@ frozen files for collaborators without the mod, and records that state what they
 - Look: the views draw the one look of [neuroflow-develop](../skills/neuroflow-develop/SKILL.md) → Visual style from
   the pure helpers of `hooks/mod/lib/layout.ts` — width classes, rules, the phase flow line, the dates ruler, the board's
   grid and pages, band packing — each with a text form, in theme colours only. `hooks/mod/tests/layout.test.ts` checks
-  them at 75 and 115 columns and at the narrow breakpoint; `hooks/mod/tests/drawn.ts` reads a drawn tree's rows.
+  them at 76 and 116 cells (75 and 115 for the band), at the narrow breakpoint and in a 44-cell dock;
+  `hooks/mod/tests/drawn.ts` reads a drawn tree's rows.
 - The test kit exercises hooks and trees, never focus, key dispatch or paint: before a release that changes the views,
   run the [live check](../maintenance/mod-live-check.md) in a real terminal.
 - `$` never crosses a file: the validator follows it only into functions declared in the same file, so helpers take an

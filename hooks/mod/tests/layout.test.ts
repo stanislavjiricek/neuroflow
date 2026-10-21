@@ -156,8 +156,12 @@ describe('the dates ruler', () => {
     expect(ruler(116, [])).toEqual({ axis: `today ┼${'──────┬'.repeat(14)} +98 d`, marks: '', days: 98 })
   })
 
-  test('narrow: four weeks in a 44-cell dock; no ruler where under two weeks fit', () => {
-    expect(ruler(44, [])?.axis).toBe(`today ┼${'──────┬'.repeat(4)} +28 d`)
+  test('the narrowest ruler a view draws: six weeks at 56 cells (a narrow dock draws none); none where under two weeks fit', () => {
+    const narrowest = ruler(56, marks)
+    expect(narrowest?.axis).toBe(`today ┼${'──────┬'.repeat(6)} +42 d`)
+    expect(cells(narrowest?.axis ?? '')).toBe(55)
+    expect(narrowest?.marks).toBe(`${' '.repeat(7)}⚠${' '.repeat(10)}▸`)
+    expect(widthClass(55)).toBe('narrow')
     expect(ruler(26, marks)).toBe(null)
   })
 })

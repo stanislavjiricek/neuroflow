@@ -1195,7 +1195,9 @@ describe('the dashboard in the new look', () => {
     const narrow = await $.ui.mount(pane(44, 'terminal', 40) as never)
     const dock = lines(await narrow.drawn())
     expect(dock[0]).toBe('◌ neuroflow · Oddball · data-analyze · critic')
-    expect(dock).toContain('─'.repeat(44))
+    // Two plain rules: the one under the wrapped tabs, with no heavy segment, and the closing one above the legend.
+    expect(dock.filter(line => /^─+$/.test(line))).toEqual(['─'.repeat(44), '─'.repeat(44)])
+    expect(dock.some(line => line.includes('━'))).toBe(false)
     expect(dock).toContain('PHASE')
     await narrow.unmount()
     const short = await $.ui.mount(pane(76, 'terminal', 24) as never)
@@ -1218,6 +1220,16 @@ describe('the dashboard in the new look', () => {
     expect(drawn).toContain(`${' '.repeat(7)}⚠${' '.repeat(10)}▸`)
     for (const cell of ['2026-10-08', 'Abstract deadline', 'tomorrow', 'gates paper', 'in 12 days']) expect(drawn).toContain(cell)
     await terminal.unmount()
+    // A narrow dock (44 cells) draws no ruler, only the dates as a list.
+    const dock = await $.ui.mount(pane(44, 'terminal', 40) as never)
+    const listed = lines(await dock.drawn())
+    expect(listed.some(line => line.startsWith('today ┼'))).toBe(false)
+    for (const cell of ['⚠', '2026-10-08', 'Abstract deadline', 'tomorrow', 'Lab retreat', 'in 12 days']) expect(listed).toContain(cell)
+    await dock.unmount()
+    // The narrowest pane that draws one, 56 cells: six weeks.
+    const medium = await $.ui.mount(pane(56, 'terminal', 40) as never)
+    expect(lines(await medium.drawn())).toContain(`today ┼${'──────┬'.repeat(6)} +42 d`)
+    await medium.unmount()
     const desktop = await $.ui.mount(pane(76, 'desktop') as never)
     expect(lines(await desktop.drawn()).some(line => line.startsWith('today ┼'))).toBe(false)
     expect(lines(await desktop.drawn())).toContain('Abstract deadline')
