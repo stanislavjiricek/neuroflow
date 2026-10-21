@@ -38,7 +38,8 @@ settings into your flowie, so a rebuilt workbench keeps them.
 
 1. You move a card on the page. It writes an intent into your private database and draws the card in its new column,
    marked as waiting.
-2. In Claude Code you run `/neuroflow:tasks --apply-web`. It claims the waiting intents, checks each one against git —
+2. In Claude Code you run `/neuroflow:tasks --apply-web`. After a one-line preview and your yes it claims the waiting
+   intents, so no other machine applies them, then checks each one against git —
    has the task changed since your snapshot, is it still in the column you saw — and moves the task files exactly as
    [`/tasks`](../commands/tasks.md) does. Two moves of one card become one move; a card you added and then moved is
    written once, in its last column.
@@ -119,7 +120,7 @@ Never uploaded: sessions/, review/, paper/xray-*, wiki/.pending/ and every other
 Free text (titles, notes, descriptions, a project's status and phase, column labels, wiki pages with their type and status, ideas, team text, people's names and roles, errata rows, dated rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed], and a machine-local path (C:\Users\…, /home/…, ~/…, as local_paths.py finds them) [local path removed]. An item with secret-like text or a name from that config's participant roster is held back whole, and so is one whose file name, tags or links carry personal data, as they travel unchanged. Your pii_scan config is the file pii_config names in ~/.neuroflow/user.yaml (its id_patterns and roster); without it, ID numbers and participant names are not checked. The preview names each item held back; the page only counts them.
 <!-- workbench-sources:end -->
 
-Every upload — the first publish, each refresh, each write-back of outcomes — needs a one-line preview and your yes
+Every upload — the first publish, each refresh, each claim of your clicks, each write-back of outcomes — needs a one-line preview and your yes
 in that turn. Nothing is uploaded on a timer or at the end of another command. Teammates' text reaches your page as
 text: it is never run as HTML, and only `http` and `https` links leave it.
 

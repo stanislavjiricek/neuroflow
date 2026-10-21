@@ -1247,6 +1247,30 @@ class GcTests(Home):
                           "project+oddball-eeg": "the team has not opted in (workbench_mirror in project_config.md)"})
 
 
+def prose(*parts: str) -> str:
+    """A prose file with its line breaks folded to spaces (the checks below are about words, not wrapping)."""
+    return " ".join(REPO.joinpath(*parts).read_bytes().decode("utf-8").split())
+
+
+class ProseTests(unittest.TestCase):
+    """What the commands tell Claude to do around workbench.py (the script cannot enforce these steps itself)."""
+
+    def test_apply_web_pulls_before_the_check_and_never_between_it_and_the_apply(self) -> None:
+        text = prose("commands", "tasks.md")
+        check = text[text.index("4. **Check.**"):text.index("5. **Apply, level by level.**")]
+        apply = text[text.index("5. **Apply, level by level.**"):text.index("6. **Outcomes")]
+        self.assertIn("First pull the flowie and each hive clone a claimed intent names", check)
+        self.assertIn("nothing is pulled between the check and the apply", check)
+        self.assertNotIn("pull", apply.split("- `flowie`")[0].lower())
+
+    def test_a_claim_is_previewed_and_asked_like_every_upload(self) -> None:
+        text = prose("commands", "tasks.md")
+        claim = text[text.index("<!-- nf-rule: EGRESS-CONFIRM --> 3. **Claim, after your yes.**"):text.index("4. **Check.**")]
+        self.assertIn("preview it in one line and ask", claim)
+        self.assertIn("Without a yes, claim nothing and stop", claim)
+        self.assertIn("every claim of its clicks", prose("skills", "neuroflow-core", "SKILL.md"))
+
+
 class RecordTests(Home):
     def test_without_a_flowie_the_record_lives_in_user_yaml_and_other_lines_stay(self) -> None:
         self.write(self.home / ".neuroflow" / "user.yaml", "flowie_handle: alice\r\nworkbench: on\r\nhives: [example-lab/hive]\r\n")

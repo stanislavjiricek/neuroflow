@@ -166,8 +166,12 @@ every `{wb}` call takes `--json` (exit `0` clean, `1` findings to name, `2` an e
    project, expired claims, a chain whole — with one claim batch, and names what it leaves: another project's (*open
    Claude Code in {project}*), a hive not cloned here, a fresh claim of another machine, a link waiting for an earlier
    one. Nothing to claim: say so, and what waits elsewhere, and go to step 7.
-3. **Claim.** Send the claim batch with ArtifactData `batch`, `writes` exactly as printed (each pinned with
-   `if_version`). Refused: another machine or session claimed first — list again and redo step 2.
+<!-- nf-rule: EGRESS-CONFIRM -->
+3. **Claim, after your yes.** A claim is an upload too: preview it in one line and ask — *"Claim {n} workbench changes
+   ({levels}) for {machine}? It writes this machine's label and the time to each, so no other machine applies them."*
+   Without a yes, claim nothing and stop. Then send the claim batch with ArtifactData `batch`, `writes` exactly as
+   printed (each pinned with `if_version`). Refused: another machine or session claimed first — list again and redo
+   step 2.
 4. **Check.** First pull the flowie and each hive clone a claimed intent names, as at command start
    (`git -C {clone} pull --rebase --autostash`), so the check sees what was pushed — nothing is pulled between the check
    and the apply. Then list the intents again into `{scratch}/intents2` (this sees a cancel or a release the page wrote
