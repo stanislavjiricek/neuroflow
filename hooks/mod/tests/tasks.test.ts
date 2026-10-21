@@ -21,7 +21,7 @@ import {
   userHives,
 } from '../lib/tasks'
 import { boardRingTarget, cardKeys, firstTarget, moveTargets, taskLines } from '../features/views'
-import { buttons, lines } from './drawn'
+import { buttons, elements, lines } from './drawn'
 import { fakeFs } from './fakefs'
 import type { FakeFs } from './fakefs'
 import { memIo } from './memio'
@@ -305,11 +305,12 @@ describe('the boards in a session', () => {
     const ui = await $.ui.mount(pane('nf-board') as never)
     const project = await ui.drawn()
     expect(JSON.stringify(project)).toContain('level: project')
-    // The shown level is text; every other is a digit key, shown as `2: flowie 3`.
+    // The shown level is text; every other is a digit key, shown as `2: flowie 3 (◆ 2)`: this project's share marked.
     expect(JSON.stringify(project)).toContain('1: project 1')
+    expect(lines(project)[0]).toBe('◌ tasks')
     expect(buttons(project).filter(button => button.key.startsWith('nf-level-')).map(button => `${button.hotkey}: ${button.label}`)).toEqual([
-      '2: flowie 3',
-      '3: lab-team 2',
+      '2: flowie 3 (◆ 2)',
+      '3: lab-team 2 (◆ 1)',
       '4: alpha-team 0',
       '5: another-team 0',
     ])
@@ -381,6 +382,30 @@ describe('the boards in a session', () => {
     expect(cardKeys({ kind: 'remote', board: flowie.board })).toEqual([])
   })
 
+  test('a column past five cards: j walks on into the next five; h and l land on the same row of the neighbour\'s first five', () => {
+    const card = (slug: string) => ({ slug, title: slug, owner: null, due: null, overdue: false, project: null, isMine: true })
+    const level = {
+      kind: 'project' as const,
+      board: {
+        columns: [
+          { id: 'inbox', label: 'inbox', cards: ['a', 'b'].map(card), total: 2 },
+          { id: 'ready', label: 'ready', cards: Array.from({ length: 7 }, (_, at) => card(`step-${at + 1}`)), total: 7 },
+          { id: 'active', label: 'active', cards: Array.from({ length: 6 }, (_, at) => card(`run-${at + 1}`)), total: 6 },
+        ],
+        openColumns: ['inbox', 'ready', 'active'],
+        done: 0,
+        archived: 0,
+      },
+    }
+    expect(boardRingTarget(level, null, 'nf-card-step-5', 'down')).toBe('nf-card-step-6')
+    expect(boardRingTarget(level, null, 'nf-card-step-6', 'up')).toBe('nf-card-step-5')
+    expect(boardRingTarget(level, null, 'nf-card-step-7', 'down')).toBe('nf-card-step-7')
+    // From the sixth card (the second page's first row) to the first row of the neighbour, which shows its first five.
+    expect(boardRingTarget(level, null, 'nf-card-step-6', 'right')).toBe('nf-card-run-1')
+    expect(boardRingTarget(level, null, 'nf-card-step-7', 'left')).toBe('nf-card-b')
+    expect(boardRingTarget(level, null, 'nf-card-step-4', 'right')).toBe('nf-card-run-4')
+  })
+
   test('the board\'s keys: digits for the other levels, h/j/k/l, r and q; the person\'s Tab is followed; nothing breaks without a ring', { options: { runtime: 'observe' } }, async ($, on) => {
     const { clock } = setUp(on)
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
@@ -407,6 +432,47 @@ describe('the boards in a session', () => {
     // A card picked, x shows up to cancel it.
     await ui.press({ key: 'nf-card-write-intro' })
     expect(buttons(await ui.drawn()).find(button => button.key === 'nf-board-cancel')?.hotkey).toBe('x')
+    await ui.unmount()
+  })
+
+  test('the board in the new look: round columns with UPPERCASE headers and counts, a list where a column would get under 18 cells', { options: { runtime: 'observe' } }, async ($, on) => {
+    setUp(on)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    const ui = await $.ui.mount(pane('nf-board') as never)
+    const tree = await ui.drawn()
+    const boxes = elements(tree, 'Box').filter(box => box.props.borderStyle !== undefined)
+    expect(boxes.map(box => box.props.borderStyle)).toEqual(['round', 'round'])
+    expect(lines(tree)).toEqual(expect.arrayContaining(['INBOX', 'ACTIVE', '0', '1', 'done 0 · archived 0 · level: project']))
+    await ui.unmount()
+    // Two columns in 44 cells still make a grid; in 34 they would get 16 cells each.
+    const roomy = await $.ui.mount({ ...pane('nf-board'), props: { ...pane('nf-board').props, bodyColumns: 44 } } as never)
+    expect(elements(await roomy.drawn(), 'Box').filter(box => box.props.borderStyle === 'round').length).toBe(2)
+    await roomy.unmount()
+    const dock = await $.ui.mount({ ...pane('nf-board'), props: { ...pane('nf-board').props, bodyColumns: 34 } } as never)
+    const list = await dock.drawn()
+    expect(elements(list, 'Box').some(box => box.props.borderStyle !== undefined)).toBe(false)
+    expect(lines(list)).toEqual(expect.arrayContaining(['INBOX · 0', 'ACTIVE · 1']))
+    expect(buttons(list).find(button => button.key === 'nf-card-rerun-ica')?.label).toBe('  ⚠ Rerun ICA @li due 10-01')
+    await dock.unmount()
+  })
+
+  test('a column shows five cards at a time: j past the fifth turns its page, k turns it back', { options: { runtime: 'observe' } }, async ($, on) => {
+    const files = { ...FILES, ...Object.fromEntries(Array.from({ length: 7 }, (_, at) => [`${ROOT}/.neuroflow/tasks/ready/step-${at + 1}.md`, task(`Step ${at + 1}`, `due: 2026-11-0${at + 1}\n`)])) }
+    const { clock } = setUp(on, files)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    const ui = await $.ui.mount(pane('nf-board') as never)
+    await clock.advance(500)
+    const cards = async () => buttons(await ui.drawn()).filter(button => button.key.startsWith('nf-card-step-')).map(button => button.key.slice('nf-card-step-'.length))
+    expect(await cards()).toEqual(['1', '2', '3', '4', '5'])
+    expect(lines(await ui.drawn())).toContain('  +2 more')
+    await $.ui.focus({ component: 'Pane', requestId: 'nf-board', plugin: 'neuroflow', element: 'nf-card-step-5', origin: { kind: 'person' } } as never)
+    await ui.press({ key: 'nf-nav-down' })
+    expect(await cards()).toEqual(['6', '7'])
+    expect(lines(await ui.drawn())).toContain('  6–7 of 7')
+    await ui.press({ key: 'nf-nav-up' })
+    expect(await cards()).toEqual(['1', '2', '3', '4', '5'])
     await ui.unmount()
   })
 

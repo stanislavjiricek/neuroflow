@@ -178,6 +178,7 @@ export type NfCard = {
 
 /** One level's task board as the board pane draws it (commands/tasks.md format). */
 export type NfBoard = {
+  /** The drawn columns, each with every open card in board order (the pane shows five at a time and pages on). */
   columns: { id: string; label: string; cards: NfCard[]; total: number }[]
   /** Every open column of the board's config in board order, drawn or not (an empty one is not): where a card can move. */
   openColumns: string[]
@@ -220,8 +221,8 @@ export type NfTaskView = {
   card?: string | null
   /** Whether the card lists other repositories, whose boards the cache can hold. */
   hasRemote?: boolean
-  /** Workbench changes waiting for Claude Code (pending.json): when it was written and how many. */
-  web?: { checkedAt: string | null; count: number } | null
+  /** Workbench changes waiting for Claude Code (pending.json): when it was written, since when the oldest waits, how many. */
+  web?: { checkedAt: string | null; oldest?: string | null; count: number } | null
 }
 
 /** A flowie sync the mod queued (in $.store): the files it wrote there and the commit message. */

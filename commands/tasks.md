@@ -97,7 +97,9 @@ from these files, each level's board as `/tasks --level {level}` renders it (sam
 the flowie's and every hive clone's, read as the local clones are (nothing is pulled), and the boards of the project card's other repositories, read-only, from the cache in `~/.neuroflow/boards/` — refreshed in the background (`projects.py refresh`) when the boards open. The pane opens holding the
 keyboard, on the project board when it has open tasks, else on the first level with open tasks of this project, else
 on the first with any; the digits pick the level. Tab, or `h` `j` `k` `l`, reaches a card; Enter picks it (marked
-`▸`), and Enter on a column moves it. At project and flowie level the mod runs the move itself —
+`▸`), and Enter on a column moves it. A column shows five cards at a time, as below; `j` past the fifth shows the next
+five. Where the pane is too narrow for the columns side by side (a dock beside the conversation), they stand one under
+the other. At project and flowie level the mod runs the move itself —
 `/neuroflow:tasks --move {slug} {column}`, with `--level flowie` before `--move` there — and the move runs as below. At
 hive level it only puts `/neuroflow:tasks --level hive --hive {org-repo} --move {slug} {column}` in the prompt for the
 person to send, because that move ends in a push to the team's repository (At end). `x` cancels a pick, `r` reads the

@@ -89,16 +89,21 @@ export const pendingAge = (iso: string | null, nowMs: number): string => {
   return `${Math.round(hours / 24)} days`
 }
 
+/** `3 workbench changes wait for Claude Code (oldest 2 days, as of 10:14) — /neuroflow:tasks --apply-web`: the band's and the board's line. */
+export const pendingText = (pending: { count: number; oldest?: string | null; checkedAt: string | null }, nowMs: number): string => {
+  const time = pendingTime(pending.checkedAt)
+  const age = pendingAge(pending.oldest ?? null, nowMs)
+  const note = [age ? `oldest ${age}` : '', time ? `as of ${time}` : ''].filter(Boolean).join(', ')
+  return `${pending.count} workbench change${pending.count === 1 ? '' : 's'} wait${pending.count === 1 ? 's' : ''} for Claude Code${note ? ` (${note})` : ''} — ${WEB_APPLY}`
+}
+
 /** The band's line while workbench changes wait for Claude Code; its key fills the apply command into the prompt. */
 export const pendingBandItem = (pending: NfWebPending | null, nowMs: number = Date.now()) => {
   if (pending === null || pending.count <= 0) return null
-  const time = pendingTime(pending.checkedAt)
-  const age = pendingAge(pending.oldest, nowMs)
-  const note = [age ? `oldest ${age}` : '', time ? `as of ${time}` : ''].filter(Boolean).join(', ')
   return {
     level: 'warn' as const,
     glyph: '↻',
-    text: `${pending.count} workbench change${pending.count === 1 ? '' : 's'} wait${pending.count === 1 ? 's' : ''} for Claude Code${note ? ` (${note})` : ''} — ${WEB_APPLY}`,
+    text: pendingText(pending, nowMs),
     actions: [{ key: 'nf-web-apply', label: 'apply', hotkey: BAND.apply, command: 'neuroflow:tasks', args: '--apply-web', fill: true }],
   }
 }

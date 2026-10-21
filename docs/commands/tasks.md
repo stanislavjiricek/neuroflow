@@ -64,11 +64,15 @@ A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model tur
 
 | Key | What it does |
 |---|---|
-| `1`–`9` | Show a level's board: the level row reads `1: project 3   2: flowie 12   3: example-lab-hive 4` |
-| Tab, `h` `j` `k` `l` | Move to a card — `h` and `l` between columns, `j` and `k` within one |
+| `1`–`9` | Show a level's board: the level row reads `1: project 3   2: flowie 12 (◆ 2)   3: example-lab-hive 4`, with this project's share marked `◆` |
+| Tab, `h` `j` `k` `l` | Move to a card — `h` and `l` between columns, `j` and `k` within one; a column shows five cards at a time, and `j` past the fifth shows the next five |
 | Enter | On a card: pick it to move (it is marked `▸`); on a column: move it there |
 | `x` | Cancel the pick |
 | `r` · `q` · Esc | Read the boards again · close the pane · give the keys back to the prompt |
+
+The columns have round corners, each headed by its name in capitals and its count; a card too long for its column ends
+in `…`. In a pane too narrow for the columns side by side — a dock beside the conversation — they stand one under the
+other.
 
 At project and flowie level the move runs at once as one `/tasks` command (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level), and `/tasks` moves the file as usual. At a hive's level the move only goes into the prompt (`/neuroflow:tasks --level hive --hive {org-repo} --move {slug} {column}`) for you to send with Esc and then Enter: it ends in a push to the team's repository, which `/tasks` shows you and makes only after your yes. Any argument runs the full command.
 

@@ -55,7 +55,10 @@ export const parseTask = (text: string, slug: string, today: string, isDone: boo
 export const byPriority = (a: NfCard, b: NfCard): number =>
   Number(b.isMine) - Number(a.isMine) || Number(b.overdue) - Number(a.overdue) || (a.due ?? '9999').localeCompare(b.due ?? '9999')
 
-/** The board as the Rendering rules say: board order, this project's and overdue cards first, done/archive counted not drawn. */
+/**
+ * The board as the Rendering rules say: board order, this project's and overdue cards first, done/archive counted not
+ * drawn. Each column keeps every open card: the views show five at a time (lib/layout.ts → BOARD_PAGE) and page on.
+ */
 export const buildBoard = (columns: readonly Column[], cards: Readonly<Record<string, NfCard[]>>): NfBoard => {
   const drawn = columns.filter(column => !isClosed(column))
   const done = (cards.done ?? []).length
@@ -64,7 +67,7 @@ export const buildBoard = (columns: readonly Column[], cards: Readonly<Record<st
     columns: drawn
       .map(column => {
         const list = [...(cards[column.id] ?? [])].sort(byPriority)
-        return { id: column.id, label: column.label, cards: list.slice(0, 5), total: list.length }
+        return { id: column.id, label: column.label, cards: list, total: list.length }
       })
       .filter(column => column.total > 0 || column.id === 'inbox' || column.id === 'active'),
     openColumns: drawn.map(column => column.id),
@@ -434,7 +437,7 @@ export const loadTaskView = async (io: NfIo, root: string, home: string | null, 
       levels.push({ ...level, fetched: stamp === '' ? null : stamp })
     }
   }
-  return { levels, card, hasRemote, web: pending === null ? null : { checkedAt: pending.checkedAt, count: pending.count } }
+  return { levels, card, hasRemote, web: pending === null ? null : { checkedAt: pending.checkedAt, oldest: pending.oldest, count: pending.count } }
 }
 
 // ── what the views say ────────────────────────────────────────────────────────────────────────

@@ -14,13 +14,35 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { NfBoard, NfDashboardTab, NfDraftedDecision, NfDrive, NfFlowieSync, NfLoopView, NfSnapshot, NfTaskLevel, NfTaskView } from '../../../types'
+import type { NfBoard, NfCard, NfDashboardTab, NfDraftedDecision, NfDrive, NfFlowieSync, NfLoopView, NfSnapshot, NfTaskLevel, NfTaskView } from '../../../types'
 import { setActivePhase } from '../lib/config'
 import { NO_SYNC, SYNC_QUEUE, asQueue, checkRemoteEntry, enqueue, syncState } from '../lib/flowiesync'
 import type { NfIo } from '../lib/io'
 import { BAND, CHORD, DASH, DASHBOARD_TABS, DIGITS, KEYS_LEARNED, LEARNED_AFTER, NAV, gridNeighbour, isPastTypeThrough, lineNeighbour, paneRows, tabNeighbour } from '../lib/keys'
 import type { Direction } from '../lib/keys'
-import { MARK, WORDMARK, bandItemWidths, bandPlan, cells, fit, flowLine, isCompact, measuredRows, moreLabel, paneColumns, rememberViewport, rule, ruler, tabStrip, widthClass } from '../lib/layout'
+import {
+  BOARD_GAP,
+  BOARD_PAGE,
+  MARK,
+  WORDMARK,
+  bandItemWidths,
+  bandPlan,
+  boardLayout,
+  cells,
+  fit,
+  flowLine,
+  isCompact,
+  measuredRows,
+  moreLabel,
+  pageNote,
+  pageOf,
+  paneColumns,
+  rememberViewport,
+  rule,
+  ruler,
+  tabStrip,
+  widthClass,
+} from '../lib/layout'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
@@ -28,7 +50,7 @@ import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNo
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
-import { WEB_APPLY, pendingBandItem, pendingTime } from '../lib/workbench'
+import { pendingBandItem, pendingText } from '../lib/workbench'
 import { isQuiet } from './scope'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
@@ -293,6 +315,15 @@ export const firstTarget = (board: NfBoard, from: string | null): string | null 
  */
 export const boardRingTarget = (level: Pick<NfTaskLevel, 'kind' | 'board'>, pick: string | null, at: string | null, direction: Direction): string | null => {
   if (level.kind === 'remote') return null
+  if (pick === null && (direction === 'left' || direction === 'right')) {
+    // Beside a column it lands on the same row of what the neighbour shows: its first page while the ring is elsewhere.
+    const columns = cardKeys(level).filter(column => column.length > 0)
+    const col = at === null ? -1 : columns.findIndex(column => column.includes(at))
+    const here = columns[col]
+    if (here === undefined || at === null) return columns[0]?.[0] ?? null
+    const there = columns[direction === 'right' ? col + 1 : col - 1]
+    return there === undefined ? at : (there[Math.min(there.length - 1, here.indexOf(at) % BOARD_PAGE)] ?? at)
+  }
   if (pick === null) return gridNeighbour(cardKeys(level), at, direction)
   const keys = moveTargets(level.board, cardColumn(level.board, pick)).map(target => `nf-move-${target}`)
   return lineNeighbour(keys, at, direction === 'left' || direction === 'up' ? -1 : 1)
@@ -604,6 +635,16 @@ const stepRing = async ($: EngineInterface, pane: string, keys: readonly string[
   if (to !== null && to !== at) await focusRing($, pane, to)
 }
 
+/**
+ * Moves the ring on the board, the drawing first: the card is remembered before the ring moves, so a card past a
+ * column's first five is drawn (its page turned) before the engine's ring goes onto it; where the ring cannot move
+ * (the pane does not hold the keys), the remembered card still marks where h, j, k and l go on from.
+ */
+const ringTo = async ($: EngineInterface, pane: string, key: string): Promise<void> => {
+  await update($, paneRingAtom, ring => ({ ...ring, [pane]: key }))
+  await $.ui.focus({ requestId: pane, key }).catch(() => ({ deny: 'no ring' }))
+}
+
 /** Sets the active phase as the person asked: config, session log, reasoning log, snapshot. */
 const switchPhase = async ($: EngineInterface, phase: string, via: string): Promise<string> => {
   const scope = await read($, scopeAtom)
@@ -788,7 +829,7 @@ const showLevel = async ($: EngineInterface, id: string): Promise<void> => {
   await update($, boardLevelAtom, () => id)
   const level = await shownLevel($)
   const first = level === undefined ? null : (cardKeys(level).find(column => column.length > 0)?.[0] ?? null)
-  if (first !== null) await focusRing($, BOARD, first)
+  if (first !== null) await ringTo($, BOARD, first)
 }
 
 /** Enter on a card picks it to move (again: puts it back); the ring goes to the next column's target. */
@@ -801,23 +842,26 @@ const pickCard = async ($: EngineInterface, slug: string): Promise<void> => {
   }
   await update($, boardPickAtom, () => slug)
   const to = firstTarget(level.board, cardColumn(level.board, slug))
-  if (to !== null) await focusRing($, BOARD, `nf-move-${to}`)
+  if (to !== null) await ringTo($, BOARD, `nf-move-${to}`)
 }
 
 /** x while a card is picked: nothing moves, the ring goes back to the card. */
 const cancelPick = async ($: EngineInterface): Promise<void> => {
   const pick = await read($, boardPickAtom)
   await update($, boardPickAtom, () => null)
-  if (pick !== null) await focusRing($, BOARD, `nf-card-${pick}`)
+  if (pick !== null) await ringTo($, BOARD, `nf-card-${pick}`)
 }
 
-/** h, j, k and l on the board: card to card; once a card is picked, target to target (boardRingTarget). */
+/**
+ * h, j, k and l on the board: card to card, j past a column's fifth card turning its page; once a card is picked,
+ * target to target (boardRingTarget).
+ */
 const boardStep = async ($: EngineInterface, direction: Direction): Promise<void> => {
   const level = await shownLevel($)
   if (level === undefined) return
   const at = (await read($, paneRingAtom))[BOARD] ?? null
   const to = boardRingTarget(level, await read($, boardPickAtom), at, direction)
-  if (to !== null && to !== at) await focusRing($, BOARD, to)
+  if (to !== null && to !== at) await ringTo($, BOARD, to)
 }
 
 /**
@@ -1158,81 +1202,156 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const { Box, Button, Text } = $.ui.resolve(e)
     const view = await read($, taskViewAtom)
     if (view === null) return <Text dimColor>Reading the task boards…</Text>
-    const shown = await read($, boardLevelAtom)
-    const level = view.levels.find(item => item.id === shown) ?? view.levels[0]
+    const shownId = await read($, boardLevelAtom)
+    const level = view.levels.find(item => item.id === shownId) ?? view.levels[0]
     if (level === undefined) return <Text dimColor>No task board here yet — /neuroflow:tasks --add "title" starts one.</Text>
     const board = level.board
+    const width = e.props.bodyColumns
+    const size = widthClass(width)
+    const term = e.surface === 'terminal'
+    const compact = isCompact(e.viewport?.rows ?? measuredRows())
+    const space = compact ? 0 : 1
     const isRemote = level.kind === 'remote'
     const pick = isRemote ? null : await read($, boardPickAtom)
     const picked = pick === null ? null : (board.columns.flatMap(column => column.cards).find(card => card.slug === pick) ?? null)
     const grid = cardKeys(level)
     const first = grid.find(column => column.length > 0)?.[0] ?? null
-    const width = Math.max(14, Math.floor((e.props.bodyColumns - 2) / Math.max(1, board.columns.length)))
+    // Each column shows the five cards around the ring (or the picked card); the others their first five.
+    const ring = (await read($, paneRingAtom))[BOARD] ?? null
+    const near = ring !== null && ring.startsWith('nf-card-') ? ring.slice('nf-card-'.length) : pick
+    const pageFor = (cards: readonly NfCard[]) => pageOf(cards, near === null ? -1 : cards.findIndex(card => card.slug === near))
     const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
     const run = (fn: () => unknown) => act($, BOARD, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
     const canStep = first !== null
-    return (
-      <Box flexDirection="column">
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          {view.levels.map((item, at) => {
-            const digit = DIGITS[at]
-            const name = `${item.name} ${item.open}${item.kind === 'remote' ? ' (read-only)' : ''}`
-            if (item.id === level.id) return <Text bold>{digit === undefined ? name : `${digit}: ${name}`}</Text>
-            return <Button key={`nf-level-${item.id}`} label={name} {...(digit === undefined ? {} : { hotkey: digit })} plain dimColor onPress={run(() => showLevel($, item.id))} />
+    const layout = boardLayout(width, board.columns.length)
+    /** A card as the board draws it: ▸ when picked, this project's ◆, ⚠ overdue, ↻ a web change; cut with `…`. */
+    const card = (item: NfCard, room: number): JSX.Element =>
+      isRemote ? (
+        <Text wrap="truncate-end">{fit(`  ${levelCardLine(item, level.kind)}`, room)}</Text>
+      ) : (
+        <Button
+          key={`nf-card-${item.slug}`}
+          label={fit(`${item.slug === pick ? '▸' : ' '} ${levelCardLine(item, level.kind)}`, room)}
+          plain
+          {...(picked === null && `nf-card-${item.slug}` === first ? { autoFocus: true as const } : {})}
+          onPress={run(() => pickCard($, item.slug))}
+        />
+      )
+    const note = (page: ReturnType<typeof pageFor>): JSX.Element | null => {
+      const text = pageNote(page)
+      return text === null ? null : <Text dimColor>{`  ${text}`}</Text>
+    }
+    const columns =
+      layout.kind === 'grid' ? (
+        <Box flexDirection="row" columnGap={BOARD_GAP}>
+          {board.columns.map(column => {
+            const page = pageFor(column.cards)
+            const inner = layout.columnWidth - 4
+            return (
+              <Box key={`nf-col-${column.id}`} flexDirection="column" width={layout.columnWidth} borderStyle="round" borderDimColor paddingX={1}>
+                <Box flexDirection="row" justifyContent="space-between" columnGap={1}>
+                  <Box flexShrink={1}>
+                    <Text dimColor wrap="truncate-end">
+                      {column.label.toUpperCase()}
+                    </Text>
+                  </Box>
+                  <Box flexShrink={0}>
+                    <Text dimColor>{String(column.total)}</Text>
+                  </Box>
+                </Box>
+                {page.shown.map(item => card(item, inner))}
+                {note(page)}
+              </Box>
+            )
           })}
         </Box>
-        <Box flexDirection="row" marginTop={1}>
-          {board.columns.map(column => (
-            <Box key={`nf-col-${column.id}`} flexDirection="column" width={width} borderStyle="single" paddingX={1}>
-              <Text bold wrap="truncate-end">{column.label} {column.total}</Text>
-              {column.cards.map(card =>
-                isRemote ? (
-                  <Text wrap="truncate-end">{levelCardLine(card, level.kind)}</Text>
-                ) : (
-                  <Button
-                    key={`nf-card-${card.slug}`}
-                    label={fit(`${card.slug === pick ? '▸' : ' '} ${levelCardLine(card, level.kind)}`, width - 4)}
-                    plain
-                    {...(picked === null && `nf-card-${card.slug}` === first ? { autoFocus: true as const } : {})}
-                    onPress={run(() => pickCard($, card.slug))}
-                  />
-                ),
-              )}
-              {column.total > column.cards.length ? <Text dimColor>+{column.total - column.cards.length} more</Text> : null}
-            </Box>
-          ))}
+      ) : (
+        // A narrow dock: the columns one under the other, each with its count.
+        <Box flexDirection="column">
+          {board.columns.map((column, at) => {
+            const page = pageFor(column.cards)
+            return (
+              <Box key={`nf-col-${column.id}`} flexDirection="column" marginTop={at === 0 ? 0 : space}>
+                <Text dimColor wrap="truncate-end">{`${column.label.toUpperCase()} · ${column.total}`}</Text>
+                {page.shown.map(item => card(item, width))}
+                {note(page)}
+              </Box>
+            )
+          })}
+        </Box>
+      )
+    const levelName = (item: NfTaskLevel): string =>
+      `${item.name} ${item.open}${(item.kind === 'flowie' || item.kind === 'hive') && item.mine > 0 && item.project !== null ? ` (${MINE} ${item.mine})` : ''}${item.kind === 'remote' ? ' (read-only)' : ''}`
+    const now = await $.clock.now()
+    return (
+      <Box flexDirection="column">
+        <Box flexDirection="row" columnGap={3}>
+          <Box flexShrink={0}>
+            <Text>{`${MARK} tasks`}</Text>
+          </Box>
+          <Box flexDirection="row" flexWrap="wrap" columnGap={3} flexShrink={1}>
+            {view.levels.map((item, at) => {
+              const digit = DIGITS[at]
+              const name = levelName(item)
+              if (item.id === level.id) return <Text>{digit === undefined ? name : `${digit}: ${name}`}</Text>
+              return <Button key={`nf-level-${item.id}`} label={name} {...(digit === undefined ? {} : { hotkey: digit })} plain dimColor onPress={run(() => showLevel($, item.id))} />
+            })}
+          </Box>
+        </Box>
+        <Box flexDirection="column" marginTop={space}>
+          {columns}
         </Box>
         {isRemote ? (
           <Text dimColor wrap="wrap">{`Read-only: a copy of ${level.name}'s board${level.fetched ? `, fetched ${level.fetched}` : ''}. Move its tasks in that repository.`}</Text>
         ) : null}
         {picked !== null ? (
-          <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-            <Text>{`move "${fit(picked.title, 32)}" to`}</Text>
+          <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={space}>
+            <Text>{`move "${fit(picked.title, size === 'narrow' ? 18 : 32)}" →`}</Text>
             {moveTargets(board, cardColumn(board, picked.slug)).map(target => (
               <Button key={`nf-move-${target}`} label={target} plain onPress={run(() => runMove($, level, picked.slug, target))} />
             ))}
             <Button key="nf-board-cancel" label="cancel" hotkey={NAV.cancel} plain dimColor onPress={run(() => cancelPick($))} />
           </Box>
         ) : null}
-        <Text dimColor wrap="truncate-end">{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}${view.web ? ` · ↻ web change pending${pendingTime(view.web.checkedAt) ? ` (as of ${pendingTime(view.web.checkedAt)})` : ''}: ${WEB_APPLY}` : ''}`}</Text>
-        {keysHere ? (
-          <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-            {canStep
-              ? [
-                  <Button key="nf-nav-left" label="◂" hotkey={NAV.left} plain dimColor onPress={run(() => boardStep($, 'left'))} />,
-                  <Button key="nf-nav-right" label="▸" hotkey={NAV.right} plain dimColor onPress={run(() => boardStep($, 'right'))} />,
-                  <Button key="nf-nav-down" label="▾" hotkey={NAV.down} plain dimColor onPress={run(() => boardStep($, 'down'))} />,
-                  <Button key="nf-nav-up" label="▴" hotkey={NAV.up} plain dimColor onPress={run(() => boardStep($, 'up'))} />,
-                ]
-              : null}
-            <Button key="nf-board-refresh" label="reread" hotkey={NAV.reread} plain dimColor onPress={run(() => loadTasks($, true))} />
-            <Button key="nf-board-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: BOARD }))} />
-            {e.surface === 'terminal' ? <Text dimColor>{canStep ? 'enter: pick · esc: prompt' : 'esc: prompt'}</Text> : null}
-          </Box>
-        ) : (
-          <Text dimColor wrap="truncate-end">{unfocusedHint('/neuroflow:tasks')}</Text>
-        )}
+        <Box flexDirection="column" marginTop={space}>
+          <Text dimColor wrap="wrap">{`done ${board.done} · archived ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
+          {view.web ? (
+            <Text color="warning" wrap="wrap">{`↻ ${pendingText(view.web, now)}`}</Text>
+          ) : null}
+        </Box>
+        {term && !compact ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
+        ) : null}
+        <Box flexDirection="column" marginTop={term ? 0 : 1}>
+          {keysHere ? (
+            <Box flexDirection={size === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
+              <Box flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={1}>
+                {canStep
+                  ? [
+                      <Button key="nf-nav-left" label="◂" hotkey={NAV.left} plain dimColor onPress={run(() => boardStep($, 'left'))} />,
+                      <Button key="nf-nav-right" label="▸" hotkey={NAV.right} plain dimColor onPress={run(() => boardStep($, 'right'))} />,
+                      <Button key="nf-nav-down" label="▾" hotkey={NAV.down} plain dimColor onPress={run(() => boardStep($, 'down'))} />,
+                      <Button key="nf-nav-up" label="▴" hotkey={NAV.up} plain dimColor onPress={run(() => boardStep($, 'up'))} />,
+                    ]
+                  : null}
+                <Button key="nf-board-refresh" label="reread" hotkey={NAV.reread} plain dimColor onPress={run(() => loadTasks($, true))} />
+                <Button key="nf-board-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: BOARD }))} />
+              </Box>
+              {term ? (
+                <Box flexShrink={0}>
+                  <Text dimColor>{!canStep ? 'esc: prompt' : picked !== null ? 'enter: move there · esc: prompt' : 'enter: pick · esc: prompt'}</Text>
+                </Box>
+              ) : null}
+            </Box>
+          ) : (
+            <Text dimColor wrap="truncate-end">
+              {unfocusedHint('/neuroflow:tasks')}
+            </Text>
+          )}
+        </Box>
       </Box>
     )
   }).catch(($, e, next) => next(e))
