@@ -22,37 +22,54 @@ What became of each idea in the review behind the mod is in the [design record](
 
 ## What it looks like
 
+The mod's views share one look: the ring mark `◌` and the lowercase wordmark, section labels in dim capitals, a
+rule with a heavy segment under the shown tab, quiet keys at the foot — in your terminal's own theme colours, and laid
+out for the width and height they get, from a narrow dock to a wide terminal and 24 rows over SSH.
+
 <figure class="nf-shot">
 <div class="nf-term"><span class="dim">&gt;</span> /neuroflow:dashboard phase
-<div class="nf-pane"><span class="nf-pane__title">neuroflow</span><span class="b">Oddball EEG study · data-analyze · critic</span>
-<span class="nf-key"><i>1:</i> now</span><span class="nf-key on">2: phase</span><span class="nf-key"><i>3:</i> deadlines</span><span class="nf-key"><i>4:</i> integrity</span><span class="nf-key"><i>5:</i> tasks</span><span class="nf-key"><i>6:</i> loop</span>
+<div class="nf-pane">◌ neuroflow                        <span class="dim">Oddball EEG study · data-analyze · critic</span>
+<span class="nf-key"><i>1:</i> now</span>   <span class="nf-key on">2: phase</span>   <span class="nf-key"><i>3:</i> deadlines</span>   <span class="nf-key"><i>4:</i> integrity</span>   <span class="nf-key"><i>5:</i> tasks</span>   <span class="nf-key"><i>6:</i> loop</span>
+<span class="dim">─────────</span>━━━━━━━━<span class="dim">───────────────────────────────────────────────────────────</span>
 
-<span class="ok">✔</span> ideation  <span class="ok">✔</span> preregistration  <span class="ok">✔</span> data  <span class="ok">✔</span> data-preprocess  <span class="b">● data-analyze</span>  <span class="dim">○ paper</span>
-Current: data-analyze — analysis
-<span class="dim">Next: /neuroflow:paper — manuscript</span>
-<span class="dim">● current  ✔ visited  ○ recommended</span>
+●━━━━━━━━━━━●━━━━━━━━━━━●━━━━━━━━━━━●━━━━━━━━━━━◉<span class="dim">───────────→</span>
+<span class="dim">ideation    prereg      data        preprocess  analyze     paper</span>
 
-<span class="nf-key"><i>g:</i> go to phase…</span>
-<span class="nf-key"><i>h:</i> ‹ tab</span><span class="nf-key"><i>l:</i> tab ›</span><span class="nf-key"><i>r:</i> reread</span><span class="nf-key"><i>q:</i> close</span><span class="dim">esc: prompt</span></div></div>
-<figcaption>The dashboard opens as a pane drawn in code, holding the keyboard — no model turn, no tokens. The digits pick the tabs: now, phase, deadlines, integrity, tasks and the autoresearch loop; <code>h</code> and <code>l</code> step between them.</figcaption>
+<span class="dim">NOW</span>    data-analyze — analysis
+<span class="dim">NEXT</span>   /neuroflow:paper — manuscript
+
+<span class="dim">◉ current  ● visited  → recommended next</span>                     <span class="nf-key"><i>g:</i> go to phase…</span>
+
+<span class="dim">────────────────────────────────────────────────────────────────────────────</span>
+<span class="nf-key"><i>h:</i> ‹</span>  <span class="nf-key"><i>l:</i> ›</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>                                  <span class="dim">esc: prompt</span></div></div>
+<figcaption>The dashboard opens as a pane drawn in code, holding the keyboard — no model turn, no tokens. The digits pick the tabs — now, phase, deadlines, integrity, tasks and the autoresearch loop — and the heavy segment of the rule marks the one shown; <code>h</code> and <code>l</code> step between them. The phase tab unrolls the ring into a flow line, heavy as far as the current phase.</figcaption>
 </figure>
 
 <figure class="nf-shot">
-<div class="nf-term"><div class="nf-pane"><span class="nf-pane__title">integrity</span><span class="ok">✔</span> ethics approved · expires 2027-06-30
-<span class="dim">  participant data the model may read: pseudonymised</span>
-<span class="ok">■</span> preregistration frozen 2026-10-01 · 2 file(s)
-<span class="dim">  planned N: 24</span>
-<span class="ok">■</span> <span class="dim">read-only raw data: sourcedata/</span>
+<div class="nf-term"><div class="nf-pane">◌ neuroflow                        <span class="dim">Oddball EEG study · data-analyze · critic</span>
+<span class="nf-key"><i>1:</i> now</span>   <span class="nf-key"><i>2:</i> phase</span>   <span class="nf-key"><i>3:</i> deadlines</span>   <span class="nf-key on">4: integrity</span>   <span class="nf-key"><i>5:</i> tasks</span>   <span class="nf-key"><i>6:</i> loop</span>
+<span class="dim">───────────────────────────────────</span>━━━━━━━━━━━━<span class="dim">─────────────────────────────</span>
 
-<span class="nf-key"><i>v:</i> verify</span><span class="nf-key"><i>u:</i> unfreeze…</span><span class="nf-key"><i>q:</i> close</span></div></div>
-<figcaption>The integrity tab (<code>4</code>). A person freezes the preregistration here (<code>f</code>, after an explicit yes), re-checks its hashes (<code>v</code>) or unfreezes it with a reason (<code>u</code>).</figcaption>
+<span class="ok">✔</span> ethics           approved · expires 2027-06-30             <span class="dim">set by a person</span>
+                   <span class="dim">model may read: pseudonymised data</span>
+<span class="ok">■</span> preregistration  frozen 2026-10-01 · 2 files               <span class="dim">set by a person</span>
+                   <span class="dim">planned N: 24</span>
+■ raw data         read-only: sourcedata/
+
+<span class="nf-key"><i>v:</i> verify hashes</span>   <span class="nf-key"><i>u:</i> unfreeze…</span>
+
+<span class="dim">────────────────────────────────────────────────────────────────────────────</span>
+<span class="nf-key"><i>h:</i> ‹</span>  <span class="nf-key"><i>l:</i> ›</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>                                  <span class="dim">esc: prompt</span></div></div>
+<figcaption>The integrity tab (<code>4</code>): each marker with its glyph, its state and who set it. A person freezes the preregistration here (<code>f</code>, after an explicit yes), re-checks its hashes (<code>v</code>) or unfreezes it with a reason (<code>u</code>).</figcaption>
 </figure>
 
 <figure class="nf-shot">
-<div class="nf-term"><span class="warn">⚠ Abstract deadline — tomorrow</span>  <span class="dim">+1 more</span>  <span class="nf-key"><i>d:</i> dashboard</span><span class="nf-key"><i>x:</i> hide today</span><span class="dim">^X Tab: keys</span>
-<span class="nf-rule"></span><span class="b">&gt;</span> <span class="nf-caret"></span>
-<span class="nf-rule"></span><span class="dim">neuroflow: ⚠ Abstract deadline tomorrow</span><span class="nf-right dim">neuroflow · data-analyze · critic</span></div>
-<figcaption>The band above the prompt names the most urgent item on one row — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two where they fit) — then <code>d: dashboard</code> and <code>x: hide today</code>. Its keys work once ^X Tab has given it the keyboard, and it says so until you have done that three times. An item's own keys, such as a meeting's <code>p: prepare</code> and <code>o: notes</code>, appear when it is first; the version notice's <code>m: migrate</code> appears whenever the notice is shown. While a check-in still waits to sync to your flowie, a key puts its command in the prompt instead: press Esc and then Enter, and the sync runs first. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
+<div class="nf-term"><span class="dim">◌</span> <span class="err">⚠ Abstract deadline — tomorrow</span>  <span class="nf-key"><i>d:</i> dashboard</span>  <span class="nf-key"><i>x:</i> hide today</span>  <span class="dim">^X Tab: keys</span> <span class="dim">[-]</span>
+<span class="dim">────────────────────────────────────────────────────────────────────────────────</span>
+<span class="b">&gt;</span> <span class="nf-caret"></span>
+<span class="dim">────────────────────────────────────────────────────────────────────────────────</span>
+<span class="dim">  neuroflow: ⚠ Abstract deadline tomorrow</span>      <span class="dim">neuroflow · data-analyze · critic</span></div>
+<figcaption>The band above the prompt names the most urgent item on one row, after the ring mark — with the default <code>band: quiet</code> one item and <code>+N more</code> for the rest (<code>normal</code> shows two where they fit) — then <code>d: dashboard</code> and <code>x: hide today</code>. Its keys work once ^X Tab has given it the keyboard, and it says so until you have done that three times. An item's own keys, such as a meeting's <code>p: prepare</code> and <code>o: notes</code>, appear when it is first; the version notice's <code>m: migrate</code> appears whenever the notice is shown. On an 80-column terminal the keys take their short words (<code>x: hide</code>, <code>+2</code>) when they would crowd the item out. While a check-in still waits to sync to your flowie, a key puts its command in the prompt instead: press Esc and then Enter, and the sync runs first. The status line speaks only about exceptions; the footer names the phase and the mode.</figcaption>
 </figure>
 
 <figure class="nf-shot">
@@ -63,16 +80,20 @@ Current: data-analyze — analysis
 
 <figure class="nf-shot">
 <div class="nf-term"><span class="dim">&gt;</span> /neuroflow:tasks
-<div class="nf-pane"><span class="nf-pane__title">tasks</span><span class="nf-key on">1: project 3</span><span class="nf-key"><i>2:</i> flowie 12</span><span class="nf-key"><i>3:</i> example-lab-hive 4</span>
-┌─ inbox ──────────┬─ active ─────────┬─ review ────────┐
-│ fix-marker       │ <span class="warn">▸ ⚠ rerun-ica @li</span>│ qc-report       │
-│                  │   due 08-20      │                 │
-│                  │ spin-tests       │                 │
-└──────────────────┴──────────────────┴─────────────────┘
-move "Rerun ICA" to  inbox  ready  <span class="b">review</span>  meeting  done  <span class="nf-key"><i>x:</i> cancel</span>
-<span class="dim">done: 3 · archived: 0 · level: project</span>
-<span class="nf-key"><i>h:</i> ◂</span><span class="nf-key"><i>l:</i> ▸</span><span class="nf-key"><i>j:</i> ▾</span><span class="nf-key"><i>k:</i> ▴</span><span class="nf-key"><i>r:</i> reread</span><span class="nf-key"><i>q:</i> close</span><span class="dim">enter: pick · esc: prompt</span></div></div>
-<figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card, Enter picks it (▸) and Enter on a column moves it — at once at project and flowie level, as one command in the prompt for you to send at a hive's.</figcaption>
+<div class="nf-pane">◌ tasks   <span class="nf-key on">1: project 4</span>   <span class="nf-key"><i>2:</i> flowie 1 (◆ 1)</span>
+
+<span class="dim">╭──────────────────────╮ ╭──────────────────────╮ ╭──────────────────────╮</span>
+<span class="dim">│ </span><span class="dim">INBOX</span>              <span class="dim">1</span><span class="dim"> │</span> <span class="dim">│ </span><span class="dim">ACTIVE</span>             <span class="dim">2</span><span class="dim"> │</span> <span class="dim">│ </span><span class="dim">REVIEW</span>             <span class="dim">1</span><span class="dim"> │</span>
+<span class="dim">│ </span>  Fix marker channe…<span class="dim"> │</span> <span class="dim">│ </span>▸ ⚠ Rerun ICA @li d…<span class="dim"> │</span> <span class="dim">│ </span>  QC report         <span class="dim"> │</span>
+<span class="dim">│ </span>                    <span class="dim"> │</span> <span class="dim">│ </span>  Spin tests        <span class="dim"> │</span> <span class="dim">│ </span>                    <span class="dim"> │</span>
+<span class="dim">╰──────────────────────╯ ╰──────────────────────╯ ╰──────────────────────╯</span>
+
+move "Rerun ICA" →  inbox  ready  <span class="nf-ring">review</span>  meeting  done  <span class="nf-key"><i>x:</i> cancel</span>
+
+<span class="dim">done 3 · archived 0 · level: project</span>
+<span class="dim">────────────────────────────────────────────────────────────────────────────</span>
+<span class="nf-key"><i>h:</i> ◂</span>  <span class="nf-key"><i>l:</i> ▸</span>  <span class="nf-key"><i>j:</i> ▾</span>  <span class="nf-key"><i>k:</i> ▴</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>  <span class="dim">enter: move there · esc: prompt</span></div></div>
+<figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies, each column a round box with its name and count. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card — <code>j</code> past a column's fifth shows its next five — Enter picks it (▸) and Enter on a column moves it: at once at project and flowie level, as one command in the prompt for you to send at a hive's. In a dock too narrow for the columns side by side, they stand one under the other.</figcaption>
 </figure>
 
 ---
@@ -81,7 +102,7 @@ move "Rerun ICA" to  inbox  ready  <span class="b">review</span>  meeting  done 
 
 | Feature | What you see | Needs |
 |---|---|---|
-| Views | `/neuroflow:dashboard` opens a pane (now — every band item with its action —, phase map, deadlines, integrity, open tasks at every level, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` the task boards of the project, your flowie and each hive, the digits picking the level; `/neuroflow:paper --auto status`, `/neuroflow:paper --xray view` and `/neuroflow:wiki --review` open panes for the living paper, the paper X-ray and the wiki review queue. Each opens holding the keyboard ([Keyboard and SSH](#keyboard-and-ssh)) | — |
+| Views | `/neuroflow:dashboard` opens a pane (now — every band item with its action —, phase map, deadlines, integrity, open tasks at every level, the autoresearch loop); `/neuroflow:phase` opens a picker (arrows and Enter, or a click); `/neuroflow:tasks` the task boards of the project, your flowie and each hive, the digits picking the level; `/neuroflow:paper --auto status`, `/neuroflow:paper --xray view` and `/neuroflow:wiki --review` open panes for the living paper, the paper X-ray and the wiki review queue. Each opens holding the keyboard ([Keyboard and SSH](#keyboard-and-ssh)) and lays itself out for the width and height it gets | — |
 | Band, status line, footer | One line above the prompt when something needs attention (a deadline, a meeting, a drafted decision, a loop being driven, a plugin update the project has not been [migrated](../upgrading.md) to, a flowie sync of the mod's that is pending or did not go through); a status line that speaks only about exceptions; `neuroflow · phase · mode` in the footer | `band` |
 | Instant answers | `/neuroflow:doctor`, `/neuroflow:phase <name>`, `idea: …` and live note capture answered in code, with no model turn | — |
 | Bookkeeping | Missing session lines and `flow.md` rows filled after a command's turn and marked `(auto)`; a decision drafted when a command logged none, kept only on your key press | `runtime: on` |
@@ -122,6 +143,11 @@ over SSH, inside tmux or screen.
 | The wiki cards, an X-ray, the living paper | `/neuroflow:wiki --review`, `/neuroflow:paper --xray view`, `/neuroflow:paper --auto status` | Each opens holding the keys |
 | The band's keys | ^X Tab (Ctrl+X, then Tab) | Esc gives the keys back to the prompt |
 
+While you type, Claude Code's typeahead offers what comes next: the phases after `/neuroflow:phase `, the tabs after
+`/neuroflow:dashboard `, the levels after `--level `, your hives after `--hive ` and, in `/neuroflow:tasks`, the open
+cards after `--move ` and then the columns that card can move to. The hives and cards come from the boards the mod has
+read in the session — opening the dashboard is enough; nothing is read while you type.
+
 Keys you type in the first 400 ms after a view opened holding the keys do nothing: a quick Enter or the start of your
 next sentence never acts in a pane you did not mean to type into. Esc always gives the keys back to the prompt and leaves
 the pane open; `q` closes it. A pane that does not hold the keys says so at its foot: `^X Tab: use the keys here ·
@@ -148,7 +174,7 @@ the keys, so a number you type into the prompt ("2026", "128 channels") never pr
 |---|---|
 | Band | `d` dashboard (opens on now) · `x` hide today, not today, stop a driven loop or a note capture · `p` prepare and `o` notes for a meeting soon · `c` close a meeting left open · `m` migrate · `w` review wiki cards · `s` sync the flowie · `a` apply your workbench changes (puts the command in the prompt for you to send) · `y` keep and `n` drop a drafted decision · the wellbeing check-in is a field: ^X Tab lands in it |
 | Dashboard | `1` now · `2` phase · `3` deadlines · `4` integrity · `5` tasks · `6` loop; on phase `g` go to a phase; on integrity `f` freeze (asks first), `v` verify, `u` unfreeze (asks first); on tasks `b` the boards. On now, every action runs with Enter on its row, never on a letter |
-| Task boards | `1`–`9` level · `h` `j` `k` `l` or Tab to a card · Enter picks it (▸), Enter on a column moves it · `x` cancel · a hive's move goes into the prompt for you to send |
+| Task boards | `1`–`9` level · `h` `j` `k` `l` or Tab to a card, `j` past a column's fifth to its next five · Enter picks it (▸), Enter on a column moves it · `x` cancel · a hive's move goes into the prompt for you to send |
 | Phase picker | Down or Enter opens the list · the arrows move · a letter jumps to the phases that start with it · Enter switches · Esc closes |
 | Wiki cards | `y` accept (runs `/neuroflow:wiki --add`) · `n` skip · `j` `k` next, previous |
 | X-ray | `y` accept · `n` reject, with a reason · `j` `k` next, previous finding, red first, eight to a page |
@@ -183,14 +209,16 @@ opens holding the keys; it works while the prompt has them (Esc first when a pan
 
 - **No mouse needed.** Every view above opens and works from the keys alone.
 - **Inline, not docked.** On Claude Code's main screen — the default inside tmux — panes sit above the prompt. Each view
-  asks for its rows; on a terminal under 30 rows (24 over SSH) it asks for fewer, so the conversation keeps room.
+  asks for its rows; on a terminal under 30 rows (24 over SSH) it asks for fewer and drops its blank rows and summaries,
+  so the conversation keeps room. Docked beside a fullscreen transcript, each asks for its width; a narrow dock (under
+  56 columns) stacks what a wide pane puts side by side.
 - **tmux** waits after Esc to see whether a key sequence follows; with `set -sg escape-time 10` in `~/.tmux.conf` Esc
   gives the keys back at once. Its prefix (Ctrl+B) does not meet the chords above.
 - **GNU screen** takes Ctrl+A as its prefix: the band's collapse chord, Ctrl+X Ctrl+A, becomes Ctrl+X, then Ctrl+A
   and `a` there (screen's way to send a Ctrl+A through). ^X Tab works as it is.
-- **Colours and glyphs.** The views use your theme's colours, never fixed ones, and pair each with a glyph and a word,
-  so 8- and 16-colour terminals and light themes read the same. Claude Code itself needs a UTF-8 terminal; the views'
-  glyphs (▸ ◆ ⚠ ✔ ↻) need nothing more.
+- **Colours and glyphs.** The views use your theme's colours, never fixed ones or background fills, and pair each with
+  a glyph and a word, so 8- and 16-colour terminals and light themes read the same. Claude Code itself needs a UTF-8
+  terminal; the views' glyphs (◌ ◉ ● → ○ ▸ ◆ ⚠ ↻ and the box-drawing lines) need nothing more.
 
 ---
 

@@ -5,10 +5,10 @@ title: Mod live check
 # Live check of the mod's keyboard
 
 `claude plugin test .` exercises the mod's hooks and the trees they draw — never focus, key dispatch or paint. Who
-holds the keys after which open, where ^X Tab lands, whether a hotkey moves the highlight: that shows only in a real
-terminal. Run this check before a release that changes the views (`hooks/mod/features/views.tsx`, `user.tsx`,
-`hooks/mod/lib/keys.ts`), on the Claude Code version the mod is tested from and on the newest one, and write the
-outcome into the pull request.
+holds the keys after which open, where ^X Tab lands, whether a hotkey moves the highlight, whether a rule lines up
+under its tab: that shows only in a real terminal. Run this check before a release that changes the views
+(`hooks/mod/features/views.tsx`, `user.tsx`, `hooks/mod/lib/keys.ts`, `layout.ts`, `complete.ts`), on the Claude Code
+version the mod is tested from and on the newest one, and write the outcome into the pull request.
 
 ## 1. A fixture project outside the plugin repository
 
@@ -108,7 +108,7 @@ check is done: `claude plugin enable neuroflow@neuroflow`.
 
 - **80 × 24 over SSH, inside tmux, mouse off.** `ssh` to a host with Claude Code, `tmux new -s nf` with
   `set -g mouse off` and `set -sg escape-time 10` in `~/.tmux.conf`; size the window until `stty size` prints `24 80`.
-  Once with `TERM=xterm-16color`.
+  Once with `TERM=xterm-16color`, and once with a light Claude Code theme (`/theme`).
 - **120 × 40, the fullscreen layout**, where panes dock beside the conversation from 110 columns.
 - Once in **GNU screen**, for its Ctrl+A prefix.
 - Once on the desktop app, if you have it: the same views by mouse, with no chord to teach.
@@ -138,7 +138,8 @@ the code assumes but cannot test.
 Each state on one row, the most urgent item first and cut at its end with `…`:
 
 - [ ] a deadline alone (`band` quiet): `d: dashboard  x: hide today`, and `^X Tab: keys`;
-- [ ] the meeting in 45 minutes: `p: prepare  o: notes`; the open one: `c: close meeting`;
+- [ ] the meeting in 45 minutes: `p: prepare  o: notes`, at 80 columns with `x: hide` and `+N` so the meeting
+  keeps its room; the open one: `c: close meeting`;
 - [ ] the version notice: `m: migrate`, the sentence cut at its end; the dashboard shows it whole under its title;
 - [ ] the wiki cards (`band` normal): `w: review`;
 - [ ] a flowie sync that waits — `idea: live check` saves an idea to your own flowie and syncs it, so try it offline:
@@ -176,16 +177,49 @@ And on every state:
 - [ ] At a hive's level, Enter on a target only puts the command in the prompt; Esc and then Enter would send it — do not
   send it during the check.
 - [ ] Another repository's board, read-only, has no card to pick.
-- [ ] Past five cards a column says `+1 more`.
+- [ ] The six cards in active: five show, then `+1 more`; `j` on the fifth shows the sixth and `6–6 of 6`, `k` goes
+  back to the first five; `h` or `l` from the sixth lands on the neighbour's first row.
+- [ ] Narrow the dock (or the terminal) until a column would get under 18 cells: the columns stand one under the
+  other, each with its name and count.
 
 ### The picker and the review panes
 
-- [ ] Picker (`/neuroflow:phase`): Down or Enter opens the list, a letter jumps, Enter switches, Esc closes. *Note*
-  whether the list takes letters for itself.
+- [ ] Picker (`/neuroflow:phase`): each option names the phase first, then its mark and state (`◉ current`,
+  `→ next`). Down or Enter opens the list, a letter jumps to the phase that starts with it, Enter switches, Esc
+  closes. *Note* whether the list takes letters for itself.
 - [ ] Wiki cards (`/neuroflow:wiki --review`): `y` accepts (runs `/neuroflow:wiki --add`), `n` skips, `j` and `k`, `q`.
 - [ ] X-ray (`/neuroflow:paper --xray view`): `y`; `n` asks for a reason; `j` past the eighth finding turns the page;
   `q`.
 - [ ] Living paper (`/neuroflow:paper --auto status`): `s` runs the sync, `r`, `q`.
+
+### The look
+
+Each view is drawn with characters: *note* every line below that does not hold.
+
+- [ ] Each view starts with `◌` and its name (`◌ neuroflow`, `◌ tasks`, `◌ switch phase`, `◌ wiki cards`, `◌ X-ray`,
+  `◌ living paper`); *note* whether your font draws `◌` (a dotted ring) or a box.
+- [ ] The dashboard's tab rule: the heavy segment sits exactly under the shown tab, for each of the six; the closing
+  rule fills the pane's width without wrapping to a second line.
+- [ ] Rows with `⚠` or `✔` (the band, now, deadlines, integrity, a board card) keep the pane's right edge straight,
+  and a board column's right border stays in line on a row with `⚠`; *note* any row where a glyph takes two cells.
+- [ ] The phase tab: `◉` on the current phase, the line heavy (`━`) up to it and light after; in a dock under 56
+  columns, the word list instead.
+- [ ] The deadlines tab: the ruler's ticks fall every seven cells, tomorrow's `⚠` under day 1 and the ethics expiry's
+  `▸` under day 12.
+- [ ] The board's columns have round corners and dim borders; a long card ends in `…` inside its column.
+- [ ] At 80 × 24 the dashboard is compact: the title on the mark's line, no blank rows, no summary under now, no
+  closing rule. At 120 × 40 the now tab stands as NEEDS ATTENTION beside AT A GLANCE.
+- [ ] Fullscreen at 120 columns: *note* how wide the docked dashboard (asks 64 columns) and boards (84) open.
+- [ ] Light theme and 16 colours: the dim text, the warnings and the errors stay readable; nothing is drawn on a
+  background colour except the engine's own focus highlight.
+
+### Typeahead
+
+- [ ] Type `/neuroflow:phase da`: under Claude Code's own rows, `data`, `data-analyze` and `data-preprocess` with
+  their marks and states; taking one writes it over `da`.
+- [ ] `/neuroflow:dashboard d` offers `deadlines`; `/neuroflow:tasks --level h` offers `hive`.
+- [ ] After the dashboard has been open once: `/neuroflow:tasks --move s` offers the `step-…` cards, then
+  `/neuroflow:tasks --move step-1 r` offers `ready` and `review`.
 
 ### One chord per view
 
