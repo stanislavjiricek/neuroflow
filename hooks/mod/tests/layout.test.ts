@@ -163,13 +163,28 @@ describe('the band', () => {
   const meeting = ['p: prepare', 'o: notes', 'd: dashboard', 'x: hide today']
   const meetingShort = ['p: prepare', 'o: notes', 'd: dashboard', 'x: hide']
 
-  test('one row at 75 cells: the mark, the most urgent item and its keys stay; the hint goes first, then the long labels', () => {
+  test('one row at 75 cells: the mark, the most urgent item and its keys stay; the long labels go first, then the hint', () => {
     expect(bandPlan({ columns: 75, items: 1, total: 1, buttons: ['d: dashboard', 'x: hide today'], hint, lead: 2 })).toEqual({ items: 1, more: 0, hint: true, short: false, room: 30 })
-    // A meeting brings two keys of its own: the hint gives way, then `x: hide` and `+2` keep the item its room.
+    // A meeting brings two keys of its own: even `x: hide` and `+2` leave no room for the hint beside the item.
     expect(bandPlan({ columns: 75, items: 1, total: 3, buttons: meeting, short: meetingShort, hint, lead: 2 })).toEqual({ items: 1, more: 2, hint: false, short: true, room: 24 })
     // Without short labels the item truncates.
     expect(bandPlan({ columns: 75, items: 1, total: 3, buttons: meeting, hint })).toEqual({ items: 1, more: 2, hint: false, short: false, room: 15 })
     expect([moreLabel(2, false), moreLabel(2, true), moreLabel(0, true)]).toEqual(['+2 more', '+2', ''])
+  })
+
+  test('the chord hint, while it is taught, stays ahead of the long words: `x: hide` and `+4` make its room at 75 cells', () => {
+    const fixed = ['d: dashboard', 'x: hide today']
+    const fixedShort = ['d: dashboard', 'x: hide']
+    // An alert and four more: the hint and the short words; once learned, the full words again.
+    expect(bandPlan({ columns: 75, items: 1, total: 5, buttons: fixed, short: fixedShort, hint, lead: 2 })).toEqual({ items: 1, more: 4, hint: true, short: true, room: 32 })
+    expect(bandPlan({ columns: 75, items: 1, total: 5, buttons: fixed, short: fixedShort, hint: null, lead: 2 })).toEqual({ items: 1, more: 4, hint: false, short: false, room: 35 })
+    // The version notice alone brings m: the hint says how to press it, the item keeps 24 cells.
+    const notice = ['m: migrate', ...fixed]
+    const noticeShort = ['m: migrate', ...fixedShort]
+    expect(bandPlan({ columns: 75, items: 1, total: 1, buttons: notice, short: noticeShort, hint, lead: 2 })).toEqual({ items: 1, more: 0, hint: true, short: true, room: 24 })
+    // At 115 cells a normal band keeps two items and the hint, in the short words; learned, it has the full ones.
+    expect(bandPlan({ columns: 115, items: 2, total: 3, buttons: meeting, short: meetingShort, hint, lead: 2 })).toEqual({ items: 2, more: 1, hint: true, short: true, room: 48 })
+    expect(bandPlan({ columns: 115, items: 2, total: 3, buttons: meeting, short: meetingShort, hint: null, lead: 2 })).toEqual({ items: 2, more: 1, hint: false, short: false, room: 51 })
   })
 
   test('at 115 cells a normal band shows two items, the rest counted, and the hint; below 110 it shows one', () => {

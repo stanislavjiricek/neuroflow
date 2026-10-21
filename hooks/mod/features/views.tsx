@@ -1,6 +1,7 @@
 // Views — the project at a glance, drawn by code at zero tokens (charter: quiet by default).
 //  - the band above the prompt (M080, M064, M214): one row of what needs attention, letter hotkeys only, and the
-//    engine's focus chord (^X Tab) next to them until the person has used it three times
+//    engine's focus chord (^X Tab) next to them until the person has used it three times — ahead of the keys' long
+//    words and a second item, wherever the first item keeps its room beside it
 //  - the dashboard pane (M069, M084): now (every band item with its action), phase map, deadlines, integrity,
 //    tasks, the autoresearch loop — tabs on the digits 1–6
 //  - /neuroflow:phase answered in code (M163, M011): a picker — arrows and Enter, or a click
@@ -1590,9 +1591,9 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const plan = (offered: number, total: number, keys: readonly Key[]) =>
       bandPlan({ columns, items: offered, total, buttons: labels(keys), short: keys.some(item => item.short !== undefined) ? labels(keys, true) : undefined, hint, lead })
     /**
-     * One row as wide as the band (bandPlan), by priority: the mark; the items, the first whole where it can be, each
-     * cut at its end; `+N more`; the keys, in their short words when the full ones would crowd the first item out;
-     * the chord hint where it fits.
+     * One row as wide as the band (bandPlan), by priority: the mark; the first item, whole where it can be, cut at its
+     * end; its keys; the chord hint while it is taught; a second item; and the keys and `+N more` in full words, which
+     * give way to their short ones (`x: hide`, `+2`) first.
      */
     const row = (items: readonly { text: string; color: 'error' | 'warning' | 'suggestion' }[], total: number, keys: readonly Key[]): JSX.Element => {
       const fits = plan(items.length, total, keys)

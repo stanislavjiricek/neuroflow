@@ -719,6 +719,73 @@ describe('keyboard first', () => {
   })
 })
 
+describe('the band at 80 columns, before the chord is learned', () => {
+  const project = '/work/proj'
+  const config = (version: string) => `---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data\nplugin_version: ${version}\n---\n`
+  const setUp = (on: On, files: Record<string, string>, stored: Record<string, unknown> = {}) => {
+    // Not named "neuroflow": the pattern also matches the project, which would then read as the plugin's own repo.
+    fakeFs(on, { ...files, '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}' }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
+    const store = new Map(Object.entries(stored))
+    on('store.get', ($, e) => ({ value: store.get(e.key) }))
+    on('store.set', ($, e) => {
+      store.set(e.key, e.value)
+      return { value: undefined }
+    })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.status', () => ({ value: undefined }))
+  }
+  const band = (bodyColumns: number) => ({
+    plugin: 'neuroflow', surface: 'terminal', component: 'AbovePrompt',
+    props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns, scroll: { offset: 0, bodyRows: 4 }, view: {} },
+  })
+  /** The keys as drawn, `k: label`. */
+  const keys = (tree: unknown): string[] => buttons(tree).map(button => `${button.hotkey}: ${button.label}`)
+
+  test('the version notice alone: m, d and x: hide, and ^X Tab: keys says how to press them', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    setUp(on, { [`${project}/.neuroflow/project_config.md`]: config('0.2.21') })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const narrow = await $.ui.mount(band(75) as never)
+    const tight = await narrow.drawn()
+    expect(keys(tight)).toEqual(['m: migrate', 'd: dashboard', 'x: hide'])
+    expect(lines(tight)).toContain('^X Tab: keys')
+    await narrow.unmount()
+    // At 120 columns the full words come back beside the hint.
+    const wide = await $.ui.mount(band(115) as never)
+    const roomy = await wide.drawn()
+    expect(keys(roomy)).toEqual(['m: migrate', 'd: dashboard', 'x: hide today'])
+    expect(lines(roomy)).toContain('^X Tab: keys')
+    await wide.unmount()
+  })
+
+  test('an alert and one more: `+1` and `x: hide` keep the hint on the row', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    setUp(on, {
+      [`${project}/.neuroflow/project_config.md`]: config('0.2.21'),
+      [`${project}/.neuroflow/timeline.md`]: '| Date | What | Gates |\n|---|---|---|\n| 2026-10-08 | Abstract deadline | paper |\n',
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const narrow = await $.ui.mount(band(75) as never)
+    const tight = await narrow.drawn()
+    expect(lines(tight)).toEqual(['◌', '⚠ Abstract deadline — tomorrow', '+1', '^X Tab: keys'])
+    expect(keys(tight)).toEqual(['d: dashboard', 'x: hide'])
+    await narrow.unmount()
+  })
+
+  test('learned: no hint, and the long words wherever they leave the item its room', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    setUp(on, {
+      [`${project}/.neuroflow/project_config.md`]: config('0.2.21'),
+      [`${project}/.neuroflow/timeline.md`]: '| Date | What | Gates |\n|---|---|---|\n| 2026-10-08 | Abstract deadline | paper |\n',
+    }, { 'keys.learned': 3 })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    const narrow = await $.ui.mount(band(75) as never)
+    const tight = await narrow.drawn()
+    expect(lines(tight)).toEqual(['◌', '⚠ Abstract deadline — tomorrow', '+1 more'])
+    expect(keys(tight)).toEqual(['d: dashboard', 'x: hide today'])
+    await narrow.unmount()
+  })
+})
+
 describe('phase switching', () => {
   const project = '/work/proj'
   const setup = (on: On) => {

@@ -263,10 +263,11 @@ export type BandPlan = { items: number; more: number; hint: boolean; short: bool
 export const moreLabel = (more: number, short: boolean): string => (more <= 0 ? '' : short ? `+${more}` : `+${more} more`)
 
 /**
- * What fits on the band's one row, by priority: the mark, the first item always (it truncates at its end) and its
- * keys always; then the second item, from BAND_SECOND_ITEM cells and while each item keeps BAND_MIN_ITEM; the short
- * labels when the full ones would leave the first item under BAND_MIN_ITEM; then the chord hint, while the items
- * shown keep that room with it. What is not shown is counted in `+N more`.
+ * What fits on the band's one row, by priority: the mark, the first item (it truncates at its end) and its keys always;
+ * then the chord hint while it is still taught — without it the keys are letters a person types into the prompt — where
+ * the first item keeps BAND_MIN_ITEM beside it; then the second item, from BAND_SECOND_ITEM cells and while each item
+ * keeps BAND_MIN_ITEM; and last the full labels. The short labels (`x: hide`, and `+2` for `+2 more`) stand in wherever
+ * the full ones would crowd out the first item, the hint or the second item. What is not shown is counted in `+N more`.
  */
 export const bandPlan = (input: BandPlanInput): BandPlan => {
   const width = (labels: readonly string[]): number => labels.reduce((sum, label) => sum + cells(label), 0) + Math.max(0, labels.length - 1) * BAND_GAP
@@ -278,10 +279,12 @@ export const bandPlan = (input: BandPlanInput): BandPlan => {
     // What the shown items share, less the gap between two of them.
     return input.columns - used - (items > 1 ? BAND_GAP : 0)
   }
-  let items = Math.max(1, Math.min(input.items, input.total))
-  if (items > 1 && (input.columns < BAND_SECOND_ITEM || room(items, false, false) < items * BAND_MIN_ITEM)) items = 1
-  const short = input.short !== undefined && room(items, false, false) < items * BAND_MIN_ITEM
-  const hint = input.hint !== null && room(items, true, short) >= items * BAND_MIN_ITEM
+  const fits = (items: number, hint: boolean, short: boolean): boolean => room(items, hint, short) >= items * BAND_MIN_ITEM
+  // The full labels give way first, so the hint and the second item are weighed beside the short ones.
+  const canShort = input.short !== undefined
+  const hint = input.hint !== null && fits(1, true, canShort)
+  const items = Math.min(input.items, input.total) > 1 && input.columns >= BAND_SECOND_ITEM && fits(2, hint, canShort) ? 2 : 1
+  const short = canShort && !fits(items, hint, false)
   return { items, more: Math.max(0, input.total - items), hint, short, room: room(items, hint, short) }
 }
 
