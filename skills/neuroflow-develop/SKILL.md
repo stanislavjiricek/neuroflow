@@ -228,6 +228,7 @@ python scripts/automation/brand_assets.py           # --check: the same check th
 
 | Glyph | Means |
 |---|---|
+| `◌` | neuroflow's mark in the terminal: before the lowercase wordmark at the top of the mod's views, and first on the band |
 | `◉` | current phase |
 | `●` | visited phase |
 | `→` | recommended next |
@@ -235,7 +236,13 @@ python scripts/automation/brand_assets.py           # --check: the same check th
 | `·` | a phase drawn without a state (the welcome ring's other dots) |
 | `⚠` | overdue, or due within three days |
 
-`/dashboard` and the mod's panes still draw the current phase as `●` and a visited one as `✔`; they move to this legend when the mod's views are redrawn, and so does any other file with other marks when it is next changed.
+A file that still draws other marks — `/flowie`'s project timeline (`✓`), the workbench page (`✔`) — moves to this legend when it is next changed.
+
+The mod's views (`hooks/mod/features/views.tsx`, `user.tsx`) draw this look with what every terminal has:
+
+- **Colours:** theme keys only — `text`, dim (`dimColor`, `subtle`), `suggestion`, `warning`, `error`, `success` — never a hex value or a background fill, so light themes and 8- and 16-colour terminals read the same. Every state also has a glyph and a word.
+- **Type:** the mark and the wordmark (`◌ neuroflow`, never bold) head each view; section labels are UPPERCASE and dim (`PHASE`, `NEEDS ATTENTION`, `INBOX 2`); a rule (`─`) sets off the body, with a heavy segment (`━`) under the shown tab; board columns have round corners (`╭╮╰╯`); text cut to its room ends in `…`; key legends are dim.
+- **Layout:** from the body's width — narrow under 56 cells, medium to 89, wide from 90 — and the terminal's height (compact under 30 rows): `hooks/mod/lib/layout.ts` holds the breakpoints, the phase flow line, the dates ruler and the board's grid and pages, each with its plain-text form.
 
 ## Release workflow
 

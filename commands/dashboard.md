@@ -61,7 +61,7 @@ explicit yes), re-check its hashes (`v`) or unfreeze it with a reason (`u`) — 
 ```
 <project_name> · <active_phase> · <default_mode>
 
-Phase     ✔ ideation  ✔ preregistration  ● data-analyze  ○ paper
+Phase     ● ideation  ● preregistration  ◉ data-analyze  → paper
 Dates     ⚠ 2026-10-08  Abstract deadline — tomorrow
           ▸ 2026-10-19  ethics approval expires — in 12 days
 Integrity ✔ ethics approved · expires 2027-06-30 · model may read: pseudonymised data
@@ -79,8 +79,9 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
      the versions number by number; the running one is in `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`): one line under the header with the notice, verbatim. It stands in for the
      separate one-line notice, so the person reads it once:
      `Update    ↑ neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate to bring the project, your flowie and the team hive up to date`.
-   - **Phase**: the `recommended_phases` in order — `●` current, `✔` has a `.neuroflow/<phase>/` folder, `○` not
-     started. Without `recommended_phases`, list the phases that have folders.
+   - **Phase**: the `recommended_phases` in order — `◉` current, `●` visited (it has a `.neuroflow/<phase>/` folder),
+     `→` recommended and not started yet — the legend `/phase` uses (neuroflow-develop → **Visual style**). Without
+     `recommended_phases`, list the phases that have folders.
    - **Dates**: future rows of `.neuroflow/timeline.md` (`| YYYY-MM-DD | what | phase it gates |`), plus the ethics
      expiry; `⚠` within 3 days, `▸` within 14, `·` later.
    - **Integrity**: the frontmatter of `.neuroflow/ethics/status.md` and `.neuroflow/preregistration/status.md`

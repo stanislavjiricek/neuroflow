@@ -114,7 +114,8 @@ describe('dashboard lines', () => {
     const snap = snapshot({
       ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: null, expires: '2027-06-30', aiProcessing: 'pseudonymised' },
     })
-    expect(tabLines('phase', snap, null)[0].text).toBe('✔ ideation  ✔ preregistration  ✔ data  ● data-analyze  ○ paper')
+    expect(tabLines('phase', snap, null)[0].text).toBe('● ideation  ● preregistration  ● data  ◉ data-analyze  → paper')
+    expect(tabLines('phase', snap, null).map(line => line.text).slice(-1)).toEqual(['◉ current  ● visited  → recommended next'])
     expect(tabLines('integrity', snap, null)[0].text).toBe('✔ ethics approved · expires 2027-06-30')
     // The tasks tab reads every level's board when it opens; until then it says so.
     expect(tabLines('tasks', snap, null)[0]).toEqual({ text: 'Reading the task boards…', dim: true })
@@ -303,7 +304,7 @@ describe('engine', () => {
       requestId: 'nf-dashboard',
       props: { title: 'neuroflow', isFocused: true, bodyColumns: 120, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
     } as never)
-    expect(JSON.stringify(await ui.drawn())).toContain('✔ ideation  ✔ preregistration  ● data')
+    expect(JSON.stringify(await ui.drawn())).toContain('● ideation  ● preregistration  ◉ data')
     await ui.unmount()
   })
 

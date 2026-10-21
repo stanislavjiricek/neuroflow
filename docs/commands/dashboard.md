@@ -18,7 +18,7 @@ current as files change.
 | Key | Tab |
 |---|---|
 | `1` | **Now** — everything the band above the prompt can show, whatever its `band` setting, each with its action: a drafted decision to keep or drop, a meeting to prepare or close, a flowie sync, wiki cards to review, the loop being driven, the next phase. An action runs only with Enter on its row (`j` and `k` move between the rows), never on a letter, so typing a prompt into the pane cannot migrate, keep or sync anything |
-| `2` | **Phase** — the phase map (`●` current, `✔` visited, `○` recommended) and the next step; `g` opens the phase picker |
+| `2` | **Phase** — the phases as a flow line (`◉` current, `●` visited, `→` recommended next) with the current and the next step; `g` opens the phase picker |
 | `3` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
 | `4` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
 | `5` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it, then the project's other repositories from the local cache of their boards), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards |

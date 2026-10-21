@@ -25,12 +25,37 @@ export const PHASES: readonly PhaseInfo[] = [
   { id: 'notes', label: 'notes (any time)' },
 ]
 
+/** Short names, for the flow line and the one-line summary only: everything else names a phase by its id. */
+const SHORT: Readonly<Record<string, string>> = {
+  preregistration: 'prereg',
+  'grant-proposal': 'grant',
+  'tool-build': 'tools',
+  'tool-validate': 'validate',
+  'data-preprocess': 'preprocess',
+  'data-analyze': 'analyze',
+  'brain-build': 'model',
+  'brain-optimize': 'fit',
+  'brain-run': 'simulate',
+  'write-report': 'report',
+}
+
+export const shortName = (id: string): string => SHORT[id] ?? id
+
 export const isPhase = (id: string): boolean => PHASES.some(phase => phase.id === id)
 
 export type PhaseState = 'current' | 'visited' | 'recommended' | 'other'
 
 export const phaseState = (id: string, current: string | null, visited: readonly string[], recommended: readonly string[]): PhaseState =>
   id === current ? 'current' : visited.includes(id) ? 'visited' : recommended.includes(id) ? 'recommended' : 'other'
+
+/**
+ * The one glyph legend (skills/neuroflow-develop → Visual style), as /phase and the welcome ring draw it: ◉ the
+ * current phase, ● a visited one, → a recommended one not visited yet, ○ one not started.
+ */
+export const PHASE_GLYPH: Readonly<Record<PhaseState, string>> = { current: '◉', visited: '●', recommended: '→', other: '○' }
+
+/** The word that goes with each glyph, so a map reads the same without colour or glyphs. */
+export const PHASE_WORD: Readonly<Record<PhaseState, string>> = { current: 'current', visited: 'visited', recommended: 'recommended next', other: 'not started' }
 
 /** Picker order: the current phase, then the recommended ones (in their order), then the rest canonically. */
 export const pickerOrder = (current: string | null, recommended: readonly string[]): PhaseInfo[] => {
@@ -47,11 +72,39 @@ export const nextPhase = (current: string | null, recommended: readonly string[]
   return at >= 0 && at + 1 < chain.length ? chain[at + 1] : null
 }
 
-const GLYPH: Record<PhaseState, string> = { current: '●', visited: '✔', recommended: '○', other: '·' }
+export type PhaseNode = { id: string; short: string; state: PhaseState; glyph: string }
 
-/** The one-line phase map: `✔ ideation ✔ preregistration ● data-analyze ○ paper`. */
-export const phaseMap = (current: string | null, visited: readonly string[], recommended: readonly string[]): string => {
+/**
+ * The phases a map draws, in order: the recommended ones (without them, the visited ones in canonical order), and
+ * the current phase at the end when it is not among them.
+ */
+export const phaseNodes = (current: string | null, visited: readonly string[], recommended: readonly string[]): PhaseNode[] => {
   const ids = recommended.length > 0 ? recommended.filter(isPhase) : PHASES.map(phase => phase.id).filter(id => id === current || visited.includes(id))
   const all = current !== null && !ids.includes(current) ? [...ids, current] : ids
-  return all.map(id => `${GLYPH[phaseState(id, current, visited, recommended)]} ${id}`).join('  ')
+  return all.map(id => {
+    const state = phaseState(id, current, visited, recommended)
+    return { id, short: shortName(id), state, glyph: PHASE_GLYPH[state] }
+  })
 }
+
+/** Where a map's travelled part ends: the current phase, else the last visited one; -1 when neither is drawn. */
+export const travelledTo = (nodes: readonly PhaseNode[]): number => {
+  const current = nodes.findIndex(node => node.state === 'current')
+  if (current >= 0) return current
+  return nodes.map(node => node.state).lastIndexOf('visited')
+}
+
+/** The one-line phase map, every phase by its id: `● ideation  ● preregistration  ◉ data-analyze  → paper`. */
+export const phaseMap = (current: string | null, visited: readonly string[], recommended: readonly string[]): string =>
+  phaseNodes(current, visited, recommended).map(node => `${node.glyph} ${node.id}`).join('  ')
+
+/** The map with short names, for a summary row: `● ideation ─ ● prereg ─ ◉ analyze ─ → paper`. */
+export const phaseSummary = (current: string | null, visited: readonly string[], recommended: readonly string[]): string =>
+  phaseNodes(current, visited, recommended).map(node => `${node.glyph} ${node.short}`).join(' ─ ')
+
+/** The legend of the glyphs a map draws, in legend order: `◉ current  ● visited  → recommended next`. */
+export const phaseLegend = (nodes: readonly Pick<PhaseNode, 'state'>[]): string =>
+  (['current', 'visited', 'recommended', 'other'] as const)
+    .filter(state => nodes.some(node => node.state === state))
+    .map(state => `${PHASE_GLYPH[state]} ${PHASE_WORD[state]}`)
+    .join('  ')

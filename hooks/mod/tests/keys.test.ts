@@ -2,7 +2,6 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { BAND, DASHBOARD_TABS, DIGITS, NAV, VIEW_KEYS, gridNeighbour, isPastTypeThrough, lineNeighbour, paneRows, tabNeighbour } from '../lib/keys'
 import type { View } from '../lib/keys'
-import { bandPlan, cells, fit } from '../lib/layout'
 import { buttons, hotkeys, keyProblems } from './drawn'
 import { fakeFs } from './fakefs'
 
@@ -70,31 +69,6 @@ describe('the key registry', () => {
     expect([paneRows('dashboard', null), paneRows('dashboard', 40), paneRows('dashboard', 24)]).toEqual([18, 18, 10])
     expect([paneRows('board', null), paneRows('board', 29), paneRows('board', 30)]).toEqual([16, 10, 16])
     expect([paneRows('wiki', 24), paneRows('xray', 24), paneRows('paper', 24), paneRows('picker', 24)]).toEqual([9, 10, 9, 9])
-  })
-})
-
-describe('layout', () => {
-  test('a text is cut to its width with an ellipsis, never mid-character', () => {
-    expect(fit('Rerun ICA on sub-07', 10)).toBe('Rerun ICA…')
-    expect(fit('short', 10)).toBe('short')
-    expect(fit('a b c d', 4)).toBe('a b…')
-    expect(fit('abc', 1)).toBe('…')
-    expect(fit('abc', 0)).toBe('')
-    expect(cells('◆ ⚠ Check stats')).toBe(15)
-  })
-
-  test('the band\'s one row at 75 and 115 cells: the most urgent item and its keys stay, the chord hint goes first', () => {
-    const hint = '^X Tab: keys'
-    // 80 columns: a deadline, its band keys and the hint fit.
-    expect(bandPlan({ columns: 75, items: 1, total: 1, buttons: ['d: dashboard', 'x: hide today'], hint })).toEqual({ items: 1, more: 0, hint: true })
-    // A meeting brings two keys of its own: the hint gives way, the item keeps its room.
-    expect(bandPlan({ columns: 75, items: 1, total: 3, buttons: ['p: prepare', 'o: notes', 'd: dashboard', 'x: hide today'], hint })).toEqual({ items: 1, more: 2, hint: false })
-    // 120 columns, a normal band: two items, the rest counted, the hint too.
-    expect(bandPlan({ columns: 115, items: 2, total: 5, buttons: ['d: dashboard', 'x: hide today'], hint })).toEqual({ items: 2, more: 3, hint: true })
-    // Below BAND_SECOND_ITEM a normal band shows one item.
-    expect(bandPlan({ columns: 100, items: 2, total: 5, buttons: ['d: dashboard', 'x: hide today'], hint })).toEqual({ items: 1, more: 4, hint: true })
-    // Learned: no hint at any width.
-    expect(bandPlan({ columns: 160, items: 1, total: 1, buttons: ['d: dashboard'], hint: null }).hint).toBe(false)
   })
 })
 

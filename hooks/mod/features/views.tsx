@@ -24,7 +24,7 @@ import { bandPlan, fit, measuredRows, rememberViewport } from '../lib/layout'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
-import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
+import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, pickerOrder } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
@@ -384,13 +384,13 @@ export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView
     }))
   }
   if (tab === 'phase') {
-    const map = phaseMap(snap.phase, snap.phasesVisited, snap.recommendedPhases)
+    const nodes = phaseNodes(snap.phase, snap.phasesVisited, snap.recommendedPhases)
     const next = nextPhase(snap.phase, snap.recommendedPhases)
     return [
-      { text: map === '' ? 'No phases recorded yet.' : map },
+      { text: nodes.length === 0 ? 'No phases recorded yet.' : phaseMap(snap.phase, snap.phasesVisited, snap.recommendedPhases) },
       { text: `Current: ${snap.phase ?? 'none'}${snap.phase ? ` — ${label(snap.phase)}` : ''}` },
       ...(next !== null ? [{ text: `Next: /neuroflow:${next} — ${label(next)}`, dim: true }] : []),
-      { text: '● current  ✔ visited  ○ recommended', dim: true },
+      ...(nodes.length > 0 ? [{ text: phaseLegend(nodes), dim: true }] : []),
     ]
   }
   if (tab === 'deadlines') {
@@ -894,7 +894,7 @@ const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
 
 /** M065 — the mark a phase command gets in the slash menu: the current phase and the recommended next one. */
 export const phaseMark = (command: string, current: string | null, next: string | null): string | null =>
-  command === current ? '● current phase ·' : command === next ? '→ next ·' : null
+  command === current ? `${PHASE_GLYPH.current} current phase ·` : command === next ? `${PHASE_GLYPH.recommended} next ·` : null
 
 /** The files a freeze covers (commands/preregistration.md → Freeze): the prereg documents, not the review reports. */
 export const freezeCandidates = (names: readonly string[]): string[] =>
