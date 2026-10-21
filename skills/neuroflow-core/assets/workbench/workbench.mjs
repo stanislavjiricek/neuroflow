@@ -482,12 +482,25 @@ export function safeHref(url) {
   return /^https?:\/\/[^\s]+$/i.test(text) ? text : null
 }
 
-/** Block tokens: heading, paragraph, list (nested by indent), code, quote, table, hr. */
+/** A table's delimiter row: cells of one or more dashes, each with an optional colon at either end (`|:-|:-:|`, `---|---`). */
+export function isDelimiterRow(line) {
+  const text = String(line || '').trim()
+  if (!text.includes('-')) return false
+  return text.replace(/^\|/, '').replace(/\|$/, '').split('|').every(cell => /^:?-+:?$/.test(cell.trim()))
+}
+
+/**
+ * Block tokens: heading, paragraph, list (nested by indent), code, quote, table, hr. Every pass takes at least one
+ * line, so any text ends: a line no other block claims becomes a paragraph, and a `|` line starts a table only when
+ * a delimiter row follows it.
+ */
 export function parseMarkdown(text) {
   const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n')
   const blocks = []
   let i = 0
   const isBlank = line => line.trim() === ''
+  const startsTable = at => /^\s*\|/.test(lines[at]) && at + 1 < lines.length && isDelimiterRow(lines[at + 1])
+  const startsBlock = at => /^(#{1,6})\s/.test(lines[at]) || /^\s*(```|~~~|>)/.test(lines[at]) || /^\s*([-*+]|\d+[.)])\s+/.test(lines[at]) || startsTable(at)
   while (i < lines.length) {
     const line = lines[i]
     if (isBlank(line)) { i += 1; continue }
@@ -509,7 +522,7 @@ export function parseMarkdown(text) {
       blocks.push({ type: 'quote', blocks: parseMarkdown(body.join('\n')) })
       continue
     }
-    if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+    if (startsTable(i)) {
       const cells = row => row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => parseInline(cell.trim()))
       const header = cells(line)
       const rows = []
@@ -530,8 +543,10 @@ export function parseMarkdown(text) {
       blocks.push({ type: 'list', ordered: items[0].ordered, items: nestItems(items) })
       continue
     }
-    const body = []
-    while (i < lines.length && !isBlank(lines[i]) && !/^(#{1,6})\s/.test(lines[i]) && !/^\s*(```|~~~|>|\|)/.test(lines[i]) && !/^\s*([-*+]|\d+[.)])\s+/.test(lines[i])) {
+    // a paragraph: this line (whatever it starts with — no block above claimed it), then the lines up to the next block
+    const body = [line.trim()]
+    i += 1
+    while (i < lines.length && !isBlank(lines[i]) && !startsBlock(i)) {
       body.push(lines[i].trim())
       i += 1
     }

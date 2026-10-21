@@ -6,10 +6,11 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { Script, createContext } from 'node:vm'
 
 import {
   activeIntents, assembleLevel, boardModel, daysUntil, defaultPrefs, freshnessLabel, intentDocument, intentsPath, isCollectionPath,
-  isDocumentPath, isOverdue, lanes, levelOrder, makeAdd, makeCancel, makeMove, metaPath, neighbourColumn, newIntentId,
+  isDelimiterRow, isDocumentPath, isOverdue, lanes, levelOrder, makeAdd, makeCancel, makeMove, metaPath, neighbourColumn, newIntentId,
   normalizePrefs, oldestWaiting, outcomeText, parseInline, parseMarkdown, partsPath, phaseMap, prefsPath, recentOutcomes, releasePatch,
   safeHref, segments, tabSummary, upcomingDates, userRoot, validLevelKey, validSegment, waitingCount, waitingIntents, wikiIndex,
 } from '../../skills/neuroflow-core/assets/workbench/workbench.mjs'
@@ -207,6 +208,33 @@ test('markdown renders as tokens only: HTML stays text and only http links leave
   assert.equal(mixed[1].items[1].task, true)
   assert.equal(mixed[3].text, '<b>code</b>')
   assert.ok(mixed[6].ordered)
+})
+
+test('markdown always ends: a pipe that starts no table, a one-dash delimiter row, a quoted pipe', () => {
+  // run under a time limit: a parser that stops advancing would otherwise hang the test (and the page's tab)
+  const context = createContext({ parse: parseMarkdown, text: '' })
+  const script = new Script('parse(text)')
+  const within = text => {
+    context.text = text
+    return script.runInContext(context, { timeout: 1000 })
+  }
+  const types = blocks => blocks.map(block => block.type)
+  assert.deepEqual(types(within('text\n| just a pipe')), ['paragraph'])
+  assert.equal(within('text\n| just a pipe')[0].inline[0].text, 'text | just a pipe')
+  const table = within('| Left | Center |\n|:-|:-:|\n| a | b |')
+  assert.deepEqual(types(table), ['table'])
+  assert.deepEqual([table[0].header.length, table[0].rows.length], [2, 1])
+  assert.deepEqual(types(within('| A | B |')), ['paragraph'])
+  assert.deepEqual(types(within('intro\n| A | B |')), ['paragraph'])
+  assert.deepEqual(types(within('> | quoted')), ['quote'])
+  assert.deepEqual(types(within('> | quoted')[0].blocks), ['paragraph'])
+  assert.equal(within('# a b').length, 1)
+  assert.deepEqual(types(within('text\n| a | b |\n|---|---|\n| 1 | 2 |')), ['paragraph', 'table'])
+  // every mix of three block starters ends
+  const starts = ['|', '| a |', '|:-|', '---', '> ', '> |', '# ', '# x', '- ', '1. ', '```', 'text', '', '  x', '|-']
+  for (const a of starts) for (const b of starts) for (const c of starts) assert.ok(Array.isArray(within([a, b, c].join('\n'))))
+  assert.ok(isDelimiterRow('|:-|:-:|') && isDelimiterRow('---|---') && isDelimiterRow('| --- | :--: |'))
+  assert.ok(!isDelimiterRow('| a |') && !isDelimiterRow('|') && !isDelimiterRow(''))
 })
 
 test('the wiki index groups pages by type and searches titles, tags and summaries', () => {
