@@ -147,7 +147,9 @@ done: `claude plugin enable neuroflow@neuroflow`.
 
 - **80 × 24 over SSH, inside tmux, mouse off.** `ssh` to a host with Claude Code, `tmux new -s nf` with
   `set -g mouse off` and `set -sg escape-time 10` in `~/.tmux.conf`; size the window until `stty size` prints `24 80`.
-  Once with `TERM=xterm-16color`, and once with a light Claude Code theme (`/theme`).
+  Once with `TERM=xterm-16color`, and once with a light Claude Code theme (`/theme`). With no host at hand, run `sshd`
+  as yourself from a folder of its own — `sshd -f <config> -D`, the config naming a `Port`, `ListenAddress 127.0.0.1`,
+  a `HostKey`, an `AuthorizedKeysFile` and `StrictModes no` — and `ssh -p <port> 127.0.0.1` into it from tmux.
 - **120 × 40, the fullscreen layout**, where panes dock beside the conversation from 110 columns; and once **inline at
   120 columns** (Claude Code's main screen, as inside tmux), where a pane has the terminal's width.
 - Once in **GNU screen**, for its Ctrl+A prefix.
@@ -166,8 +168,9 @@ the code assumes but cannot test.
 - [ ] `/neuroflow:dashboard` again, with the pane open: it holds the keys again.
 - [ ] ^X Tab while the dashboard is open gives the band the keys, not the pane (on 2.1.306 a second ^X Tab did not
   reach the pane either); *note* it if a newer Claude Code moves on to the pane.
-- [ ] `d` on the band (after ^X Tab): the dashboard opens on now. *Note* whether it holds the keys; if not, its foot reads
-  `/neuroflow:dashboard gives it the keys`.
+- [ ] `d` on the band (after ^X Tab): the dashboard opens on now and the band keeps the keys — its foot reads
+  `/neuroflow:dashboard gives it the keys`, and a digit typed now lands in the prompt (2.1.306, also with the dashboard
+  already open). *Note* it if a newer Claude Code gives the pane the keys.
 - [ ] `5`, then `b`: the dashboard closes and the boards open holding the keys. Open the dashboard again
   (`/neuroflow:dashboard`), then `2` and `g`: the phase picker opens holding the keys.
 - [ ] Esc in the picker closes it; `q` there does nothing.
