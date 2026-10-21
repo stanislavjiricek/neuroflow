@@ -21,7 +21,7 @@ import {
   topCards,
   userHives,
 } from '../lib/tasks'
-import { boardFoot, boardRingTarget, cardKeys, firstTarget, taskLines } from '../features/views'
+import { boardFoot, boardRingTarget, cardKeys, cardLegend, cardRows, firstTarget } from '../features/views'
 import { answerAsks } from './ask'
 import type { Dialog } from './ask'
 import { buttons, elements, lines } from './drawn'
@@ -230,18 +230,20 @@ describe('the task view', () => {
     expect([hive?.open, hive?.board.done]).toEqual([0, 1])
   })
 
-  test('the tasks tab: a line of counts, then the first cards, each tagged with its level', async () => {
-    const lines = taskLines(await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY))
-    expect(lines.map(line => line.text)).toEqual([
-      'project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0',
-      '[project] ⚠ Rerun ICA @li due 10-01',
-      '[flowie] ◆ ⚠ Check stats due 10-03',
-      '[flowie] ◆ Read paper due 10-20',
-      '[lab-team] ◆ Agenda item @jana',
-      '[flowie] ⚠ Write intro due 10-02',
-      '◆ this project (Oddball EEG, oddball-lab) · ⚠ overdue · /neuroflow:tasks opens the boards (digits pick the level)',
+  test('the tasks tab: a line of counts, then the first cards, each with its level, and a word for every mark', async () => {
+    const view = await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY)
+    expect(levelSummary(view)).toBe('project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0')
+    const rows = cardRows(view)
+    expect(rows.map(row => [row.marks, row.title, row.owner, row.due, row.level])).toEqual([
+      ['⚠', 'Rerun ICA', '@li', 'due 10-01', 'project'],
+      ['◆ ⚠', 'Check stats', '', 'due 10-03', 'flowie'],
+      ['◆', 'Read paper', '', 'due 10-20', 'flowie'],
+      ['◆', 'Agenda item', '@jana', '', 'lab-team'],
+      ['⚠', 'Write intro', '', 'due 10-02', 'flowie'],
     ])
-    expect(lines[1].tone).toBe('warning')
+    // An overdue card's marks and due date are drawn in the warning colour.
+    expect(rows.map(row => row.overdue)).toEqual([true, true, false, false, true])
+    expect(cardLegend(view)).toEqual(['◆ this project (Oddball EEG, oddball-lab)', '⚠ overdue'])
   })
 
   test('the board\'s foot names every mark its cards carry: ◆ this project, ⚠ overdue', async () => {

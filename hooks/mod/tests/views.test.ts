@@ -28,7 +28,6 @@ import {
   parseRunning,
   runQuestion,
   sparkline,
-  tabLines,
   gatesColumnWidth,
 } from '../features/views'
 import { VIEW_KEYS, lineNeighbour } from '../lib/keys'
@@ -139,18 +138,47 @@ describe('loop parsing', () => {
 })
 
 describe('dashboard lines', () => {
-  test('every tab has a text form', () => {
-    const snap = snapshot({
-      ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: null, expires: '2027-06-30', aiProcessing: 'pseudonymised' },
-    })
-    expect(tabLines('phase', snap, null)[0].text).toBe('● ideation  ● preregistration  ● data  ◉ data-analyze  → paper')
-    expect(tabLines('phase', snap, null).map(line => line.text).slice(-1)).toEqual(['◉ current  ● visited  → recommended next'])
-    expect(tabLines('integrity', snap, null)[0].text).toBe('✔ ethics approved · expires 2027-06-30')
-    // The tasks tab reads every level's board when it opens; until then it says so.
-    expect(tabLines('tasks', snap, null)[0]).toEqual({ text: 'Reading the task boards…', dim: true })
-    expect(tabLines('deadlines', snap, null)[0].dim).toBe(true)
-    expect(tabLines('loop', snap, null)[0].text).toBe('No autoresearch loops.')
-    expect(tabLines('now', snap, null)).toEqual([{ text: '→ next phase: paper', tone: undefined }])
+  test('every tab draws as text where the terminal\'s lines are not drawn: a glyph and a word with each state', { options: { runtime: 'observe' } }, async ($, on) => {
+    const project = '/work/proj'
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]:
+        '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data-analyze\nrecommended_phases: [ideation, preregistration, data, data-analyze, paper]\n---\n',
+      [`${project}/.neuroflow/ethics/status.md`]: '---\nstatus: approved\nset_by: model\nexpires: 2027-06-30\nai_processing: pseudonymised\n---\n',
+      [`${project}/.neuroflow/ideation/flow.md`]: '# ideation\n',
+      [`${project}/.neuroflow/preregistration/flow.md`]: '# preregistration\n',
+      [`${project}/.neuroflow/data/flow.md`]: '# data\n',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($$, e) => ({ cwd: e.cwd }))
+    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.status', () => ({ value: undefined }))
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    /** The rows a tab draws on the desktop: no rules, no flow line, no ruler — the plain-text path (charter rule 8). */
+    const drawn = async (tab: string): Promise<string[]> => {
+      await $.command.run({ command: 'neuroflow:dashboard', args: tab })
+      const ui = await $.ui.mount({
+        plugin: 'neuroflow', surface: 'desktop', component: 'Pane', requestId: 'nf-dashboard',
+        props: { title: 'neuroflow', isFocused: true, bodyColumns: 116, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
+      } as never)
+      const rows = lines(await ui.drawn())
+      await ui.unmount()
+      return rows
+    }
+    expect(await drawn('now')).toContain('→ next phase: paper')
+    expect(await drawn('phase')).toEqual(expect.arrayContaining([
+      '● ideation  ● preregistration  ● data  ◉ data-analyze  → paper', 'NOW', 'data-analyze — analysis', 'NEXT', '/neuroflow:paper — manuscript',
+      '◉ current  ● visited  → recommended next',
+    ]))
+    // The ethics expiry is a date: later than two weeks, `·`.
+    expect(await drawn('deadlines')).toEqual(expect.arrayContaining(['·', '2027-06-30', 'ethics approval expires', 'in 266 days']))
+    // An approval the model set reads `?` and says so (commands/dashboard.md → Integrity).
+    expect(await drawn('integrity')).toEqual(expect.arrayContaining([
+      '?', 'ethics', 'approved · expires 2027-06-30', 'not set by a person', 'model may read: pseudonymised data', 'preregistration', 'none frozen',
+    ]))
+    expect(await drawn('tasks')).toEqual(expect.arrayContaining(['project 0', 'No open tasks.']))
+    expect(await drawn('loop')).toContain('No autoresearch loops.')
   })
 
   test('the now tab lists every band item, whatever the quiet setting, each with its action and no letter', () => {
