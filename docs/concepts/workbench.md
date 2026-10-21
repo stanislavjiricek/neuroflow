@@ -131,7 +131,9 @@ text: it is never run as HTML, and only `http` and `https` links leave it.
   teammate sees your changes in git.
 - **Phones:** drag and drop needs a mouse or trackpad; on a touch screen use *Move to…*.
 - **The store's limits:** 256 KiB per document, 25,000 documents and 50 writes per upload. Finished requests are
-  deleted after 7 days, and a level you stop mirroring is purged.
+  deleted after 7 days. A level you take off with `--web --levels`, or whose team stops allowing it, is purged — the
+  preview names it; a level is never purged only because the machine you run it on lacks it, since another of your
+  machines may mirror it.
 - **Big wikis:** an export over 8 MB is flagged as slow to load; `workbench_index_only` sends a level's wiki as an index
   without page bodies.
 

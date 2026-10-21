@@ -16,8 +16,9 @@ subcommands:
   apply --plan PLAN --level KEY       edit and move the planned task files of one level (git mv) and stage them in
                               a flowie or hive clone; prints the commit to run, with its Neuroflow-Intent trailers
   pending --intents DIR [--plan PLAN] write ~/.neuroflow/workbench/pending.json (the mod's board and band read it)
-  gc --intents DIR --remote DIR       deletes: finished intents older than --days, orphaned parts, levels no
-                              longer mirrored (--purge KEY names more)
+  gc --intents DIR --remote DIR       deletes: finished intents older than --days, orphaned parts, the levels whose
+                              team no longer allows them and the ones --purge KEY names (the person took them off);
+                              never a level only because this machine lacks it. --remote lists every level's parts
   record [--set KEY=VALUE ...] [--prefs FILE]   the workbench record: the flowie's workbench.json, else user.yaml
   stage --out DIR             the page: template plus logic module, with its hashes, capabilities and contract
   page --check FILE           whether a page read back from claude.ai is still the one neuroflow published
@@ -424,7 +425,10 @@ def level_rows(sources: list[Source], person: dict) -> list[dict]:
             reason = "your workbench is off (workbench: on in ~/.neuroflow/user.yaml)"
         elif not consented:
             reason = "not one of your workbench_levels"
-        rows.append({**src.as_dict(), "consented": consented, "mirrored": reason is None,
+        # purge: the team no longer allows it — a shared decision every machine reads alike, so gc deletes the level
+        # wherever the person's workbench holds it. This machine's own settings never purge a level by themselves:
+        # another machine may mirror it (the person takes a level off with --web --levels, which names it to gc).
+        rows.append({**src.as_dict(), "consented": consented, "mirrored": reason is None, "purge": not src.allowed,
                      "index_only": src.key in person["index_only"], **({"reason": reason} if reason else {})})
     return rows
 
@@ -1353,7 +1357,10 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
     out = Path(args.out)
     built = [build_level(src, person, scrub, home, now, machine, args.fetch) for src in chosen]
     result: dict = {"machine": machine, "exported_at": iso(now), "levels": preview(built), "unkeyed": unkeyed,
-                    "not_mirrored": [row for row in rows.values() if not row["mirrored"]]}
+                    "not_mirrored": [row for row in rows.values() if not row["mirrored"]],
+                    # what gc deletes from the workbench, where it holds them: the preview names them
+                    "purge": [{"level": row["level"], "label": row["label"], "reason": row.get("reason")}
+                              for row in rows.values() if row.get("purge")]}
     for item in built:
         key = item["meta"]["level"]
         write_doc(out / "docs" / key_file(key) / "meta.json", item["meta"])
@@ -2012,28 +2019,41 @@ def cmd_gc(args, home: Path, now: datetime) -> tuple[int, dict]:
     person = consent(home)
     sources, _ = discover(home, args.root)
     rows = {row["level"]: row for row in level_rows(sources, person)}
+    asked = set(args.purge or [])
+    bad = sorted(key for key in asked if not valid_level_key(key))
+    if bad:
+        raise UsageError(f"--purge {', '.join(bad)}: not a level key")
+    still = sorted(key for key in asked if (rows.get(key) or {}).get("mirrored"))
+    if still:
+        raise UsageError(f"still mirrored on this machine: {', '.join(still)} — take it off workbench_levels first")
     cutoff = now - timedelta(days=args.days)
-    deletes, missing, reasons = [], [], []
+    deletes, missing, reasons, unlisted = [], [], [], []
     for intent_id, doc in sorted(intents.items()):
         body = doc["body"]
         at = parse_time((body.get("outcome") or {}).get("at") if isinstance(body.get("outcome"), dict) else None)
         if body.get("status") == "done" and at is not None and at < cutoff:
             deletes.append(pinned({"op": "delete", "collection": intents_collection(), "doc_id": intent_id}, doc, missing))
     metas = {path.split("/")[-1]: doc for path, doc in docs.items()
-             if path.startswith(meta_collection() + "/") and segments(path) == 4 and path.split("/")[-1] != PREFS_DOC}
-    purge = set(args.purge or [])
+             if path.startswith(meta_collection() + "/") and segments(path) == 4 and valid_level_key(path.split("/")[-1])}
+    # What is purged: the levels the person took off (--purge), and the levels this machine has whose team no longer
+    # allows mirroring them. Never a level only because this machine lacks it or does not list it: workbench_levels is
+    # this machine's own, and another machine of the person's may mirror that level.
+    purge = {key: "you took it off your workbench" for key in asked}
     for key in metas:
-        gone = key in rows and not rows[key]["mirrored"]
-        forgotten = key not in rows and key not in person["levels"] and key != "flowie"
-        if gone or forgotten:
-            purge.add(key)
+        if (rows.get(key) or {}).get("purge"):
+            purge.setdefault(key, rows[key].get("reason") or "the team no longer allows mirroring it")
     for key in sorted(purge):
         part_docs = {path: doc for path, doc in docs.items() if path.startswith(parts_collection(key) + "/")}
+        named = {part.get("id") for part in ((metas.get(key) or {}).get("body") or {}).get("parts") or [] if isinstance(part, dict)}
+        if named and not part_docs:
+            # deleting the meta alone would leave every part behind, unreachable (a delete never deletes what is below)
+            unlisted.append({"level": key, "list": parts_collection(key)})
+            continue
         for path, doc in sorted(part_docs.items()):     # the parts first, then the meta above them
             deletes.append(pinned({"op": "delete", "collection": parts_collection(key), "doc_id": path.split("/")[-1]}, doc, missing))
         if key in metas:
             deletes.append(pinned({"op": "delete", "collection": meta_collection(), "doc_id": key}, metas[key], missing))
-        reasons.append({"level": key, "reason": (rows.get(key) or {}).get("reason") or "no longer one of your levels"})
+        reasons.append({"level": key, "reason": purge[key]})
     for key, meta in metas.items():
         if key in purge:
             continue
@@ -2044,7 +2064,7 @@ def cmd_gc(args, home: Path, now: datetime) -> tuple[int, dict]:
     if missing:
         raise MissingVersions("the listing shows no version for: " + ", ".join(missing) + " — pass them with --versions")
     batches = plan_batches(deletes)
-    return (1 if deletes else 0), {"deletes": len(deletes), "purge": reasons, "batches": batches}
+    return (1 if deletes or unlisted else 0), {"deletes": len(deletes), "purge": reasons, "unlisted": unlisted, "batches": batches}
 
 
 # ── the workbench record ────────────────────────────────────────────────────────────────────────
@@ -2323,6 +2343,8 @@ def print_human(command: str, code: int, result: dict) -> None:
                 print(f"  held back: {item['source']} {item['item']} ({item['reason']})")
         for warning in result.get("warnings") or []:
             print(f"warning: {warning}")
+        for row in result.get("purge") or []:
+            print(f"deleted from the workbench where it holds it: {row['label']} ({row['level']}) — {row['reason']}")
         for key, verdict in (result.get("guard") or {}).items():
             print(f"  {key}: {verdict['verdict']} — {verdict.get('question') or verdict['reason']}")
         if result.get("prefs"):
@@ -2354,7 +2376,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--machine", help="the machine label (default: workbench_machine in user.yaml)")
     parser.add_argument("--pii-config", help="export: a pii_scan.py config (id_patterns, roster)")
     parser.add_argument("--days", type=int, default=GC_DAYS, help="gc: keep finished intents this many days")
-    parser.add_argument("--purge", action="append", metavar="KEY", help="gc: also delete this level's documents")
+    parser.add_argument("--purge", action="append", metavar="KEY",
+                        help="gc: delete this level's documents too — one the person took off (its parts must be listed)")
     parser.add_argument("--set", action="append", metavar="KEY=VALUE", help="record: write a field of the workbench record")
     parser.add_argument("--prefs", help="record: the page's prefs document (an ArtifactData get saved with out_dir)")
     parser.add_argument("--check", help="page: the page file an Artifact read saved")

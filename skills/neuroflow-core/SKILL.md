@@ -372,7 +372,7 @@ A person may keep one private claude.ai page — the **workbench** — over thei
 
 **Machine-local** (`~/.neuroflow/workbench/`, local tier): `pending.json` (what waits on the workbench and since when — `oldest`, per level and overall —, as of when it was checked; the mod's board and band read it) and `ledger.json` (every change `apply` made: a project's, which stays in its working tree, for 60 days; a flowie's or hive's until its `Neuroflow-Intent` commit exists).
 
-**Limits.** 256 KiB per document (parts stay under 200 KB), 25,000 documents per artifact, 50 writes and 1 MiB per batch. An export over 8 MB is flagged as slow to load, naming `workbench_index_only` for the level whose wiki weighs most. Finished intents are deleted after 7 days, and a level no longer mirrored is purged — parts first, then its meta (deleting a document never deletes the ones below it). A `quota_exceeded` refusal is shown to the person and never retried in a loop.
+**Limits.** 256 KiB per document (parts stay under 200 KB), 25,000 documents per artifact, 50 writes and 1 MiB per batch. An export over 8 MB is flagged as slow to load, naming `workbench_index_only` for the level whose wiki weighs most. Finished intents are deleted after 7 days. A level is purged — every part first, listed for that purpose, then its meta (deleting a document never deletes the ones below it) — when its team no longer allows mirroring it, or when the person takes it off with `/dashboard --web --levels` and the preview names it; never only because one machine lacks the level or leaves it out of its own `workbench_levels`, since another machine may mirror it. A `quota_exceeded` refusal is shown to the person and never retried in a loop.
 
 ---
 

@@ -146,9 +146,10 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      rather than making another.
 <!-- nf-rule: EGRESS-CONFIRM -->
 5. **Preview, then your yes.** One line, then one question: *"Upload to your private workbench ({account}): {levels} —
-   {n} documents, {KB} KB{; and publish the page, neuroflow template {t}, {KB} KB}. Go ahead?"* Nothing leaves before a
-   yes in this turn. Without one, upload nothing and say how to run it later. No upload ever runs on a timer or at the end
-   of another command.
+   {n} documents, {KB} KB{; and publish the page, neuroflow template {t}, {KB} KB}{; and delete {levels} from it}. Go
+   ahead?"* — the levels to delete are the export's `purge` (their team no longer allows mirroring them) and each level
+   taken off with `--levels`. Nothing leaves before a yes in this turn. Without one, upload nothing and say how to run it
+   later. No upload ever runs on a timer or at the end of another command.
 6. **Publish — the first time, or to upgrade.** `{wb} stage --out {scratch}/page` prints the file, its hashes, the
    capabilities, the contract, the title, the icon and the description. Read the staged file in full (the Artifact tool
    requires it for a file Claude did not write), then publish it with the Artifact tool: `file_path` the staged file,
@@ -165,9 +166,14 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
    the meta last). A batch refused because a document changed: list again and redo it — never force. When the page
    holds no preferences yet (a new or rebuilt page) and the record keeps a copy, the export says `prefs: restored from
    the record` and the first batch puts them back.
-8. **Clean up.** ArtifactData `list` of `data/users/me/inbox/intents` (`out_dir` `{scratch}/intents`), then
-   `{wb} gc --intents {scratch}/intents --remote {scratch}/remote`: finished intents older than 7 days, and every document
-   of a level no longer mirrored (parts first, then the meta). A delete sends nothing; send its batches.
+8. **Clean up.** List again what the store holds, now that step 7 wrote to it: ArtifactData `list` of `data/users/me`,
+   then of `data/users/me/{level}/parts` for every level that listing shows, each with `out_dir` `{scratch}/remote2`, and
+   of `data/users/me/inbox/intents` (`out_dir` `{scratch}/intents`). Then `{wb} gc --intents {scratch}/intents --remote
+   {scratch}/remote2`, with `--purge {level}` for each level taken off with `--levels`: finished intents older than 7
+   days, parts no level's meta names, and every document of a level step 5 named for deletion — its parts first, then its
+   meta. A level is never deleted only because this machine lacks it or leaves it out: another machine may mirror it.
+   `unlisted` names a level whose parts the listing missed: list that collection too and run gc again. A delete sends
+   nothing; send its batches.
 9. **Check and record.** ArtifactData `list` of `data/users/me` with `as_level: admin` must come back empty — the
    owner-only rules hide the workbench even from an editor; report it as *owner-only rules checked {date}*. Copy the
    page's preferences into the record: ArtifactData `get` of `data/users/me` · `prefs` (`out_dir`), then
@@ -183,4 +189,5 @@ prints the account, the URL, the page's template against the plugin's, each leve
 opt-in, and how many changes wait and since when (`oldest`, as of the time pending.json was written). It uploads
 nothing.
 
-`--web --levels` asks step 2's level question again; a level taken off is purged in step 8, after the step 5 yes.
+`--web --levels` asks step 2's level question again; each level taken off is named in the step 5 preview and, after its
+yes, purged in step 8 (`--purge {level}`).

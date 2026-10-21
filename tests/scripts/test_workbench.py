@@ -935,6 +935,79 @@ class GcTests(Home):
                                    ("parts", "wiki-007", 7)])
         self.assertIn("forbids", result["purge"][0]["reason"])
 
+    def store(self, levels: dict[str, list[str]], listed: tuple[str, ...] | None = None) -> Path:
+        """A saved listing of data/users/me: each level's meta naming its parts, and those parts (for `listed` levels)."""
+        remote = self.scratch / "remote"
+        shutil.rmtree(remote, ignore_errors=True)
+        users = remote / "data" / "users" / "u_0123456789abcdefghijkl"
+        for n, (key, parts) in enumerate(levels.items()):
+            self.write(users / f"{key}.json", json.dumps({"data": {"parts": [{"id": part} for part in parts]}, "version": 10 + n}))
+            for m, part in enumerate(parts if listed is None or key in listed else []):
+                self.write(users / key / "parts" / f"{part}.json", json.dumps({"data": {}, "version": 100 + 10 * n + m}))
+        return remote
+
+    def test_levels_another_machine_mirrors_are_never_purged_from_here(self) -> None:
+        self.make_flowie()
+        self.make_project()
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["flowie", "project+oddball-eeg"]\n')
+        remote = self.store({"flowie": ["core"], "project+oddball-eeg": ["core"], "project+other-study": ["core", "cards-000"],
+                             "hive+other-lab+hive": ["core"]})
+        code, result = self.wb("gc", "--remote", str(remote))
+        self.assertEqual((code, result["deletes"], result["purge"], result["unlisted"]), (0, 0, [], []))
+
+    def test_a_level_taken_off_here_is_purged_only_when_named_and_always_with_its_parts(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy="allow")
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["flowie"]\n')
+        hive = "hive+example-lab+hive"
+        remote = self.store({"flowie": ["core"], hive: ["core", "cards-000"]})
+        code, result = self.wb("gc", "--remote", str(remote))
+        self.assertEqual((code, result["deletes"]), (0, 0))  # only this machine leaves it out: another may mirror it
+        code, result = self.wb("gc", "--remote", str(remote), "--purge", hive)
+        self.assertEqual(code, 1)
+        deletes = [(w["collection"], w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]]
+        self.assertEqual(deletes, [(f"data/users/me/{hive}/parts", "cards-000", 111), (f"data/users/me/{hive}/parts", "core", 110),
+                                   ("data/users/me", hive, 11)])
+        self.assertEqual(result["purge"], [{"level": hive, "reason": "you took it off your workbench"}])
+        # the parts were not listed: the meta is not deleted alone, and gc says what to list
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core"], hive: ["core", "cards-000"]}, listed=("flowie",))),
+                               "--purge", hive)
+        self.assertEqual((code, result["deletes"]), (1, 0))
+        self.assertEqual(result["unlisted"], [{"level": hive, "list": f"data/users/me/{hive}/parts"}])
+        code, result = self.wb("gc", "--remote", str(remote), "--purge", "flowie")
+        self.assertEqual(code, 2)
+        self.assertIn("still mirrored on this machine: flowie", result["error"])
+
+    def test_orphans_are_judged_against_the_metas_of_the_listing_given(self) -> None:
+        # after an upload cut off before its meta, the next refresh writes a meta naming wiki-000 again: judged against a
+        # listing taken before that upload, wiki-000 looks orphaned; against one taken after it (step 8 lists again), not
+        self.make_flowie()
+        stale = self.store({"flowie": ["core"]})
+        self.write(stale / "data" / "users" / "u_0123456789abcdefghijkl" / "flowie" / "parts" / "wiki-000.json",
+                   json.dumps({"data": {}, "version": 20}))
+        code, result = self.wb("gc", "--remote", str(stale))
+        self.assertEqual([w["doc_id"] for batch in result["batches"] for w in batch["writes"]], ["wiki-000"])
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core", "wiki-000"]})))
+        self.assertEqual((code, result["deletes"]), (0, 0))
+
+    def test_the_prose_lists_the_store_again_with_every_parts_collection_before_gc(self) -> None:
+        text = " ".join((REPO / "commands" / "dashboard.md").read_text(encoding="utf-8").split())
+        step = text[text.index("8. **Clean up.**"):text.index("9. **Check and record.**")]
+        self.assertIn("List again what the store holds", step)
+        self.assertIn("`data/users/me/{level}/parts` for every level that listing shows", step)
+        self.assertIn("gc --intents {scratch}/intents --remote {scratch}/remote2", step)
+        self.assertIn("--purge {level}", step)
+        self.assertIn("and delete {levels} from it", text)
+
+    def test_the_export_names_what_a_refresh_deletes(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy="forbid")
+        self.make_project(policy=None)
+        code, result = self.wb("export", "--out", str(self.scratch / "up"))
+        self.assertEqual({row["level"]: row["reason"] for row in result["purge"]},
+                         {"hive+example-lab+hive": "the team forbids mirroring it",
+                          "project+oddball-eeg": "the team has not opted in (workbench_mirror in project_config.md)"})
+
 
 class RecordTests(Home):
     def test_without_a_flowie_the_record_lives_in_user_yaml_and_other_lines_stay(self) -> None:
