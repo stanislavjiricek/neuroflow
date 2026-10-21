@@ -688,7 +688,7 @@ class UpstreamPolicyTests(Home):
         self.teammate_sets("forbid")
         code, result = self.wb("export", "--out", str(self.scratch / "up"))  # nothing fetched yet: as this clone knows
         self.assertEqual([row["level"] for row in result["levels"]], [self.HIVE])
-        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch", "--held", str(self.stored()))
         self.assertEqual(result["levels"], [])
         row = next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)
         self.assertEqual(row["reason"], "the team forbids mirroring it — so says the upstream hive.md; this clone's copy differs")
@@ -700,7 +700,7 @@ class UpstreamPolicyTests(Home):
     def test_an_opt_in_this_clone_has_not_pulled_neither_exports_nor_purges(self) -> None:
         self.make_hive(policy=None, git_repo=True)
         self.teammate_sets("allow")
-        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch", "--held", str(self.stored()))
         self.assertEqual(result["levels"], [])  # the stricter value: not until this clone has the team's opt-in
         self.assertEqual(next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)["reason"],
                          "the team has not opted in (workbench_mirror in hive.md) — so says this clone; the upstream hive.md allows it")
@@ -1212,9 +1212,20 @@ class GcTests(Home):
                                "--purge", hive)
         self.assertEqual((code, result["deletes"]), (1, 0))
         self.assertEqual(result["unlisted"], [{"level": hive, "list": f"data/users/me/{hive}/parts"}])
+        # that collection listed and empty (a purge cut off after its parts went): --listed lets the meta go too
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core"], hive: ["core", "cards-000"]}, listed=("flowie",))),
+                               "--purge", hive, "--listed", hive)
+        self.assertEqual((code, result["unlisted"]), (1, []))
+        self.assertEqual([(w["collection"], w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]],
+                         [("data/users/me", hive, 11)])
+        # a level the store does not hold has nothing to purge, and gc names none
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core"]})), "--purge", hive)
+        self.assertEqual((code, result["deletes"], result["purge"], result["unlisted"]), (0, 0, [], []))
         code, result = self.wb("gc", "--remote", str(remote), "--purge", "flowie")
         self.assertEqual(code, 2)
         self.assertIn("still mirrored on this machine: flowie", result["error"])
+        code, result = self.wb("gc", "--remote", str(remote), "--listed", "not a key")
+        self.assertEqual(code, 2)
 
     def test_orphans_are_judged_against_the_metas_of_the_listing_given(self) -> None:
         # after an upload cut off before its meta, the next refresh writes a meta naming wiki-000 again: judged against a
@@ -1235,16 +1246,38 @@ class GcTests(Home):
         self.assertIn("`data/users/me/{level}/parts` for every level that listing shows", step)
         self.assertIn("gc --intents {scratch}/intents --remote {scratch}/remote2", step)
         self.assertIn("--purge {level}", step)
+        self.assertIn("run gc again with `--listed {level}`", step)  # an empty parts listing ends the loop
         self.assertIn("and delete {levels} from it", text)
 
-    def test_the_export_names_what_a_refresh_deletes(self) -> None:
+    def test_the_prose_lists_the_workbench_before_the_preview_names_what_it_deletes(self) -> None:
+        text = " ".join((REPO / "commands" / "dashboard.md").read_text(encoding="utf-8").split())
+        record = text[text.index("3. **The record and the account.**"):text.index("4. **Export.**")]
+        export = text[text.index("4. **Export.**"):text.index("5. **Preview, then your yes.**")]
+        preview = text[text.index("5. **Preview, then your yes.**"):text.index("6. **Publish")]
+        self.assertIn("list what it holds — ArtifactData `list` of `data/users/me` with `out_dir` `{scratch}/held`", record)
+        self.assertLess(record.index("before any ArtifactData call"), record.index("list what it holds"))
+        self.assertIn("`--held {scratch}/held`", export)
+        self.assertIn("the export's `purge` (the workbench holds them", preview)
+
+    def test_the_export_names_what_a_refresh_deletes_from_what_the_workbench_holds(self) -> None:
         self.make_flowie()
         self.make_hive(policy="forbid")
         self.make_project(policy=None)
+        hive, project = "hive+example-lab+hive", "project+oddball-eeg"
+        # without a listing of the store nothing is known to be held (a first publish): nothing to name
         code, result = self.wb("export", "--out", str(self.scratch / "up"))
+        self.assertEqual(result["purge"], [])
+        # a project that never opted in, which the workbench does not hold, is not named on every refresh
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--held", str(self.store({"flowie": ["core"], hive: ["core"]})))
+        self.assertEqual({row["level"]: row["reason"] for row in result["purge"]}, {hive: "the team forbids mirroring it"})
+        # held is anything of the level: its meta, or only parts left behind; the step-7 listing (--remote) serves too
+        held = self.store({"flowie": ["core"], hive: ["core"]})
+        self.write(held / "data" / "users" / "me" / project / "parts" / "core.json", json.dumps({"data": {}, "version": 2}))
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--remote", str(held))
         self.assertEqual({row["level"]: row["reason"] for row in result["purge"]},
-                         {"hive+example-lab+hive": "the team forbids mirroring it",
-                          "project+oddball-eeg": "the team has not opted in (workbench_mirror in project_config.md)"})
+                         {hive: "the team forbids mirroring it",
+                          project: "the team has not opted in (workbench_mirror in project_config.md)"})
+        self.assertEqual(wb.held_levels(wb.load_docs(held)), {"flowie", hive, project})
 
 
 def prose(*parts: str) -> str:

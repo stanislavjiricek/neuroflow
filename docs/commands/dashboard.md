@@ -52,8 +52,8 @@ a request that [`/neuroflow:tasks --apply-web`](tasks.md) checks and applies.
 
 | Mode | What it does |
 |---|---|
-| `--web` | The first time: explains what would leave your machine, asks your consent, a name for this machine and which levels to mirror, then — after a one-line preview and your yes — publishes the page and uploads. After that: refreshes the levels, upgrades the page when the installed neuroflow ships a newer one, cleans up finished requests, and copies your page settings into your flowie |
-| `--web --status` | Which account and page, the page's version against the plugin's, each level's consent and the team's opt-in, how many changes wait and since when — nothing is uploaded |
+| `--web` | The first time: explains what would leave your machine, asks your consent, a name for this machine and which levels to mirror, then — after a one-line preview and your yes — publishes the page and uploads. After that: refreshes the levels, upgrades the page when the installed neuroflow ships a newer one, cleans up finished requests, deletes a level whose team no longer allows mirroring it (the preview names it), and copies your page settings into your flowie |
+| `--web --status` | Which account and page, the page's version against the plugin's, each level's consent and the team's opt-in, whether ID numbers and participant names are checked (`pii_config`), how many changes wait and since when — nothing is uploaded |
 | `--web --levels` | Choose again which levels are mirrored; one you take off is purged from the page |
 
 Every upload asks first, every time: nothing is sent on a timer or at the end of another command. A hive or project is
@@ -65,7 +65,7 @@ and the command says why. With the mod active, `--web` runs the full command too
 | Direction | Files |
 |---|---|
 | Reads | `.neuroflow/project_config.md`, `.neuroflow/timeline.md`, `.neuroflow/ethics/status.md`, `.neuroflow/preregistration/status.md`, `.neuroflow/tasks/`, `~/.neuroflow/flowie/tasks/` and each `~/.neuroflow/hives/{org-repo}/tasks/` (the local copies, never pulled), `~/.neuroflow/local-projects.json` and `~/.neuroflow/flowie/projects/projects.json` (which flowie project this is), each hive's `projects/projects.json` (which lab project it is there), `~/.neuroflow/user.yaml` (hive order), `.neuroflow/{phase}/autoresearch-loops.md` and the loops' `results.md` / `report.md`; with `--web` also the levels it mirrors, `~/.neuroflow/workbench/` and the workbench record (`~/.neuroflow/flowie/workbench.json`) |
-| Writes | nothing, unless you freeze or unfreeze the preregistration from the integrity tab: then `freeze.py` writes `.neuroflow/preregistration/status.md`, the banners and `deviations.md`, and the mod adds a session line and a reasoning entry. `--web` writes your consent and levels to `~/.neuroflow/user.yaml`, `~/.neuroflow/workbench/pending.json`, the workbench record, and a session line — and uploads, after your yes, to your own claude.ai workbench |
+| Writes | nothing, unless you freeze or unfreeze the preregistration from the integrity tab: then `freeze.py` writes `.neuroflow/preregistration/status.md`, the banners and `deviations.md`, and the mod adds a session line and a reasoning entry. `--web` writes your consent, levels, machine name and `pii_config` path to `~/.neuroflow/user.yaml`, `~/.neuroflow/workbench/pending.json`, the workbench record, and a session line — and uploads, after your yes, to your own claude.ai workbench |
 
 ## Related
 

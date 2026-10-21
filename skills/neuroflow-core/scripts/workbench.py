@@ -10,7 +10,9 @@ subcommands:
   levels                      the levels this machine can mirror: key, the team's opt-in, the person's consent
   export --out DIR            the snapshot documents of the mirrored levels and a preview; with --remote DIR (the
                               ArtifactData listing of data/users/me) also the refresh guard's verdicts and the batch
-                              writes; --outcomes PLAN adds the outcomes of an apply run; --fetch fetches each repo first
+                              writes; --outcomes PLAN adds the outcomes of an apply run; --fetch fetches each repo first;
+                              --held DIR (a listing of data/users/me; default --remote) names under `purge` the levels
+                              the workbench holds whose team no longer allows them — the ones a refresh deletes
   pickup --intents DIR        which queued intents this session may claim, and the claim batch (pinned)
   validate --intents DIR --out PLAN   one verdict per claimed intent and the plan of task-file changes, per level
   apply --plan PLAN --level KEY       edit and move the planned task files of one level (git mv) and stage them in
@@ -18,7 +20,9 @@ subcommands:
   pending --intents DIR [--plan PLAN] write ~/.neuroflow/workbench/pending.json (the mod's board and band read it)
   gc --intents DIR --remote DIR       deletes: finished intents older than --days, orphaned parts, the levels whose
                               team no longer allows them and the ones --purge KEY names (the person took them off);
-                              never a level only because this machine lacks it. --remote lists every level's parts
+                              never a level only because this machine lacks it. --remote lists every level's parts;
+                              a level whose parts it lacks is named under `unlisted`, and --listed KEY says that
+                              level's parts were listed even though the listing came back empty
   record [--set KEY=VALUE ...] [--prefs FILE]   the workbench record: the flowie's workbench.json, else user.yaml
   stage --out DIR             the page: template plus logic module, with its hashes, capabilities and contract
   page --check FILE           whether a page read back from claude.ai is still the one neuroflow published
@@ -1374,6 +1378,17 @@ def load_docs(folder: Path | None, versions: dict | None = None) -> dict[str, di
     return docs
 
 
+def held_levels(docs: dict[str, dict]) -> set[str]:
+    """The level keys a listing of the store holds anything of: a level's meta (data/users/me/{key}) or a part."""
+    held = set()
+    for path in docs:
+        parts = path.split("/")
+        if parts[:3] == ["data", "users", "me"] and len(parts) in (4, 6) and valid_level_key(parts[3]) and (
+                len(parts) == 4 or parts[4] == "parts"):
+            held.add(parts[3])
+    return held
+
+
 def is_ancestor(repo: Path, older: str, newer: str) -> bool | None:
     proc = git(repo, "merge-base", "--is-ancestor", older, newer)
     return True if proc.returncode == 0 else False if proc.returncode == 1 else None
@@ -1531,12 +1546,16 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
             skipped.append({"level": src.key, "label": src.label, "reason": item["skipped"]})
         else:
             built.append(item)
+    # What a refresh deletes (gc, step 8 of /dashboard --web): the levels the workbench holds whose team no longer
+    # allows mirroring them, so the preview names them before the yes. Only a listing of the store says what it holds:
+    # without one (a first publish, nothing stored yet) nothing is named.
+    listing = args.held or args.remote
+    held = held_levels(load_docs(Path(listing))) if listing else set()
     result: dict = {"machine": machine, "exported_at": iso(now), "levels": preview(built), "unkeyed": unkeyed,
                     "skipped": skipped,
                     "not_mirrored": [row for row in rows.values() if not row["mirrored"]],
-                    # what gc deletes from the workbench, where it holds them: the preview names them
                     "purge": [{"level": row["level"], "label": row["label"], "reason": row.get("reason")}
-                              for row in rows.values() if row.get("purge")]}
+                              for row in rows.values() if row.get("purge") and row["level"] in held]}
     for item in built:
         key = item["meta"]["level"]
         write_doc(out / "docs" / key_file(key) / "meta.json", item["meta"])
@@ -2225,9 +2244,10 @@ def cmd_gc(args, home: Path, now: datetime) -> tuple[int, dict]:
     sources, _ = discover(home, args.root)
     rows = {row["level"]: row for row in level_rows(sources, person)}
     asked = set(args.purge or [])
-    bad = sorted(key for key in asked if not valid_level_key(key))
+    listed = set(args.listed or [])     # levels whose parts collection was listed, even if it came back empty
+    bad = sorted(key for key in asked | listed if not valid_level_key(key))
     if bad:
-        raise UsageError(f"--purge {', '.join(bad)}: not a level key")
+        raise UsageError(f"--purge/--listed {', '.join(bad)}: not a level key")
     still = sorted(key for key in asked if (rows.get(key) or {}).get("mirrored"))
     if still:
         raise UsageError(f"still mirrored on this machine: {', '.join(still)} — take it off workbench_levels first")
@@ -2250,15 +2270,18 @@ def cmd_gc(args, home: Path, now: datetime) -> tuple[int, dict]:
     for key in sorted(purge):
         part_docs = {path: doc for path, doc in docs.items() if path.startswith(parts_collection(key) + "/")}
         named = {part.get("id") for part in ((metas.get(key) or {}).get("body") or {}).get("parts") or [] if isinstance(part, dict)}
-        if named and not part_docs:
-            # deleting the meta alone would leave every part behind, unreachable (a delete never deletes what is below)
+        if named and not part_docs and key not in listed:
+            # deleting the meta alone would leave every part behind, unreachable (a delete never deletes what is below);
+            # once that collection is listed (--listed), an empty listing means its parts are gone already
             unlisted.append({"level": key, "list": parts_collection(key)})
             continue
+        before = len(deletes)
         for path, doc in sorted(part_docs.items()):     # the parts first, then the meta above them
             deletes.append(pinned({"op": "delete", "collection": parts_collection(key), "doc_id": path.split("/")[-1]}, doc, missing))
         if key in metas:
             deletes.append(pinned({"op": "delete", "collection": meta_collection(), "doc_id": key}, metas[key], missing))
-        reasons.append({"level": key, "reason": purge[key]})
+        if len(deletes) > before:   # a level the store does not hold has nothing to purge
+            reasons.append({"level": key, "reason": purge[key]})
     for key, meta in metas.items():
         if key in purge:
             continue
@@ -2552,7 +2575,7 @@ def print_human(command: str, code: int, result: dict) -> None:
         for row in result.get("skipped") or []:
             print(f"not exported: {row['label']} ({row['level']}) — {row['reason']}")
         for row in result.get("purge") or []:
-            print(f"deleted from the workbench where it holds it: {row['label']} ({row['level']}) — {row['reason']}")
+            print(f"deleted from the workbench by this refresh: {row['label']} ({row['level']}) — {row['reason']}")
         for key, verdict in (result.get("guard") or {}).items():
             print(f"  {key}: {verdict['verdict']} — {verdict.get('question') or verdict['reason']}")
         if result.get("prefs"):
@@ -2574,6 +2597,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", help="export, stage, fixtures: the folder to write to; validate: the plan file")
     parser.add_argument("--level", action="append", help="export: only this level key; apply: the level to apply")
     parser.add_argument("--remote", help="export, gc: an ArtifactData listing of data/users/me saved with out_dir")
+    parser.add_argument("--held", help="export: a listing of data/users/me (default: --remote); `purge` names the levels "
+                                       "it holds that a refresh deletes")
     parser.add_argument("--intents", help="pickup, validate, pending, gc, export --outcomes: a listing of the intents")
     parser.add_argument("--versions", help="a JSON file {document path: version} for documents a listing saved without one")
     parser.add_argument("--outcomes", metavar="PLAN", help="export: add the outcome writes of this validated plan")
@@ -2587,6 +2612,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--days", type=int, default=GC_DAYS, help="gc: keep finished intents this many days")
     parser.add_argument("--purge", action="append", metavar="KEY",
                         help="gc: delete this level's documents too — one the person took off (its parts must be listed)")
+    parser.add_argument("--listed", action="append", metavar="KEY",
+                        help="gc: this level's parts collection was listed into --remote, even if the listing was empty")
     parser.add_argument("--set", action="append", metavar="KEY=VALUE", help="record: write a field of the workbench record")
     parser.add_argument("--prefs", help="record: the page's prefs document (an ArtifactData get saved with out_dir)")
     parser.add_argument("--check", help="page: the page file an Artifact read saved")

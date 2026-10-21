@@ -136,14 +136,7 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      only those the team allows; name the others with the reason `{wb} levels` gives — never write a team's
      `workbench_mirror` yourself. Write `workbench_levels` as a JSON list, and `workbench_index_only` for levels whose
      wiki should go up without page bodies.
-3. **Export.** `{wb} export --out {scratch}/wb --fetch` — it fetches every clone first (read-only), so a team's
-   `workbench_mirror` is read as the team pushed it, the stricter of that and the clone's own: per level the documents,
-   the size, the cards and wiki pages, the freshness label, every item held back with its reason (exit `1`), under
-   `skipped` a level too large for the store's documents (say why; the other levels go on), and under `purge` the
-   levels the team no longer allows, which a refresh deletes. A `warnings` line flags an export over 8 MB as
-   slow for the page to load and names the level whose wiki weighs most: offer to add it to `workbench_index_only`
-   (AskUserQuestion) and export again after a yes.
-4. **The record and the account.** `{wb} record`.
+3. **The record and the account.** `{wb} record`.
    - With a record: read its URL with the Artifact tool (`action: read`) before any ArtifactData call. If the result does
      not say you can edit it, Claude Code is signed into another account than the workbench's: stop with one line that
      names the record's account label, and never create a second workbench without asking. Run
@@ -151,13 +144,23 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      published it — ask before replacing it; `upgrade: true` means the plugin's page is newer — step 6 republishes it.
    - Without one: ask for an account label (*personal*, *institute*, …). Without a linked flowie, an Artifact `list` may
      show a workbench made on another machine (title *neuroflow workbench*): ask whether it is yours and use its URL
-     rather than making another.
+     rather than making another — read it as above.
+   - With a workbench to refresh (its URL read): list what it holds — ArtifactData `list` of `data/users/me` with
+     `out_dir` `{scratch}/held` — so step 4 can say which levels this refresh deletes from it.
+4. **Export.** `{wb} export --out {scratch}/wb --fetch`, with `--held {scratch}/held` when step 3 listed the workbench —
+   it fetches every clone first (read-only), so a team's `workbench_mirror` is read as the team pushed it, the stricter
+   of that and the clone's own: per level the documents, the size, the cards and wiki pages, the freshness label, every
+   item held back with its reason (exit `1`), under `skipped` a level too large for the store's documents (say why; the
+   other levels go on), and under `purge` the levels the workbench holds whose team no longer allows mirroring them,
+   which this refresh deletes. A `warnings` line flags an export over 8 MB as slow for the page to load and names the
+   level whose wiki weighs most: offer to add it to `workbench_index_only` (AskUserQuestion) and export again after a
+   yes.
 <!-- nf-rule: EGRESS-CONFIRM -->
 5. **Preview, then your yes.** One line, then one question: *"Upload to your private workbench ({account}): {levels} —
    {n} documents, {KB} KB{; and publish the page, neuroflow template {t}, {KB} KB}{; and delete {levels} from it}. Go
-   ahead?"* — the levels to delete are the export's `purge` (their team no longer allows mirroring them) and each level
-   taken off with `--levels`. Nothing leaves before a yes in this turn. Without one, upload nothing and say how to run it
-   later. No upload ever runs on a timer or at the end of another command.
+   ahead?"* — the levels to delete are the export's `purge` (the workbench holds them, and their team no longer allows
+   mirroring them) and each level taken off with `--levels`. Nothing leaves before a yes in this turn. Without one,
+   upload nothing and say how to run it later. No upload ever runs on a timer or at the end of another command.
 6. **Publish — the first time, or to upgrade.** `{wb} stage --out {scratch}/page` prints the file, its hashes, the
    capabilities, the contract, the title, the icon and the description. Read the staged file in full (the Artifact tool
    requires it for a file Claude did not write), then publish it with the Artifact tool: `file_path` the staged file,
@@ -180,8 +183,9 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
    {scratch}/remote2`, with `--purge {level}` for each level taken off with `--levels`: finished intents older than 7
    days, parts no level's meta names, and every document of a level step 5 named for deletion — its parts first, then its
    meta. A level is never deleted only because this machine lacks it or leaves it out: another machine may mirror it.
-   `unlisted` names a level whose parts the listing missed: list that collection too and run gc again. A delete sends
-   nothing; send its batches.
+   `unlisted` names a level whose meta lists parts the listing does not hold: list that collection into
+   `{scratch}/remote2` and run gc again with `--listed {level}` as well — an empty listing then means its parts are
+   gone already, and the meta goes too. A delete sends nothing; send its batches.
 9. **Check and record.** ArtifactData `list` of `data/users/me` with `as_level: admin` must come back empty — the
    owner-only rules hide the workbench even from an editor; report it as *owner-only rules checked {date}*. Copy the
    page's preferences into the record: ArtifactData `get` of `data/users/me` · `prefs` (`out_dir`), then
