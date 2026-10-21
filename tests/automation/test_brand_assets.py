@@ -52,7 +52,7 @@ class RepoImagesTests(unittest.TestCase):
         self.assertEqual((code, report["exit_code"], report["findings"]), (0, 0, []))
 
     def test_the_folder_holds_exactly_the_asset_table(self):
-        self.assertEqual(sorted(p.name for p in BRAND.iterdir()), sorted([*ba.SVGS, *ba.PNGS]))
+        self.assertEqual(sorted(p.name for p in BRAND.iterdir() if not ba.is_os_file(p.name)), sorted([*ba.SVGS, *ba.PNGS]))
 
     def test_svgs_draw_without_text_or_outside_references(self):
         for name in ba.SVGS:
@@ -73,7 +73,7 @@ class RepoImagesTests(unittest.TestCase):
                 self.assertEqual(ba.png_size((BRAND / name).read_bytes()), size)
 
     def test_weight(self):
-        sizes = {p.name: p.stat().st_size for p in BRAND.iterdir()}
+        sizes = {p.name: p.stat().st_size for p in BRAND.iterdir() if not ba.is_os_file(p.name)}
         for name, size in sizes.items():
             with self.subTest(name):
                 self.assertLess(size, 512 * 1024)
@@ -166,6 +166,15 @@ class FixtureTests(unittest.TestCase):
 
     def test_a_copy_is_clean(self):
         self.assertEqual(self.check()[0], 0)
+
+    def test_os_metadata_files_are_ignored(self):
+        for name in (".DS_Store", "Thumbs.db", "desktop.ini"):
+            (self.brand / name).write_bytes(b"\0" * 16)
+        self.assertEqual(self.check()[0], 0)
+        (self.brand / "stray.png").write_bytes(b"\0" * 16)
+        code, out = self.check()
+        self.assertEqual(code, 1)
+        self.assertIn("stray.png: not made by this generator", out)
 
     def test_crlf_checkout_is_not_drift(self):
         path = self.brand / "favicon.svg"

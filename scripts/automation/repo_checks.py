@@ -159,7 +159,7 @@ def _yaml_child_span(text: str, block: str, key: str) -> tuple[int, int] | None:
 
     Only a direct child of the top-level `block:` counts, never a deeper key of the same name
     (`theme: icon: logo:` is not `theme: logo:`)."""
-    m = re.search(rf"(?m)^{re.escape(block)}:[ \t]*$", text)
+    m = re.search(rf"(?m)^{re.escape(block)}:[ \t]*(?:#[^\n]*)?\r?$", text)
     if not m:
         return None
     start = m.end()
@@ -600,7 +600,7 @@ _FENCE_RE = re.compile(r"(?ms)^[ \t]*(`{3,}|~{3,})[^\n`]*$.*?^[ \t]*\1[`~]*[ \t]
 _HTML_COMMENT_RE = re.compile(r"(?s)<!--.*?-->")
 _CODE_SPAN_RE = re.compile(r"(`+)(?!`)(?:(?!\1).)+?(?<!`)\1(?!`)")
 _MD_TARGET_RE = re.compile(r"\]\(\s*(?:<([^>\n]*)>|([^)\s]+))")
-_MD_REF_DEF_RE = re.compile(r"(?m)^[ \t]{0,3}\[(?!\^)[^\]\n]+\]:[ \t]*<?([^\s>]+)>?")  # not footnotes [^1]:
+_MD_REF_DEF_RE = re.compile(r"(?m)^[ \t]{0,3}\[(?!\^)[^\]\n]+\]:[ \t]*(?:<([^>\n]*)>|([^\s<]\S*))")  # not footnotes [^1]:
 _HTML_TARGET_RE = re.compile(r"""(?i)\b(srcset|src|href)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 _HTML_ID_RE = re.compile(r"""(?i)\b(?:id|name)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 _HEADING_RE = re.compile(r"(?m)^[ \t]{0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$")
@@ -638,7 +638,7 @@ def readme_targets(text: str) -> list[str]:
     reference definitions, and HTML src, href and srcset (each candidate of a srcset list)."""
     body = _CODE_SPAN_RE.sub("", _strip_code(text))
     targets = [a or b for a, b in _MD_TARGET_RE.findall(body)]
-    targets += _MD_REF_DEF_RE.findall(body)
+    targets += [a or b for a, b in _MD_REF_DEF_RE.findall(body)]
     for attr, dq, sq in _HTML_TARGET_RE.findall(body):
         value = dq or sq
         if attr.lower() == "srcset":
@@ -654,13 +654,32 @@ def _mkdocs_top(text: str, key: str) -> str | None:
     return m.group(1) if m else None
 
 
-def site_page_exists(root: Path, docs_dir: str, page: str) -> bool:
-    """Whether a path on the docs site (directory URLs) has a source: <docs_dir>/<page>.md, its
-    index.md, a static file there, or a skills/ or agents/ page that docs/hooks.py copies in."""
-    page = urllib.parse.unquote(page.split("#", 1)[0].split("?", 1)[0]).strip("/") or "index"
-    page = page[:-len(".html")] if page.endswith(".html") else page
+def _mkdocs_excluded(text: str) -> list[str]:
+    """The names in mkdocs.yml `exclude_docs: |` (one per line; the build serves none of them)."""
+    m = re.search(r"(?m)^exclude_docs:[ \t]*\|[^\n]*\n((?:[ \t]+[^\n]*\n?)*)", text)
+    if not m:
+        return []
+    return [line.strip().rstrip("/") for line in m.group(1).splitlines()
+            if line.strip() and not line.strip().startswith("#")]
+
+
+def site_page_exists(root: Path, docs_dir: str, page: str, excluded: tuple[str, ...] = ()) -> bool:
+    """Whether a path on the docs site (directory URLs) is served: a page built from
+    <docs_dir>/<page>.md or <page>/index.md (or a skills/ or agents/ page that docs/hooks.py copies
+    in), or a static file the build copies (any suffix but .md). A folder, a Markdown source and a
+    name in exclude_docs are not served; `x/index.html` is the page `x/`, and `x.html` is no page."""
+    page = urllib.parse.unquote(page.split("#", 1)[0].split("?", 1)[0]).strip("/")
+    if page == "index.html" or page.endswith("/index.html"):
+        page = page[:-len("index.html")].rstrip("/")
+    page = page or "index"
+    if any(name in page.split("/") for name in excluded):
+        return False
     bases = [root / docs_dir] + ([root] if page.startswith(("skills/", "agents/")) else [])
-    return any((b / c).exists() for b in bases for c in (f"{page}.md", f"{page}/index.md", page))
+    candidates = [f"{page}.md", f"{page}/index.md"]
+    suffix = Path(page).suffix.lower()
+    if suffix and suffix not in (".md", ".html"):
+        candidates.append(page)
+    return any((b / c).is_file() for b in bases for c in candidates)
 
 
 def readme_link_findings(root: Path, text: str, rel: str = "README.md") -> list[Finding]:
@@ -673,9 +692,10 @@ def readme_link_findings(root: Path, text: str, rel: str = "README.md") -> list[
     mkdocs = _read(root / MKDOCS_YML)
     site = (_mkdocs_top(mkdocs, "site_url") or "").rstrip("/")
     docs_dir = _mkdocs_top(mkdocs, "docs_dir") or "docs"
+    excluded = tuple(_mkdocs_excluded(mkdocs))
     for target in readme_targets(text):
         if site and (target == site or target.startswith(site + "/")):
-            if not site_page_exists(root, docs_dir, target[len(site):]):
+            if not site_page_exists(root, docs_dir, target[len(site):], excluded):
                 out.append(Finding("V10", f"{rel} links to `{target}`, a site page with no source in {docs_dir}/"))
             continue
         if _SCHEME_RE.match(target):
@@ -805,7 +825,7 @@ def v12_release_notes(ctx: Context) -> list[Finding]:
     out = []
     readme = ctx.root / "README.md"
     if readme.is_file():
-        shown = readme_whats_new(_read(readme))
+        shown = list(dict.fromkeys(readme_whats_new(_read(readme))))  # one version named twice is one section
         if len(shown) > 1:
             out.append(Finding("V12", f"README.md has {len(shown)} What's new sections ({', '.join(shown)}) - keep only "
                                       "the newest; the earlier notes live in docs/changelog.md"))

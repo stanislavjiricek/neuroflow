@@ -462,6 +462,15 @@ def write_svgs(root: Path, colors: dict[str, dict[str, str]]) -> list[str]:
     return changed
 
 
+# Files an operating system drops into any folder it shows (.gitignore keeps them out of git).
+OS_FILES = {"thumbs.db", "desktop.ini"}
+
+
+def is_os_file(name: str) -> bool:
+    """A file an operating system writes on its own (.DS_Store, Thumbs.db, desktop.ini), never an asset."""
+    return name.startswith(".") or name.lower() in OS_FILES
+
+
 def check(root: Path, colors: dict[str, dict[str, str]]) -> list[str]:
     folder = root / BRAND_DIR
     findings = []
@@ -482,7 +491,7 @@ def check(root: Path, colors: dict[str, dict[str, str]]) -> list[str]:
         elif got != size:
             findings.append(f"{name}: {got[0]}x{got[1]}, expected {size[0]}x{size[1]} (run --png)")
     total = 0
-    files = sorted(p for p in folder.iterdir() if p.is_file()) if folder.is_dir() else []
+    files = sorted(p for p in folder.iterdir() if p.is_file() and not is_os_file(p.name)) if folder.is_dir() else []
     for path in files:
         size = path.stat().st_size
         total += size

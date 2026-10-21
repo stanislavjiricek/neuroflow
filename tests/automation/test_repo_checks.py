@@ -65,6 +65,14 @@ class VersionTests(RepoCase):
         self.assertIn(b'"keywords": ["a", "b"]', mkt.read_bytes())  # formatting kept
         self.assertNotIn(b"\r\n", mkt.read_bytes())  # line endings kept
 
+    def test_mkdocs_extra_block_with_crlf_or_a_comment(self):
+        mk = (self.root / rc.MKDOCS_YML).read_bytes().decode("utf-8")
+        write(self.root, {rc.MKDOCS_YML: mk.replace("extra:\n", "extra:  # site values\n")})
+        self.assertEqual(rc.site_versions(self.root, rc.MKDOCS_YML), ["1.2.3"])
+        (self.root / rc.MKDOCS_YML).write_bytes(mk.replace("\n", "\r\n").encode("utf-8"))
+        self.assertEqual(rc.site_versions(self.root, rc.MKDOCS_YML), ["1.2.3"])
+        self.assertEqual(self.run_checks("V2"), [])
+
     def test_mkdocs_only_extra_version_counts(self):
         self.assertEqual(rc.site_versions(self.root, rc.MKDOCS_YML), ["1.2.3"])
         rc.set_site_version(self.root, rc.MKDOCS_YML, "2.0.0")
@@ -247,6 +255,21 @@ class ReadmeLinkTests(RepoCase):
         self.assertEqual([(f.severity, f.message) for f in found], [(
             rc.FAIL, "README.md links to `https://example.org/neuroflow/concepts/gone/`, a site page with no source in docs/")])
 
+    def test_site_links_the_build_does_not_serve(self):
+        # a folder with no index.md, a skill's folder (its page is .../SKILL/), an x.html under
+        # directory URLs and a Markdown source are no pages; x/index.html is the page x/
+        self.assertEqual(self.readme(extra="\n[a](https://example.org/neuroflow/commands/alpha/index.html)\n"), [])
+        for url in ("https://example.org/neuroflow/commands/", "https://example.org/neuroflow/skills/phase-alpha/",
+                    "https://example.org/neuroflow/commands/alpha.html", "https://example.org/neuroflow/commands/alpha.md"):
+            found = self.readme(extra=f"\n[x]({url})\n")
+            self.assertEqual([f.severity for f in found], [rc.FAIL], url)
+
+    def test_site_links_to_excluded_docs_fail(self):
+        write(self.root, {"mkdocs.yml": FILES["mkdocs.yml"].replace("theme:", "exclude_docs: |\n  hooks.py\n  __pycache__/\n\ntheme:", 1),
+                          "docs/hooks.py": "# build hook\n"})
+        found = self.readme(extra="\n[x](https://example.org/neuroflow/hooks.py)\n")
+        self.assertEqual([f.severity for f in found], [rc.FAIL])
+
     def test_link_outside_the_repository_fails(self):
         found = self.readme(extra="\n[up](../outside.md)\n")
         self.assertEqual([f.message for f in found], ["README.md links to `../outside.md`, outside the repository"])
@@ -257,6 +280,9 @@ class ReadmeLinkTests(RepoCase):
     def test_reference_definitions_but_not_footnotes(self):
         found = self.readme(extra="\nSee [the guide][g].[^1]\n\n[g]: docs/guide.md\n[^1]: a footnote, not a path\n")
         self.assertEqual([f.message for f in found], ["README.md links to non-existent file `docs/guide.md`"])
+
+    def test_the_markdown_comment_idiom_is_no_link(self):
+        self.assertEqual(self.readme(extra="\n[comment]: <> (Keep the Skills table sorted)\n[//]: <> (and this)\n"), [])
 
     def test_mkdocs_theme_images(self):
         mk = FILES["mkdocs.yml"]
@@ -318,6 +344,10 @@ class ReleaseNotesTests(RepoCase):
         found = self.readme("## What's new in 1.2.3", "## Recent changes")
         self.assertEqual([(f.severity, f.message) for f in found],
                          [(rc.WARN, "README.md has no `## What's new in 1.2.3` section")])
+
+    def test_naming_the_same_version_again_is_one_section(self):
+        found = self.readme("## Installation", '<a href="#whats-new">What\'s new in 1.2.3</a>\n\n## Installation')
+        self.assertEqual(found, [])
 
     def test_mentions_in_code_do_not_count(self):
         found = self.readme("## Installation", "```\n## What's new in 1.0.0\n```\n\n`What's new in 1.1.0`\n\n## Installation")
