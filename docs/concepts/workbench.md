@@ -85,9 +85,9 @@ what your clone holds and what the team pushed, so a team's `forbid` takes effec
 pushed does not start a mirror. Your other keys: `workbench_machine` (the name each export shows),
 `workbench_index_only` (levels whose wiki goes up as an index without page bodies), `workbench_account` (which recorded
 workbench this machine uses) and `pii_config` (the path of your `pii_scan.py` config — ID patterns and a participant
-roster — which every export applies; without it, ID numbers and participant names are not checked). The record itself — the page's address, the account
-label, the page version and a copy of your settings — lives in your flowie's `workbench.json`, or in `user.yaml`
-when no flowie is linked.
+roster — which every export applies; without it, ID numbers and participant names are not checked). The record itself —
+the page's address, the account label, the page version and a copy of your settings — lives in your flowie's
+`workbench.json`, or in `user.yaml` when no flowie is linked.
 
 ---
 
@@ -120,9 +120,9 @@ Never uploaded: sessions/, review/, paper/xray-*, wiki/.pending/ and every other
 Free text (titles, notes, descriptions, a project's status and phase, column labels, wiki pages with their type and status, ideas, team text, people's names and roles, errata rows, dated rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed], and a machine-local path (C:\Users\…, /home/…, ~/…, as local_paths.py finds them) [local path removed]. An item with secret-like text or a name from that config's participant roster is held back whole, and so is one whose file name, tags or links carry personal data, as they travel unchanged. Your pii_scan config is the file pii_config names in ~/.neuroflow/user.yaml (its id_patterns and roster); without it, ID numbers and participant names are not checked. The preview names each item held back; the page only counts them.
 <!-- workbench-sources:end -->
 
-Every upload — the first publish, each refresh, each claim of your clicks, each write-back of outcomes — needs a one-line preview and your yes
-in that turn. Nothing is uploaded on a timer or at the end of another command. Teammates' text reaches your page as
-text: it is never run as HTML, and only `http` and `https` links leave it.
+Every upload — the first publish, each refresh, each claim of your clicks, each write-back of outcomes — needs a
+one-line preview and your yes in that turn. Nothing is uploaded on a timer or at the end of another command. Teammates'
+text reaches your page as text: it is never run as HTML, and only `http` and `https` links leave it.
 
 ---
 
@@ -134,10 +134,10 @@ text: it is never run as HTML, and only `http` and `https` links leave it.
 - **One person, one account.** There is no shared board and no read-only page for a supervisor in this version; a
   teammate sees your changes in git.
 - **Phones:** drag and drop needs a mouse or trackpad; on a touch screen use *Move to…*.
-- **The store's limits:** 256 KiB per document, 25,000 documents per workbench, and 50 writes and 1 MiB per batch —
-  an upload is split into as many batches as it needs. Finished requests are deleted after 7 days. A level you take off with `--web --levels`, or whose team stops allowing it, is purged — the
-  preview names it; a level is never purged only because the machine you run it on lacks it, since another of your
-  machines may mirror it.
+- **The store's limits:** 256 KiB per document, 25,000 documents per workbench, and 50 writes and 1 MiB per batch — an
+  upload is split into as many batches as it needs. Finished requests are deleted after 7 days. A level you take off
+  with `--web --levels`, or whose team stops allowing it, is purged — the preview names it; a level is never purged only
+  because the machine you run it on lacks it, since another of your machines may mirror it.
 - **Big wikis:** an export over 8 MB is flagged as slow to load; `workbench_index_only` sends a level's wiki as an index
   without page bodies.
 
