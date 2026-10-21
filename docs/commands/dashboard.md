@@ -17,9 +17,9 @@ current as files change.
 
 | Key | Tab |
 |---|---|
-| `1` | **Now** — everything the band above the prompt can show, whatever its `band` setting, each with its action: a drafted decision to keep or drop, a meeting to prepare or close, a flowie sync, wiki cards to review, the loop being driven, the next phase. An action runs only with Enter on its row (`j` and `k` move between the rows), never on a letter, so typing a prompt into the pane cannot migrate, keep or sync anything |
+| `1` | **Now** — everything the band above the prompt can show, whatever its `band` setting, each with its action: a drafted decision to keep or drop, a meeting to prepare or close, a flowie sync, wiki cards to review, the loop being driven, the next phase; under them the phase, task and loop lines (beside them in a wide pane). An action runs only with Enter on its row (`j` and `k` move between the rows), never on a letter, so typing a prompt into the pane cannot migrate, keep or sync anything |
 | `2` | **Phase** — the phases as a flow line (`◉` current, `●` visited, `→` recommended next) with the current and the next step; `g` opens the phase picker |
-| `3` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
+| `3` | **Deadlines** — a ruler of the coming weeks with each date's mark on its day (`⚠` within three days, `▸` within two weeks, `·` later), then the dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left and the phase each gates |
 | `4` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
 | `5` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it, then the project's other repositories from the local cache of their boards), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards |
 | `6` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions |
@@ -33,7 +33,9 @@ sync to your flowie, puts it in the prompt: press Esc and then Enter, and the sy
 your flowie clean. All keys, the chord that reaches the band and the panes, and working over SSH:
 [The neuroflow mod → Keyboard and SSH](../concepts/mods.md#keyboard-and-ssh).
 
-Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader.
+Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader. The pane lays
+itself out for its width — side by side in a wide terminal, stacked in a narrow dock — and drops its blank rows on a
+terminal under 30 rows, such as 24 rows over SSH.
 
 ## Without the mod
 

@@ -39,7 +39,9 @@ workbench (below).
 
 **With the neuroflow mod active**, this command (without `--web`) never reaches the model: the mod opens the dashboard as a pane drawn
 by code, holding the keyboard, and keeps it current as files change. The digits pick the tabs — `1` now (every item
-the band can show, each with its action), `2` phase, `3` deadlines, `4` integrity, `5` tasks, `6` loop — `h` and `l`
+the band can show, each with its action, and the Phase, Tasks and Loop lines of the block below), `2` phase (the
+phases as a flow line), `3` deadlines (a ruler of the coming weeks, then the dates), `4` integrity, `5` tasks, `6`
+loop, the pane laid out for its width and the terminal's height — `h` and `l`
 step to the previous and the next tab, `r` reads the files again, `q` closes, and Esc gives the keys back to the
 prompt. `/neuroflow:dashboard loop` opens it on a tab; running the command again gives an open dashboard the keys
 again. On the now tab an action runs only with Enter on its row (`j` and `k` move between the rows), never on a letter:

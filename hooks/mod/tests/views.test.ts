@@ -4,8 +4,27 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { NfMeeting, NfSnapshot } from '../../../types'
 import { setActivePhase } from '../lib/config'
 import { nextPhase, phaseMap, pickerOrder } from '../lib/phases'
-import { bandActions, bandItems, freezeCandidates, nowRingKeys, nowRows, parseOpenQuestions, parseRunning, sparkline, tabLines } from '../features/views'
-import { buttons, hotkeys, keyProblems } from './drawn'
+import {
+  bandActions,
+  bandItems,
+  cardLegend,
+  cardRows,
+  dashboardTitle,
+  dateMark,
+  dateRows,
+  freezeCandidates,
+  integrityRows,
+  loopSummary,
+  markRuns,
+  nowRingKeys,
+  nowRows,
+  nowSummary,
+  parseOpenQuestions,
+  parseRunning,
+  sparkline,
+  tabLines,
+} from '../features/views'
+import { buttons, hotkeys, keyProblems, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
 const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
@@ -143,6 +162,82 @@ describe('dashboard lines', () => {
     expect(rows.some(row => row.text.includes('is installed'))).toBe(false)
     expect(nowRingKeys(rows, true).slice(0, 3)).toEqual(['nf-dash-migrate', 'nf-now-draft-keep', 'nf-now-draft-drop'])
     expect(rows.find(row => row.actions.some(action => action.key === 'nf-now-meet-prepare'))?.actions[0]?.act).toEqual({ kind: 'command', command: 'neuroflow:meeting', args: '--prepare lab-2026-10-07' })
+  })
+})
+
+describe('the dashboard\'s rows', () => {
+  test('title, dates, integrity: a glyph, a word and who set it with every state', () => {
+    const snap = snapshot({
+      deadlines: [
+        { date: '2026-10-08', what: 'Abstract', gates: 'paper', daysLeft: 1 },
+        { date: '2026-10-19', what: 'ethics approval expires', gates: null, daysLeft: 12 },
+        { date: '2026-12-01', what: 'Lab retreat', gates: null, daysLeft: 55 },
+      ],
+      ethics: { status: 'approved', setBy: 'model', setAt: null, approvalId: null, expires: '2027-06-30', aiProcessing: 'pseudonymised' },
+      prereg: { status: 'frozen', setBy: 'person', setAt: null, frozenAt: '2026-10-01T10:00', files: { 'a.md': 'x', 'b.md': 'y' }, plannedN: 24 },
+      rawRoots: ['sourcedata/'],
+    })
+    expect(dashboardTitle(snap)).toBe('Oddball · data-analyze · critic')
+    expect([dateMark(0), dateMark(3), dateMark(4), dateMark(14), dateMark(15)].map(mark => `${mark.glyph}${mark.rank}`)).toEqual(['⚠0', '⚠0', '▸1', '▸1', '·2'])
+    expect(dateRows(snap).map(row => `${row.glyph} ${row.date} ${row.what} | ${row.when} | ${row.gates ?? ''}`)).toEqual([
+      '⚠ 2026-10-08 Abstract | tomorrow | paper',
+      '▸ 2026-10-19 ethics approval expires | in 12 days | ',
+      '· 2026-12-01 Lab retreat | in 55 days | ',
+    ])
+    expect(integrityRows(snap).map(row => [row.glyph, row.name, row.value, row.note, row.more.join('; ')])).toEqual([
+      // Approved, but not by a person: `?` and the words (commands/dashboard.md → Integrity).
+      ['?', 'ethics', 'approved · expires 2027-06-30', 'not set by a person', 'model may read: pseudonymised'],
+      ['■', 'preregistration', 'frozen 2026-10-01 · 2 files', 'set by a person', 'planned N: 24'],
+      ['■', 'raw data', 'read-only: sourcedata/', null, ''],
+    ])
+    const none = integrityRows(snapshot({ ethicsNotApplicable: true }))
+    expect(none.map(row => `${row.glyph} ${row.name}: ${row.value}`)).toEqual([
+      '· ethics: not applicable: no participant data',
+      '· preregistration: none frozen',
+      '· raw data: no folders declared (raw_roots)',
+    ])
+    expect(integrityRows(snapshot({ ethics: { status: 'expired', setBy: 'person', setAt: null, approvalId: null, expires: null, aiProcessing: null } }))[0]).toMatchObject({ glyph: '⚠', tone: 'error' })
+  })
+
+  test('the ruler\'s marks keep their colours; the loop and the now tab\'s summary read as one line each', () => {
+    expect(markRuns('       ⚠   ▸ ·')).toEqual([
+      { text: '       ' },
+      { text: '⚠', tone: 'error' },
+      { text: '   ' },
+      { text: '▸', tone: 'warning' },
+      { text: ' ' },
+      { text: '·', dim: true },
+    ])
+    const loop = { phase: 'data-analyze', name: 'connectivity', location: 'loops/connectivity/', iterations: '23', best: 'v019', status: 'running' }
+    const view = { name: 'connectivity', phase: 'data-analyze', status: 'running', iterations: '23', best: 'v019', running: [0, 3, 3, 5], questions: [] }
+    expect(loopSummary(loop, view)).toBe('connectivity · running · iteration 23 · best v019  ▁▅▅█')
+    expect(loopSummary(loop, null)).toBe('connectivity · running · iteration 23 · best v019')
+    const summary = nowSummary(snapshot({ loops: [loop] }), null, view)
+    expect(summary.map(row => `${row.label} ${row.value}`)).toEqual([
+      'PHASE ● ideation ─ ● prereg ─ ● data ─ ◉ analyze ─ → paper',
+      'TASKS reading the task boards…',
+      'LOOP connectivity · running · iteration 23 · best v019  ▁▅▅█',
+    ])
+    expect(nowSummary(snapshot(), null, null).map(row => row.label)).toEqual(['PHASE', 'TASKS'])
+  })
+
+  test('the tasks tab\'s cards in columns, and what their marks mean', () => {
+    const card = (slug: string, over: Record<string, unknown> = {}) => ({ slug, title: slug, owner: null, due: null, overdue: false, project: null, isMine: false, ...over })
+    const level = (id: string, kind: 'project' | 'flowie' | 'hive', cards: ReturnType<typeof card>[], project: string | null = null) => ({
+      id, kind, name: id, project, open: cards.length, mine: cards.filter(item => item.isMine).length, top: cards,
+      board: { columns: [], openColumns: [], done: 0, archived: 0 },
+    })
+    const view = {
+      levels: [
+        level('project', 'project', [card('rerun-ica', { title: 'Rerun ICA', owner: 'jana', due: '2026-10-01', overdue: true, isMine: true })]),
+        level('flowie', 'flowie', [card('read', { title: 'Read the review', due: '2026-10-20', isMine: true, web: true })], 'Oddball EEG'),
+      ],
+    } as never
+    expect(cardRows(view).map(row => [row.marks, row.title, row.owner, row.due, row.level])).toEqual([
+      ['⚠', 'Rerun ICA', '@jana', 'due 10-01', 'project'],
+      ['◆ ↻', 'Read the review', '', 'due 10-20', 'flowie'],
+    ])
+    expect(cardLegend(view)).toEqual(['◆ this project (Oddball EEG)', '⚠ overdue', '↻ a workbench change waits'])
   })
 })
 
@@ -304,7 +399,11 @@ describe('engine', () => {
       requestId: 'nf-dashboard',
       props: { title: 'neuroflow', isFocused: true, bodyColumns: 120, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
     } as never)
-    expect(JSON.stringify(await ui.drawn())).toContain('● ideation  ● preregistration  ◉ data')
+    // The phase tab unrolls the ring: a flow line, travelled (heavy) up to the current phase, a name under each glyph.
+    const flow = lines(await ui.drawn())
+    expect(flow).toContain(`●${'━'.repeat(39)}●${'━'.repeat(39)}◉`)
+    expect(flow.some(line => /^ideation +prereg +data$/.test(line))).toBe(true)
+    expect(flow).toContain('◉ current  ● visited')
     await ui.unmount()
   })
 
@@ -410,6 +509,8 @@ describe('keyboard first', () => {
       ['nf-phase', true, 12],
     ])
     expect(seen.opens[3]?.closeOnEscape).toBe(true)
+    // Docked beside a fullscreen transcript, each view asks for its width too.
+    expect(seen.opens.map(open => open.columns)).toEqual([64, 64, 84, 56])
     // 24 rows over SSH: the compact height, so the transcript keeps room.
     await (await $.ui.mount(band(75, 'terminal', 24) as never)).unmount()
     await $.command.run({ command: 'neuroflow:dashboard', args: '' })
@@ -425,7 +526,7 @@ describe('keyboard first', () => {
     const ui = await $.ui.mount(pane('nf-dashboard') as never)
     const now = await ui.drawn()
     expect(JSON.stringify(now)).toContain('1: now')
-    expect(JSON.stringify(now)).toContain('▸ meeting \\"Lab meeting\\" in 60 min')
+    expect(lines(now)).toContain('▸ meeting "Lab meeting" in 60 min')
     expect(keyProblems(now, 'dashboard')).toEqual([])
     // Writing and consenting actions have no letter there: Enter on the row, never a bare key.
     for (const key of ['nf-now-meet-prepare', 'nf-now-meet-notes', 'nf-dash-migrate']) expect(buttons(now).find(button => button.key === key)?.hotkey, key).toBe(undefined)
@@ -712,5 +813,116 @@ describe('integrity actions in the dashboard', () => {
     await ui.press({ key: 'nf-dash-freeze' })
     expect(seen.asked[0]).toContain('prereg-osf.md')
     expect(seen.ran.filter(item => item.includes('freeze'))).toEqual([])
+  })
+})
+
+describe('the dashboard in the new look', () => {
+  const project = '/work/proj'
+  const FILES = {
+    [`${project}/.neuroflow/project_config.md`]:
+      '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data-analyze\ndefault_mode: critic\nrecommended_phases: [ideation, preregistration, data, data-analyze, paper]\n---\n',
+    [`${project}/.neuroflow/timeline.md`]: '| Date | What | Gates |\n|---|---|---|\n| 2026-10-08 | Abstract deadline | paper |\n| 2026-10-19 | Lab retreat | |\n',
+    [`${project}/.neuroflow/meetings/lab-2026-10-07.md`]: '---\ntitle: Lab meeting\ndate: 2026-10-07T14:00\n---\n',
+    [`${project}/.neuroflow/ideation/flow.md`]: '# ideation\n',
+    [`${project}/.neuroflow/preregistration/flow.md`]: '# preregistration\n',
+    [`${project}/.neuroflow/data/flow.md`]: '# data\n',
+  }
+  const setUp = (on: On) => {
+    fakeFs(on, FILES, project)
+    mock.env(on, { HOME: '/home/me' })
+    const clock = mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.focus', () => ({}))
+    on('command.run', () => ({ text: '', ref: 1 }))
+    return clock
+  }
+  const pane = (bodyColumns: number, surface = 'terminal', rows?: number) => ({
+    plugin: 'neuroflow', surface, component: 'Pane', requestId: 'nf-dashboard',
+    props: { title: 'neuroflow', isFocused: true, bodyColumns, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
+    ...(rows === undefined ? {} : { viewport: { columns: bodyColumns + 4, rows } }),
+  })
+
+  test('at 76 and 116 cells: the mark and the wordmark, the tabs over a rule heavy under the shown one, the legend', { options: { runtime: 'observe' } }, async ($, on) => {
+    const clock = setUp(on)
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: '' })
+    const medium = await $.ui.mount(pane(76, 'terminal', 40) as never)
+    const rows = lines(await medium.drawn())
+    expect(rows.slice(0, 2)).toEqual(['◌ neuroflow', 'Oddball · data-analyze · critic'])
+    expect(rows).toContain('1: now')
+    expect(rows).toContain(`${'━'.repeat(6)}${'─'.repeat(70)}`)
+    expect(rows).toContain('▸ meeting "Lab meeting" in 60 min')
+    // The summary under what needs attention, its labels UPPERCASE; side by side only where the pane is wide.
+    expect(rows).toContain('PHASE')
+    expect(rows).not.toContain('NEEDS ATTENTION')
+    expect(rows).toContain('enter: act · esc: prompt')
+    expect(buttons(await medium.drawn()).find(button => button.key === 'nf-nav-left')?.label).toBe('‹')
+    await clock.advance(500)
+    await medium.press({ key: 'nf-tab-deadlines' })
+    expect(lines(await medium.drawn())).toContain(`${'─'.repeat(20)}${'━'.repeat(12)}${'─'.repeat(44)}`)
+    await medium.press({ key: 'nf-tab-now' })
+    await medium.unmount()
+    const wide = await $.ui.mount(pane(116, 'terminal', 40) as never)
+    const glance = lines(await wide.drawn())
+    expect(glance).toContain('NEEDS ATTENTION')
+    expect(glance).toContain('AT A GLANCE')
+    expect(buttons(await wide.drawn()).find(button => button.key === 'nf-nav-left')?.label).toBe('‹ tab')
+    expect(keyProblems(await wide.drawn(), 'dashboard')).toEqual([])
+    await wide.unmount()
+  })
+
+  test('narrow (a 44-cell dock) and compact (24 rows): the title on the mark\'s line, a plain rule, no summary when short', { options: { runtime: 'observe' } }, async ($, on) => {
+    setUp(on)
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: '' })
+    const narrow = await $.ui.mount(pane(44, 'terminal', 40) as never)
+    const dock = lines(await narrow.drawn())
+    expect(dock[0]).toBe('◌ neuroflow · Oddball · data-analyze · critic')
+    expect(dock).toContain('─'.repeat(44))
+    expect(dock).toContain('PHASE')
+    await narrow.unmount()
+    const short = await $.ui.mount(pane(76, 'terminal', 24) as never)
+    const ssh = lines(await short.drawn())
+    expect(ssh[0]).toBe('◌ neuroflow · Oddball · data-analyze · critic')
+    expect(ssh).not.toContain('PHASE')
+    // No closing rule above the legend: every row goes to what needs attention.
+    expect(ssh.filter(line => /^─+$/.test(line))).toEqual([])
+    await short.unmount()
+  })
+
+  test('the deadlines tab: a ruler with week ticks on the terminal, the dates as a list on every surface', { options: { runtime: 'observe' } }, async ($, on) => {
+    setUp(on)
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: 'deadlines' })
+    const terminal = await $.ui.mount(pane(76) as never)
+    const drawn = lines(await terminal.drawn())
+    expect(drawn).toContain(`today ┼${'──────┬'.repeat(8)} +56 d`)
+    // Tomorrow's deadline sits on day 1, the retreat in twelve days on day 12.
+    expect(drawn).toContain(`${' '.repeat(7)}⚠${' '.repeat(10)}▸`)
+    for (const cell of ['2026-10-08', 'Abstract deadline', 'tomorrow', 'gates paper', 'in 12 days']) expect(drawn).toContain(cell)
+    await terminal.unmount()
+    const desktop = await $.ui.mount(pane(76, 'desktop') as never)
+    expect(lines(await desktop.drawn()).some(line => line.startsWith('today ┼'))).toBe(false)
+    expect(lines(await desktop.drawn())).toContain('Abstract deadline')
+    await desktop.unmount()
+  })
+
+  test('the phase tab: the ring unrolled into a flow line where each phase has nine cells, the word list elsewhere', { options: { runtime: 'observe' } }, async ($, on) => {
+    setUp(on)
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: 'phase' })
+    const terminal = await $.ui.mount(pane(76) as never)
+    const drawn = lines(await terminal.drawn())
+    expect(drawn).toContain(`●${'━'.repeat(14)}●${'━'.repeat(14)}●${'━'.repeat(14)}◉${'─'.repeat(14)}→`)
+    expect(drawn).toContain('◉ current  ● visited  → recommended next')
+    expect(drawn).toContain('NEXT')
+    await terminal.unmount()
+    // Five phases in 44 cells leave eight a phase: the word list.
+    const narrow = await $.ui.mount(pane(44) as never)
+    expect(lines(await narrow.drawn())).toContain('● ideation  ● preregistration  ● data  ◉ data-analyze  → paper')
+    await narrow.unmount()
   })
 })

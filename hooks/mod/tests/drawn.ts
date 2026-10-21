@@ -23,6 +23,32 @@ export const elements = (tree: unknown, type: string): DrawnElement[] => {
   return out
 }
 
+/**
+ * What each outermost Text of a drawn tree reads, its nested Texts (a glyph in its colour, a dim part) joined in, in
+ * document order: the rows a person sees, whatever colours split them.
+ */
+export const lines = (tree: unknown): string[] => {
+  const out: string[] = []
+  const textOf = (node: unknown): string => {
+    if (typeof node === 'string') return node
+    if (node === null || typeof node !== 'object') return ''
+    if (Array.isArray(node)) return node.map(textOf).join('')
+    return textOf((node as { children?: unknown }).children)
+  }
+  const walk = (node: unknown): void => {
+    if (node === null || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      for (const child of node) walk(child)
+      return
+    }
+    const element = node as { type?: unknown; children?: unknown }
+    if (element.type === 'Text') out.push(textOf(element.children))
+    else walk(element.children)
+  }
+  walk(tree)
+  return out
+}
+
 /** Every Button in a drawn tree, with what decides how it reads and how it is pressed. */
 export const buttons = (tree: unknown): DrawnButton[] =>
   elements(tree, 'Button').map(({ key, props }) => ({

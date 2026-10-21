@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { parseDraft } from '../features/bookkeeping'
-import { buttons, hotkeys, keyProblems } from './drawn'
+import { buttons, hotkeys, keyProblems, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
 describe('decision drafter', () => {
@@ -102,7 +102,7 @@ describe('decision drafter', () => {
       props: { title: 'neuroflow', isFocused: true, bodyColumns: 116, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
     } as never)
     const tree = await pane.drawn()
-    expect(JSON.stringify(tree)).toContain('✎ decision drafted for data-analyze: Use FDR (BH) across electrodes')
+    expect(lines(tree)).toContain('✎ decision drafted for data-analyze: Use FDR (BH) across electrodes')
     expect(buttons(tree).filter(button => button.key.startsWith('nf-now-draft-')).map(button => [button.key, button.hotkey])).toEqual([
       ['nf-now-draft-keep', undefined],
       ['nf-now-draft-drop', undefined],

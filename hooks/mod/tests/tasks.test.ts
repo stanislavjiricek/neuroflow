@@ -21,7 +21,7 @@ import {
   userHives,
 } from '../lib/tasks'
 import { boardRingTarget, cardKeys, firstTarget, moveTargets, taskLines } from '../features/views'
-import { buttons } from './drawn'
+import { buttons, lines } from './drawn'
 import { fakeFs } from './fakefs'
 import type { FakeFs } from './fakefs'
 import { memIo } from './memio'
@@ -291,7 +291,10 @@ describe('the boards in a session', () => {
     const ui = await $.ui.mount(pane('nf-dashboard') as never)
     const drawn = JSON.stringify(await ui.drawn())
     expect(drawn).toContain('project 1 · flowie 3 (2 Oddball EEG) · lab-team 2 (1 oddball-lab) · alpha-team 0 · another-team 0')
-    expect(drawn).toContain('[flowie] ◆ ⚠ Check stats due 10-03')
+    // The first cards in columns: marks, title, due date, level.
+    const rows = lines(await ui.drawn())
+    for (const cell of ['◆ ⚠', 'Check stats', 'due 10-03', 'flowie']) expect(rows).toContain(cell)
+    expect(rows).toContain('◆ this project (Oddball EEG, oddball-lab) · ⚠ overdue')
     await ui.unmount()
   })
 

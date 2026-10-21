@@ -20,11 +20,11 @@ import { NO_SYNC, SYNC_QUEUE, asQueue, checkRemoteEntry, enqueue, syncState } fr
 import type { NfIo } from '../lib/io'
 import { BAND, CHORD, DASH, DASHBOARD_TABS, DIGITS, KEYS_LEARNED, LEARNED_AFTER, NAV, gridNeighbour, isPastTypeThrough, lineNeighbour, paneRows, tabNeighbour } from '../lib/keys'
 import type { Direction } from '../lib/keys'
-import { bandPlan, fit, measuredRows, rememberViewport } from '../lib/layout'
+import { MARK, WORDMARK, bandPlan, cells, fit, flowLine, isCompact, measuredRows, paneColumns, rememberViewport, rule, ruler, tabStrip, widthClass } from '../lib/layout'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
-import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, pickerOrder } from '../lib/phases'
+import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
@@ -353,16 +353,7 @@ const LEVEL_TONE: Record<BandItem['level'], Tone | undefined> = { alert: 'error'
 export const taskLines = (view: NfTaskView | null, max = 5): Line[] => {
   if (view === null) return [{ text: 'Reading the task boards…', dim: true }]
   const cards = topCards(view, max)
-  // This project's name at each level its marked cards come from (the flowie's and a hive's may differ).
-  const names = [...new Set(cards.filter(({ level, card }) => card.isMine && (level.kind === 'flowie' || level.kind === 'hive')).map(({ level }) => level.project))].filter(
-    (name): name is string => name !== null,
-  )
-  const overdue = cards.some(({ card }) => card.overdue)
-  const key = [
-    ...(names.length > 0 ? [`${MINE} this project (${names.join(', ')})`] : []),
-    ...(overdue ? ['⚠ overdue'] : []),
-    '/neuroflow:tasks opens the boards (digits pick the level)',
-  ]
+  const key = [...cardLegend(view, max), '/neuroflow:tasks opens the boards (digits pick the level)']
   return [
     { text: levelSummary(view) },
     ...(cards.length === 0
@@ -438,6 +429,132 @@ export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView
     { text: 'Answer in the session (A3: …) or in the loop\'s answers.md.', dim: true },
   ]
 }
+
+// ── the dashboard's rows as the pane lays them out (pure; tabLines above stays the plain-text form) ──
+
+/** Right of the wordmark: project · phase · mode. */
+export const dashboardTitle = (snap: NfSnapshot): string =>
+  `${snap.projectName ?? 'neuroflow project'} · ${snap.phase ?? 'no phase'}${snap.mode ? ` · ${snap.mode}` : ''}`
+
+/** A date's mark (commands/dashboard.md → Dates): ⚠ within three days, ▸ within 14, · later; rank 0 is the most urgent. */
+export const dateMark = (daysLeft: number): { glyph: string; tone?: Tone; rank: number } =>
+  daysLeft <= 3 ? { glyph: '⚠', tone: 'error', rank: 0 } : daysLeft <= 14 ? { glyph: '▸', tone: 'warning', rank: 1 } : { glyph: '·', rank: 2 }
+
+/** A row under an UPPERCASE dim label: `PHASE   ● ideation ─ ◉ analyze ─ → paper`. */
+export type LabelRow = { label: string; value: string; tone?: Tone; dim?: boolean }
+
+/** A running loop (or the first one) as one line, with its sparkline once its results are read. */
+export const loopSummary = (loop: NfSnapshot['loops'][number], view: NfLoopView | null): string =>
+  `${loop.name} · ${loop.status} · iteration ${loop.iterations} · best ${loop.best}${view !== null && view.name === loop.name && view.running.length > 0 ? `  ${sparkline(view.running, 12)}` : ''}`
+
+/** The now tab's summary under what needs attention, as commands/dashboard.md's block has it: PHASE, TASKS, LOOP. */
+export const nowSummary = (snap: NfSnapshot, tasks: NfTaskView | null, loop: NfLoopView | null): LabelRow[] => {
+  const phase = phaseSummary(snap.phase, snap.phasesVisited, snap.recommendedPhases)
+  const running = snap.loops.find(item => /running/i.test(item.status)) ?? snap.loops[0]
+  return [
+    { label: 'PHASE', value: phase === '' ? 'no phases recorded yet' : phase, dim: phase === '' },
+    { label: 'TASKS', value: tasks === null ? 'reading the task boards…' : levelSummary(tasks), dim: tasks === null },
+    ...(running === undefined ? [] : [{ label: 'LOOP', value: loopSummary(running, loop) }]),
+  ]
+}
+
+/** One row of the integrity tab: a glyph, what it is, its state, who set it, and the lines under it. */
+export type IntegrityRow = { glyph: string; tone?: Tone; name: string; value: string; note: string | null; more: string[]; dim?: boolean }
+
+/**
+ * The integrity tab (commands/dashboard.md → Integrity): ethics, the preregistration and the raw data. An approved
+ * or frozen marker a person did not set reads `?` and "not set by a person".
+ */
+export const integrityRows = (snap: NfSnapshot): IntegrityRow[] => {
+  const rows: IntegrityRow[] = []
+  const ethics = snap.ethics
+  if (ethics === null) {
+    rows.push(
+      snap.ethicsNotApplicable
+        ? { glyph: '·', name: 'ethics', value: 'not applicable: no participant data', note: null, more: [], dim: true }
+        : { glyph: '·', name: 'ethics', value: 'no status yet — /neuroflow:ethics', note: null, more: [], dim: true },
+    )
+  } else {
+    const byPerson = ethics.setBy === 'person'
+    const ended = ethics.status === 'expired' || ethics.status === 'withdrawn'
+    const approved = ethics.status === 'approved'
+    rows.push({
+      glyph: ended ? '⚠' : approved ? (byPerson ? '✔' : '?') : '·',
+      tone: ended ? 'error' : approved ? (byPerson ? 'success' : 'warning') : undefined,
+      name: 'ethics',
+      value: `${ethics.status}${ethics.expires ? ` · expires ${ethics.expires}` : ''}`,
+      note: approved ? (byPerson ? 'set by a person' : 'not set by a person') : null,
+      more: ethics.aiProcessing !== null ? [`model may read: ${ethics.aiProcessing}`] : [],
+    })
+  }
+  const prereg = snap.prereg
+  if (prereg === null) rows.push({ glyph: '·', name: 'preregistration', value: 'none frozen', note: null, more: [], dim: true })
+  else if (prereg.status === 'frozen') {
+    const byPerson = prereg.setBy === 'person'
+    const count = Object.keys(prereg.files).length
+    rows.push({
+      glyph: byPerson ? '■' : '?',
+      tone: byPerson ? 'success' : 'warning',
+      name: 'preregistration',
+      value: `frozen${prereg.frozenAt ? ` ${prereg.frozenAt.slice(0, 10)}` : ''} · ${count} file${count === 1 ? '' : 's'}`,
+      note: byPerson ? 'set by a person' : 'not set by a person',
+      more: prereg.plannedN !== null ? [`planned N: ${prereg.plannedN}`] : [],
+    })
+  } else rows.push({ glyph: '·', name: 'preregistration', value: prereg.status, note: null, more: [], dim: true })
+  rows.push(
+    snap.rawRoots.length > 0
+      ? { glyph: '■', name: 'raw data', value: `read-only: ${snap.rawRoots.join(', ')}`, note: null, more: [] }
+      : { glyph: '·', name: 'raw data', value: 'no folders declared (raw_roots)', note: null, more: [], dim: true },
+  )
+  return rows
+}
+
+/** One row of the deadlines tab: its mark, the date, what, when, and the phase it gates. */
+export type DateRow = { glyph: string; tone?: Tone; rank: number; days: number; date: string; what: string; when: string; gates: string | null }
+
+export const dateRows = (snap: NfSnapshot, max = 12): DateRow[] =>
+  snap.deadlines.slice(0, max).map(deadline => ({
+    ...dateMark(deadline.daysLeft),
+    days: deadline.daysLeft,
+    date: deadline.date,
+    what: deadline.what,
+    when: when(deadline.daysLeft),
+    gates: deadline.gates,
+  }))
+
+/** One row of the tasks tab: its marks (◆ ⚠ ↻), the title, owner, due date and level. */
+export type CardRow = { marks: string; title: string; owner: string; due: string; level: string; overdue: boolean }
+
+export const cardRows = (view: NfTaskView, max = 5): CardRow[] =>
+  topCards(view, max).map(({ level, card }) => ({
+    marks: [card.isMine && level.kind !== 'project' && level.kind !== 'remote' ? MINE : '', card.overdue ? '⚠' : '', card.web ? '↻' : ''].filter(Boolean).join(' '),
+    title: card.title,
+    owner: card.owner ? `@${card.owner}` : '',
+    due: card.due ? `due ${card.due.slice(5)}` : '',
+    level: level.name,
+    overdue: card.overdue,
+  }))
+
+/** What the marks on the first cards mean, one phrase each: `◆ this project (Oddball EEG) · ⚠ overdue`. */
+export const cardLegend = (view: NfTaskView, max = 5): string[] => {
+  const cards = topCards(view, max)
+  // This project's name at each level its marked cards come from (the flowie's and a hive's may differ).
+  const names = [...new Set(cards.filter(({ level, card }) => card.isMine && (level.kind === 'flowie' || level.kind === 'hive')).map(({ level }) => level.project))].filter(
+    (name): name is string => name !== null,
+  )
+  return [
+    ...(names.length > 0 ? [`${MINE} this project (${names.join(', ')})`] : []),
+    ...(cards.some(({ card }) => card.overdue) ? ['⚠ overdue'] : []),
+    ...(cards.some(({ card }) => card.web === true) ? ['↻ a workbench change waits'] : []),
+  ]
+}
+
+/** The dates ruler's mark row in runs: blanks as they are, each mark with its tone (⚠ error, ▸ warning, · dim). */
+export const markRuns = (marks: string): { text: string; tone?: Tone; dim?: boolean }[] =>
+  marks
+    .split(/([⚠▸·])/)
+    .filter(part => part !== '')
+    .map(part => (part === '⚠' ? { text: part, tone: 'error' as Tone } : part === '▸' ? { text: part, tone: 'warning' as Tone } : part === '·' ? { text: part, dim: true } : { text: part }))
 
 // ── engine side ────────────────────────────────────────────────────────────────────────────────
 
@@ -594,10 +711,14 @@ const refreshRemoteBoards = ($: EngineInterface, card: string, root: string): Pr
   return remoteRefreshing
 }
 
-/** What a tab needs read before it draws: the loop's files, every level's board. */
+/**
+ * What a tab needs read before it draws: the loop's files, every level's board. The now tab's summary reads the
+ * loop and, without waiting for them (its TASKS row says so meanwhile), the local boards.
+ */
 const loadTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
-  if (tab === 'loop') await loadLoopView($)
+  if (tab === 'loop' || tab === 'now') await loadLoopView($)
   if (tab === 'tasks') await loadTasks($, true)
+  if (tab === 'now') void loadTasks($, false).catch(() => undefined)
 }
 
 const selectTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
@@ -621,13 +742,13 @@ const openDashboard = async ($: EngineInterface, tab?: string): Promise<void> =>
   if (wanted !== undefined) await selectTab($, wanted.id)
   else await loadTab($, await read($, tabAtom))
   await markOpened($, DASHBOARD)
-  await $.ui.open({ id: DASHBOARD, title: 'neuroflow', focus: true, rows: paneRows('dashboard', measuredRows()) })
+  await $.ui.open({ id: DASHBOARD, title: 'neuroflow', focus: true, rows: paneRows('dashboard', measuredRows()), columns: paneColumns('dashboard') })
 }
 
 const openPicker = async ($: EngineInterface): Promise<void> => {
   await update($, pickerNoteAtom, () => null)
   await markOpened($, PICKER)
-  await $.ui.open({ id: PICKER, title: 'Switch phase', focus: true, closeOnEscape: true, rows: paneRows('picker', measuredRows()) })
+  await $.ui.open({ id: PICKER, title: 'Switch phase', focus: true, closeOnEscape: true, rows: paneRows('picker', measuredRows()), columns: paneColumns('picker') })
 }
 
 /**
@@ -651,7 +772,7 @@ const openBoard = async ($: EngineInterface): Promise<void> => {
   await update($, boardPickAtom, () => null)
   await update($, boardLevelAtom, () => (view === null ? null : openingLevel(view)))
   await markOpened($, BOARD)
-  await $.ui.open({ id: BOARD, title: 'tasks', focus: true, rows: paneRows('board', measuredRows()) })
+  await $.ui.open({ id: BOARD, title: 'tasks', focus: true, rows: paneRows('board', measuredRows()), columns: paneColumns('board') })
 }
 
 /** The level the board shows. */
@@ -1297,27 +1418,55 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       return <Text dimColor>neuroflow: {scope === null ? 'not started yet' : scope.reason}</Text>
     }
     const tab = await read($, tabAtom)
+    const width = e.props.bodyColumns
+    const size = widthClass(width)
+    // Rules, the flow line and the ruler line up cell by cell: the terminal draws them, where every glyph is a cell.
+    const term = e.surface === 'terminal'
+    // A short terminal (24 rows over SSH): no blank rows, no summary, the title on the mark's line.
+    const compact = isCompact(e.viewport?.rows ?? measuredRows())
+    const space = compact ? 0 : 1
+    const keysHere = e.surface !== 'terminal' || e.props.isFocused
+    const run = (fn: () => unknown) => act($, DASHBOARD, fn)
+    const color = (tone: Tone | undefined) => (tone === undefined ? undefined : TONE_COLOR[tone])
     const frozenByPerson = snap.prereg?.status === 'frozen' && snap.prereg.setBy === 'person'
-    const title = `${snap.projectName ?? 'neuroflow project'} · ${snap.phase ?? 'no phase'}${snap.mode ? ` · ${snap.mode}` : ''}`
     // The prose dashboard's Update line (commands/dashboard.md): here too, also after the band was hidden for today.
     const behind = versionNotice(snap)
-    const run = (fn: () => unknown) => act($, DASHBOARD, fn)
     const rows =
       tab === 'now' ? nowRows(snap, await read($, flowieSyncAtom), { draft: await read($, draftAtom), drive: await read($, driveAtom), capture: await read($, captureAtom) }) : []
     const ringKeys = tab === 'now' ? nowRingKeys(rows, behind !== null) : []
-    const lines = tab === 'now' ? [] : tabLines(tab, snap, await read($, loopViewAtom), tab === 'tasks' ? await read($, taskViewAtom) : null)
-    const keysHere = e.surface !== 'terminal' || e.props.isFocused
-    const body =
-      tab === 'now' ? (
+    /** Rows under UPPERCASE dim labels, the labels in a column `labelWidth` cells wide. */
+    const labelled = (items: readonly LabelRow[], labelWidth: number): JSX.Element => (
+      <Box flexDirection="column">
+        {items.map(item => (
+          <Box flexDirection="row">
+            <Box width={labelWidth} flexShrink={0}>
+              <Text dimColor wrap="truncate-end">
+                {item.label}
+              </Text>
+            </Box>
+            <Box flexShrink={1}>
+              <Text color={color(item.tone)} dimColor={item.dim === true} wrap="wrap">
+                {item.value}
+              </Text>
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    )
+    let body: JSX.Element
+    if (tab === 'now') {
+      // Every item the band can show, its glyph in its colour; an action runs on Enter, never on a letter.
+      const attention =
         rows.length === 0 ? (
           <Text dimColor>Nothing needs your attention.</Text>
         ) : (
           <Box flexDirection="column">
             {rows.map(row => (
-              <Box flexDirection="row" columnGap={2}>
+              <Box flexDirection="row" justifyContent="space-between" columnGap={2}>
                 <Box flexShrink={1}>
-                  <Text color={LEVEL_TONE[row.level] ? TONE_COLOR[LEVEL_TONE[row.level] as Tone] : undefined} wrap="truncate-end">
-                    {`${row.glyph} ${row.text}`}
+                  <Text wrap="truncate-end">
+                    <Text color={color(LEVEL_TONE[row.level])}>{row.glyph}</Text>
+                    {` ${row.text}`}
                   </Text>
                 </Box>
                 {row.actions.length > 0 ? (
@@ -1331,76 +1480,354 @@ export const registerViews = (on: On, opts: NfOptions): void => {
             ))}
           </Box>
         )
-      ) : (
+      const summary = compact ? [] : nowSummary(snap, await read($, taskViewAtom), await read($, loopViewAtom))
+      body =
+        size === 'wide' && summary.length > 0 ? (
+          <Box flexDirection="row" columnGap={4}>
+            <Box flexDirection="column" flexGrow={1} flexShrink={1}>
+              <Text dimColor>NEEDS ATTENTION</Text>
+              {attention}
+            </Box>
+            <Box flexDirection="column" width={Math.max(30, Math.min(52, Math.round(width * 0.38)))} flexShrink={0}>
+              <Text dimColor>AT A GLANCE</Text>
+              {labelled(summary, 7)}
+            </Box>
+          </Box>
+        ) : (
+          <Box flexDirection="column">
+            {attention}
+            {summary.length > 0 ? <Box marginTop={1}>{labelled(summary, 7)}</Box> : null}
+          </Box>
+        )
+    } else if (tab === 'phase') {
+      // The ring unrolled: a flow line on the terminal where each phase gets nine cells, else the word list.
+      const nodes = phaseNodes(snap.phase, snap.phasesVisited, snap.recommendedPhases)
+      const flow = term ? flowLine(nodes, travelledTo(nodes), width) : null
+      const next = nextPhase(snap.phase, snap.recommendedPhases)
+      body = (
         <Box flexDirection="column">
-          {lines.map(line => (
-            <Text color={line.tone ? TONE_COLOR[line.tone] : undefined} dimColor={line.dim === true} wrap="truncate-end">
-              {line.text}
-            </Text>
-          ))}
+          {nodes.length === 0 ? (
+            <Text dimColor>No phases recorded yet.</Text>
+          ) : flow !== null ? (
+            <Box flexDirection="column">
+              <Text wrap="truncate-end">
+                {flow.head === '' ? null : flow.head}
+                <Text dimColor>{flow.tail}</Text>
+              </Text>
+              <Text dimColor wrap="truncate-end">
+                {flow.labels}
+              </Text>
+            </Box>
+          ) : (
+            <Text wrap="wrap">{phaseMap(snap.phase, snap.phasesVisited, snap.recommendedPhases)}</Text>
+          )}
+          <Box marginTop={space}>
+            {labelled(
+              [
+                { label: 'NOW', value: snap.phase ? `${snap.phase} — ${label(snap.phase)}` : 'no phase set', dim: !snap.phase },
+                ...(next !== null ? [{ label: 'NEXT', value: `/neuroflow:${next} — ${label(next)}` }] : []),
+              ],
+              7,
+            )}
+          </Box>
+          <Box marginTop={space} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={2}>
+            <Text dimColor>{phaseLegend(nodes)}</Text>
+            <Button key="nf-dash-switch" label="go to phase…" hotkey={DASH.goPhase} plain onPress={run(() => handOver($, () => openPicker($)))} />
+          </Box>
         </Box>
       )
-    const tabActions = [
-      ...(tab === 'phase' ? [<Button key="nf-dash-switch" label="go to phase…" hotkey={DASH.goPhase} plain onPress={run(() => handOver($, () => openPicker($)))} />] : []),
-      ...(tab === 'tasks' ? [<Button key="nf-dash-boards" label="boards" hotkey={DASH.boards} plain onPress={run(() => handOver($, () => openBoard($)))} />] : []),
-      ...(tab === 'integrity' && !frozenByPerson
-        ? [<Button key="nf-dash-freeze" label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'} hotkey={DASH.freeze} plain onPress={run(() => freezeFromDashboard($))} />]
-        : []),
-      ...(tab === 'integrity' && frozenByPerson
-        ? [
-            <Button key="nf-dash-verify" label="verify" hotkey={DASH.verify} plain onPress={run(() => verifyFromDashboard($))} />,
-            <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey={DASH.unfreeze} plain onPress={run(() => unfreezeFromDashboard($))} />,
-          ]
-        : []),
-    ]
+    } else if (tab === 'deadlines') {
+      // A ruler of the coming weeks with each date's mark on its day, then the dates as a list.
+      const dates = dateRows(snap)
+      const scale = term && size !== 'narrow' && dates.length > 0 ? ruler(width, dates) : null
+      const gatesWidth = size === 'narrow' ? 0 : Math.max(0, ...dates.map(row => (row.gates ? cells(`gates ${row.gates}`) : 0)))
+      body =
+        dates.length === 0 ? (
+          <Text dimColor>No upcoming dates in .neuroflow/timeline.md.</Text>
+        ) : (
+          <Box flexDirection="column">
+            {scale !== null ? (
+              <Box flexDirection="column" marginBottom={space}>
+                <Text dimColor wrap="truncate-end">
+                  {scale.axis}
+                </Text>
+                <Text wrap="truncate-end">
+                  {markRuns(scale.marks).map(part =>
+                    part.tone !== undefined ? <Text color={TONE_COLOR[part.tone]}>{part.text}</Text> : part.dim ? <Text dimColor>{part.text}</Text> : part.text,
+                  )}
+                </Text>
+              </Box>
+            ) : null}
+            {dates.map(row => (
+              <Box flexDirection="row" columnGap={2}>
+                <Box flexShrink={0}>
+                  <Text color={color(row.tone)} dimColor={row.tone === undefined}>
+                    {row.glyph}
+                  </Text>
+                </Box>
+                <Box flexShrink={0}>
+                  <Text dimColor>{row.date}</Text>
+                </Box>
+                <Box flexGrow={1} flexShrink={1}>
+                  <Text wrap="truncate-end">{row.what}</Text>
+                </Box>
+                <Box flexShrink={0} width={11}>
+                  <Text color={color(row.tone)} dimColor={row.tone === undefined}>
+                    {row.when}
+                  </Text>
+                </Box>
+                {gatesWidth > 0 ? <Box flexShrink={0} width={gatesWidth}>{row.gates ? <Text dimColor>{`gates ${row.gates}`}</Text> : null}</Box> : null}
+              </Box>
+            ))}
+          </Box>
+        )
+    } else if (tab === 'integrity') {
+      // A glyph, what it is, its state, and who set it (a word with every mark: rule 8).
+      const name = 16
+      body = (
+        <Box flexDirection="column">
+          {integrityRows(snap).map(item => (
+            <Box flexDirection="column">
+              <Box flexDirection="row" columnGap={1}>
+                <Box flexShrink={0}>
+                  <Text color={color(item.tone)} dimColor={item.dim === true}>
+                    {item.glyph}
+                  </Text>
+                </Box>
+                <Box flexShrink={0} width={name}>
+                  <Text dimColor={item.dim === true}>{item.name}</Text>
+                </Box>
+                <Box flexGrow={1} flexShrink={1}>
+                  <Text dimColor={item.dim === true} wrap="truncate-end">
+                    {item.value}
+                  </Text>
+                </Box>
+                {item.note !== null && size !== 'narrow' ? (
+                  <Box flexShrink={0}>
+                    <Text color={item.note.startsWith('not ') ? 'warning' : undefined} dimColor={!item.note.startsWith('not ')}>
+                      {item.note}
+                    </Text>
+                  </Box>
+                ) : null}
+              </Box>
+              {[...item.more, ...(item.note !== null && size === 'narrow' ? [item.note] : [])].map(line => (
+                <Box flexDirection="row">
+                  <Box flexShrink={0} width={name + 3} />
+                  <Box flexShrink={1}>
+                    <Text dimColor wrap="truncate-end">
+                      {line}
+                    </Text>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          ))}
+          {snap.problems.map(problem => (
+            <Text color="warning" wrap="wrap">{`! ${problem}`}</Text>
+          ))}
+          <Box marginTop={space} flexDirection="row" flexWrap="wrap" columnGap={3}>
+            {frozenByPerson
+              ? [
+                  <Button key="nf-dash-verify" label="verify hashes" hotkey={DASH.verify} plain onPress={run(() => verifyFromDashboard($))} />,
+                  <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey={DASH.unfreeze} plain onPress={run(() => unfreezeFromDashboard($))} />,
+                ]
+              : [
+                  <Button
+                    key="nf-dash-freeze"
+                    label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'}
+                    hotkey={DASH.freeze}
+                    plain
+                    onPress={run(() => freezeFromDashboard($))}
+                  />,
+                ]}
+          </Box>
+        </Box>
+      )
+    } else if (tab === 'tasks') {
+      // The levels on one line, then the first open cards in columns: marks, title, owner, due date, level.
+      const view = await read($, taskViewAtom)
+      if (view === null) body = <Text dimColor>Reading the task boards…</Text>
+      else {
+        const cards = cardRows(view)
+        const marksWidth = Math.max(0, ...cards.map(card => cells(card.marks)))
+        const ownerWidth = size === 'narrow' ? 0 : Math.min(14, Math.max(0, ...cards.map(card => cells(card.owner))))
+        const levelWidth = Math.min(18, Math.max(0, ...cards.map(card => cells(card.level))))
+        body = (
+          <Box flexDirection="column">
+            <Text wrap="wrap">{levelSummary(view)}</Text>
+            <Box flexDirection="column" marginTop={space}>
+              {cards.length === 0 ? (
+                <Text dimColor>No open tasks.</Text>
+              ) : (
+                cards.map(card => (
+                  <Box flexDirection="row" columnGap={2}>
+                    {marksWidth > 0 ? (
+                      <Box flexShrink={0} width={marksWidth}>
+                        {card.marks !== '' ? <Text color={card.overdue ? 'warning' : undefined}>{card.marks}</Text> : null}
+                      </Box>
+                    ) : null}
+                    <Box flexGrow={1} flexShrink={1}>
+                      <Text wrap="truncate-end">{card.title}</Text>
+                    </Box>
+                    {ownerWidth > 0 ? (
+                      <Box flexShrink={0} width={ownerWidth}>
+                        <Text dimColor wrap="truncate-end">
+                          {card.owner}
+                        </Text>
+                      </Box>
+                    ) : null}
+                    <Box flexShrink={0} width={9}>
+                      <Text color={card.overdue ? 'warning' : undefined} dimColor={!card.overdue}>
+                        {card.due}
+                      </Text>
+                    </Box>
+                    <Box flexShrink={0} width={levelWidth}>
+                      <Text dimColor wrap="truncate-end">
+                        {card.level}
+                      </Text>
+                    </Box>
+                  </Box>
+                ))
+              )}
+            </Box>
+            <Box marginTop={space} flexDirection="row" flexWrap="wrap" justifyContent="space-between" columnGap={2}>
+              <Text dimColor wrap="wrap">
+                {cardLegend(view).join(' · ')}
+              </Text>
+              <Button key="nf-dash-boards" label="boards" hotkey={DASH.boards} plain onPress={run(() => handOver($, () => openBoard($)))} />
+            </Box>
+          </Box>
+        )
+      }
+    } else {
+      // The loop: where it stands, its quality as a sparkline as wide as the pane allows, its open questions.
+      const loop = await read($, loopViewAtom)
+      if (loop === null) body = <Text dimColor>{snap.loops.length === 0 ? 'No autoresearch loops.' : 'Loading the loop…'}</Text>
+      else {
+        const last = loop.running.length > 0 ? loop.running[loop.running.length - 1] : undefined
+        const spark = Math.max(8, Math.min(48, width - 15 - 10))
+        body = (
+          <Box flexDirection="column">
+            {labelled(
+              [
+                { label: loop.name, value: `${loop.phase} · ${loop.status} · iteration ${loop.iterations} · best ${loop.best}` },
+                loop.running.length > 0
+                  ? { label: 'quality', value: `${sparkline(loop.running, spark)}  ${last !== undefined && last > 0 ? '+' : ''}${last ?? ''}` }
+                  : { label: 'quality', value: 'no iterations recorded yet', dim: true },
+              ],
+              15,
+            )}
+            <Box flexDirection="column" marginTop={space}>
+              <Text dimColor>OPEN QUESTIONS</Text>
+              {loop.questions.length > 0 ? loop.questions.map(question => <Text wrap="wrap">{question}</Text>) : <Text dimColor>none</Text>}
+            </Box>
+            <Box marginTop={space}>
+              <Text dimColor wrap="wrap">
+                Answer in the session (A3: …) or in the loop's answers.md.
+              </Text>
+            </Box>
+          </Box>
+        )
+      }
+    }
+    // The tabs: the shown one as text at full strength, every other a dim key; a heavy segment of the rule under it.
+    const strip = tabStrip(
+      DASHBOARD_TABS.map(item => `${item.digit}: ${item.label}`),
+      Math.max(0, DASHBOARD_TABS.findIndex(item => item.id === tab)),
+      width,
+    )
+    const heavyFrom = strip.rule.indexOf('━')
+    const heavyTo = strip.rule.lastIndexOf('━') + 1
+    // The quiet legend: the keys as dim buttons, their words in full where the pane is wide, Enter and Esc on the right.
+    const full = size === 'wide'
+    const legend = keysHere ? (
+      <Box flexDirection={size === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={1}>
+          <Button key="nf-nav-left" label={full ? '‹ tab' : '‹'} hotkey={NAV.left} plain dimColor onPress={run(() => selectTab($, tabNeighbour(tab, -1)))} />
+          <Button key="nf-nav-right" label={full ? 'tab ›' : '›'} hotkey={NAV.right} plain dimColor onPress={run(() => selectTab($, tabNeighbour(tab, 1)))} />
+          {ringKeys.length > 0
+            ? [
+                <Button key="nf-nav-down" label={full ? '▾ row' : '▾'} hotkey={NAV.down} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, 1))} />,
+                <Button key="nf-nav-up" label={full ? '▴ row' : '▴'} hotkey={NAV.up} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, -1))} />,
+              ]
+            : null}
+          <Button key="nf-dash-reread" label="reread" hotkey={NAV.reread} plain dimColor onPress={run(() => rereadDashboard($))} />
+          <Button key="nf-dash-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: DASHBOARD }))} />
+        </Box>
+        {term ? (
+          <Box flexShrink={0}>
+            <Text dimColor>{ringKeys.length > 0 ? 'enter: act · esc: prompt' : 'esc: prompt'}</Text>
+          </Box>
+        ) : null}
+      </Box>
+    ) : (
+      <Text dimColor wrap="truncate-end">
+        {unfocusedHint('/neuroflow:dashboard')}
+      </Text>
+    )
     return (
       <Box flexDirection="column">
-        <Text bold wrap="truncate-end">{title}</Text>
-        {behind !== null ? (
-          <Box flexDirection="row" columnGap={2}>
+        {compact || size === 'narrow' ? (
+          <Text wrap="truncate-end">
+            {`${MARK} ${WORDMARK}`}
+            <Text dimColor>{` · ${dashboardTitle(snap)}`}</Text>
+          </Text>
+        ) : (
+          <Box flexDirection="row" justifyContent="space-between" columnGap={2}>
+            <Box flexShrink={0}>
+              <Text>{`${MARK} ${WORDMARK}`}</Text>
+            </Box>
             <Box flexShrink={1}>
-              <Text color={TONE_COLOR.warning} wrap="wrap">{`↑ ${behind}`}</Text>
+              <Text dimColor wrap="truncate-end">
+                {dashboardTitle(snap)}
+              </Text>
+            </Box>
+          </Box>
+        )}
+        {behind !== null ? (
+          <Box flexDirection="row" justifyContent="space-between" columnGap={2}>
+            <Box flexShrink={1}>
+              <Text color={TONE_COLOR.warning} wrap={compact ? 'truncate-end' : 'wrap'}>{`↑ ${behind}`}</Text>
             </Box>
             <Box flexShrink={0}>
               <Button key="nf-dash-migrate" label="migrate" plain onPress={run(() => runKey($, 'neuroflow:migrate', ''))} />
             </Box>
           </Box>
         ) : null}
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
+        <Box flexDirection="row" flexWrap="wrap" columnGap={strip.gap} marginTop={behind !== null ? space : 0}>
           {DASHBOARD_TABS.map(item =>
             item.id === tab ? (
-              <Text bold>{`${item.digit}: ${item.label}`}</Text>
+              <Text>{`${item.digit}: ${item.label}`}</Text>
             ) : (
               <Button key={`nf-tab-${item.id}`} label={item.label} hotkey={item.digit} plain dimColor onPress={run(() => selectTab($, item.id))} />
             ),
           )}
         </Box>
-        <Box flexDirection="column" marginTop={1}>
+        {term ? (
+          heavyFrom < 0 ? (
+            <Text dimColor wrap="truncate-end">
+              {strip.rule}
+            </Text>
+          ) : (
+            <Text wrap="truncate-end">
+              <Text dimColor>{strip.rule.slice(0, heavyFrom)}</Text>
+              {strip.rule.slice(heavyFrom, heavyTo)}
+              <Text dimColor>{strip.rule.slice(heavyTo)}</Text>
+            </Text>
+          )
+        ) : null}
+        <Box flexDirection="column" marginTop={space}>
           {body}
         </Box>
-        {tabActions.length > 0 ? (
-          <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
-            {tabActions}
+        {term && !compact ? (
+          <Box marginTop={space}>
+            <Text dimColor wrap="truncate-end">
+              {rule(width)}
+            </Text>
           </Box>
         ) : null}
-        <Box marginTop={1}>
-          {keysHere ? (
-            <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-              <Button key="nf-nav-left" label="‹ tab" hotkey={NAV.left} plain dimColor onPress={run(() => selectTab($, tabNeighbour(tab, -1)))} />
-              <Button key="nf-nav-right" label="tab ›" hotkey={NAV.right} plain dimColor onPress={run(() => selectTab($, tabNeighbour(tab, 1)))} />
-              {ringKeys.length > 0
-                ? [
-                    <Button key="nf-nav-down" label="▾ row" hotkey={NAV.down} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, 1))} />,
-                    <Button key="nf-nav-up" label="▴ row" hotkey={NAV.up} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, -1))} />,
-                  ]
-                : null}
-              <Button key="nf-dash-reread" label="reread" hotkey={NAV.reread} plain dimColor onPress={run(() => rereadDashboard($))} />
-              <Button key="nf-dash-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: DASHBOARD }))} />
-              {e.surface === 'terminal' ? <Text dimColor>{ringKeys.length > 0 ? 'enter: the marked action · esc: prompt' : 'esc: prompt'}</Text> : null}
-            </Box>
-          ) : (
-            <Text dimColor wrap="truncate-end">{unfocusedHint('/neuroflow:dashboard')}</Text>
-          )}
+        <Box flexDirection="column" marginTop={term ? 0 : 1}>
+          {legend}
         </Box>
       </Box>
     )
