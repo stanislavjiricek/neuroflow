@@ -20,7 +20,7 @@ import { NO_SYNC, SYNC_QUEUE, asQueue, checkRemoteEntry, enqueue, syncState } fr
 import type { NfIo } from '../lib/io'
 import { BAND, CHORD, DASH, DASHBOARD_TABS, DIGITS, KEYS_LEARNED, LEARNED_AFTER, NAV, gridNeighbour, isPastTypeThrough, lineNeighbour, paneRows, tabNeighbour } from '../lib/keys'
 import type { Direction } from '../lib/keys'
-import { MARK, WORDMARK, bandPlan, cells, fit, flowLine, isCompact, measuredRows, paneColumns, rememberViewport, rule, ruler, tabStrip, widthClass } from '../lib/layout'
+import { MARK, WORDMARK, bandItemWidths, bandPlan, cells, fit, flowLine, isCompact, measuredRows, moreLabel, paneColumns, rememberViewport, rule, ruler, tabStrip, widthClass } from '../lib/layout'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
@@ -234,7 +234,7 @@ export const nowRows = (snap: NfSnapshot, sync: NfFlowieSync | null, live: NowLi
   if (live.capture !== null) {
     rows.push({
       level: 'warn',
-      glyph: '●',
+      glyph: '✎',
       text: `capturing notes → ${live.capture.target} · ${live.capture.count} entr${live.capture.count === 1 ? 'y' : 'ies'} · messages are not sent to the model`,
       actions: [{ key: 'nf-now-capture-stop', label: 'stop', act: { kind: 'stop-capture' } }],
     })
@@ -1296,34 +1296,57 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     // The band's keys work once it holds the keyboard: the engine's chord says how, until it has been used.
     const hint = e.surface === 'terminal' && ((await read($, keysLearnedAtom)) ?? 0) < LEARNED_AFTER ? `${CHORD}: keys` : null
     /** A band key: drawn as `k: text` (a plain Button), measured by the same words before anything is drawn. */
-    type Key = { element: string; hotkey: string; text: string; onPress: () => unknown; autoFocus?: true }
-    const key = (element: string, hotkey: string, text: string, onPress: () => unknown): Key => ({ element, hotkey, text, onPress })
-    const labels = (keys: readonly Key[]): string[] => keys.map(item => `${item.hotkey}: ${item.text}`)
+    type Key = { element: string; hotkey: string; text: string; short?: string; onPress: () => unknown; autoFocus?: true }
+    const key = (element: string, hotkey: string, text: string, onPress: () => unknown, short?: string): Key => ({ element, hotkey, text, onPress, ...(short === undefined ? {} : { short }) })
+    const labels = (keys: readonly Key[], short = false): string[] => keys.map(item => `${item.hotkey}: ${short ? (item.short ?? item.text) : item.text}`)
     // The ring starts here when the band takes the keys: it writes and consents to nothing.
     const dashboard = (tab: NfDashboardTab): Key => ({ ...key('nf-band-dashboard', BAND.dashboard, 'dashboard', () => openDashboard($, tab)), autoFocus: true })
-    /** One row as wide as the band (bandPlan): the items, cut at their end; `+N more`; the keys; the chord hint. */
+    /** The ring mark and the space after it, before the items. */
+    const lead = cells(MARK) + 1
+    const plan = (offered: number, total: number, keys: readonly Key[]) =>
+      bandPlan({ columns, items: offered, total, buttons: labels(keys), short: keys.some(item => item.short !== undefined) ? labels(keys, true) : undefined, hint, lead })
+    /**
+     * One row as wide as the band (bandPlan), by priority: the mark; the items, the first whole where it can be, each
+     * cut at its end; `+N more`; the keys, in their short words when the full ones would crowd the first item out;
+     * the chord hint where it fits.
+     */
     const row = (items: readonly { text: string; color: 'error' | 'warning' | 'suggestion' }[], total: number, keys: readonly Key[]): JSX.Element => {
-      const plan = bandPlan({ columns, items: items.length, total, buttons: labels(keys), hint })
+      const fits = plan(items.length, total, keys)
+      const shown = items.slice(0, fits.items)
+      const widths = bandItemWidths(fits.room, shown.map(item => item.text))
+      const more = moreLabel(fits.more, fits.short)
       return (
         <Box flexDirection="row" columnGap={2}>
-          <Box flexDirection="row" columnGap={2} flexShrink={1}>
-            {items.slice(0, plan.items).map(item => (
-              <Text color={item.color} wrap="truncate-end">
-                {item.text}
-              </Text>
-            ))}
+          <Box flexDirection="row" columnGap={1} flexShrink={0}>
+            <Text dimColor>{MARK}</Text>
+            <Box flexDirection="row" columnGap={2}>
+              {shown.map((item, at) => (
+                <Box width={widths[at] ?? 0} flexShrink={0}>
+                  <Text color={item.color} wrap="truncate-end">
+                    {item.text}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
           </Box>
-          {plan.more > 0 ? (
+          {more !== '' ? (
             <Box flexShrink={0}>
-              <Text dimColor>{`+${plan.more} more`}</Text>
+              <Text dimColor>{more}</Text>
             </Box>
           ) : null}
           <Box flexDirection="row" columnGap={2} flexShrink={0}>
             {keys.map(item => (
-              <Button key={item.element} label={item.text} hotkey={item.hotkey} plain {...(item.autoFocus ? { autoFocus: true as const } : {})} onPress={item.onPress} />
+              <Button
+                key={item.element}
+                label={fits.short ? (item.short ?? item.text) : item.text}
+                hotkey={item.hotkey}
+                plain
+                {...(item.autoFocus ? { autoFocus: true as const } : {})}
+                onPress={item.onPress}
+              />
             ))}
           </Box>
-          {plan.hint ? (
+          {fits.hint ? (
             <Box flexShrink={0}>
               <Text dimColor>{hint}</Text>
             </Box>
@@ -1354,7 +1377,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const capture = await read($, captureAtom)
     if (capture !== null) {
       return row(
-        [{ text: `● capturing notes → ${capture.target} · ${capture.count} entr${capture.count === 1 ? 'y' : 'ies'} · messages are not sent to the model`, color: 'warning' }],
+        [{ text: `✎ capturing notes → ${capture.target} · ${capture.count} entr${capture.count === 1 ? 'y' : 'ies'} · messages are not sent to the model`, color: 'warning' }],
         1,
         [key('nf-capture-done', BAND.dismiss, 'stop', () => endCapture($))],
       )
@@ -1376,7 +1399,8 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       const ask = columns >= 100 ? 'wellbeing today — anxiety, energy, happiness (1–10):' : 'wellbeing 1–10: anxiety energy happiness'
       return (
         <Box flexDirection="row" columnGap={2}>
-          <Box flexShrink={1}>
+          <Box flexDirection="row" columnGap={1} flexShrink={1}>
+            <Text dimColor>{MARK}</Text>
             <Text color="suggestion" wrap="truncate-end">
               {ask}
             </Text>
@@ -1398,10 +1422,10 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const fixed = (shown: readonly BandItem[]): Key[] => [
       ...bandActions(shown).map(action => key(action.key, action.hotkey, action.label, () => (action.fill ? fillKey($, action.command, action.args) : runKey($, action.command, action.args)))),
       dashboard('now'),
-      key('nf-band-hide', BAND.dismiss, 'hide today', () => hideBandToday($)),
+      key('nf-band-hide', BAND.dismiss, 'hide today', () => hideBandToday($), 'hide'),
     ]
     // A second item stays only where it fits beside the keys it would bring; the first always shows.
-    const shown = offered.slice(0, bandPlan({ columns, items: offered.length, total: items.length, buttons: labels(fixed(offered)), hint }).items)
+    const shown = offered.slice(0, plan(offered.length, items.length, fixed(offered)).items)
     return row(
       shown.map(item => ({ text: `${item.glyph} ${item.text}`, color: item.level === 'alert' ? 'error' : item.level === 'warn' ? 'warning' : 'suggestion' })),
       items.length,

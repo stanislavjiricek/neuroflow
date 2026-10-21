@@ -633,6 +633,23 @@ describe('keyboard first', () => {
     expect(JSON.stringify(await dashboard.drawn())).toContain('1: now')
     await dashboard.unmount()
   })
+
+  test('the band on one row: the mark first, the most urgent item, and short words where its keys would crowd it at 75 cells', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    setUp(on, { 'keys.learned': 3 })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    // 80 columns: the meeting's two keys, d and x leave the item too little room in full words.
+    const narrow = await $.ui.mount(band(75) as never)
+    const tight = await narrow.drawn()
+    expect(lines(tight).slice(0, 3)).toEqual(['◌', '▸ meeting "Lab meeting" in 60 min', '+1'])
+    expect(buttons(tight).map(button => `${button.hotkey}: ${button.label}`)).toEqual(['p: prepare', 'o: notes', 'd: dashboard', 'x: hide'])
+    await narrow.unmount()
+    // 120 columns: the full words and `+1 more`.
+    const wide = await $.ui.mount(band(116) as never)
+    const roomy = await wide.drawn()
+    expect(lines(roomy).slice(0, 3)).toEqual(['◌', '▸ meeting "Lab meeting" in 60 min', '+1 more'])
+    expect(buttons(roomy).map(button => button.label)).toEqual(['prepare', 'notes', 'dashboard', 'hide today'])
+    await wide.unmount()
+  })
 })
 
 describe('phase switching', () => {

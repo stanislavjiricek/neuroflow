@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import {
   align,
+  bandItemWidths,
   bandPlan,
   boardLayout,
   cells,
@@ -163,18 +164,28 @@ describe('the band', () => {
   const meetingShort = ['p: prepare', 'o: notes', 'd: dashboard', 'x: hide']
 
   test('one row at 75 cells: the mark, the most urgent item and its keys stay; the hint goes first, then the long labels', () => {
-    expect(bandPlan({ columns: 75, items: 1, total: 1, buttons: ['d: dashboard', 'x: hide today'], hint, lead: 2 })).toEqual({ items: 1, more: 0, hint: true, short: false })
+    expect(bandPlan({ columns: 75, items: 1, total: 1, buttons: ['d: dashboard', 'x: hide today'], hint, lead: 2 })).toEqual({ items: 1, more: 0, hint: true, short: false, room: 30 })
     // A meeting brings two keys of its own: the hint gives way, then `x: hide` and `+2` keep the item its room.
-    expect(bandPlan({ columns: 75, items: 1, total: 3, buttons: meeting, short: meetingShort, hint, lead: 2 })).toEqual({ items: 1, more: 2, hint: false, short: true })
+    expect(bandPlan({ columns: 75, items: 1, total: 3, buttons: meeting, short: meetingShort, hint, lead: 2 })).toEqual({ items: 1, more: 2, hint: false, short: true, room: 24 })
     // Without short labels the item truncates.
-    expect(bandPlan({ columns: 75, items: 1, total: 3, buttons: meeting, hint })).toEqual({ items: 1, more: 2, hint: false, short: false })
+    expect(bandPlan({ columns: 75, items: 1, total: 3, buttons: meeting, hint })).toEqual({ items: 1, more: 2, hint: false, short: false, room: 15 })
     expect([moreLabel(2, false), moreLabel(2, true), moreLabel(0, true)]).toEqual(['+2 more', '+2', ''])
   })
 
   test('at 115 cells a normal band shows two items, the rest counted, and the hint; below 110 it shows one', () => {
-    expect(bandPlan({ columns: 115, items: 2, total: 5, buttons: ['d: dashboard', 'x: hide today'], hint, lead: 2 })).toEqual({ items: 2, more: 3, hint: true, short: false })
-    expect(bandPlan({ columns: 100, items: 2, total: 5, buttons: ['d: dashboard', 'x: hide today'], hint })).toEqual({ items: 1, more: 4, hint: true, short: false })
+    expect(bandPlan({ columns: 115, items: 2, total: 5, buttons: ['d: dashboard', 'x: hide today'], hint, lead: 2 })).toEqual({ items: 2, more: 3, hint: true, short: false, room: 59 })
+    expect(bandPlan({ columns: 100, items: 2, total: 5, buttons: ['d: dashboard', 'x: hide today'], hint })).toEqual({ items: 1, more: 4, hint: true, short: false, room: 48 })
     // Learned: no hint at any width.
     expect(bandPlan({ columns: 160, items: 1, total: 1, buttons: ['d: dashboard'], hint: null }).hint).toBe(false)
+  })
+
+  test('two items share the room: the first keeps its whole text while the second keeps 24 cells', () => {
+    const deadline = '⚠ Abstract deadline — tomorrow'
+    const ethics = '▸ ethics approval expires — in 12 days'
+    expect(bandItemWidths(59, [deadline, ethics])).toEqual([30, 29])
+    expect(bandItemWidths(40, [deadline, ethics])).toEqual([16, 24])
+    expect(bandItemWidths(80, [deadline, 'short'])).toEqual([30, 5])
+    expect(bandItemWidths(13, [deadline])).toEqual([13])
+    expect(bandItemWidths(-4, [deadline])).toEqual([0])
   })
 })

@@ -256,8 +256,8 @@ export type BandPlanInput = {
   lead?: number
 }
 
-/** `short`: the Buttons' short labels, and `+N` for `+N more`. */
-export type BandPlan = { items: number; more: number; hint: boolean; short: boolean }
+/** `short`: the Buttons' short labels, and `+N` for `+N more`; `room`: the cells the shown items share. */
+export type BandPlan = { items: number; more: number; hint: boolean; short: boolean; room: number }
 
 /** What the band says for the items it does not show: `+2 more`, or `+2` in its short form. */
 export const moreLabel = (more: number, short: boolean): string => (more <= 0 ? '' : short ? `+${more}` : `+${more} more`)
@@ -282,5 +282,17 @@ export const bandPlan = (input: BandPlanInput): BandPlan => {
   if (items > 1 && (input.columns < BAND_SECOND_ITEM || room(items, false, false) < items * BAND_MIN_ITEM)) items = 1
   const short = input.short !== undefined && room(items, false, false) < items * BAND_MIN_ITEM
   const hint = input.hint !== null && room(items, true, short) >= items * BAND_MIN_ITEM
-  return { items, more: Math.max(0, input.total - items), hint, short }
+  return { items, more: Math.max(0, input.total - items), hint, short, room: room(items, hint, short) }
+}
+
+/**
+ * How the shown items share the band's room: one takes what it needs, up to the room (it is cut at its end); of
+ * two, the first keeps its whole text while the second still gets BAND_MIN_ITEM cells, and the second takes the rest.
+ */
+export const bandItemWidths = (room: number, texts: readonly string[]): number[] => {
+  const space = Math.max(0, room)
+  if (texts.length < 2) return texts.map(text => Math.min(cells(text), space))
+  const second = Math.min(cells(texts[1] ?? ''), BAND_MIN_ITEM)
+  const first = Math.max(0, Math.min(cells(texts[0] ?? ''), space - second))
+  return [first, Math.min(cells(texts[1] ?? ''), Math.max(0, space - first))]
 }
