@@ -7,6 +7,7 @@ import { bandActions, bandItems } from '../features/views'
 import { cardLine, loadTaskView } from '../lib/tasks'
 import { artifactViolations, normalUrl, parsePending, pendingAge, pendingBandItem, pendingSlugs, workbenchContext, yamlKey } from '../lib/workbench'
 import type { NfSnapshot } from '../../../types'
+import { buttons, lines } from './drawn'
 import { fakeFs } from './fakefs'
 import { memIo } from './memio'
 
@@ -37,15 +38,22 @@ const FILES: Record<string, string> = {
   [`${HOME}/.neuroflow/user.yaml`]: `workbench: on\nworkbench_levels: ["flowie"]\nworkbench_records: [{"account": "home", "url": "${URL}"}]\n`,
 }
 
-const setUp = (on: On): void => {
+type Seen = { clock: ReturnType<typeof mock.clock>; toasts: string[] }
+
+const setUp = (on: On): Seen => {
   fakeFs(on, FILES, ROOT)
   mock.env(on, { HOME })
-  mock.clock(on, { now: new Date(2026, 9, 21, 10, 0).getTime() })
+  const seen: Seen = { clock: mock.clock(on, { now: new Date(2026, 9, 21, 10, 0).getTime() }), toasts: [] }
   mock.store(on)
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
-  on('ui.toast', () => ({ value: undefined }))
+  on('ui.toast', ($, e) => {
+    seen.toasts.push(String((e as unknown as { text: string }).text))
+    return { value: undefined }
+  })
   on('ui.status', () => ({ value: undefined }))
+  on('ui.focus', () => ({}))
+  return seen
 }
 
 describe('pending.json', () => {
@@ -69,7 +77,8 @@ describe('pending.json', () => {
 
   test('the band says how many changes wait, since when, as of when, and its key fills the apply command', () => {
     const item = pendingBandItem(parsePending(PENDING), Date.parse('2026-10-21T09:00:00Z'))
-    expect(item?.text.startsWith('3 workbench changes wait for Claude Code (oldest 2 days, as of ')).toBe(true)
+    // The line commands/tasks.md → Rendering puts after a board's footer, on the band too.
+    expect(item?.text.startsWith('3 workbench changes wait (oldest 2 days, as of ')).toBe(true)
     expect(item?.text.endsWith('— /neuroflow:tasks --apply-web')).toBe(true)
     expect(pendingAge('2026-10-21T08:20:00Z', Date.parse('2026-10-21T09:00:00Z'))).toBe('40 min')
     expect(pendingAge('2026-10-21T04:00:00Z', Date.parse('2026-10-21T09:00:00Z'))).toBe('5 h')
@@ -140,25 +149,66 @@ describe('the ArtifactData guard (nf-rule: EGRESS-CONFIRM)', () => {
 })
 
 describe('the workbench in a session', () => {
-  test('the band\'s w fills /neuroflow:tasks --apply-web for the person to send', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
-    setUp(on)
-    const filled: string[] = []
-    const ran: string[] = []
+  /** Records what goes into the prompt and what runs. */
+  const sent = (on: On): { filled: string[]; ran: string[] } => {
+    const seen = { filled: [] as string[], ran: [] as string[] }
     on('prompt.fill', ($, e) => {
-      filled.push(e.text)
+      seen.filled.push(e.text)
       return { isFilled: true, text: e.text, cursor: e.text.length }
     })
     on('command.run', ($, e) => {
-      ran.push(e.command)
+      seen.ran.push(e.command)
       return { text: '' }
     })
+    return seen
+  }
+
+  test('the band\'s a fills /neuroflow:tasks --apply-web for the person to send, and says Esc comes first', { options: { runtime: 'observe', band: 'quiet' } }, async ($, on) => {
+    const { toasts } = setUp(on)
+    const { filled, ran } = sent(on)
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     const ui = await $.ui.mount({ plugin: 'neuroflow', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 4, bodyColumns: 140, scroll: { offset: 0, bodyRows: 4 }, view: {} } } as never)
-    expect(JSON.stringify(await ui.drawn())).toContain('3 workbench changes wait for Claude Code')
+    expect(JSON.stringify(await ui.drawn())).toContain('3 workbench changes wait (oldest')
     await ui.press({ key: 'nf-web-apply' })
     expect(filled).toEqual(['/neuroflow:tasks --apply-web'])
     expect(ran).toEqual([])
+    // The band keeps the keys after a press, its ring on d: an Enter would press the band, not send the prompt.
+    expect(toasts).toEqual(['neuroflow: /neuroflow:tasks --apply-web is in the prompt — Esc, then Enter sends it'])
     await ui.unmount()
+  })
+
+  test('the now tab\'s apply puts the command in the prompt as the band\'s does: Enter there never runs it', { options: { runtime: 'observe' } }, async ($, on) => {
+    const { clock } = setUp(on)
+    const { filled, ran } = sent(on)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: '' } as never)
+    const pane = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-dashboard',
+      props: { title: 'neuroflow', isFocused: true, bodyColumns: 116, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
+    } as never)
+    expect(buttons(await pane.drawn()).find(button => button.key === 'nf-now-web-apply')).toMatchObject({ label: 'apply' })
+    await clock.advance(500)
+    await pane.press({ key: 'nf-now-web-apply' })
+    expect(filled).toEqual(['/neuroflow:tasks --apply-web'])
+    expect(ran).toEqual([])
+    await pane.unmount()
+  })
+
+  test('the board puts the line commands/tasks.md names after its footer: how many wait, the oldest, as of when', { options: { runtime: 'observe' } }, async ($, on) => {
+    setUp(on)
+    sent(on)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    const board = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-board',
+      props: { title: 'tasks', isFocused: true, bodyColumns: 116, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
+    } as never)
+    const rows = lines(await board.drawn())
+    const footer = rows.findIndex(row => row.startsWith('done 0 · archived 0 · level: project'))
+    expect(footer).toBeGreaterThan(-1)
+    // `↻ {n} workbench changes wait (oldest {age of its oldest}, as of {HH:MM}) — /neuroflow:tasks --apply-web`.
+    expect(rows[footer + 1]).toMatch(/^↻ 3 workbench changes wait \(oldest \d+ (days|h), as of \d{2}:\d{2}\) — \/neuroflow:tasks --apply-web$/)
+    await board.unmount()
   })
 
   test('/neuroflow:dashboard --web reaches the prose; a bare /neuroflow:dashboard opens the pane', { options: { runtime: 'observe' } }, async ($, on) => {

@@ -174,7 +174,7 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync |
   // because /neuroflow:migrate skips a flowie with uncommitted changes.
   const syncing = flowieSyncItem(sync)
   if (syncing !== null) items.push(syncing)
-  // Clicks on the claude.ai workbench wait for Claude Code (pending.json); `w` fills /neuroflow:tasks --apply-web.
+  // Clicks on the claude.ai workbench wait for Claude Code (pending.json); `a` fills /neuroflow:tasks --apply-web.
   const web = pendingBandItem(snap.workbench ?? null)
   if (web !== null) items.push(web)
   // After a plugin update, until /neuroflow:migrate has run (neuroflow-core → Command lifecycle, version notice).
@@ -222,8 +222,17 @@ export const bandActions = (shown: readonly BandItem[]): BandAction[] => {
   return actions
 }
 
-/** What a row of the dashboard's now tab runs on Enter: a neuroflow command, or one of the band's own acts. */
-export type NowAct = { kind: 'command'; command: string; args: string } | { kind: 'keep' } | { kind: 'drop' } | { kind: 'stop-drive' } | { kind: 'stop-capture' }
+/**
+ * What a row of the dashboard's now tab does on Enter: a neuroflow command run (`command`) or put in the prompt for
+ * the person to send (`fill`, as the band's key for it does), or one of the band's own acts.
+ */
+export type NowAct =
+  | { kind: 'command'; command: string; args: string }
+  | { kind: 'fill'; command: string; args: string }
+  | { kind: 'keep' }
+  | { kind: 'drop' }
+  | { kind: 'stop-drive' }
+  | { kind: 'stop-capture' }
 export type NowAction = { key: string; label: string; act: NowAct }
 export type NowRow = { level: BandItem['level']; glyph: string; text: string; actions: NowAction[] }
 /** What the band draws besides its items, read from state as the band reads it. */
@@ -274,7 +283,7 @@ export const nowRows = (snap: NfSnapshot, sync: NfFlowieSync | null, live: NowLi
       actions: (item.actions ?? []).map(action => ({
         key: `nf-now-${action.key.replace(/^nf-/, '')}`,
         label: action.label,
-        act: { kind: 'command', command: action.command, args: action.args },
+        act: { kind: action.fill ? 'fill' : 'command', command: action.command, args: action.args },
       })),
     })
   }
@@ -941,11 +950,14 @@ const endCapture = async ($: EngineInterface): Promise<void> => {
   await $.prompt.submit({ text: 'done' })
 }
 
-/** A key whose command the person sends themselves (the workbench's apply, which may ask about a hive push). */
+/**
+ * A key whose command the person sends themselves (the workbench's apply, which may ask about a hive push): the band's
+ * and the now tab's. The band or pane keeps the keys after the press, so Esc comes before the Enter that sends it.
+ */
 const fillKey = async ($: EngineInterface, command: string, args: string): Promise<void> => {
   const text = `/${command}${args === '' ? '' : ` ${args}`}`
   const filled = await $.prompt.fill({ text }).then(result => result.isFilled, () => false)
-  $.ui.toast(filled ? 'neuroflow: press Enter to apply your workbench changes' : `neuroflow: run ${text} to apply your workbench changes`)
+  $.ui.toast(filled ? `neuroflow: ${text} is in the prompt — Esc, then Enter sends it` : `neuroflow: run ${text} to apply your workbench changes`)
 }
 
 /** The check this session runs (one at a time): a second caller waits for the first. */
@@ -1065,6 +1077,7 @@ const settleDraft = async ($: EngineInterface, keep: boolean): Promise<void> => 
 /** Enter on a now-tab row: the band's own act for it. */
 const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
   if (now.kind === 'command') await runKey($, now.command, now.args)
+  else if (now.kind === 'fill') await fillKey($, now.command, now.args)
   else if (now.kind === 'keep' || now.kind === 'drop') await settleDraft($, now.kind === 'keep')
   else if (now.kind === 'stop-drive') await stopDriving($)
   else await endCapture($)
