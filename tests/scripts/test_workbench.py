@@ -382,6 +382,24 @@ class ExportTests(Home):
         owners = {card["slug"]: card["owner"] for card in self.doc(hive, "cards-000")["cards"]}
         self.assertEqual((owners["legacy"], owners["fix-map"]), (None, "jana"))  # format alone is not enough: the roster
 
+    def test_machine_local_paths_never_leave_in_free_text_or_wiki_sources(self) -> None:
+        self.make_flowie()
+        self.write(self.flowie / "tasks" / "inbox" / "raw.md", task("Copy the raw files", "inbox")
+                   + "\nThe raw files are in C:\\Users\\jana\\Studies\\oddball\\raw and /home/jana/data.\n")
+        self.write(self.flowie / "wiki" / "pages" / "concepts" / "paper.md",
+                   "---\ntitle: Paper\nsources: [C:\\Users\\jana\\Documents\\paper.pdf, /home/jana/x/y.pdf]\n---\n\n"
+                   "The copy is in `/home/jana/x/y.pdf`; see https://example.org/home/x too.\n")
+        code, result = self.export()
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        self.assertNotIn("jana", everything)
+        cards = {card["slug"]: card for card in self.doc("flowie", "cards-000")["cards"]}
+        self.assertEqual(cards["raw"]["notes"], "The raw files are in [local path removed] and [local path removed].")
+        page = next(page for page in self.doc("flowie", "wiki-000")["pages"] if page["id"] == "concepts/paper")
+        self.assertEqual(page["sources"], ["paper.pdf", "y.pdf"])
+        self.assertIn("`[local path removed]`", page["body"])
+        self.assertIn("https://example.org/home/x", page["body"])  # a web address is no local path
+        self.assertEqual(result["levels"][0]["withheld"], [])     # replaced, not held back
+
     def test_registry_urls_leave_without_user_info_and_a_secret_holds_the_entry_back(self) -> None:
         self.make_flowie()
         token = "ghp_" + "A1b2C3d4" * 5

@@ -51,6 +51,7 @@ ASSETS = HERE.parent / "assets" / "workbench"
 TEMPLATE = ASSETS / "workbench.html"
 MODULE = ASSETS / "workbench.mjs"
 PII_SCAN = PLUGIN / "skills" / "phase-output" / "scripts" / "pii_scan.py"
+LOCAL_PATHS = PLUGIN / "skills" / "phase-flowie" / "scripts" / "local_paths.py"
 
 SNAP_SCHEMA = 1
 INTENT_SCHEMA = 1
@@ -116,6 +117,11 @@ mg = _load("_nf_core_migrate", HERE / "migrate.py")          # slugs, phases, fr
 def pii():
     """pii_scan.py: the one home of the personal-data and secret patterns (imported as header_scan.py does)."""
     return _load("_nf_phase_output_pii_scan", PII_SCAN)
+
+
+def local_paths():
+    """local_paths.py: the one home of the machine-local path patterns (phase-flowie → Write rules)."""
+    return _load("_nf_phase_flowie_local_paths", LOCAL_PATHS)
 
 
 # ── small helpers ───────────────────────────────────────────────────────────────────────────────
@@ -596,7 +602,8 @@ NEVER = ["sessions/, review/, paper/xray-*, wiki/.pending/ and every other local
 SCRUB = ("Free text (titles, notes, descriptions, a project's status and phase, column labels, wiki pages with their type "
          "and status, ideas, team text, people's names and roles, errata rows, dated rows) "
          "goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address "
-         "becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. "
+         "becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed], "
+         "and a machine-local path (C:\\Users\\…, /home/…, ~/…, as local_paths.py finds them) [local path removed]. "
          "An item with secret-like text or a name from that config's participant roster is held back whole, and so is one "
          "whose file name, tags or links carry personal data, as they travel unchanged. Your pii_scan config is the file "
          "pii_config names in ~/.neuroflow/user.yaml (its id_patterns and roster); without it, ID numbers and participant "
@@ -630,12 +637,18 @@ class Scrubber:
             raise UsageError(f"the pii_scan config: {error}") from error
         # No allowed or known addresses: an email address never leaves (only reserved example domains pass).
         self.scanner = mod.Scanner(patterns, roster, (), (), secrets=True)
+        self.paths = local_paths()
 
     def text(self, value: str | None) -> tuple[str, set[str]]:
         if not value:
             return value or "", set()
         hits: set[str] = set()
         mod = self.mod
+        # a folder on one machine (C:\Users\…, /home/…, ~/…) means nothing on the page and says where the data is
+        for path in sorted({hit["path"] for hit in self.paths.findings_in_text(value)}, key=len, reverse=True):
+            if path in value:
+                value = value.replace(path, "[local path removed]")
+                hits.add("local-path")
 
         def email(match: re.Match) -> str:
             if self.scanner._email_ignored(match.group()):
@@ -1014,7 +1027,7 @@ def export_wiki(src: Source, scrub: Scrubber, withheld: list[dict], index_only: 
         status, status_hits = scrub.text(scalar(fm, "status") or "")
         summary_hits |= type_hits | status_hits
         tags = pj.as_list(fm.get("tags"))
-        sources = [name.split("/")[-1] for name in pj.as_list(fm.get("sources"))]
+        sources = [name.replace("\\", "/").split("/")[-1] for name in pj.as_list(fm.get("sources"))]  # a name, never a path
         text = ""
         if not index_only:
             text, body_hits = scrub.text(rewrite(body.strip(), rel))
