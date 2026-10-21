@@ -6,6 +6,13 @@ title: Changelog
 
 Every neuroflow release, newest first. The README on GitHub shows only the newest one.
 
+## 0.2.31
+
+From a check of the mod over SSH (OpenSSH 9.6, inside tmux at 80×24, Claude Code 2.1.306):
+
+- Over SSH the views work from the keys alone, as in a local terminal: the dashboard and the boards open holding the keys, Esc gives them back, a board move asks with *Not now* first and the board keeps the keys after it, and the project's files stay as they were
+- Correction to 0.2.30: `d` on the band shows the dashboard but does not give it the keys — Claude Code gives a pane the keys only from the prompt, and the band keeps them after `d`. Running `/neuroflow:dashboard` again, typed or with [one chord per view](concepts/mods.md#one-chord-per-view), gives an open dashboard the keys; the [mods](concepts/mods.md) page, [`/dashboard`](commands/dashboard.md) and the live check say so
+
 ## 0.2.30
 
 From a live check of the mod in Claude Code 2.1.306, in a plain console and inside tmux at 80×24:

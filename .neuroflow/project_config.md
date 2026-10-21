@@ -1,7 +1,7 @@
 # neuroflow — project config
 
 **Project:** neuroflow Claude Code plugin
-**Plugin version:** 0.2.30
+**Plugin version:** 0.2.31
 **Phase:** active development
 **Repo:** https://github.com/stanislavjiricek/neuroflow
 
