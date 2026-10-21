@@ -134,6 +134,13 @@ export const isPastTypeThrough = (now: number, ...times: readonly (number | unde
 /** The engine's focus chord, as the band and the pane footers teach it (Claude Code's own default binding). */
 export const CHORD = '^X Tab'
 
+/**
+ * The foot of a pane that does not hold the keys (on the terminal): how to give them to it, the sure way first. The
+ * chord comes second and says where it lands: ^X Tab gives the keys to the band first whenever the band shows keys of
+ * its own, then to each pane, and a key meant for the pane would act on the band.
+ */
+export const unfocusedHint = (command: string): string => `${command} gives it the keys · ${CHORD} reaches it after the band`
+
 /** `$.store` key: how often the band took the keys; the band stops teaching the chord at LEARNED_AFTER. */
 export const KEYS_LEARNED = 'keys.learned'
 export const LEARNED_AFTER = 3

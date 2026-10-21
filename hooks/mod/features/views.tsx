@@ -24,7 +24,7 @@ import { completions } from '../lib/complete'
 import { setActivePhase } from '../lib/config'
 import { NO_SYNC, SYNC_QUEUE, asQueue, checkRemoteEntry, enqueue, syncState } from '../lib/flowiesync'
 import type { NfIo } from '../lib/io'
-import { BAND, CHORD, DASH, DASHBOARD_TABS, DIGITS, KEYS_LEARNED, LEARNED_AFTER, NAV, gridNeighbour, isPastTypeThrough, lineNeighbour, paneRows, tabNeighbour } from '../lib/keys'
+import { BAND, CHORD, DASH, DASHBOARD_TABS, DIGITS, KEYS_LEARNED, LEARNED_AFTER, NAV, gridNeighbour, isPastTypeThrough, lineNeighbour, paneRows, tabNeighbour, unfocusedHint } from '../lib/keys'
 import type { Direction } from '../lib/keys'
 import {
   BOARD_GAP,
@@ -1308,9 +1308,6 @@ const TONE_COLOR: Record<Tone, 'error' | 'warning' | 'success' | 'suggestion' | 
   suggestion: 'suggestion',
   subtle: 'subtle',
 }
-
-/** The footer of a pane that does not hold the keys (the terminal's): how to give them to it. */
-const unfocusedHint = (command: string): string => `${CHORD}: use the keys here · ${command} focuses it`
 
 export const registerViews = (on: On, opts: NfOptions): void => {
   // Typeahead for the typed paths into the views (lib/complete.ts): code only, from the state the mod holds — no

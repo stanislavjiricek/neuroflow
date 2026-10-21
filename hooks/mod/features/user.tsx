@@ -25,7 +25,7 @@ import type { EngineInterface, On } from 'claude-code'
 
 import type { NfPaperView, NfWikiCard, NfXrayView } from '../../../types'
 import type { NfIo } from '../lib/io'
-import { BAND, CHORD, NAV, isPastTypeThrough, paneRows } from '../lib/keys'
+import { BAND, CHORD, NAV, isPastTypeThrough, paneRows, unfocusedHint } from '../lib/keys'
 import { MARK, fit, isCompact, measuredRows, paneColumns, rememberViewport, rule, widthClass } from '../lib/layout'
 import { isoDate } from '../lib/memory'
 import { mayWrite } from '../lib/options'
@@ -195,9 +195,6 @@ const actOn =
  */
 const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string): Promise<boolean> =>
   (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
-
-/** The footer of a pane that does not hold the keys (the terminal's): how to give them to it. */
-const unfocusedHint = (command: string): string => `${CHORD}: use the keys here · ${command} focuses it`
 
 /** U1 — reads the three skeleton files and counts sources newer than the skeleton. */
 const loadPaperView = async ($: EngineInterface, root: string, on: boolean): Promise<NfPaperView> => {

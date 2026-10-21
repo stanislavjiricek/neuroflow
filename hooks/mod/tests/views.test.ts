@@ -636,17 +636,22 @@ describe('keyboard first', () => {
     await again.unmount()
   })
 
-  test('a pane that does not hold the keys says how to give them to it (on the terminal)', { options: { runtime: 'observe' } }, async ($, on) => {
+  test('a pane that does not hold the keys says how to give them to it (on the terminal): its command first, then where ^X Tab lands', { options: { runtime: 'observe' } }, async ($, on) => {
     setUp(on)
     await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
     await $.command.run({ command: 'neuroflow:dashboard', args: '' })
     await $.command.run({ command: 'neuroflow:tasks', args: '' })
     await $.command.run({ command: 'neuroflow:phase', args: '' })
+    // The band here shows the meeting with its keys: ^X Tab lands on the band first, where x would hide the band and
+    // not cancel a pick. The command is the sure way back into the pane; a narrow foot cuts the chord first.
+    const shown = await $.ui.mount(band(116) as never)
+    expect(hotkeys(await shown.drawn())).toEqual(['p', 'o', 'd', 'x'])
+    await shown.unmount()
     for (const [id, command] of [['nf-dashboard', '/neuroflow:dashboard'], ['nf-board', '/neuroflow:tasks'], ['nf-phase', '/neuroflow:phase']] as const) {
       const ui = await $.ui.mount(pane(id, false) as never)
-      const drawn = JSON.stringify(await ui.drawn())
-      expect(drawn).toContain(`^X Tab: use the keys here · ${command} focuses it`)
-      expect(drawn).not.toContain('esc: prompt')
+      const drawn = await ui.drawn()
+      expect(lines(drawn)).toContain(`${command} gives it the keys · ^X Tab reaches it after the band`)
+      expect(JSON.stringify(drawn)).not.toContain('esc: prompt')
       await ui.unmount()
     }
     // A desktop has no chord to teach: its pane draws its keys as buttons to click.
