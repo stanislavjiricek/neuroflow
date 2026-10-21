@@ -79,7 +79,9 @@ account the workbench was recorded under, rather than making a second one.
 
 `workbench_mirror` is `allow`, `allow-names` (adds the names and roles the roster lists — never an email address) or
 `forbid`. **Without the key, nothing of that hive or project is mirrored**: it is the team's decision, recorded in a
-commit the team can see, and `/dashboard --web` never writes it for you. Your other keys: `workbench_machine` (the
+commit the team can see, and `/dashboard --web` never writes it for you. It fetches first and follows the stricter of
+what your clone holds and what the team pushed, so a team's `forbid` takes effect before you pull, and a value nobody
+pushed does not start a mirror. Your other keys: `workbench_machine` (the
 name each export shows), `workbench_index_only` (levels whose wiki goes up as an index without page bodies) and
 `workbench_account` (which recorded workbench this machine uses). The record itself — the page's address, the account
 label, the page version and a copy of your settings — lives in your flowie's `workbench.json`, or in `user.yaml`

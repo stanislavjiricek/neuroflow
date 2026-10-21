@@ -525,6 +525,59 @@ class GuardTests(Home):
         self.assertEqual([len(batch["writes"]) for batch in many], [50, 50, 20])
 
 
+class UpstreamPolicyTests(Home):
+    """The team's workbench_mirror as the upstream holds it: a clone that is behind follows the stricter value."""
+
+    HIVE = "hive+example-lab+hive"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["hive+example-lab+hive"]\n')
+
+    def teammate_sets(self, policy: str) -> None:
+        """A teammate pushes hive.md with this workbench_mirror; this member's clone has not pulled it."""
+        other = self.base / "teammate"
+        git(self.base, "clone", "-q", str(self.base / "remotes" / "example-lab-hive.git"), str(other))
+        self.write(other / "hive.md", f"---\nworkbench_mirror: {policy}\n---\n# Example Lab\n")
+        git(other, "commit", "-q", "-am", f"hive: workbench_mirror {policy}")
+        git(other, "push", "-q", "origin", "main")
+
+    def stored(self) -> Path:
+        remote = self.scratch / "remote"
+        users = remote / "data" / "users" / "me"
+        self.write(users / f"{self.HIVE}.json", json.dumps({"data": {"parts": [{"id": "core"}]}, "version": 3}))
+        self.write(users / self.HIVE / "parts" / "core.json", json.dumps({"data": {}, "version": 4}))
+        return remote
+
+    def test_a_forbid_the_team_pushed_stops_the_export_and_purges_after_a_fetch(self) -> None:
+        self.make_hive(policy="allow", git_repo=True)
+        self.teammate_sets("forbid")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"))  # nothing fetched yet: as this clone knows
+        self.assertEqual([row["level"] for row in result["levels"]], [self.HIVE])
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch")
+        self.assertEqual(result["levels"], [])
+        row = next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)
+        self.assertEqual(row["reason"], "the team forbids mirroring it — so says the upstream hive.md; pull this clone")
+        self.assertEqual([row["level"] for row in result["purge"]], [self.HIVE])
+        code, result = self.wb("gc", "--remote", str(self.stored()))
+        self.assertEqual([(w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]],
+                         [("core", 4), (self.HIVE, 3)])
+
+    def test_an_opt_in_this_clone_has_not_pulled_neither_exports_nor_purges(self) -> None:
+        self.make_hive(policy=None, git_repo=True)
+        self.teammate_sets("allow")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch")
+        self.assertEqual(result["levels"], [])  # the stricter value: not until this clone has the team's opt-in
+        self.assertIn("the upstream hive.md allows it: pull this clone",
+                      next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)["reason"])
+        self.assertEqual(result["purge"], [])  # another machine with a current clone may mirror it rightly
+        code, result = self.wb("gc", "--remote", str(self.stored()))
+        self.assertEqual((code, result["deletes"]), (0, 0))
+        git(self.hive, "pull", "-q")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"))
+        self.assertEqual([row["level"] for row in result["levels"]], [self.HIVE])
+
+
 def intent(op: str, level: str, created: str, status: str = "claimed", machine: str = "laptop", **fields) -> dict:
     body = {"intent_schema": 1, "op": op, "level": level, "created_at": f"2026-10-21T10:{created}:00.000Z", "status": status, **fields}
     if status == "claimed":

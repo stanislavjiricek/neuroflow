@@ -131,8 +131,10 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      only those the team allows; name the others with the reason `{wb} levels` gives — never write a team's
      `workbench_mirror` yourself. Write `workbench_levels` as a JSON list, and `workbench_index_only` for levels whose
      wiki should go up without page bodies.
-3. **Export.** `{wb} export --out {scratch}/wb`: per level the documents, the size, the cards and wiki pages, the
-   freshness label, and every item held back with its reason (exit `1`). A `warnings` line flags an export over 8 MB as
+3. **Export.** `{wb} export --out {scratch}/wb --fetch` — it fetches every clone first (read-only), so a team's
+   `workbench_mirror` is read as the team pushed it, the stricter of that and the clone's own: per level the documents,
+   the size, the cards and wiki pages, the freshness label, every item held back with its reason (exit `1`), and under
+   `purge` the levels the team no longer allows, which a refresh deletes. A `warnings` line flags an export over 8 MB as
    slow for the page to load and names the level whose wiki weighs most: offer to add it to `workbench_index_only`
    (AskUserQuestion) and export again after a yes.
 4. **The record and the account.** `{wb} record`.

@@ -346,10 +346,14 @@ class Source:
     """One level this machine can read: the flowie, a hive clone or the project here."""
 
     def __init__(self, kind: str, key: str, label: str, repo: Path, memory: Path, policy: str | None,
-                 board: str, card: str | None = None) -> None:
+                 board: str, card: str | None = None, upstream: tuple[bool, str | None] = (False, None)) -> None:
         self.kind, self.key, self.label = kind, key, label
         self.repo, self.memory = repo, memory            # the git work tree, and where tasks/ and wiki/ live
-        self.policy = policy                             # own | allow | allow-names | forbid | None (absent)
+        self.local_policy = policy                       # the team's value in this working tree
+        self.upstream_known, self.upstream_policy = upstream  # the upstream's value, as last fetched
+        # own | allow | allow-names | forbid | None (absent): the stricter of the two — a clone that is behind cannot
+        # keep mirroring what the team stopped, and a value nobody pushed cannot start it
+        self.policy = stricter(policy, self.upstream_policy) if self.upstream_known else policy
         self.board = board                               # the mod's board id: flowie | hive:{folder} | project
         self.card = card
 
@@ -371,15 +375,42 @@ def policy_of(text: str | None) -> str | None:
     return value.lower() if value and value.lower() in POLICIES else None
 
 
+STRICTNESS = {"forbid": 0, None: 1, "allow": 2, "allow-names": 3}
+
+
+def stricter(a: str | None, b: str | None) -> str | None:
+    return a if STRICTNESS.get(a, 1) <= STRICTNESS.get(b, 1) else b
+
+
+def upstream_policy(repo: Path, rel: str) -> tuple[bool, str | None]:
+    """(whether the clone has an upstream, the workbench_mirror its copy of `rel` holds, as last fetched)."""
+    if not is_repo(repo) or out_of(git(repo, "rev-parse", "--verify", "--quiet", "@{u}")) is None:
+        return False, None
+    shown = git(repo, "show", f"@{{u}}:./{rel}")
+    return True, (policy_of(shown.stdout) if shown.returncode == 0 else None)
+
+
+def fetch_clone(repo: Path, home: Path) -> None:
+    """A read-only fetch, so the upstream's values are current (a repository git cannot read, or without a commit, is
+    left as it is)."""
+    if is_repo(repo) and out_of(git(repo, "rev-parse", "HEAD")):
+        git(repo, "fetch", "--quiet", home=home, timeout=120)
+
+
 def project_root(start: Path | None) -> Path | None:
     return pj.find_root(start.resolve()) if start is not None else None
 
 
-def discover(home: Path, root: Path | None) -> tuple[list[Source], list[dict]]:
-    """Every level this machine has, and the ones that can get no key (said why)."""
+def discover(home: Path, root: Path | None, fetch: bool = False) -> tuple[list[Source], list[dict]]:
+    """Every level this machine has, and the ones that can get no key (said why). The team's workbench_mirror is read
+    from the working tree and from the clone's upstream as last fetched — `fetch` fetches every clone first."""
     found: list[Source] = []
     unkeyed: list[dict] = []
     levels = pj.all_levels(home)
+    here = project_root(root)
+    if fetch:
+        for repo in [level.root for level in levels] + ([here] if here is not None else []):
+            fetch_clone(repo, home)
     for level in levels:
         if level.kind == "flowie":
             found.append(Source("flowie", "flowie", "flowie", level.root, level.root, "own", "flowie"))
@@ -389,8 +420,8 @@ def discover(home: Path, root: Path | None) -> tuple[list[Source], list[dict]]:
             unkeyed.append({"kind": "hive", "folder": level.name, "reason": "the clone has no origin remote, so it gets no tab"})
             continue
         found.append(Source("hive", key, level.repo or level.name, level.root, level.root,
-                            policy_of(read_text(level.root / "hive.md")), f"hive:{level.name}"))
-    here = project_root(root)
+                            policy_of(read_text(level.root / "hive.md")), f"hive:{level.name}",
+                            upstream=upstream_policy(level.root, "hive.md")))
     if here is not None:
         card = pj.linked_id(home, levels, here)
         key = project_key(card, pj.origin_url(here))
@@ -401,7 +432,7 @@ def discover(home: Path, root: Path | None) -> tuple[list[Source], list[dict]]:
                                                          "so it gets no tab (/flowie --projects --add registers it)"})
         else:
             found.append(Source("project", key, name or card or here.name, here, here / ".neuroflow", policy_of(config),
-                                "project", card))
+                                "project", card, upstream=upstream_policy(here, ".neuroflow/project_config.md")))
     return found, unkeyed
 
 
@@ -421,14 +452,21 @@ def level_rows(sources: list[Source], person: dict) -> list[dict]:
             where = "hive.md" if src.kind == "hive" else "project_config.md"
             reason = ("the team forbids mirroring it" if src.policy == "forbid" else
                       f"the team has not opted in (workbench_mirror in {where})")
+            if src.local_policy in ("allow", "allow-names"):
+                reason += f" — so says the upstream {where}; pull this clone"
+            elif src.upstream_policy in ("allow", "allow-names"):
+                reason += f" — here; the upstream {where} allows it: pull this clone"
         elif not person["on"]:
             reason = "your workbench is off (workbench: on in ~/.neuroflow/user.yaml)"
         elif not consented:
             reason = "not one of your workbench_levels"
         # purge: the team no longer allows it — a shared decision every machine reads alike, so gc deletes the level
-        # wherever the person's workbench holds it. This machine's own settings never purge a level by themselves:
-        # another machine may mirror it (the person takes a level off with --web --levels, which names it to gc).
-        rows.append({**src.as_dict(), "consented": consented, "mirrored": reason is None, "purge": not src.allowed,
+        # wherever the person's workbench holds it; when the upstream still allows it (this clone is behind, or holds
+        # a change nobody pushed), another machine may mirror it rightly, so it stays. This machine's own settings never
+        # purge a level by themselves: the person takes a level off with --web --levels, which names it to gc.
+        upstream_allows = src.upstream_known and src.upstream_policy in ("allow", "allow-names")
+        rows.append({**src.as_dict(), "consented": consented, "mirrored": reason is None,
+                     "purge": not src.allowed and not upstream_allows,
                      "index_only": src.key in person["index_only"], **({"reason": reason} if reason else {})})
     return rows
 
@@ -1343,7 +1381,7 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
     machine = args.machine or person["machine"]
     if not machine:
         raise UsageError("no machine label: set workbench_machine in ~/.neuroflow/user.yaml (/dashboard --web asks once)")
-    sources, unkeyed = discover(home, args.root)
+    sources, unkeyed = discover(home, args.root, fetch=args.fetch)
     rows = {row["level"]: row for row in level_rows(sources, person)}
     wanted = set(args.level or [])
     if wanted - set(rows):
@@ -1355,7 +1393,7 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
             raise UsageError("not mirrored: " + "; ".join(f"{key} ({rows[key]['reason']})" for key in refused))
     scrub = Scrubber(json.loads(Path(args.pii_config).read_text(encoding="utf-8")) if args.pii_config else None)
     out = Path(args.out)
-    built = [build_level(src, person, scrub, home, now, machine, args.fetch) for src in chosen]
+    built = [build_level(src, person, scrub, home, now, machine, False) for src in chosen]  # discover fetched them
     result: dict = {"machine": machine, "exported_at": iso(now), "levels": preview(built), "unkeyed": unkeyed,
                     "not_mirrored": [row for row in rows.values() if not row["mirrored"]],
                     # what gc deletes from the workbench, where it holds them: the preview names them

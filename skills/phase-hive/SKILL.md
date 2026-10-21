@@ -84,7 +84,7 @@ workbench_mirror: allow      # allow | allow-names | forbid — absent means not
 # {Team name}
 ```
 
-`workbench_mirror` is the team's decision (`neuroflow:neuroflow-core` → **Workbench snapshot**): a member records it only after the team agreed — for example in a meeting, noted under `## Norms` — commits `hive.md` by path and pushes after the person's yes (Pushing to the hive). `/dashboard --web` reads it and never writes it. `allow` lets members mirror the hive's board, project registry, wiki, ideas, errata and meeting titles into their own owner-only workbench, with people as roster handles; `allow-names` adds the names and roles `members.md` lists (never an email address); `forbid`, or no key at all, keeps the hive off every workbench — a member who had mirrored it has it purged at their next `/dashboard --web`.
+`workbench_mirror` is the team's decision (`neuroflow:neuroflow-core` → **Workbench snapshot**): a member records it only after the team agreed — for example in a meeting, noted under `## Norms` — commits `hive.md` by path and pushes after the person's yes (Pushing to the hive). `/dashboard --web` reads it and never writes it. `allow` lets members mirror the hive's board, project registry, wiki, ideas, errata and meeting titles into their own owner-only workbench, with people as roster handles; `allow-names` adds the names and roles `members.md` lists (never an email address); `forbid`, or no key at all, keeps the hive off every workbench — a member who had mirrored it has it purged at their next `/dashboard --web`, which reads the value the team pushed even before that member's clone has pulled it.
 
 **`members.md`** — team roster with contacts for meeting invitations:
 ```markdown
