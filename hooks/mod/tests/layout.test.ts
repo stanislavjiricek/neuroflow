@@ -10,6 +10,7 @@ import {
   fit,
   flowLine,
   isCompact,
+  labelCell,
   moreLabel,
   pad,
   pageNote,
@@ -50,6 +51,14 @@ describe('widths and heights', () => {
     expect(align('a long left part', 'right', 12)).toBe('a lo…  right')
     expect(align('x', 'too long right', 10)).toBe('too long…')
     expect(align('only left', '', 6)).toBe('only…')
+  })
+
+  test('a label leaves a blank cell in its column before the value', () => {
+    expect(labelCell('connectivity-sweep-alpha', 15)).toBe('connectivity-…')
+    expect(cells(labelCell('connectivity-sweep-alpha', 15))).toBe(14)
+    expect(labelCell('EVIDENCE', 10)).toBe('EVIDENCE')
+    expect(labelCell('S12.10.4-11', 10)).toBe('S12.10.4…')
+    expect(labelCell('PHASE', 7)).toBe('PHASE')
   })
 
   test('a wide character (CJK, an emoji) takes two cells, so a title in it is cut to its room; the views\' own glyphs take one', () => {

@@ -242,6 +242,26 @@ describe('auto wiki in a session', () => {
     await pane.unmount()
   })
 
+  test('a card type longer than the label column is cut a cell short of it, before the card\'s title', { options: { runtime: 'observe' } }, async ($, on) => {
+    const pending = `${root}/.neuroflow/wiki/.pending`
+    const card = cardText({ title: 'Baseline window', type: 'methodology', evidence: 'reasoning/data-analyze.jsonl', captured: '2026-10-07T14:05', by: 'model', status: 'pending', body: '-200 to 0 ms.' })
+    fakeFs(on, { ...files, [`${pending}/2026-10-07-baseline-window.md`]: card }, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 14, 10).getTime() })
+    mock.store(on)
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: undefined }))
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:wiki', args: '--review' })
+    const pane = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-wiki',
+      props: { title: 'wiki cards', isFocused: true, bodyColumns: 64, placement: 'inline', scroll: { offset: 0, bodyRows: 12 }, view: {} },
+    } as never)
+    expect(lines(await pane.drawn())).toEqual(expect.arrayContaining(['METHODOL…', 'Baseline window', 'EVIDENCE']))
+    await pane.unmount()
+  })
+
   test('without the opt-in no model call is made', { options: { runtime: 'on' } }, async ($, on) => {
     const fs = fakeFs(on, { ...files, '/home/me/.neuroflow/user.yaml': 'wiki_auto: off\n' }, root)
     mock.env(on, { HOME: '/home/me' })

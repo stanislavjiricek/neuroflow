@@ -107,6 +107,12 @@ export const pad = (text: string, width: number): string => {
 }
 
 /**
+ * A label in a column `width` cells wide, before its value: cut to leave at least one blank cell, so a label that
+ * fills its column (a loop's name, a finding's id) never runs into the value beside it.
+ */
+export const labelCell = (label: string, width: number): string => fit(label, width - 1)
+
+/**
  * `left` and `right` on one line of `width` cells, `right` against the right edge: `left` gives way first (cut with
  * `…`), at least `gap` spaces between them; when even `right` does not fit, `right` cut to the width.
  */

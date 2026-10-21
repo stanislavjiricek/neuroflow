@@ -39,6 +39,7 @@ import {
   fit,
   flowLine,
   isCompact,
+  labelCell,
   measuredRows,
   moreLabel,
   pad,
@@ -1754,14 +1755,17 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const rows =
       tab === 'now' ? nowRows(snap, await read($, flowieSyncAtom), { draft: await read($, draftAtom), drive: await read($, driveAtom), capture: await read($, captureAtom) }) : []
     const ringKeys = tab === 'now' ? nowRingKeys(rows, behind !== null) : []
-    /** Rows under UPPERCASE dim labels, the labels in a column `labelWidth` cells wide. */
+    /**
+     * Rows under UPPERCASE dim labels, the labels in a column `labelWidth` cells wide; a label is cut a cell short of
+     * it (labelCell), so a long one never runs into its value.
+     */
     const labelled = (items: readonly LabelRow[], labelWidth: number): JSX.Element => (
       <Box flexDirection="column">
         {items.map(item => (
           <Box flexDirection="row">
             <Box width={labelWidth} flexShrink={0}>
               <Text dimColor wrap="truncate-end">
-                {item.label}
+                {labelCell(item.label, labelWidth)}
               </Text>
             </Box>
             <Box flexShrink={1}>

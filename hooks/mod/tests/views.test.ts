@@ -1091,8 +1091,8 @@ describe('the dashboard in the new look', () => {
     [`${project}/.neuroflow/preregistration/flow.md`]: '# preregistration\n',
     [`${project}/.neuroflow/data/flow.md`]: '# data\n',
   }
-  const setUp = (on: On) => {
-    fakeFs(on, FILES, project)
+  const setUp = (on: On, extra: Record<string, string> = {}) => {
+    fakeFs(on, { ...FILES, ...extra }, project)
     mock.env(on, { HOME: '/home/me' })
     const clock = mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() })
     mock.store(on)
@@ -1189,6 +1189,23 @@ describe('the dashboard in the new look', () => {
     const narrow = await $.ui.mount(pane(44) as never)
     expect(lines(await narrow.drawn())).toContain('● ideation  ● preregistration  ● data  ◉ data-analyze  → paper')
     await narrow.unmount()
+  })
+
+  test('the loop tab: a loop name longer than its label column is cut a cell short of it, never running into the value', { options: { runtime: 'observe' } }, async ($, on) => {
+    setUp(on, {
+      [`${project}/.neuroflow/data-analyze/autoresearch-loops.md`]:
+        '| Name | Location | Iterations | Best | Status |\n|---|---|---|---|---|\n| connectivity-sweep-alpha | analysis/loops/sweep/ | 23 | v019 | running |\n',
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: 'loop' })
+    for (const columns of [64, 116]) {
+      const ui = await $.ui.mount(pane(columns) as never)
+      const tree = await ui.drawn()
+      // The 15-cell label column holds 14 cells of the name and a blank: `connectivity-… data-analyze · running …`.
+      expect(lines(tree)).toEqual(expect.arrayContaining(['connectivity-…', 'data-analyze · running · iteration 23 · best v019', 'quality']))
+      expect(elements(tree, 'Box').filter(box => box.props.width === 15)).toHaveLength(2)
+      await ui.unmount()
+    }
   })
 })
 
