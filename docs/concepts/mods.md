@@ -22,9 +22,10 @@ What became of each idea in the review behind the mod is in the [design record](
 
 ## What it looks like
 
-The mod's views share one look: the ring mark `◌` and the lowercase wordmark, section labels in dim capitals, a
-rule with a heavy segment under the shown tab, quiet keys at the foot — in your terminal's own theme colours, and laid
-out for the width and height they get, from a narrow dock to a wide terminal and 24 rows over SSH.
+The mod's views share one look: the ring mark `◌` before each view's name (the lowercase wordmark on the dashboard),
+section labels in dim capitals, a rule with a heavy segment under the shown tab, quiet keys at the foot — in your
+terminal's own theme colours, and laid out for the width and height they get, from a narrow dock to a wide terminal
+and 24 rows over SSH.
 
 <figure class="nf-shot">
 <div class="nf-term"><span class="dim">&gt;</span> /neuroflow:dashboard phase

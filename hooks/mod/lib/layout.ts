@@ -21,7 +21,7 @@ export const measuredRows = (): number | null => measured
 
 // ── widths and heights ────────────────────────────────────────────────────────────────────────
 
-/** neuroflow's mark in the terminal: the ring in one glyph, before the wordmark and on the band. */
+/** neuroflow's mark in the terminal: the ring in one glyph, before each view's name (the wordmark on the dashboard) and on the band. */
 export const MARK = '◌'
 
 /** The lowercase wordmark, in the text colour and never bold. */
