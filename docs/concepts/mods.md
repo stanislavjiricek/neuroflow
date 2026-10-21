@@ -94,7 +94,7 @@ move "Rerun ICA" →  inbox  ready  <span class="nf-ring">review</span>  meeting
 <span class="dim">done 3 · archived 0 · level: project · ⚠ overdue</span>
 <span class="dim">────────────────────────────────────────────────────────────────────────────</span>
 <span class="nf-key"><i>h:</i> ◂</span>  <span class="nf-key"><i>l:</i> ▸</span>  <span class="nf-key"><i>j:</i> ▾</span>  <span class="nf-key"><i>k:</i> ▴</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>  <span class="dim">enter: move there · esc: prompt</span></div></div>
-<figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies, each column a round box with its name and count. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card — <code>j</code> past a column's fifth shows its next five — Enter picks it (▸) and Enter on a column moves it: at project and flowie level after your yes in Claude Code's question dialog, whose safe answer comes first; at a hive's as one command in the prompt for you to send. In a dock too narrow for the columns side by side, they stand one under the other.</figcaption>
+<figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies, each column a round box with its name and count. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card — <code>j</code> past a column's fifth shows its next five — Enter picks it (▸) and Enter on a column moves it: at project and flowie level after your yes in Claude Code's question dialog, whose safe answer comes first; at a hive's as one command in the prompt for you to send. Where a column would get under 18 cells — a narrow dock, or five columns on an 80-column terminal — they stand one under the other.</figcaption>
 </figure>
 
 ---
@@ -147,7 +147,8 @@ over SSH, inside tmux or screen.
 While you type, Claude Code's typeahead offers what comes next: the phases after `/neuroflow:phase `, the tabs after
 `/neuroflow:dashboard `, the levels after `--level `, your hives after `--hive ` and, in `/neuroflow:tasks`, the open
 cards after `--move ` and then the columns that card can move to. The hives and cards come from the boards the mod has
-read in the session — opening the dashboard is enough; nothing is read while you type.
+read in the session — opening the boards, or the dashboard on its now or tasks tab, is enough; nothing is read while
+you type.
 
 Keys you type in the first 400 ms after a view opened holding the keys do nothing: a quick Enter or the start of your
 next sentence never acts in a pane you did not mean to type into. Esc gives the keys back to the prompt and leaves the
@@ -223,8 +224,10 @@ opens holding the keys; it works while the prompt has them (Esc first when a pan
 - **No mouse needed.** Every view above opens and works from the keys alone.
 - **Inline, not docked.** On Claude Code's main screen — the default inside tmux — panes sit above the prompt. Each view
   asks for its rows; on a terminal under 30 rows (24 over SSH) it asks for fewer and drops its blank rows and summaries,
-  so the conversation keeps room. Docked beside a fullscreen transcript, each asks for its width; a narrow dock (under
-  56 columns) stacks what a wide pane puts side by side.
+  so the conversation keeps room. Docked beside a fullscreen transcript, each asks for its width (the dashboard 64
+  columns, the boards 84). The now tab puts what needs attention beside its summary only where the pane gets 90 cells,
+  so a dock at its own width stacks them; the boards stand their columns one under the other wherever a column would
+  get under 18 cells.
 - **tmux** waits after Esc to see whether a key sequence follows; with `set -sg escape-time 10` in `~/.tmux.conf` Esc
   gives the keys back at once. Its prefix (Ctrl+B) does not meet the chords above.
 - **GNU screen** takes Ctrl+A as its prefix: the band's collapse chord, Ctrl+X Ctrl+A, becomes Ctrl+X, then Ctrl+A

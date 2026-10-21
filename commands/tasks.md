@@ -98,8 +98,8 @@ the flowie's and every hive clone's, read as the local clones are (nothing is pu
 keyboard, on the project board when it has open tasks, else on the first level with open tasks of this project, else
 on the first with any; the digits pick the level. Tab, or `h` `j` `k` `l`, reaches a card; Enter picks it (marked
 `▸`), and Enter on a column moves it. A column shows five cards at a time, as below; `j` past the fifth shows the next
-five. Where the pane is too narrow for the columns side by side (a dock beside the conversation), they stand one under
-the other. The pane holds the keys while the person may be typing for the prompt, so an Enter that comes right after
+five. Where a column would get under 18 cells (a narrow dock, or five columns on an 80-column terminal), they stand one
+under the other. The pane holds the keys while the person may be typing for the prompt, so an Enter that comes right after
 another key does nothing, and at project and flowie level the mod runs the move only after the person's yes in a
 question whose safe answer comes first — `/neuroflow:tasks --move {slug} {column}`, with `--level flowie` before
 `--move` there — and the move runs as below. At
