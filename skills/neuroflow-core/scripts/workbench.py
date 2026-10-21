@@ -60,6 +60,7 @@ NOTES_MAX = 1000            # characters of a card's notes
 TEXT_MAX = 60_000           # characters of a panel text (ideas, hive.md)
 BATCH_WRITES = 50
 BATCH_BYTES = 900_000       # under the batch limit of 1 MiB
+SIZE_WARN = 8_000_000       # bytes of one export: past this the page is slow to load
 CLAIM_TTL = timedelta(minutes=30)
 GC_DAYS = 7
 LEDGER_DAYS = 60
@@ -428,50 +429,119 @@ def level_rows(sources: list[Source], person: dict) -> list[dict]:
     return rows
 
 
-# ── the allowlist: every field that leaves, per source ──────────────────────────────────────────
+# ── the allowlist: every field that leaves, per kind of item ────────────────────────────────────
 
+# The export keeps only these keys (allow()). `sources` prints them per source, docs/concepts/workbench.md carries the
+# same table, and the tests hold the table, this allowlist and every exported document to one another.
+FIELDS: dict[str, tuple[str, ...]] = {
+    "card": ("slug", "file", "column", "title", "owner", "due", "created", "updated", "phase", "tags", "project",
+             "blocked_by", "sha256", "notes", "legacy", "readable"),
+    "column": ("id", "label", "archive", "closed", "extra"),
+    "registry": ("id", "description", "status", "current_phase", "visited_phases", "repos", "pointer", "hive"),
+    "page": ("id", "title", "type", "tags", "status", "updated", "summary", "sources", "body"),
+    "person": ("handle", "name", "role"),
+    "note": ("file", "title", "date"),
+    "meeting": ("slug", "title", "date"),
+    "erratum": ("dataset", "columns", "rows"),
+    "date": ("date", "what", "gates"),
+    "marker": ("status", "expires", "frozen_at", "by_person"),
+    "flowie_panel": ("ideas", "ideas_inbox", "notes", "meetings"),
+    "hive_panel": ("team", "ideas", "errata", "meetings"),
+    "project_panel": ("project_name", "active_phase", "recommended_phases", "visited", "ethics_not_applicable", "ethics",
+                      "prereg", "dates", "meetings"),
+    "source": ("git", "branch", "head", "upstream", "upstream_head", "ahead", "behind", "fetched_at", "shallow",
+               "uncommitted_tasks"),
+    "applied": ("state", "commit"),
+    "core": ("snap_schema", "level", "part", "kind", "label", "columns", "archive_after_days", "people", "registry",
+             "panel", "phases", "card", "sha256"),
+    "part": ("snap_schema", "level", "part", "cards", "pages", "sha256"),
+    "meta": ("snap_schema", "intent_schema", "level", "kind", "label", "exported_at", "machine", "policy", "working_tree",
+             "index_only", "source", "parts", "applied", "withheld", "counts"),
+    "part_ref": ("id", "sha256", "bytes"),
+    "withheld": ("source", "reason"),
+    "counts": ("cards", "open", "pages"),
+}
+
+
+def allow(kind: str, item: dict) -> dict:
+    """The allowlisted fields of one exported item; every other key stays on this machine."""
+    fields = FIELDS[kind]
+    return {key: value for key, value in item.items() if key in fields}
+
+
+def every(kind: str) -> list[str]:
+    return [f"{kind}.{name}" for name in FIELDS[kind]]
+
+
+# One row per source: where it is read and the `kind.field` entries it puts in the store. Together the rows name every
+# entry of FIELDS, and nothing else (a test holds them equal).
 SOURCES = [
     {"source": "tasks", "levels": "flowie, hive, project", "from": "tasks/{column}/{slug}.md",
-     "fields": "slug, column, title, owner (a roster handle), due, created, updated, phase, tags, project, blocked_by, "
-               "the content hash, and the first 1,000 characters of the notes"},
+     "fields": ["part.cards", *every("card")],
+     "note": "owner only as a roster handle; the first 1,000 characters of the notes; sha256 is the content hash; legacy "
+             "and readable say whether the file is in an older format or carries a merge conflict"},
     {"source": "columns", "levels": "flowie, hive, project", "from": "tasks/config.json",
-     "fields": "column ids and labels, which ones are closed, archive_after_days"},
+     "fields": ["core.columns", *every("column"), "core.archive_after_days"],
+     "note": "extra marks a folder that config.json does not name"},
     {"source": "registry", "levels": "flowie, hive", "from": "projects/projects.json",
-     "fields": "each card's id, description, status, current_phase, visited_phases and remote repository URLs; a flowie "
-               "pointer as its hive and id only"},
+     "fields": ["core.registry", *every("registry")],
+     "note": "remote repository URLs only; a flowie pointer as its id and hive only"},
     {"source": "wiki", "levels": "flowie, hive, project", "from": "wiki/pages/**, wiki/index.md",
-     "fields": "each page's title, type, tags, status, updated, the index summary and the body (none with index only), "
-               "with [[links]] resolved to pages; raw/ files and images are named, never uploaded"},
-    {"source": "people", "levels": "hive, project", "from": "members.md, collaborators",
-     "fields": "roster handles; with allow-names also names and roles; never an email address"},
-    {"source": "ideas", "levels": "flowie, hive", "from": "ideas.md, ideas-inbox.md (flowie)", "fields": "the text"},
-    {"source": "notes", "levels": "flowie", "from": "notes/*.md", "fields": "file name, title and date; never the notes"},
+     "fields": ["part.pages", *every("page")],
+     "note": "no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded"},
+    {"source": "people", "levels": "flowie, hive, project", "from": "your handle, members.md, collaborators",
+     "fields": ["core.people", *every("person")],
+     "note": "name and role only with allow-names; your own handle only at flowie level; never an email address"},
+    {"source": "ideas", "levels": "flowie, hive", "from": "ideas.md, ideas-inbox.md (flowie)",
+     "fields": ["flowie_panel.ideas", "flowie_panel.ideas_inbox", "hive_panel.ideas"], "note": "the text"},
+    {"source": "notes", "levels": "flowie", "from": "notes/*.md", "fields": ["flowie_panel.notes", *every("note")],
+     "note": "never the notes themselves"},
     {"source": "meetings", "levels": "flowie, hive, project", "from": "meetings/*.md",
-     "fields": "title and date; never attendees, agenda or notes"},
-    {"source": "team", "levels": "hive", "from": "hive.md", "fields": "the team's name, description, norms and research directions"},
-    {"source": "errata", "levels": "hive", "from": "errata/*.md", "fields": "the table rows: date, scope, problem, workaround, reported_by"},
+     "fields": ["flowie_panel.meetings", "hive_panel.meetings", "project_panel.meetings", *every("meeting")],
+     "note": "never attendees, agenda or notes"},
+    {"source": "team", "levels": "hive", "from": "hive.md", "fields": ["hive_panel.team"],
+     "note": "the text after the frontmatter: the team's name, description, norms and research directions"},
+    {"source": "errata", "levels": "hive", "from": "errata/*.md", "fields": ["hive_panel.errata", *every("erratum")],
+     "note": "the table rows: date, scope, problem, workaround, reported_by"},
     {"source": "phases", "levels": "project", "from": "project_config.md, phase folders",
-     "fields": "project_name, active_phase, recommended_phases, the phase folders that exist"},
-    {"source": "dates", "levels": "project", "from": "timeline.md", "fields": "dated rows: date, what, the phase it gates"},
+     "fields": ["project_panel.project_name", "project_panel.active_phase", "project_panel.recommended_phases",
+                "project_panel.visited", "project_panel.ethics_not_applicable", "core.phases", "core.card"],
+     "note": "visited names the phase folders that exist, card the project's id in your registry; no other config field"},
+    {"source": "dates", "levels": "project", "from": "timeline.md", "fields": ["project_panel.dates", *every("date")],
+     "note": "the dated rows; gates names the phase a date gates"},
     {"source": "integrity", "levels": "project", "from": "ethics/status.md, preregistration/status.md",
-     "fields": "status, expiry and freeze dates, and whether a person set the marker; never approval documents"},
+     "fields": ["project_panel.ethics", "project_panel.prereg", *every("marker")],
+     "note": "by_person says whether a person set the marker; never approval documents"},
     {"source": "git", "levels": "flowie, hive, project", "from": "the clone",
-     "fields": "branch, head and upstream commits, ahead and behind counts, last fetch time, the number of uncommitted "
-               "task files, your machine label, and the Neuroflow-Intent trailers that name your own clicks"},
+     "fields": ["meta.source", *every("source"), "meta.machine", "meta.applied", *every("applied")],
+     "note": "machine is your label for this computer; applied names your own clicks that reached git, by their "
+             "Neuroflow-Intent trailers"},
+    {"source": "the level", "levels": "flowie, hive, project", "from": "the export itself",
+     "fields": [*(f"core.{name}" for name in ("snap_schema", "level", "part", "kind", "label", "panel", "sha256")),
+                *(f"part.{name}" for name in ("snap_schema", "level", "part", "sha256")),
+                *(f"meta.{name}" for name in ("snap_schema", "intent_schema", "level", "kind", "label", "exported_at",
+                                              "policy", "working_tree", "index_only", "parts", "withheld", "counts")),
+                *every("part_ref"), *every("withheld"), *every("counts")],
+     "note": "the level's name and kind, format versions, the export time, the team's workbench_mirror value, part sizes "
+             "and hashes, counts, and which sources held items back and why — never the held items or their names"},
 ]
 NEVER = ["sessions/, review/, paper/xray-*, wiki/.pending/ and every other local-tier path",
          "integrations.json, user.yaml, local-projects.json, boards/", "fails/, finance/, reasoning/",
          "the flowie's profile.md and wellbeing/", "wiki raw/ files and images", "email addresses, anywhere",
          "meeting attendees, agendas and notes", "machine-local paths"]
-SCRUB = ("Free text (titles, notes, descriptions, wiki pages, ideas, team text, errata rows) goes through pii_scan.py's "
-         "patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a "
-         "phone number [phone removed], an ID number your pii_scan config names [id removed]. An item with secret-like "
-         "text or a name from your participant roster is held back whole and named in the preview.")
+SCRUB = ("Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) "
+         "goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address "
+         "becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. "
+         "An item with secret-like text or a name from your participant roster is held back whole, and so is one whose "
+         "file name, tags or links carry personal data, as they travel unchanged. The preview names each item held back; "
+         "the page only counts them.")
 
 
 def sources_markdown() -> str:
     rows = ["| Source | Levels | Read from | What is uploaded |", "|---|---|---|---|"]
-    rows += [f"| {item['source']} | {item['levels']} | `{item['from']}` | {item['fields']} |" for item in SOURCES]
+    for item in SOURCES:
+        names = ", ".join(f"`{name}`" for name in dict.fromkeys(field.split(".", 1)[1] for field in item["fields"]))
+        rows.append(f"| {item['source']} | {item['levels']} | `{item['from']}` | {names} — {item['note']} |")
     rows += ["", "Never uploaded: " + "; ".join(NEVER) + ".", "", SCRUB]
     return "\n".join(rows) + "\n"
 
@@ -533,6 +603,29 @@ def held(hits: set[str]) -> str | None:
     return None
 
 
+def name_held(scrub: Scrubber, *names) -> str | None:
+    """File names, ids, tags and links travel unchanged (a card's file is its identity on the page), so any personal
+    data in them holds the item back instead of being rewritten."""
+    text = " ".join(str(name) for name in names if name)
+    if not text:
+        return None
+    hits = scrub.text(text)[1] | scrub.text(re.sub(r"[-_./\\]+", " ", text))[1]
+    return held(hits) or ("personal data in its file name, tags or links" if hits else None)
+
+
+DATE_TIME = re.compile(r"^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?")
+
+
+def date_of(*values) -> str | None:
+    """The date (and time) a value starts with, from the first value that has one: a date field never carries free
+    text."""
+    for value in values:
+        match = DATE_TIME.match(str(value or ""))
+        if match:
+            return match.group(0)
+    return None
+
+
 def clip(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[:limit].rstrip() + " …"
 
@@ -588,7 +681,7 @@ def roster(src: Source, person: dict) -> list[dict]:
                         if src.names:
                             entry.update({key: str(item[key]) for key in ("name", "role") if item.get(key)})
                         people[handle.lower()] = entry
-    return sorted(people.values(), key=lambda entry: entry["handle"].lower())
+    return sorted((allow("person", entry) for entry in people.values()), key=lambda entry: entry["handle"].lower())
 
 
 def parse_table(text: str) -> tuple[list[str], list[list[str]]]:
@@ -616,18 +709,19 @@ def export_cards(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dic
     for task in pj.read_board(src.memory / "tasks", details=True):
         title, title_hits = scrub.text(task["title"])
         notes, note_hits = scrub.text(clip(task.get("notes") or "", NOTES_MAX))
-        reason = held(title_hits | note_hits)
+        reason = held(title_hits | note_hits) or name_held(scrub, task["file"], task.get("project"), task.get("phase"),
+                                                           *(task.get("tags") or []), *(task.get("blocked_by") or []))
         if reason:
             withheld.append({"source": "tasks", "item": task["file"], "reason": reason})
             continue
         owner = task.get("owner")
-        cards.append({
+        cards.append(allow("card", {
             "slug": task["slug"], "file": task["file"], "column": task["column"], "title": title,
             "owner": handle_of(owner) if owner else None, "due": task["due"] if task["due"] and DATE.match(task["due"]) else None,
-            "created": task.get("created"), "updated": task.get("updated"), "phase": task.get("phase"),
+            "created": date_of(task.get("created")), "updated": date_of(task.get("updated")), "phase": task.get("phase"),
             "tags": task.get("tags") or [], "project": task.get("project"), "blocked_by": task.get("blocked_by") or [],
             "sha256": task["sha256"], "notes": notes, "legacy": task["legacy"], "readable": not task["conflicted"],
-        })
+        }))
     return cards
 
 
@@ -638,17 +732,21 @@ def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[
     out = []
     for entry in entries:
         pid = pj.entry_id(entry)
+        reason = name_held(scrub, pid)
+        if reason:
+            withheld.append({"source": "registry", "item": pid, "reason": reason})
+            continue
         if pj.is_pointer(entry):
-            out.append({"id": pid, "pointer": True, "hive": entry["ref"][len("hive:"):].strip()})
+            out.append(allow("registry", {"id": pid, "pointer": True, "hive": entry["ref"][len("hive:"):].strip()}))
             continue
         description, hits = scrub.text(str(entry.get("description") or ""))
         if held(hits):
             withheld.append({"source": "registry", "item": pid, "reason": held(hits)})
             description = ""
-        out.append({"id": pid, "description": description, "status": str(entry.get("status") or "") or None,
-                    "current_phase": str(entry.get("current_phase") or "") or None,
-                    "visited_phases": pj.as_list(entry.get("visited_phases")),
-                    "repos": [url for url in pj.repo_values(entry) if pj.is_remote(url) and not url.lower().startswith("file:")]})
+        out.append(allow("registry", {
+            "id": pid, "description": description, "status": str(entry.get("status") or "") or None,
+            "current_phase": str(entry.get("current_phase") or "") or None, "visited_phases": pj.as_list(entry.get("visited_phases")),
+            "repos": [url for url in pj.repo_values(entry) if pj.is_remote(url) and not url.lower().startswith("file:")]}))
     return out
 
 
@@ -665,39 +763,37 @@ def text_block(path: Path, source: str, scrub: Scrubber, withheld: list[dict], f
     return value
 
 
-def meeting_list(folder: Path, scrub: Scrubber) -> list[dict]:
+def dated_list(folder: Path, source: str, kind: str, scrub: Scrubber, withheld: list[dict]) -> list[dict]:
+    """Meetings or notes as a list: name, title and date — never the file's content."""
     out = []
     for path in sorted(folder.glob("*.md")) if folder.is_dir() else []:
         fm, body = split_fm(read_text(path) or "")
         title = scalar(fm, "title") or next((line[2:].strip() for line in body.split("\n") if line.startswith("# ")), path.stem)
-        when = scalar(fm, "date") or (re.match(r"^\d{4}-\d{2}-\d{2}", path.stem) or [None])[0]
         title, hits = scrub.text(title)
-        if not held(hits):
-            out.append({"slug": path.stem, "title": title, "date": when})
-    return out
-
-
-def note_list(folder: Path, scrub: Scrubber) -> list[dict]:
-    out = []
-    for path in sorted(folder.glob("*.md")) if folder.is_dir() else []:
-        fm, body = split_fm(read_text(path) or "")
-        title = scalar(fm, "title") or next((line[2:].strip() for line in body.split("\n") if line.startswith("# ")), path.stem)
-        when = scalar(fm, "date") or (re.match(r"^\d{4}-\d{2}-\d{2}", path.name) or [None])[0]
-        title, hits = scrub.text(title)
-        if not held(hits):
-            out.append({"file": path.name, "title": title, "date": when})
+        reason = held(hits) or name_held(scrub, path.stem)
+        if reason:
+            withheld.append({"source": source, "item": path.name, "reason": reason})
+            continue
+        out.append(allow(kind, {"slug": path.stem, "file": path.name, "title": title,
+                                "date": date_of(scalar(fm, "date"), path.stem)}))
     return out
 
 
 def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
     if src.kind == "flowie":
-        return {"ideas": text_block(src.repo / "ideas.md", "ideas", scrub, withheld),
-                "ideas_inbox": text_block(src.repo / "ideas-inbox.md", "ideas", scrub, withheld),
-                "notes": note_list(src.repo / "notes", scrub), "meetings": meeting_list(src.repo / "meetings", scrub)}
+        return allow("flowie_panel", {
+            "ideas": text_block(src.repo / "ideas.md", "ideas", scrub, withheld),
+            "ideas_inbox": text_block(src.repo / "ideas-inbox.md", "ideas", scrub, withheld),
+            "notes": dated_list(src.repo / "notes", "notes", "note", scrub, withheld),
+            "meetings": dated_list(src.repo / "meetings", "meetings", "meeting", scrub, withheld)})
     if src.kind == "hive":
         errata = []
         for path in sorted((src.repo / "errata").glob("*.md")) if (src.repo / "errata").is_dir() else []:
             headers, rows = parse_table(read_text(path) or "")
+            reason = name_held(scrub, path.stem) or held(scrub.text(" ".join(headers))[1])
+            if reason:
+                withheld.append({"source": "errata", "item": path.name, "reason": reason})
+                continue
             clean = []
             for row in rows:
                 cells = []
@@ -710,10 +806,12 @@ def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
                     withheld.append({"source": "errata", "item": path.name, "reason": stop})
                     continue
                 clean.append(cells)
-            errata.append({"dataset": path.stem, "columns": headers, "rows": clean})
-        return {"team": text_block(src.repo / "hive.md", "team", scrub, withheld, frontmatter=True),
-                "ideas": text_block(src.repo / "ideas.md", "ideas", scrub, withheld),
-                "errata": errata, "meetings": meeting_list(src.repo / "meetings", scrub)}
+            errata.append(allow("erratum", {"dataset": path.stem, "columns": [scrub.text(cell)[0] for cell in headers],
+                                            "rows": clean}))
+        return allow("hive_panel", {
+            "team": text_block(src.repo / "hive.md", "team", scrub, withheld, frontmatter=True),
+            "ideas": text_block(src.repo / "ideas.md", "ideas", scrub, withheld),
+            "errata": errata, "meetings": dated_list(src.repo / "meetings", "meetings", "meeting", scrub, withheld)})
     nf = src.memory
     fm, _ = split_fm(read_text(nf / "project_config.md") or "")
     phases = sorted(mg.canonical_phases() - {"setup"})
@@ -721,23 +819,28 @@ def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
     for row in parse_table(read_text(nf / "timeline.md") or "")[1]:
         if row and DATE.match(row[0]):
             what, hits = scrub.text(row[1] if len(row) > 1 else "")
-            if not held(hits):
-                timeline.append({"date": row[0], "what": what, "gates": (row[2] if len(row) > 2 else "") or None})
+            gates, gate_hits = scrub.text(row[2] if len(row) > 2 else "")
+            if held(hits | gate_hits):
+                withheld.append({"source": "dates", "item": row[0], "reason": held(hits | gate_hits)})
+                continue
+            timeline.append(allow("date", {"date": row[0], "what": what, "gates": gates or None}))
 
     def marker(path: Path, *keys: str) -> dict | None:
         text = read_text(path)
         if text is None:
             return None
         meta = split_fm(text)[0]
-        return {**{key: scalar(meta, key) for key in keys}, "by_person": scalar(meta, "set_by") == "person"}
+        values = {key: date_of(scalar(meta, key)) if key != "status" else scalar(meta, key) for key in keys}
+        return allow("marker", {**values, "by_person": scalar(meta, "set_by") == "person"})
 
-    return {"project_name": scalar(fm, "project_name"), "active_phase": scalar(fm, "active_phase"),
-            "recommended_phases": pj.as_list(fm.get("recommended_phases")),
-            "visited": sorted(p.name for p in nf.iterdir() if p.is_dir() and p.name in phases) if nf.is_dir() else [],
-            "ethics_not_applicable": scalar(fm, "ethics") == "not-applicable",
-            "ethics": marker(nf / "ethics" / "status.md", "status", "expires"),
-            "prereg": marker(nf / "preregistration" / "status.md", "status", "frozen_at"),
-            "dates": timeline, "meetings": meeting_list(nf / "meetings", scrub)}
+    return allow("project_panel", {
+        "project_name": scrub.text(scalar(fm, "project_name"))[0] or None, "active_phase": scalar(fm, "active_phase"),
+        "recommended_phases": pj.as_list(fm.get("recommended_phases")),
+        "visited": sorted(p.name for p in nf.iterdir() if p.is_dir() and p.name in phases) if nf.is_dir() else [],
+        "ethics_not_applicable": scalar(fm, "ethics") == "not-applicable",
+        "ethics": marker(nf / "ethics" / "status.md", "status", "expires"),
+        "prereg": marker(nf / "preregistration" / "status.md", "status", "frozen_at"),
+        "dates": timeline, "meetings": dated_list(nf / "meetings", "meetings", "meeting", scrub, withheld)})
 
 
 WIKILINK = re.compile(r"(!?)\[\[([^\[\]\n|#]*)(?:#[^\[\]\n|]*)?(?:\|([^\[\]\n]*))?\]\]")
@@ -802,22 +905,23 @@ def export_wiki(src: Source, scrub: Scrubber, withheld: list[dict], index_only: 
     for rel, fm, body in raw:
         title, hits = scrub.text(scalar(fm, "title") or rel.split("/")[-1])
         summary, summary_hits = scrub.text(summaries.get(rel, ""))
+        tags = pj.as_list(fm.get("tags"))
+        sources = [name.split("/")[-1] for name in pj.as_list(fm.get("sources"))]
         text = ""
         if not index_only:
             text, body_hits = scrub.text(rewrite(body.strip(), rel))
             hits |= body_hits
             if len(text.encode("utf-8")) > BODY_MAX:
                 text = text.encode("utf-8")[:BODY_MAX].decode("utf-8", "ignore") + "\n\n[truncated: the page is longer than 150 KB]"
-        reason = held(hits | summary_hits)
+        reason = held(hits | summary_hits) or name_held(scrub, rel, *tags, *sources)
         if reason:
             withheld.append({"source": "wiki", "item": rel, "reason": reason})
             continue
-        page = {"id": rel, "title": title, "type": scalar(fm, "type"), "tags": pj.as_list(fm.get("tags")),
-                "status": scalar(fm, "status"), "updated": scalar(fm, "updated"), "summary": summary,
-                "sources": [name.split("/")[-1] for name in pj.as_list(fm.get("sources"))]}
+        page = {"id": rel, "title": title, "type": scalar(fm, "type"), "tags": tags, "status": scalar(fm, "status"),
+                "updated": date_of(scalar(fm, "updated")), "summary": summary, "sources": sources}
         if not index_only:
             page["body"] = text
-        out.append(page)
+        out.append(allow("page", page))
     return out
 
 
@@ -868,7 +972,7 @@ def git_source(src: Source, home: Path, fetch: bool) -> dict:
     tasks = "tasks" if src.kind != "project" else ".neuroflow/tasks"
     status = git(src.repo, "status", "--porcelain", "--untracked-files=all", "--", tasks)
     info["uncommitted_tasks"] = len([line for line in status.stdout.splitlines() if line.strip()]) if status.returncode == 0 else None
-    return info
+    return allow("source", info)
 
 
 def default_remote_ref(repo: Path) -> str | None:
@@ -958,7 +1062,7 @@ def pack(level: str, kind: str, items: list[dict], field: str) -> list[dict]:
         size += weight
     if current or not parts:
         parts.append(current)
-    return [with_hash({"snap_schema": SNAP_SCHEMA, "level": level, "part": f"{kind}-{n:03d}", field: chunk})
+    return [with_hash(allow("part", {"snap_schema": SNAP_SCHEMA, "level": level, "part": f"{kind}-{n:03d}", field: chunk}))
             for n, chunk in enumerate(parts)]
 
 
@@ -971,12 +1075,17 @@ def build_level(src: Source, person: dict, scrub: Scrubber, home: Path, now: dat
         if card["column"] not in known:
             known.add(card["column"])
             columns.append({"id": card["column"], "label": card["column"], "archive": False, "closed": False, "extra": True})
+    for column in columns:
+        label, hits = scrub.text(column["label"])
+        column["label"] = column["id"] if held(hits) else label
+    columns = [allow("column", column) for column in columns]
     index_only = src.key in person["index_only"]
     pages = export_wiki(src, scrub, withheld, index_only)
-    core = with_hash({"snap_schema": SNAP_SCHEMA, "level": src.key, "part": "core", "kind": src.kind, "label": src.label,
-                      "columns": columns, "archive_after_days": archive_days, "people": roster(src, person),
-                      "registry": export_registry(src, scrub, withheld), "panel": export_panel(src, scrub, withheld),
-                      "phases": sorted(mg.canonical_phases() - {"setup"}), "card": src.card})
+    core = with_hash(allow("core", {
+        "snap_schema": SNAP_SCHEMA, "level": src.key, "part": "core", "kind": src.kind, "label": src.label,
+        "columns": columns, "archive_after_days": archive_days, "people": roster(src, person),
+        "registry": export_registry(src, scrub, withheld), "panel": export_panel(src, scrub, withheld),
+        "phases": sorted(mg.canonical_phases() - {"setup"}), "card": src.card}))
     parts = [core, *pack(src.key, "cards", cards, "cards"), *(pack(src.key, "wiki", pages, "pages") if pages else [])]
     oversized = [part["part"] for part in parts if doc_bytes(part) > PART_MAX]
     if oversized:
@@ -987,14 +1096,18 @@ def build_level(src: Source, person: dict, scrub: Scrubber, home: Path, now: dat
         applied = landed_states(src.repo, trailer_commits(src.repo))
     elif src.kind == "project":
         applied = ledger_states(src, read_ledger(home))
-    meta = {"snap_schema": SNAP_SCHEMA, "intent_schema": INTENT_SCHEMA, "level": src.key, "kind": src.kind,
-            "label": src.label, "exported_at": iso(now), "machine": machine, "policy": src.policy,
-            "working_tree": src.kind == "project", "index_only": index_only, "source": source,
-            "parts": [{"id": part["part"], "sha256": part["sha256"], "bytes": doc_bytes(part)} for part in parts],
-            "applied": applied, "withheld": withheld,
-            "counts": {"cards": len(cards), "open": sum(1 for card in cards if not next(
-                (c for c in columns if c["id"] == card["column"]), {}).get("closed")), "pages": len(pages)}}
-    return {"source": src, "meta": meta, "parts": parts}
+    closed = {column["id"] for column in columns if column.get("closed")}
+    # the page counts what was held back and says why; which items they were only the local preview says
+    meta = allow("meta", {
+        "snap_schema": SNAP_SCHEMA, "intent_schema": INTENT_SCHEMA, "level": src.key, "kind": src.kind, "label": src.label,
+        "exported_at": iso(now), "machine": machine, "policy": src.policy, "working_tree": src.kind == "project",
+        "index_only": index_only, "source": source,
+        "parts": [allow("part_ref", {"id": part["part"], "sha256": part["sha256"], "bytes": doc_bytes(part)}) for part in parts],
+        "applied": {intent: allow("applied", state) for intent, state in applied.items()},
+        "withheld": [allow("withheld", item) for item in withheld],
+        "counts": allow("counts", {"cards": len(cards), "open": sum(1 for card in cards if card["column"] not in closed),
+                                   "pages": len(pages)})})
+    return {"source": src, "meta": meta, "parts": parts, "withheld": withheld}
 
 
 def freshness(meta: dict) -> str:
@@ -1017,7 +1130,7 @@ def preview(levels: list[dict]) -> list[dict]:
         size = sum(part["bytes"] for part in meta["parts"]) + doc_bytes(meta)
         rows.append({"level": meta["level"], "label": meta["label"], "kind": meta["kind"], "bytes": size,
                      "documents": len(meta["parts"]) + 1, "cards": meta["counts"]["cards"], "pages": meta["counts"]["pages"],
-                     "index_only": meta["index_only"], "withheld": meta["withheld"], "freshness": freshness(meta)})
+                     "index_only": meta["index_only"], "withheld": item["withheld"], "freshness": freshness(meta)})
     return rows
 
 
@@ -1228,11 +1341,30 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
         for part in item["parts"]:
             write_doc(out / "docs" / key_file(key) / f"{part['part']}.json", part)
     findings = any(row["withheld"] for row in result["levels"]) or bool(unkeyed)
+    total = sum(row["bytes"] for row in result["levels"])
+    if total > SIZE_WARN:
+        def wiki_bytes(item: dict) -> int:
+            return sum(part["bytes"] for part in item["meta"]["parts"] if part["id"].startswith("wiki-"))
+
+        heavy = max(built, key=wiki_bytes)
+        hint = (f"; the wiki of {heavy['meta']['label']} is {wiki_bytes(heavy) // 1024} KB of it — with "
+                f"{heavy['meta']['level']} in workbench_index_only its pages go up without their bodies"
+                if wiki_bytes(heavy) and not heavy["meta"]["index_only"] else "")
+        result["warnings"] = [f"this export is {total / 1_000_000:.1f} MB, slow for the page to load{hint}"]
+        findings = True
     if args.remote is not None or args.outcomes:
         versions = json.loads(Path(args.versions).read_text(encoding="utf-8")) if args.versions else None
         docs = load_docs(Path(args.remote), versions) if args.remote else {}
         missing: list[str] = []
         entries: list[dict] = []
+        saved = (active_record(home) or {}).get("prefs")
+        if args.remote and isinstance(saved, dict) and saved and f"{meta_collection()}/{PREFS_DOC}" not in docs:
+            # a page without settings (a new page, or one rebuilt) gets back the copy the record keeps
+            file = out / "docs" / "prefs.json"
+            write_doc(file, saved)
+            entries.append({"op": "set", "collection": meta_collection(), "doc_id": PREFS_DOC, "file_path": str(file),
+                            "_bytes": doc_bytes(saved)})
+            result["prefs"] = "restored from the record"
         if args.outcomes:
             plan = json.loads(Path(args.outcomes).read_text(encoding="utf-8"))
             listed = load_docs(Path(args.intents), versions) if args.intents else {}
@@ -1766,8 +1898,11 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
         if body.get("status") == "done" or intent_id in finished or body.get("op") == "cancel" or intent_id in undone:
             continue
         key = body.get("level")
-        entry = levels.setdefault(key, {"level": key, "slugs": [], "adds": 0, "count": 0})
+        entry = levels.setdefault(key, {"level": key, "slugs": [], "adds": 0, "count": 0, "oldest": None})
         entry["count"] += 1
+        made = parse_time(body.get("created_at"))
+        if made is not None and (entry["oldest"] is None or made < parse_time(entry["oldest"])):
+            entry["oldest"] = iso(made)
         target = body.get("target") if isinstance(body.get("target"), dict) else {}
         if body.get("op") == "add":
             entry["adds"] += 1
@@ -1780,6 +1915,7 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
                 entry["root"] = src.repo.as_posix()
     record = active_record(home)
     data = {"checked_at": iso(now), "url": (record or {}).get("url"), "count": sum(e["count"] for e in levels.values()),
+            "oldest": min((e["oldest"] for e in levels.values() if e["oldest"]), key=parse_time, default=None),
             "command": "/neuroflow:tasks --apply-web", "levels": sorted(levels.values(), key=lambda e: str(e["level"]))}
     write_json(local_dir(home) / "pending.json", data)
     return 0, data
@@ -2103,8 +2239,12 @@ def print_human(command: str, code: int, result: dict) -> None:
             print(f"  {row['freshness']}")
             for item in row["withheld"]:
                 print(f"  held back: {item['source']} {item['item']} ({item['reason']})")
+        for warning in result.get("warnings") or []:
+            print(f"warning: {warning}")
         for key, verdict in (result.get("guard") or {}).items():
             print(f"  {key}: {verdict['verdict']} — {verdict.get('question') or verdict['reason']}")
+        if result.get("prefs"):
+            print(f"page settings: {result['prefs']}")
         if "upload" in result:
             print(f"upload: {result['upload']['documents']} writes, {result['upload']['bytes'] // 1024} KB, "
                   f"{result['upload']['batches']} batch(es)")

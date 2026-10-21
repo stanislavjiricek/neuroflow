@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "skills" / "neuroflow-core" / "scripts" / "workbench.py"
@@ -294,6 +295,80 @@ class ExportTests(Home):
             self.assertEqual(wb.with_hash(doc)["sha256"], doc["sha256"])
         self.assertEqual(sum(len(self.doc("flowie", i)["cards"]) for i in ids if i.startswith("cards-")), 402)
 
+    def test_every_exported_field_is_in_the_allowlist(self) -> None:
+        snapshot = json.loads((FIXTURES / "snapshot.json").read_text(encoding="utf-8"))
+        seen: set[str] = set()
+
+        def within(kind: str, item: dict | None) -> None:
+            if item is None:
+                return
+            seen.add(kind)
+            self.assertLessEqual(set(item), set(wb.FIELDS[kind]), f"{kind}: {sorted(set(item) - set(wb.FIELDS[kind]))}")
+
+        for key, meta in snapshot["metas"].items():
+            within("meta", meta)
+            within("source", meta["source"])
+            within("counts", meta["counts"])
+            for part in meta["parts"]:
+                within("part_ref", part)
+            for state in meta["applied"].values():
+                within("applied", state)
+            for item in meta["withheld"]:
+                within("withheld", item)
+            core = snapshot["parts"][key]["core"]
+            within("core", core)
+            for name, kind in (("columns", "column"), ("people", "person"), ("registry", "registry")):
+                for item in core[name]:
+                    within(kind, item)
+            panel = core["panel"]
+            within(f"{meta['kind']}_panel", panel)
+            for name, kind in (("notes", "note"), ("meetings", "meeting"), ("errata", "erratum"), ("dates", "date")):
+                for item in panel.get(name) or []:
+                    within(kind, item)
+            within("marker", panel.get("ethics"))
+            within("marker", panel.get("prereg"))
+            for name, doc in snapshot["parts"][key].items():
+                if name != "core":
+                    within("part", doc)
+                    for item in doc.get("cards", []):
+                        within("card", item)
+                    for item in doc.get("pages", []):
+                        within("page", item)
+        # the golden levels are not git clones, so no click has landed there: the apply test checks `applied`
+        self.assertEqual(seen, set(wb.FIELDS) - {"applied"}, "the golden snapshot should hold every other kind of item")
+
+    def test_the_sources_rows_name_every_allowlisted_field_and_no_other(self) -> None:
+        named = {field for row in wb.SOURCES for field in row["fields"]}
+        allowed = {f"{kind}.{name}" for kind, names in wb.FIELDS.items() for name in names}
+        self.assertEqual(named, allowed)
+        self.assertEqual(wb.allow("card", {"slug": "a", "path": "C:/Users/alice/x.md"}), {"slug": "a"})
+
+    def test_names_and_tags_with_personal_data_hold_the_item_back_and_the_page_only_counts_it(self) -> None:
+        self.make_flowie()
+        token = "ghp_" + "A1b2C3d4" * 5
+        self.write(self.flowie / "tasks" / "inbox" / "deploy.md", task("Deploy", "inbox", tags=f"[{token}]"))
+        self.write(self.flowie / "meetings" / "2026-10-22-jana@uni.example.org.md", "---\ntitle: Catch-up\n---\n")
+        code, result = self.export()
+        self.assertEqual(code, 1)
+        named = {(item["source"], item["item"]) for item in result["levels"][0]["withheld"]}
+        self.assertEqual(named, {("tasks", "inbox/deploy.md"), ("meetings", "2026-10-22-jana@uni.example.org.md")})
+        self.assertEqual(self.doc("flowie", "meta")["withheld"],
+                         [{"source": "tasks", "reason": "secret-like text"},
+                          {"source": "meetings", "reason": "personal data in its file name, tags or links"}])
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        for leak in (token, "jana@", "deploy", "Catch-up"):
+            self.assertNotIn(leak, everything, leak)
+
+    def test_a_large_export_warns_and_names_index_only(self) -> None:
+        self.make_flowie()
+        self.write(self.flowie / "wiki" / "pages" / "concepts" / "big.md", "---\ntitle: Big\n---\n" + "word " * 2000)
+        with mock.patch.object(wb, "SIZE_WARN", 1000):
+            code, result = self.export()
+        self.assertEqual(code, 1)
+        self.assertEqual(len(result["warnings"]), 1)
+        self.assertIn("flowie in workbench_index_only", result["warnings"][0])
+        self.assertNotIn("warnings", self.export()[1])
+
     def test_the_sources_table_in_the_docs_is_the_allowlist(self) -> None:
         page = (REPO / "docs" / "concepts" / "workbench.md").read_text(encoding="utf-8").replace("\r\n", "\n")
         match = re.search(r"<!-- workbench-sources:begin -->\n(.*?)<!-- workbench-sources:end -->", page, re.S)
@@ -414,6 +489,21 @@ class GuardTests(Home):
         verdict = result["guard"]["hive+example-lab+hive"]
         self.assertEqual(verdict["verdict"], "refuse")
         self.assertIn("newer neuroflow", verdict["reason"])
+
+    def test_a_page_without_settings_gets_them_back_from_the_record(self) -> None:
+        prefs = self.write(self.scratch / "prefs-get.json", json.dumps({"data": {"prefs_schema": 1, "theme": "light"}, "version": 4}))
+        self.wb("record", "--set", "url=https://claude.ai/artifact/abc", "--set", "account=personal", "--prefs", str(prefs))
+        code, result = self.export(self.remote(None))
+        first = result["batches"][0]["writes"][0]
+        self.assertEqual((first["op"], first["collection"], first["doc_id"]), ("set", "data/users/me", "prefs"))
+        self.assertNotIn("if_version", first)
+        self.assertEqual(json.loads(Path(first["file_path"]).read_text(encoding="utf-8")), {"prefs_schema": 1, "theme": "light"})
+        self.assertEqual(result["prefs"], "restored from the record")
+        remote = self.remote(None)
+        self.write(remote / "data" / "users" / "u_owner" / "prefs.json", json.dumps({"data": {"theme": "dark"}, "version": 9}))
+        code, result = self.export(remote)
+        self.assertNotIn("prefs", result)
+        self.assertFalse(any(w["doc_id"] == "prefs" for batch in result["batches"] for w in batch["writes"]))
 
     def test_versions_missing_from_the_listing_are_asked_for(self) -> None:
         meta = self.first_meta()
@@ -650,6 +740,7 @@ class IntentTests(Home):
         self.assertEqual(updates["i-m3-cccc"][1]["outcome"]["slug"], "check-the-stats")
         meta = json.loads((self.scratch / "up" / "docs" / "hive+example-lab+hive" / "meta.json").read_text(encoding="utf-8"))
         self.assertEqual(meta["applied"]["i-m2-bbbb"]["state"], "committed")
+        self.assertLessEqual(set(meta["applied"]["i-m2-bbbb"]), set(wb.FIELDS["applied"]))
         # pushed to a branch (a protected main: the pull request is open) is pushed; on the default branch it is merged
         git(self.hive, "push", "-q", "origin", "HEAD:refs/heads/workbench-changes")
         self.assertEqual(wb.landed_states(self.hive, wb.trailer_commits(self.hive))["i-m2-bbbb"]["state"], "pushed")
@@ -705,6 +796,8 @@ class IntentTests(Home):
         self.assertEqual(levels[hive]["slugs"], ["fix-map"])
         self.assertEqual(levels["flowie"]["adds"], 1)
         self.assertEqual(data["command"], "/neuroflow:tasks --apply-web")
+        self.assertEqual((levels[hive]["oldest"], levels["flowie"]["oldest"]), ("2026-10-21T10:01:00Z", "2026-10-21T10:02:00Z"))
+        self.assertEqual(data["oldest"], "2026-10-21T10:01:00Z")
 
 
 class GcTests(Home):

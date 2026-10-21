@@ -38,7 +38,6 @@
    },
    "withheld": [
     {
-     "item": "inbox/rotate-the-key.md",
      "reason": "secret-like text",
      "source": "tasks"
     }

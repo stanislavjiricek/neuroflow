@@ -47,7 +47,8 @@ settings into your flowie, so a rebuilt workbench keeps them.
    names the clicks it holds in a `Neuroflow-Intent` trailer, so nothing is applied twice.
 4. The outcomes and the refreshed levels go back to the page in one upload — after a one-line preview and your yes.
 
-With the [neuroflow mod](mods.md), the band above the prompt says how many workbench changes wait and `w` puts
+The page's top line counts the clicks still waiting and says how old the oldest is. With the
+[neuroflow mod](mods.md), the band above the prompt says how many workbench changes wait and `w` puts
 `/neuroflow:tasks --apply-web` in the prompt; the boards mark those cards with `↻`. Without the mod, `/tasks` and
 `/dashboard` say the same in their text.
 
@@ -94,24 +95,25 @@ and a test keeps the two equal.
 <!-- workbench-sources:begin -->
 | Source | Levels | Read from | What is uploaded |
 |---|---|---|---|
-| tasks | flowie, hive, project | `tasks/{column}/{slug}.md` | slug, column, title, owner (a roster handle), due, created, updated, phase, tags, project, blocked_by, the content hash, and the first 1,000 characters of the notes |
-| columns | flowie, hive, project | `tasks/config.json` | column ids and labels, which ones are closed, archive_after_days |
-| registry | flowie, hive | `projects/projects.json` | each card's id, description, status, current_phase, visited_phases and remote repository URLs; a flowie pointer as its hive and id only |
-| wiki | flowie, hive, project | `wiki/pages/**, wiki/index.md` | each page's title, type, tags, status, updated, the index summary and the body (none with index only), with [[links]] resolved to pages; raw/ files and images are named, never uploaded |
-| people | hive, project | `members.md, collaborators` | roster handles; with allow-names also names and roles; never an email address |
-| ideas | flowie, hive | `ideas.md, ideas-inbox.md (flowie)` | the text |
-| notes | flowie | `notes/*.md` | file name, title and date; never the notes |
-| meetings | flowie, hive, project | `meetings/*.md` | title and date; never attendees, agenda or notes |
-| team | hive | `hive.md` | the team's name, description, norms and research directions |
-| errata | hive | `errata/*.md` | the table rows: date, scope, problem, workaround, reported_by |
-| phases | project | `project_config.md, phase folders` | project_name, active_phase, recommended_phases, the phase folders that exist |
-| dates | project | `timeline.md` | dated rows: date, what, the phase it gates |
-| integrity | project | `ethics/status.md, preregistration/status.md` | status, expiry and freeze dates, and whether a person set the marker; never approval documents |
-| git | flowie, hive, project | `the clone` | branch, head and upstream commits, ahead and behind counts, last fetch time, the number of uncommitted task files, your machine label, and the Neuroflow-Intent trailers that name your own clicks |
+| tasks | flowie, hive, project | `tasks/{column}/{slug}.md` | `cards`, `slug`, `file`, `column`, `title`, `owner`, `due`, `created`, `updated`, `phase`, `tags`, `project`, `blocked_by`, `sha256`, `notes`, `legacy`, `readable` — owner only as a roster handle; the first 1,000 characters of the notes; sha256 is the content hash; legacy and readable say whether the file is in an older format or carries a merge conflict |
+| columns | flowie, hive, project | `tasks/config.json` | `columns`, `id`, `label`, `archive`, `closed`, `extra`, `archive_after_days` — extra marks a folder that config.json does not name |
+| registry | flowie, hive | `projects/projects.json` | `registry`, `id`, `description`, `status`, `current_phase`, `visited_phases`, `repos`, `pointer`, `hive` — remote repository URLs only; a flowie pointer as its id and hive only |
+| wiki | flowie, hive, project | `wiki/pages/**, wiki/index.md` | `pages`, `id`, `title`, `type`, `tags`, `status`, `updated`, `summary`, `sources`, `body` — no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded |
+| people | flowie, hive, project | `your handle, members.md, collaborators` | `people`, `handle`, `name`, `role` — name and role only with allow-names; your own handle only at flowie level; never an email address |
+| ideas | flowie, hive | `ideas.md, ideas-inbox.md (flowie)` | `ideas`, `ideas_inbox` — the text |
+| notes | flowie | `notes/*.md` | `notes`, `file`, `title`, `date` — never the notes themselves |
+| meetings | flowie, hive, project | `meetings/*.md` | `meetings`, `slug`, `title`, `date` — never attendees, agenda or notes |
+| team | hive | `hive.md` | `team` — the text after the frontmatter: the team's name, description, norms and research directions |
+| errata | hive | `errata/*.md` | `errata`, `dataset`, `columns`, `rows` — the table rows: date, scope, problem, workaround, reported_by |
+| phases | project | `project_config.md, phase folders` | `project_name`, `active_phase`, `recommended_phases`, `visited`, `ethics_not_applicable`, `phases`, `card` — visited names the phase folders that exist, card the project's id in your registry; no other config field |
+| dates | project | `timeline.md` | `dates`, `date`, `what`, `gates` — the dated rows; gates names the phase a date gates |
+| integrity | project | `ethics/status.md, preregistration/status.md` | `ethics`, `prereg`, `status`, `expires`, `frozen_at`, `by_person` — by_person says whether a person set the marker; never approval documents |
+| git | flowie, hive, project | `the clone` | `source`, `git`, `branch`, `head`, `upstream`, `upstream_head`, `ahead`, `behind`, `fetched_at`, `shallow`, `uncommitted_tasks`, `machine`, `applied`, `state`, `commit` — machine is your label for this computer; applied names your own clicks that reached git, by their Neuroflow-Intent trailers |
+| the level | flowie, hive, project | `the export itself` | `snap_schema`, `level`, `part`, `kind`, `label`, `panel`, `sha256`, `intent_schema`, `exported_at`, `policy`, `working_tree`, `index_only`, `parts`, `withheld`, `counts`, `id`, `bytes`, `source`, `reason`, `cards`, `open`, `pages` — the level's name and kind, format versions, the export time, the team's workbench_mirror value, part sizes and hashes, counts, and which sources held items back and why — never the held items or their names |
 
 Never uploaded: sessions/, review/, paper/xray-*, wiki/.pending/ and every other local-tier path; integrations.json, user.yaml, local-projects.json, boards/; fails/, finance/, reasoning/; the flowie's profile.md and wellbeing/; wiki raw/ files and images; email addresses, anywhere; meeting attendees, agendas and notes; machine-local paths.
 
-Free text (titles, notes, descriptions, wiki pages, ideas, team text, errata rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. An item with secret-like text or a name from your participant roster is held back whole and named in the preview.
+Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. An item with secret-like text or a name from your participant roster is held back whole, and so is one whose file name, tags or links carry personal data, as they travel unchanged. The preview names each item held back; the page only counts them.
 <!-- workbench-sources:end -->
 
 Every upload — the first publish, each refresh, each write-back of outcomes — needs a one-line preview and your yes
@@ -130,6 +132,8 @@ text: it is never run as HTML, and only `http` and `https` links leave it.
 - **Phones:** drag and drop needs a mouse or trackpad; on a touch screen use *Move to…*.
 - **The store's limits:** 256 KiB per document, 25,000 documents and 50 writes per upload. Finished requests are
   deleted after 7 days, and a level you stop mirroring is purged.
+- **Big wikis:** an export over 8 MB is flagged as slow to load; `workbench_index_only` sends a level's wiki as an index
+  without page bodies.
 
 ---
 
