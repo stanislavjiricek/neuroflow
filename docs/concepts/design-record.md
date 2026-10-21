@@ -309,7 +309,7 @@ warning, kept as a rule of the mod's charter.
 | M160 | Machine-readable integrity state contract | T0 | Built | C2 writers in this package: /ethics writes ethics/status.md frontmatter (set_by semantics, legacy migration); freeze.py writes preregistration/status.md. |
 | M161 | Context diet: slice heavy skills and trim the listing | T0 | Built | Done now: the V9 lint caught the three shadowed skills, renamed in C13 to autoresearch-protocol, wiki-protocol and setup-guide. |
 | M162 | Runtime capability handshake | X | Not built | No duty is delegated to the mod. |
-| M163 | Code-answered commands with CI exit codes | T2 | In the mod | `/phase`, `/dashboard`, `/tasks`, `/doctor` and paper status views answered in code, with the prose as fallback. |
+| M163 | Code-answered commands with CI exit codes | T2 | In the mod | `/phase`, `/dashboard`, `/tasks`, `/doctor` and paper status views answered in code, with the prose as fallback; each view opens holding the keyboard, on one key map (lib/keys.ts). |
 | M164 | Generated command manifest and single rules file | X | Folded into another | Covered by M210. |
 | M165 | Rule provenance markers | T1 | Built | New check V8. |
 | M166 | Feature-module architecture | X | Not built | The engine already nests features, budgets hooks and catches failures; one file per feature is enough. |
@@ -364,7 +364,7 @@ warning, kept as a rule of the mod's charter.
 | M067 | Branded greeting with live version and research vocabulary | X | Not built | No greeting: the mod stays quiet by default. |
 | M068 | End-of-command decision band | X | Not built | It only swaps typing Y for pressing a digit and adds a stray-digit hazard; the prose prompt is kept. |
 | M069 | On-demand project dashboard pane | T1 | In the mod | `/neuroflow:dashboard`: phase map, deadlines, integrity, tasks and the autoresearch loop. |
-| M070 | Native Kanban board pane | T2 | In the mod | `/neuroflow:tasks` opens the boards of the project, the flowie and each hive as a pane, `v` switching the level; a picked card and column put the move in the prompt as one `/tasks` command. |
+| M070 | Native Kanban board pane | T2 | In the mod | `/neuroflow:tasks` opens the boards of the project, the flowie and each hive as a pane holding the keyboard, the digits picking the level; Enter on a card and then a column runs the move as one `/tasks` command, or, at a hive's level, puts it in the prompt for the person to send. |
 | M071 | Grant word counts and section board | X | Built differently | Grant word counts come from a tool (wc -w), page limits are checked in the funder template, and section drafts are saved to draft-*.md. |
 | M072 | Writing boards for worker-critic loops | X | Built differently | critic-log gets one block per section (worker-critic format); /paper already asks the person after the third rejection. |
 | M073 | Research-aware transcript rows | X | Not built | It re-skins rows the engine already annotates, and collapsed receipts cannot honour ctrl+o. |
@@ -374,7 +374,7 @@ warning, kept as a rule of the mod's charter.
 | M077 | Parsed scientific CLI output: digests for the model, tables for the person | T2 | Built | bids_digest.py turns bids-validator --json (schema validator and legacy 1.x layouts) into counts per issue code with first locations, plus a summary that omits participant age/sex. |
 | M078 | Context, rate-limit and spend meter | X | Not built | Duplicates the status line, /cost and Claude Code's own limit warnings, and per-phase spend is only notional. |
 | M079 | Talk preview, lint and rehearsal coach | X | Built differently | The Limitations slide now draws only on preregistration deviations and recorded analysis or manuscript limitations, never on .neuroflow/fails/. |
-| M080 | Welcome-back and My Day band | T1 | In the mod | One quiet band above the prompt: deadlines, meetings, drafted decisions, the loop being driven; letter hotkeys. |
+| M080 | Welcome-back and My Day band | T1 | In the mod | One quiet band row above the prompt: deadlines, meetings, drafted decisions, the loop being driven; letter hotkeys once ^X Tab gives it the keys, a chord it names until the person has used it. The dashboard's now tab lists every item with its action. |
 | M081 | Selection clipper | X | Not built | Not built: selecting text already copies it, so pasting into /tasks --add or /notes does the same; it would also only work in the fullscreen terminal. |
 | M082 | Meeting radar | T2 | In the mod | The band names the next meeting (prepare, notes) and a past one left unclosed (close). |
 | M083 | Live progress in the model's Bash rows | X | Built differently | The ~10-minute rule lives in long-runs.md plus pointers in the phase skills: use run_in_background or a detached launch with progress lines. |

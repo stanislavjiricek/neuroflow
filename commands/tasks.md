@@ -90,12 +90,14 @@ A level may carry `tasks/config.json` with its own `columns` list (`id`, `label`
 
 **With the neuroflow mod**, a bare `/neuroflow:tasks` never reaches the model: the mod draws the boards as a pane
 from these files, each level's board as `/tasks --level {level}` renders it (same rendering rules) — the project's,
-the flowie's and every hive clone's, read as the local clones are (nothing is pulled), and the boards of the project card's other repositories, read-only, from the cache in `~/.neuroflow/boards/` — refreshed in the background (`projects.py refresh`) when the boards open. `v` or a level's button
-switches the level; the pane opens on the project board when it has open tasks, else on the first level with open
-tasks of this project, else on the first with any. You pick a card and a column, and it puts the move in the prompt
-for you to send — `/neuroflow:tasks --move {slug} {column}`, with `--level flowie` or `--level hive --hive {org-repo}`
-before `--move` at those levels; the move itself still runs as below. Any argument (`--list`, `--add`, `--move`,
-`--level`, `--hive`, …) runs this prose.
+the flowie's and every hive clone's, read as the local clones are (nothing is pulled), and the boards of the project card's other repositories, read-only, from the cache in `~/.neuroflow/boards/` — refreshed in the background (`projects.py refresh`) when the boards open. The pane opens holding the
+keyboard, on the project board when it has open tasks, else on the first level with open tasks of this project, else
+on the first with any; the digits pick the level. Tab, or `h` `j` `k` `l`, reaches a card; Enter picks it (marked
+`▸`), and Enter on a column moves it. At project and flowie level the mod runs the move itself —
+`/neuroflow:tasks --move {slug} {column}`, with `--level flowie` before `--move` there — and the move runs as below. At
+hive level it only puts `/neuroflow:tasks --level hive --hive {org-repo} --move {slug} {column}` in the prompt for the
+person to send, because that move ends in a push to the team's repository (At end). `x` cancels a pick, `r` reads the
+boards again, `q` closes. Any argument (`--list`, `--add`, `--move`, `--level`, `--hive`, …) runs this prose.
 
 | Mode | What it does |
 |---|---|

@@ -145,7 +145,8 @@ export type NfLoopView = {
   questions: string[]
 }
 
-export type NfDashboardTab = 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
+/** The dashboard's tabs, in their digit order (1–6); `now` lists every band item with its action. */
+export type NfDashboardTab = 'now' | 'phase' | 'deadlines' | 'integrity' | 'tasks' | 'loop'
 
 export type NfCard = {
   slug: string
@@ -162,6 +163,8 @@ export type NfCard = {
 /** One level's task board as the board pane draws it (commands/tasks.md format). */
 export type NfBoard = {
   columns: { id: string; label: string; cards: NfCard[]; total: number }[]
+  /** Every open column of the board's config in board order, drawn or not (an empty one is not): where a card can move. */
+  openColumns: string[]
   done: number
   archived: number
 }
@@ -285,6 +288,11 @@ declare module 'claude-code' {
       quietSince: number | null
       /** The mod's own flowie syncs: queued by the wellbeing band (views) and the idea capture, run by capture. */
       flowieSync: NfFlowieSync
+      /**
+       * When each pane (by id) last opened asking for the keyboard, in `$.clock` time: keys typed within
+       * TYPE_THROUGH_MS after it (lib/keys.ts) are dropped as typed through (views and user panes).
+       */
+      openedAt: Record<string, number>
       // Feature slices: each feature file owns the keys between its markers.
       // <feature:context>
       /** Page titles and one-line summaries of the initialized wikis (index.md rows), for prompt-time lookups. */
@@ -323,6 +331,14 @@ declare module 'claude-code' {
       wellbeingCheck: NfWellbeingCheck | null
       /** The task card picked on the board, to move it. */
       boardPick: string | null
+      /**
+       * How often the band took the keys (^X Tab or a click): a mirror of the `$.store` key `keys.learned`,
+       * which stays the truth across sessions; null until the session read it. The band teaches the chord
+       * until it reaches three.
+       */
+      keysLearned: number | null
+      /** Per pane id, the row element (a card, a move target, a now-tab action) the focus ring was last on. */
+      paneRing: Record<string, string>
       // </feature:views>
       // <feature:loop>
       /** The autoresearch loop the mod is driving, one iteration per turn (null when none). */

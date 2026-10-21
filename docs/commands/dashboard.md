@@ -12,20 +12,26 @@ autoresearch loop.**
 ## With the neuroflow mod
 
 The dashboard opens as a pane drawn by code — no model turn, no tokens — docked beside the conversation in a wide
-terminal, or inline above the prompt otherwise. It stays current as files change.
+terminal, or inline above the prompt otherwise. It opens holding the keyboard, so its keys work at once, and it stays
+current as files change.
 
 | Key | Tab |
 |---|---|
-| `p` | **Phase** — the phase map (`●` current, `✔` visited, `○` recommended) and the next step; `s` opens the phase picker |
-| `d` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
-| `i` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
-| `t` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it, then the project's other repositories from the local cache of their boards), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards, `r` reads them again |
-| `l` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions; `r` refreshes |
+| `1` | **Now** — everything the band above the prompt can show, whatever its `band` setting, each with its action: a drafted decision to keep or drop, a meeting to prepare or close, a flowie sync, wiki cards to review, the loop being driven, the next phase. An action runs only with Enter on its row (`j` and `k` move between the rows), never on a letter, so typing a prompt into the pane cannot migrate, keep or sync anything |
+| `2` | **Phase** — the phase map (`●` current, `✔` visited, `○` recommended) and the next step; `g` opens the phase picker |
+| `3` | **Deadlines** — dated rows of `.neuroflow/timeline.md` and the ethics expiry, with days left |
+| `4` | **Integrity** — ethics approval, frozen preregistration, read-only raw-data folders, config problems; `f` freezes the preregistration after you confirm, `v` re-checks its hashes, `u` unfreezes it with a reason |
+| `5` | **Tasks** — open tasks per level on one line (`project 3 · flowie 12 (2 Oddball EEG) · example-lab-hive 4`: the project, your flowie and each hive, with this project's share where that level links it, then the project's other repositories from the local cache of their boards), then the first open tasks across levels, each tagged with its level — this project's first, overdue first; `b` opens the boards |
+| `6` | **Loop** — the running autoresearch loop: iteration, best snapshot, a quality sparkline and its open questions |
 
-`/neuroflow:dashboard loop` opens it on a tab. The one-line band above the prompt opens it with `d`. When the project is on an
-older neuroflow than the one installed, an `Update` line sits under the title and `m` runs [`/neuroflow:migrate`](migrate.md) —
-or, while a wellbeing check-in still waits to sync to your flowie, puts it in the prompt: press Enter and the sync runs
-first, so the migration finds your flowie clean.
+On every tab `h` and `l` go to the previous and the next tab, `r` reads the files again, `q` closes the dashboard and
+Esc gives the keys back to the prompt (the pane stays). `/neuroflow:dashboard loop` opens it on a tab, and running
+`/neuroflow:dashboard` again gives an open dashboard the keys again. The band above the prompt opens it on the now tab
+with `d`. When the project is on an older neuroflow than the one installed, an `Update` line sits under the title, with
+a migrate action that runs [`/neuroflow:migrate`](migrate.md) on Enter — or, while a wellbeing check-in still waits to
+sync to your flowie, puts it in the prompt: press Esc and then Enter, and the sync runs first, so the migration finds
+your flowie clean. All keys, the chord that reaches the band and the panes, and working over SSH:
+[The neuroflow mod → Keyboard and SSH](../concepts/mods.md#keyboard-and-ssh).
 
 Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader.
 

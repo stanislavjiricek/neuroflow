@@ -20,7 +20,8 @@ import {
   topCards,
   userHives,
 } from '../lib/tasks'
-import { taskLines } from '../features/views'
+import { boardRingTarget, cardKeys, firstTarget, moveTargets, taskLines } from '../features/views'
+import { buttons } from './drawn'
 import { fakeFs } from './fakefs'
 import type { FakeFs } from './fakefs'
 import { memIo } from './memio'
@@ -235,7 +236,7 @@ describe('the task view', () => {
       '[flowie] ◆ Read paper due 10-20',
       '[lab-team] ◆ Agenda item @jana',
       '[flowie] ⚠ Write intro due 10-02',
-      '◆ this project (Oddball EEG, oddball-lab) · ⚠ overdue · /neuroflow:tasks opens the boards (v switches level)',
+      '◆ this project (Oddball EEG, oddball-lab) · ⚠ overdue · /neuroflow:tasks opens the boards (digits pick the level)',
     ])
     expect(lines[1].tone).toBe('warning')
   })
@@ -253,23 +254,34 @@ describe('the boards in a session', () => {
     props: { title: requestId, isFocused: true, bodyColumns: 140, placement: 'inline', scroll: { offset: 0, bodyRows: rows }, view: {} },
   })
 
-  const setUp = (on: On, files: Record<string, string> = FILES): { filled: string[]; fs: FakeFs; clock: ReturnType<typeof mock.clock> } => {
+  type Seen = { filled: string[]; ran: string[]; toasts: string[]; fs: FakeFs; clock: ReturnType<typeof mock.clock> }
+  const setUp = (on: On, files: Record<string, string> = FILES): Seen => {
     const fs = fakeFs(on, files, ROOT)
     mock.env(on, { HOME })
     const clock = mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
     mock.store(on)
+    const seen: Seen = { filled: [], ran: [], toasts: [], fs, clock }
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('ui.open', () => ({ value: { isPlaced: true } }))
     on('ui.close', () => ({ value: undefined }))
-    on('ui.toast', () => ({ value: undefined }))
+    on('ui.toast', ($, e) => {
+      seen.toasts.push(JSON.stringify(e))
+      return { value: undefined }
+    })
     on('ui.status', () => ({ value: undefined }))
+    // The person's Tab, as the engine raises it; the kit has no ring of its own, so the mod's $.ui.focus calls
+    // are not answered there (their target is checked purely: boardRingTarget).
+    on('ui.focus', () => ({}))
     on('turn.complete', () => ({ text: 'done' }))
-    const filled: string[] = []
+    on('command.run', ($, e) => {
+      seen.ran.push(`${e.command} ${e.args}`.trim())
+      return { text: '', ref: 1 }
+    })
     on('prompt.fill', ($, e) => {
-      filled.push(e.text)
+      seen.filled.push(e.text)
       return { isFilled: true, text: e.text, cursor: e.text.length }
     })
-    return { filled, fs, clock }
+    return seen
   }
 
   test('the dashboard\'s tasks tab shows every level', { options: { runtime: 'observe' } }, async ($, on) => {
@@ -283,20 +295,40 @@ describe('the boards in a session', () => {
     await ui.unmount()
   })
 
-  test('/neuroflow:tasks: v switches level, this project\'s cards first and marked, a move fills the level\'s command', { options: { runtime: 'observe' } }, async ($, on) => {
-    const { filled } = setUp(on)
+  test('/neuroflow:tasks: digits pick the level; Enter on a card and a target runs the move at project and flowie level and only fills a hive\'s', { options: { runtime: 'observe' } }, async ($, on) => {
+    const { filled, ran, toasts, clock } = setUp(on)
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     expect((await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)).text).toContain('Task boards open')
     const ui = await $.ui.mount(pane('nf-board') as never)
+    const project = await ui.drawn()
+    expect(JSON.stringify(project)).toContain('level: project')
+    // The shown level is text; every other is a digit key, shown as `2: flowie 3`.
+    expect(JSON.stringify(project)).toContain('1: project 1')
+    expect(buttons(project).filter(button => button.key.startsWith('nf-level-')).map(button => `${button.hotkey}: ${button.label}`)).toEqual([
+      '2: flowie 3',
+      '3: lab-team 2',
+      '4: alpha-team 0',
+      '5: another-team 0',
+    ])
+    // The ring starts on the first card, so Enter acts on it at once.
+    expect(buttons(project).filter(button => button.autoFocus).map(button => button.key)).toEqual(['nf-card-rerun-ica'])
+    // Keys typed through the open do nothing.
+    await ui.press({ key: 'nf-level-flowie' })
     expect(JSON.stringify(await ui.drawn())).toContain('level: project')
-    await ui.press({ key: 'nf-level-next' })
+    await clock.advance(500)
+    await ui.press({ key: 'nf-level-flowie' })
     const flowie = JSON.stringify(await ui.drawn())
     expect(flowie).toContain('level: flowie')
     expect(flowie).toContain('◆ ⚠ Check stats due 10-03')
     expect(flowie).toContain('◆ Oddball EEG (this project)')
     await ui.press({ key: 'nf-card-check-stats' })
+    // The picked card is marked; its targets are the board's other open columns and done.
+    const picked = await ui.drawn()
+    expect(buttons(picked).find(button => button.key === 'nf-card-check-stats')?.label).toContain('▸ ◆ ⚠ Check stats')
+    expect(buttons(picked).filter(button => button.key.startsWith('nf-move-')).map(button => button.label)).toEqual(['inbox', 'ready', 'active', 'meeting', 'done'])
     await ui.press({ key: 'nf-move-done' })
-    await ui.press({ key: 'nf-level-next' })
+    expect(ran).toEqual(['neuroflow:tasks --level flowie --move check-stats done'])
+    await ui.press({ key: 'nf-level-hive:lab-team' })
     const hive = JSON.stringify(await ui.drawn())
     expect(hive).toContain('level: lab-team')
     // The hive names this project by its own registry: the lab project's id, not the flowie's name.
@@ -305,14 +337,73 @@ describe('the boards in a session', () => {
     expect(hive).not.toContain('◆ Review poster')
     await ui.press({ key: 'nf-card-agenda-item' })
     await ui.press({ key: 'nf-move-inbox' })
+    // A push to the team's repository is the person's to send (charter rule 16): the move only goes into the prompt.
+    expect(filled).toEqual(['/neuroflow:tasks --level hive --hive lab-team --move agenda-item inbox'])
+    expect(ran).toHaveLength(1)
+    expect(toasts.join(' ')).toContain('the move is in the prompt — Esc, then Enter sends it')
     await ui.press({ key: 'nf-level-project' })
+    // x cancels a pick: nothing moves.
     await ui.press({ key: 'nf-card-rerun-ica' })
-    await ui.press({ key: 'nf-move-inbox' })
-    expect(filled).toEqual([
-      '/neuroflow:tasks --level flowie --move check-stats done',
-      '/neuroflow:tasks --level hive --hive lab-team --move agenda-item inbox',
-      '/neuroflow:tasks --move rerun-ica inbox',
-    ])
+    await ui.press({ key: 'nf-board-cancel' })
+    expect(buttons(await ui.drawn()).some(button => button.key.startsWith('nf-move-'))).toBe(false)
+    expect(ran).toHaveLength(1)
+    await ui.press({ key: 'nf-card-rerun-ica' })
+    await ui.press({ key: 'nf-move-review' })
+    expect(ran).toEqual(['neuroflow:tasks --level flowie --move check-stats done', 'neuroflow:tasks --move rerun-ica review'])
+    expect(filled).toHaveLength(1)
+    await ui.unmount()
+  })
+
+  test('h, j, k and l: card to card on the grid, target to target once a card is picked, nothing on a read-only board', async () => {
+    const view = await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY)
+    const flowie = view.levels.find(level => level.id === 'flowie')
+    if (flowie === undefined) throw new Error('no flowie level')
+    // flowie: inbox [read-paper] · active [write-intro] · review [check-stats]
+    expect(cardKeys(flowie)).toEqual([['nf-card-read-paper'], ['nf-card-write-intro'], ['nf-card-check-stats']])
+    expect(boardRingTarget(flowie, null, null, 'down')).toBe('nf-card-read-paper')
+    expect(boardRingTarget(flowie, null, 'nf-card-read-paper', 'right')).toBe('nf-card-write-intro')
+    expect(boardRingTarget(flowie, null, 'nf-card-check-stats', 'right')).toBe('nf-card-check-stats')
+    expect(boardRingTarget(flowie, null, 'nf-card-write-intro', 'left')).toBe('nf-card-read-paper')
+    expect(boardRingTarget(flowie, null, 'nf-card-write-intro', 'down')).toBe('nf-card-write-intro')
+    // Picked: the other open columns and done, in board order; the ring starts on the column after the card's.
+    expect(moveTargets(flowie.board, 'active')).toEqual(['inbox', 'ready', 'review', 'meeting', 'done'])
+    expect(firstTarget(flowie.board, 'active')).toBe('review')
+    expect(firstTarget(flowie.board, 'review')).toBe('meeting')
+    expect(boardRingTarget(flowie, 'write-intro', 'nf-move-review', 'down')).toBe('nf-move-meeting')
+    expect(boardRingTarget(flowie, 'write-intro', 'nf-move-review', 'left')).toBe('nf-move-ready')
+    expect(boardRingTarget(flowie, 'write-intro', 'nf-move-done', 'right')).toBe('nf-move-done')
+    // Still on the card (the ring did not reach a target): the first target.
+    expect(boardRingTarget(flowie, 'write-intro', 'nf-card-write-intro', 'down')).toBe('nf-move-inbox')
+    expect(boardRingTarget({ kind: 'remote', board: flowie.board }, null, null, 'down')).toBe(null)
+    expect(cardKeys({ kind: 'remote', board: flowie.board })).toEqual([])
+  })
+
+  test('the board\'s keys: digits for the other levels, h/j/k/l, r and q; the person\'s Tab is followed; nothing breaks without a ring', { options: { runtime: 'observe' } }, async ($, on) => {
+    const { clock } = setUp(on)
+    await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
+    const ui = await $.ui.mount(pane('nf-board') as never)
+    await clock.advance(500)
+    await ui.press({ key: 'nf-level-flowie' })
+    const keys = Object.fromEntries(buttons(await ui.drawn()).filter(button => button.hotkey !== undefined).map(button => [button.key, button.hotkey]))
+    expect(keys).toEqual({
+      'nf-level-project': '1',
+      'nf-level-hive:lab-team': '3',
+      'nf-level-hive:alpha-team': '4',
+      'nf-level-hive:another-team': '5',
+      'nf-nav-left': 'h',
+      'nf-nav-right': 'l',
+      'nf-nav-down': 'j',
+      'nf-nav-up': 'k',
+      'nf-board-refresh': 'r',
+      'nf-board-close': 'q',
+    })
+    // The person's own Tab moves the ring (the engine raises ui.focus); j, k, h and l go on from there.
+    await $.ui.focus({ component: 'Pane', requestId: 'nf-board', plugin: 'neuroflow', element: 'nf-card-write-intro', origin: { kind: 'person' } } as never)
+    for (const key of ['nf-nav-left', 'nf-nav-right', 'nf-nav-down', 'nf-nav-up']) await ui.press({ key })
+    // A card picked, x shows up to cancel it.
+    await ui.press({ key: 'nf-card-write-intro' })
+    expect(buttons(await ui.drawn()).find(button => button.key === 'nf-board-cancel')?.hotkey).toBe('x')
     await ui.unmount()
   })
 
@@ -321,12 +412,12 @@ describe('the boards in a session', () => {
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)
     const ui = await $.ui.mount(pane('nf-board') as never)
-    expect(JSON.stringify(await ui.drawn())).toContain('[project 1]')
+    expect(JSON.stringify(await ui.drawn())).toContain('1: project 1')
     // /tasks --move ran in the turn: the file is in done/ now.
     fs.files[`${ROOT}/.neuroflow/tasks/done/rerun-ica.md`] = fs.files[`${ROOT}/.neuroflow/tasks/active/rerun-ica.md`]
     delete fs.files[`${ROOT}/.neuroflow/tasks/active/rerun-ica.md`]
     await $.turn.complete({ reason: 'answer', answer: 'moved', durationMs: 1, isAborted: false, turnId: 't1' } as never)
-    expect(JSON.stringify(await ui.drawn())).toContain('[project 0]')
+    expect(JSON.stringify(await ui.drawn())).toContain('1: project 0')
     await ui.unmount()
   })
 

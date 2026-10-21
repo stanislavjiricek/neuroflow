@@ -5,6 +5,7 @@ import type { NfFlowieSyncEntry } from '../../../types'
 import { SYNC_QUEUE, afterFlush, asQueue, checkRemoteEntry, enqueue, flushFlowie, gitReason, isSettled, syncState } from '../lib/flowiesync'
 import type { NfIo, NfRun } from '../lib/io'
 import { bandItems, keyFillsPrompt } from '../features/views'
+import { elements, hotkeys } from './drawn'
 import { fakeFs } from './fakefs'
 import { memIo } from './memio'
 
@@ -292,7 +293,11 @@ describe('the wellbeing band', () => {
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     await checkDone()
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
-    expect(JSON.stringify(await ui.drawn())).toContain('wellbeing today')
+    const asking = await ui.drawn()
+    expect(JSON.stringify(asking)).toContain('wellbeing today')
+    // ^X Tab lands in the field (its ring starts there); x is the band's not-today.
+    expect(elements(asking, 'Input').map(field => [field.key, field.props.autoFocus])).toEqual([['nf-wellbeing', true]])
+    expect(hotkeys(asking)).toEqual(['x'])
     await ui.input({ key: 'nf-wellbeing', text: '3 6 7 slept badly' })
     expect(seen.git).toEqual([])
     expect(JSON.parse(fs.files[`${FLOWIE}/wellbeing/2026-10-07.json`])).toEqual({ date: '2026-10-07', anxiety: 3, energy: 6, happiness: 7, notes: 'slept badly' })
@@ -503,7 +508,7 @@ describe('the sync before a neuroflow command', () => {
     await ui.unmount()
   })
 
-  test('while a sync waits, m on the band and on the dashboard puts /neuroflow:migrate in the prompt; once synced, m runs it', { options: { runtime: 'observe', band: 'normal' } }, async ($, on) => {
+  test('while a sync waits, m on the band and the dashboard\'s migrate put /neuroflow:migrate in the prompt; once synced, they run it', { options: { runtime: 'observe', band: 'normal' } }, async ($, on) => {
     // A key's command does not pass the mod's own hooks: sent with Enter, it does.
     fakeFs(on, BEHIND, ROOT)
     const seen = session(on, noHooks)
@@ -522,9 +527,12 @@ describe('the sync before a neuroflow command', () => {
     expect(drawn).toContain('this project is on 0.2.21')
     await ui.press({ key: 'nf-migrate' })
     expect(filled).toEqual(['/neuroflow:migrate'])
-    expect(seen.toasts.join(' ')).toContain('press Enter to run it — your flowie sync goes first')
+    // The band keeps the keys after the press, so Enter alone would press its key again: Esc comes first.
+    expect(seen.toasts.join(' ')).toContain('/neuroflow:migrate is in the prompt — Esc, then Enter runs it; your flowie sync goes first')
     await $.command.run({ command: 'neuroflow:dashboard', args: '' } as never)
     const pane = await $.ui.mount<'terminal', 'Pane'>(DASHBOARD as never)
+    // Past the keys typed through the open (lib/keys.ts → TYPE_THROUGH_MS).
+    await seen.clock.advance(500)
     await pane.press({ key: 'nf-dash-migrate' })
     expect(filled).toEqual(['/neuroflow:migrate', '/neuroflow:migrate'])
     expect(seen.ran).toEqual([])

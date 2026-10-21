@@ -11,7 +11,8 @@ import {
   parseXray,
   skeletonDate,
 } from '../lib/paper'
-import { XRAY_PAGE, findingLabel, xrayCounts, xrayPage } from '../features/user'
+import { XRAY_PAGE, findingLabel, xrayCounts, xrayPage, xrayStep } from '../features/user'
+import { buttons } from './drawn'
 import { fakeFs } from './fakefs'
 
 const ledger = [
@@ -94,10 +95,14 @@ describe('paper commands in a session', () => {
   test('--auto status is answered in code; --xray view opens the findings and a key press accepts one', { options: { runtime: 'observe' } }, async ($, on) => {
     const fs = fakeFs(on, files, root)
     mock.env(on, { HOME: '/home/me' })
-    mock.clock(on, { now: 0 })
+    const clock = mock.clock(on, { now: 0 })
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('ui.status', () => ({ value: undefined }))
-    on('ui.open', () => ({ value: undefined }))
+    const opens: { id: string; focus?: boolean; rows?: number }[] = []
+    on('ui.open', ($, e) => {
+      opens.push(e as never)
+      return { value: undefined }
+    })
     let ranProse = false
     on('command.run', () => {
       ranProse = true
@@ -106,14 +111,26 @@ describe('paper commands in a session', () => {
     await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
     const status = await $.command.run({ command: 'neuroflow:paper', args: '--auto status' })
     expect(status.text).toContain('Auto paper: on | 2 facts (1 final) | synced 2026-10-05 | 1 gap | H2: no final result')
+    const paper = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-paper',
+      props: { title: 'living paper', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+    } as never)
+    expect(Object.fromEntries(buttons(await paper.drawn()).map(button => [button.key, button.hotkey]))).toEqual({ 'nf-paper-sync': 's', 'nf-paper-refresh': 'r', 'nf-paper-close': 'q' })
+    await paper.unmount()
     const opened = await $.command.run({ command: 'neuroflow:paper', args: '--xray view' })
     expect(opened.text).toBe('X-ray results-2026-10-07: 1 red, 1 orange open; 0 decided.')
     expect(ranProse).toBe(false)
+    // Both panes open holding the keys, at the height they ask for.
+    expect(opens.map(open => [open.id, open.focus, open.rows])).toEqual([['nf-paper', true, 14], ['nf-xray', true, 16]])
     const pane = await $.ui.mount({
       plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-xray',
       props: { title: 'X-ray', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
     } as never)
     expect(JSON.stringify(await pane.drawn())).toContain('S3.2-1')
+    // y right after the open is typed through: nothing is decided.
+    await pane.press({ key: 'nf-xray-accept' })
+    expect(parseXray(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.jsonl`])[0].status).toBe('open')
+    await clock.advance(500)
     await pane.press({ key: 'nf-xray-accept' })
     expect(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.md`]).toContain('  - [x] S3.2-1 red')
     expect(parseXray(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.jsonl`])[0].status).toBe('accepted')
@@ -132,34 +149,42 @@ describe('a long X-ray (#255)', () => {
       }),
     ).join('\n')
 
-  test('pages: red first, at most the page size, neighbours reach every finding', () => {
+  test('pages: red first, at most the page size, neighbours reach every finding; j and k step across pages', () => {
     const open = parseXray(make(145))
-    const first = xrayPage(open, null, XRAY_PAGE.select)
+    const first = xrayPage(open, null, 64)
     expect(first.shown.length).toBe(64)
     expect([first.from, first.to, first.total]).toEqual([1, 64, 145])
     expect(first.shown.slice(0, 15).every(item => item.severity === 'red')).toBe(true)
     expect(first.previous).toBe(null)
-    const second = xrayPage(open, first.next?.id ?? null, XRAY_PAGE.select)
+    const second = xrayPage(open, first.next?.id ?? null, 64)
     expect([second.from, second.to]).toEqual([65, 128])
-    const last = xrayPage(open, second.next?.id ?? null, XRAY_PAGE.select)
+    const last = xrayPage(open, second.next?.id ?? null, 64)
     expect([last.from, last.to, last.next]).toEqual([129, 145, null])
-    expect(xrayPage(open, null, XRAY_PAGE.buttons).shown.length).toBe(8)
+    expect(xrayPage(open, null, XRAY_PAGE).shown.length).toBe(8)
     // Exactly one page needs no pager; one more finding makes two pages.
-    const sixtyFour = xrayPage(parseXray(make(64)), null, XRAY_PAGE.select)
+    const sixtyFour = xrayPage(parseXray(make(64)), null, 64)
     expect([sixtyFour.shown.length, sixtyFour.next]).toEqual([64, null])
-    const sixtyFive = xrayPage(parseXray(make(65)), null, XRAY_PAGE.select)
+    const sixtyFive = xrayPage(parseXray(make(65)), null, 64)
     expect([sixtyFive.shown.length, sixtyFive.total, sixtyFive.next === null]).toEqual([64, 65, false])
     expect(xrayPage([], null, 64)).toMatchObject({ shown: [], from: 0, to: 0, total: 0, first: null })
+    // j and k walk the pane's order (red first), not the file's, and stay at the ends.
+    const page = xrayPage(open, null, XRAY_PAGE)
+    const eighth = page.shown[7]
+    expect(xrayStep(open, page.shown[0]?.id ?? null, 1)?.id).toBe(page.shown[1]?.id)
+    expect(xrayPage(open, xrayStep(open, eighth?.id ?? null, 1)?.id ?? null, XRAY_PAGE).from).toBe(9)
+    expect(xrayStep(open, page.shown[0]?.id ?? null, -1)?.id).toBe(page.shown[0]?.id)
+    expect(xrayStep(open, 'gone', 1)?.id).toBe(page.shown[0]?.id)
+    expect(xrayStep([], null, 1)).toBe(null)
   })
 
-  test('the pane draws 145 open findings a page at a time and n/p move between pages', { options: { runtime: 'observe' } }, async ($, on) => {
+  test('the pane draws 145 open findings eight at a time; j and k step through them and turn the page', { options: { runtime: 'observe' } }, async ($, on) => {
     const root = '/work/proj'
     fakeFs(on, {
       [`${root}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nactive_phase: paper\n---\n',
       [`${root}/.neuroflow/paper/xray-sn-article-2026-10-16.jsonl`]: make(145),
     }, root)
     mock.env(on, { HOME: '/home/me' })
-    mock.clock(on, { now: 0 })
+    const clock = mock.clock(on, { now: 0 })
     on('session.start', ($$, e) => ({ cwd: e.cwd }))
     on('ui.status', () => ({ value: undefined }))
     on('ui.open', () => ({ value: undefined }))
@@ -171,14 +196,16 @@ describe('a long X-ray (#255)', () => {
       plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-xray',
       props: { title: 'X-ray', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
     } as never)
-    const drawn = JSON.stringify(await pane.drawn())
-    expect(drawn).toContain('showing 1–64 of 145 open, red first')
-    expect(drawn).toContain('S1.1-1')
-    await pane.press({ key: 'nf-xray-next' })
-    const next = JSON.stringify(await pane.drawn())
-    expect(next).toContain('showing 65–128 of 145 open')
+    await clock.advance(500)
+    const drawn = await pane.drawn()
+    expect(JSON.stringify(drawn)).toContain('showing 1–8 of 145 open, red first')
+    // The picked finding is marked; every hotkey is the key map's: y, n, j, k, q.
+    expect(buttons(drawn).find(button => button.key === 'nf-xray-S1.1-1')?.label).toContain('▸ ● S1.1-1 red')
+    expect(buttons(drawn).flatMap(button => (button.hotkey === undefined ? [] : [button.hotkey]))).toEqual(['y', 'n', 'j', 'k', 'q'])
+    for (let step = 0; step < 8; step += 1) await pane.press({ key: 'nf-xray-next' })
+    expect(JSON.stringify(await pane.drawn())).toContain('showing 9–16 of 145 open')
     await pane.press({ key: 'nf-xray-prev' })
-    expect(JSON.stringify(await pane.drawn())).toContain('showing 1–64 of 145 open')
+    expect(JSON.stringify(await pane.drawn())).toContain('showing 1–8 of 145 open')
     await pane.unmount()
   })
 })

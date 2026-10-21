@@ -1,31 +1,39 @@
 // Views — the project at a glance, drawn by code at zero tokens (charter: quiet by default).
-//  - the band above the prompt (M080, M064, M214): one line of what needs attention, letter hotkeys only
-//  - the dashboard pane (M069, M084): phase map, deadlines, integrity, tasks, autoresearch loop
+//  - the band above the prompt (M080, M064, M214): one row of what needs attention, letter hotkeys only, and the
+//    engine's focus chord (^X Tab) next to them until the person has used it three times
+//  - the dashboard pane (M069, M084): now (every band item with its action), phase map, deadlines, integrity,
+//    tasks, the autoresearch loop — tabs on the digits 1–6
 //  - /neuroflow:phase answered in code (M163, M011): a picker — arrows and Enter, or a click
 //  - /neuroflow:dashboard opens the pane; its integrity tab freezes, verifies and unfreezes a
 //    preregistration on a person's key press and confirmation (M018), through freeze.py
-//  - /neuroflow:tasks opens the task boards of every level — project, flowie, each hive (M070, M163)
-// Without the mod, commands/phase.md, commands/dashboard.md and commands/tasks.md do the same in prose.
+//  - /neuroflow:tasks opens the task boards of every level — project, flowie, each hive (M070, M163); a move runs
+//    on Enter at project and flowie level, and goes into the prompt at a hive's for the person to send (rule 16)
+// Every view a command opens takes the keyboard, keys typed through that open are dropped, and every hotkey comes
+// from the one key map in lib/keys.ts. Without the mod, commands/phase.md, commands/dashboard.md and
+// commands/tasks.md do the same in prose.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { NfDashboardTab, NfFlowieSync, NfLoopView, NfSnapshot, NfTaskView } from '../../../types'
+import type { NfBoard, NfDashboardTab, NfDraftedDecision, NfDrive, NfFlowieSync, NfLoopView, NfSnapshot, NfTaskLevel, NfTaskView } from '../../../types'
 import { setActivePhase } from '../lib/config'
 import { NO_SYNC, SYNC_QUEUE, asQueue, checkRemoteEntry, enqueue, syncState } from '../lib/flowiesync'
 import type { NfIo } from '../lib/io'
+import { BAND, CHORD, DASH, DASHBOARD_TABS, DIGITS, KEYS_LEARNED, LEARNED_AFTER, NAV, gridNeighbour, isPastTypeThrough, lineNeighbour, paneRows, tabNeighbour } from '../lib/keys'
+import type { Direction } from '../lib/keys'
+import { bandPlan, fit, measuredRows, rememberViewport } from '../lib/layout'
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
 import { PHASES, isPhase, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
-import { MINE, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
+import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
 import { isQuiet } from './scope'
 
 const scopeAtom = atom({ plugin: 'neuroflow', key: 'scope' } as const, null)
 const snapshotAtom = atom({ plugin: 'neuroflow', key: 'snapshot' } as const, null)
 const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
-const tabAtom = atom({ plugin: 'neuroflow', key: 'dashboardTab' } as const, 'phase')
+const tabAtom = atom({ plugin: 'neuroflow', key: 'dashboardTab' } as const, 'now')
 const bandHiddenAtom = atom({ plugin: 'neuroflow', key: 'bandHidden' } as const, false)
 const loopViewAtom = atom({ plugin: 'neuroflow', key: 'loopView' } as const, null)
 const pickerNoteAtom = atom({ plugin: 'neuroflow', key: 'pickerNote' } as const, null)
@@ -38,6 +46,9 @@ const boardPickAtom = atom({ plugin: 'neuroflow', key: 'boardPick' } as const, n
 const quietAtom = atom({ plugin: 'neuroflow', key: 'quietSince' } as const, null)
 const flowieSyncAtom = atom({ plugin: 'neuroflow', key: 'flowieSync' } as const, NO_SYNC)
 const wellbeingCheckAtom = atom({ plugin: 'neuroflow', key: 'wellbeingCheck' } as const, null)
+const openedAtAtom = atom({ plugin: 'neuroflow', key: 'openedAt' } as const, {})
+const keysLearnedAtom = atom({ plugin: 'neuroflow', key: 'keysLearned' } as const, null)
+const paneRingAtom = atom({ plugin: 'neuroflow', key: 'paneRing' } as const, {})
 
 const DASHBOARD = 'nf-dashboard'
 const PROJECTS_SCRIPT = 'skills/neuroflow-core/scripts/projects.py'
@@ -45,14 +56,8 @@ const PICKER = 'nf-phase'
 const BOARD = 'nf-board'
 /** $.store key: the ISO date on which the person hid the band (a preference, not research state). */
 const BAND_HIDDEN_ON = 'band.hiddenOn'
-
-const TABS: readonly { id: NfDashboardTab; label: string; hotkey: string }[] = [
-  { id: 'phase', label: 'phase', hotkey: 'p' },
-  { id: 'deadlines', label: 'deadlines', hotkey: 'd' },
-  { id: 'integrity', label: 'integrity', hotkey: 'i' },
-  { id: 'tasks', label: 'tasks', hotkey: 't' },
-  { id: 'loop', label: 'loop', hotkey: 'l' },
-]
+/** The band's elements its ring starts on when it takes the keys: never one that writes or consents. */
+const BAND_TAKES: readonly string[] = ['nf-band-dashboard', 'nf-wellbeing']
 
 // ── pure helpers (exported for tests) ──────────────────────────────────────────────────────────
 
@@ -78,7 +83,7 @@ export const meetingWhen = (minutes: number, date: string, nowMs: number): strin
 /** The band's line for a flowie sync the mod queued that is still waiting or did not go through; null when none. */
 export const flowieSyncItem = (sync: NfFlowieSync | null): BandItem | null => {
   if (sync === null) return null
-  const actions = [{ key: 'nf-flowie-sync', label: 'sync', hotkey: 's', command: 'neuroflow:flowie', args: '--sync' }]
+  const actions = [{ key: 'nf-flowie-sync', label: 'sync', hotkey: BAND.sync, command: 'neuroflow:flowie', args: '--sync' }]
   if (sync.failure !== null) return { level: 'warn', glyph: '!', text: `flowie not synced: ${sync.failure} — /neuroflow:flowie --sync`, actions }
   if (sync.pending.length > 0) {
     return {
@@ -125,8 +130,8 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync |
       glyph: '▸',
       text: `meeting "${upcoming.title}" ${meetingWhen(upcoming.startsIn, upcoming.date, snap.loadedAt)}`,
       actions: [
-        { key: 'nf-meet-prepare', label: 'prepare', hotkey: 'p', command: 'neuroflow:meeting', args: `--prepare ${upcoming.slug}` },
-        { key: 'nf-meet-notes', label: 'notes', hotkey: 'o', command: 'neuroflow:meeting', args: `--notes ${upcoming.slug}` },
+        { key: 'nf-meet-prepare', label: 'prepare', hotkey: BAND.prepare, command: 'neuroflow:meeting', args: `--prepare ${upcoming.slug}` },
+        { key: 'nf-meet-notes', label: 'notes', hotkey: BAND.notes, command: 'neuroflow:meeting', args: `--notes ${upcoming.slug}` },
       ],
     })
   }
@@ -136,7 +141,7 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync |
       level: 'warn',
       glyph: '!',
       text: `meeting "${unclosed.title}" not closed — ${unclosed.openActions} open action item(s)`,
-      actions: [{ key: 'nf-meet-close', label: 'close', hotkey: 'c', command: 'neuroflow:meeting', args: `--close ${unclosed.slug}` }],
+      actions: [{ key: 'nf-meet-close', label: 'close meeting', hotkey: BAND.closeMeeting, command: 'neuroflow:meeting', args: `--close ${unclosed.slug}` }],
     })
   }
   // A flowie sync the mod queued (wellbeing, ideas) that has not gone through yet; ahead of the version notice,
@@ -151,7 +156,7 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync |
       level: 'warn',
       glyph: '↑',
       text: behind,
-      actions: [{ key: 'nf-migrate', label: 'migrate', hotkey: 'm', command: 'neuroflow:migrate', args: '' }],
+      actions: [{ key: 'nf-migrate', label: 'migrate', hotkey: BAND.migrate, command: 'neuroflow:migrate', args: '' }],
     })
   }
   if (!quiet) {
@@ -160,7 +165,7 @@ export const bandItems = (snap: NfSnapshot, quiet: boolean, sync: NfFlowieSync |
         level: 'info',
         glyph: '✎',
         text: `${snap.wikiPending} wiki card${snap.wikiPending === 1 ? '' : 's'} waiting for review`,
-        actions: [{ key: 'nf-wiki-review', label: 'review', hotkey: 'w', command: 'neuroflow:wiki', args: '--review' }],
+        actions: [{ key: 'nf-wiki-review', label: 'review', hotkey: BAND.review, command: 'neuroflow:wiki', args: '--review' }],
       })
     }
     for (const loop of snap.loops.filter(item => /running/i.test(item.status))) {
@@ -186,6 +191,107 @@ export const bandActions = (shown: readonly BandItem[]): BandAction[] => {
     }
   }
   return actions
+}
+
+/** What a row of the dashboard's now tab runs on Enter: a neuroflow command, or one of the band's own acts. */
+export type NowAct = { kind: 'command'; command: string; args: string } | { kind: 'keep' } | { kind: 'drop' } | { kind: 'stop-drive' } | { kind: 'stop-capture' }
+export type NowAction = { key: string; label: string; act: NowAct }
+export type NowRow = { level: BandItem['level']; glyph: string; text: string; actions: NowAction[] }
+/** What the band draws besides its items, read from state as the band reads it. */
+export type NowLive = { draft: NfDraftedDecision | null; drive: NfDrive | null; capture: { target: string; count: number } | null }
+
+/**
+ * The dashboard's now tab: every item the band can show, whatever the quiet setting, each with its action — the
+ * drafted decision, the loop being driven and a live note capture first, as on the band. The version notice is
+ * the pane's Update line, above every tab. An action runs on Enter on its row and has no letter: a pane that holds
+ * the keys must never turn typed words into a migration, a kept decision or a paid turn.
+ */
+export const nowRows = (snap: NfSnapshot, sync: NfFlowieSync | null, live: NowLive): NowRow[] => {
+  const rows: NowRow[] = []
+  if (live.draft !== null) {
+    rows.push({
+      level: 'warn',
+      glyph: '✎',
+      text: `decision drafted for ${live.draft.phase}: ${live.draft.statement}`,
+      actions: [
+        { key: 'nf-now-draft-keep', label: 'keep', act: { kind: 'keep' } },
+        { key: 'nf-now-draft-drop', label: 'drop', act: { kind: 'drop' } },
+      ],
+    })
+  }
+  if (live.drive !== null) {
+    rows.push({
+      level: 'info',
+      glyph: '↻',
+      text: `driving autoresearch "${live.drive.name}" · turn ${live.drive.turns}${live.drive.errors > 0 ? ` · ${live.drive.errors} error(s) in a row` : ''}`,
+      actions: [{ key: 'nf-now-drive-stop', label: 'stop', act: { kind: 'stop-drive' } }],
+    })
+  }
+  if (live.capture !== null) {
+    rows.push({
+      level: 'warn',
+      glyph: '●',
+      text: `capturing notes → ${live.capture.target} · ${live.capture.count} entr${live.capture.count === 1 ? 'y' : 'ies'} · messages are not sent to the model`,
+      actions: [{ key: 'nf-now-capture-stop', label: 'stop', act: { kind: 'stop-capture' } }],
+    })
+  }
+  const notice = versionNotice(snap)
+  for (const item of bandItems(snap, false, sync)) {
+    if (item.text === notice) continue
+    rows.push({
+      level: item.level,
+      glyph: item.glyph,
+      text: item.text,
+      actions: (item.actions ?? []).map(action => ({
+        key: `nf-now-${action.key.replace(/^nf-/, '')}`,
+        label: action.label,
+        act: { kind: 'command', command: action.command, args: action.args },
+      })),
+    })
+  }
+  if (snap.wellbeingDue) rows.push({ level: 'info', glyph: '·', text: 'wellbeing check-in due — the band asks for it, or /neuroflow:flowie --assess', actions: [] })
+  return rows
+}
+
+/** The now tab's rows in the order j and k walk them: the Update line's migrate first, then each row's actions. */
+export const nowRingKeys = (rows: readonly NowRow[], isBehind: boolean): string[] => [
+  ...(isBehind ? ['nf-dash-migrate'] : []),
+  ...rows.flatMap(row => row.actions.map(action => action.key)),
+]
+
+/** The element keys the focus ring is tracked on in a pane: cards, move targets and now-tab actions. */
+export const isRowKey = (key: string): boolean => /^nf-(card|move|now)-/.test(key) || key === 'nf-dash-migrate'
+
+/** The keys of the cards a board draws, column by column; none on a read-only board, whose cards are text. */
+export const cardKeys = (level: Pick<NfTaskLevel, 'kind' | 'board'>): string[][] =>
+  level.kind === 'remote' ? [] : level.board.columns.map(column => column.cards.map(card => `nf-card-${card.slug}`))
+
+/** The column of a card the board draws, or null. */
+export const cardColumn = (board: NfBoard, slug: string): string | null =>
+  board.columns.find(column => column.cards.some(card => card.slug === slug))?.id ?? null
+
+/** The board's open columns in board order, drawn or not (an empty `review` is a place to move to all the same). */
+const openColumnsOf = (board: NfBoard): string[] => ((board.openColumns ?? []).length > 0 ? board.openColumns : board.columns.map(column => column.id))
+
+/** Where a picked card can move: every other open column of the board, then done. */
+export const moveTargets = (board: NfBoard, from: string | null): string[] => [...openColumnsOf(board).filter(id => id !== from && id !== 'done'), 'done']
+
+/** The target the ring goes to once a card is picked: the column after the card's, else the first target. */
+export const firstTarget = (board: NfBoard, from: string | null): string | null => {
+  const ids = openColumnsOf(board)
+  const targets = moveTargets(board, from)
+  return ids.slice(from === null ? 0 : ids.indexOf(from) + 1).find(id => targets.includes(id)) ?? targets[0] ?? null
+}
+
+/**
+ * Where h, j, k or l takes the board's ring from `at`: card to card on the board's grid; once a card is picked,
+ * target to target (h and k back, j and l on). Null on a read-only board, whose cards are text.
+ */
+export const boardRingTarget = (level: Pick<NfTaskLevel, 'kind' | 'board'>, pick: string | null, at: string | null, direction: Direction): string | null => {
+  if (level.kind === 'remote') return null
+  if (pick === null) return gridNeighbour(cardKeys(level), at, direction)
+  const keys = moveTargets(level.board, cardColumn(level.board, pick)).map(target => `nf-move-${target}`)
+  return lineNeighbour(keys, at, direction === 'left' || direction === 'up' ? -1 : 1)
 }
 
 const BARS = '▁▂▃▄▅▆▇█'
@@ -233,6 +339,8 @@ export const parseOpenQuestions = (reportMd: string, max = 3): string[] => {
 
 const label = (id: string | null): string => PHASES.find(phase => phase.id === id)?.label ?? ''
 
+const LEVEL_TONE: Record<BandItem['level'], Tone | undefined> = { alert: 'error', warn: 'warning', info: undefined }
+
 /**
  * The tasks tab (commands/dashboard.md → Tasks): open tasks per level on one line, this project's share in
  * brackets, then the first open cards across levels — this project's first, overdue first, then by due date —
@@ -249,7 +357,7 @@ export const taskLines = (view: NfTaskView | null, max = 5): Line[] => {
   const key = [
     ...(names.length > 0 ? [`${MINE} this project (${names.join(', ')})`] : []),
     ...(overdue ? ['⚠ overdue'] : []),
-    '/neuroflow:tasks opens the boards (v switches level)',
+    '/neuroflow:tasks opens the boards (digits pick the level)',
   ]
   return [
     { text: levelSummary(view) },
@@ -262,6 +370,15 @@ export const taskLines = (view: NfTaskView | null, max = 5): Line[] => {
 
 /** The dashboard body for one tab, as plain lines (the text form every surface can show). */
 export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView | null, tasks: NfTaskView | null = null): Line[] => {
+  if (tab === 'now') {
+    const notice = versionNotice(snap)
+    const items = bandItems(snap, false).filter(item => item.text !== notice)
+    if (items.length === 0) return [{ text: 'Nothing needs your attention.', dim: true }]
+    return items.map(item => ({
+      text: `${item.glyph} ${item.text}${(item.actions ?? []).length > 0 ? ` — ${(item.actions ?? []).map(action => action.label).join(', ')}` : ''}`,
+      tone: LEVEL_TONE[item.level],
+    }))
+  }
   if (tab === 'phase') {
     const map = phaseMap(snap.phase, snap.phasesVisited, snap.recommendedPhases)
     const next = nextPhase(snap.phase, snap.recommendedPhases)
@@ -310,7 +427,7 @@ export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView
   const last = loop.running.length > 0 ? loop.running[loop.running.length - 1] : null
   return [
     { text: `${loop.name} (${loop.phase}) · ${loop.status} · iteration ${loop.iterations} · best ${loop.best}` },
-    { text: loop.running.length > 0 ? `quality ${sparkline(loop.running)}  ${last !== null && last > 0 ? '+' : ''}${last ?? ''}` : 'no iterations recorded yet', dim: loop.running.length === 0 },
+    { text: loop.running.length > 0 ? `quality ${sparkline(loop.running)}  ${last !== null && last !== undefined && last > 0 ? '+' : ''}${last ?? ''}` : 'no iterations recorded yet', dim: loop.running.length === 0 },
     ...(loop.questions.length > 0
       ? [{ text: 'Open questions:', tone: 'warning' as Tone }, ...loop.questions.map(question => ({ text: `  ${question}` }))]
       : [{ text: 'No open questions.', dim: true }]),
@@ -334,6 +451,36 @@ const ioOf = ($: EngineInterface): NfIo => ({
 const reload = async ($: EngineInterface, root: string): Promise<void> => {
   const snapshot = await loadSnapshot(ioOf($), root)
   await update($, snapshotAtom, () => snapshot)
+}
+
+/** A pane opens asking for the keys: from now, keys typed within TYPE_THROUGH_MS are taken as typed through. */
+const markOpened = async ($: EngineInterface, id: string): Promise<void> => {
+  const now = await $.clock.now()
+  await update($, openedAtAtom, opened => ({ ...opened, [id]: now }))
+}
+
+/**
+ * A press handler for a pane's element that ignores the keys typed through a focused open (lib/keys.ts →
+ * TYPE_THROUGH_MS): a person who presses Enter on the command and keeps typing never runs anything there.
+ */
+const act =
+  ($: EngineInterface, id: string, run: () => unknown) =>
+  async (): Promise<void> => {
+    if (!isPastTypeThrough(await $.clock.now(), (await read($, openedAtAtom))[id])) return
+    await run()
+  }
+
+/** Moves the pane's focus ring onto one of its elements and remembers it there (j, k, h, l; a picked card). */
+const focusRing = async ($: EngineInterface, pane: string, key: string): Promise<void> => {
+  const result = await $.ui.focus({ requestId: pane, key }).catch((): { deny?: string } => ({ deny: 'no ring' }))
+  if (result.deny === undefined) await update($, paneRingAtom, ring => ({ ...ring, [pane]: key }))
+}
+
+/** j and k in a list of rows: the next or the previous one from where the ring is, the first when it is elsewhere. */
+const stepRing = async ($: EngineInterface, pane: string, keys: readonly string[], step: 1 | -1): Promise<void> => {
+  const at = (await read($, paneRingAtom))[pane] ?? null
+  const to = lineNeighbour(keys, at, step)
+  if (to !== null && to !== at) await focusRing($, pane, to)
 }
 
 /** Sets the active phase as the person asked: config, session log, reasoning log, snapshot. */
@@ -443,50 +590,131 @@ const refreshRemoteBoards = ($: EngineInterface, card: string, root: string): Pr
   return remoteRefreshing
 }
 
-const selectTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
-  await update($, tabAtom, () => tab)
+/** What a tab needs read before it draws: the loop's files, every level's board. */
+const loadTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
   if (tab === 'loop') await loadLoopView($)
   if (tab === 'tasks') await loadTasks($, true)
 }
 
+const selectTab = async ($: EngineInterface, tab: NfDashboardTab): Promise<void> => {
+  await update($, tabAtom, () => tab)
+  await loadTab($, tab)
+}
+
+/** r on the dashboard: the project's files and the shown tab's read again. */
+const rereadDashboard = async ($: EngineInterface): Promise<void> => {
+  const scope = await read($, scopeAtom)
+  if (scope !== null && scope.root !== null) await reload($, scope.root)
+  await loadTab($, await read($, tabAtom))
+}
+
+/**
+ * Opens the dashboard holding the keys (a request the engine grants over an empty prompt; again on an open one,
+ * which focuses it). Without a tab, on the one it showed last — the now tab in a fresh session.
+ */
 const openDashboard = async ($: EngineInterface, tab?: string): Promise<void> => {
-  const wanted = TABS.find(item => item.id === tab)
+  const wanted = DASHBOARD_TABS.find(item => item.id === tab)
   if (wanted !== undefined) await selectTab($, wanted.id)
-  else {
-    const current = await read($, tabAtom)
-    if (current === 'loop') await loadLoopView($)
-    if (current === 'tasks') await loadTasks($, true)
-  }
-  await $.ui.open({ id: DASHBOARD, title: 'neuroflow' })
+  else await loadTab($, await read($, tabAtom))
+  await markOpened($, DASHBOARD)
+  await $.ui.open({ id: DASHBOARD, title: 'neuroflow', focus: true, rows: paneRows('dashboard', measuredRows()) })
 }
 
 const openPicker = async ($: EngineInterface): Promise<void> => {
   await update($, pickerNoteAtom, () => null)
-  await $.ui.open({ id: PICKER, title: 'Switch phase', focus: true, closeOnEscape: true, rows: 12 })
+  await markOpened($, PICKER)
+  await $.ui.open({ id: PICKER, title: 'Switch phase', focus: true, closeOnEscape: true, rows: paneRows('picker', measuredRows()) })
+}
+
+/**
+ * From the dashboard to another view (g, b): the engine gives the keys to a pane only from the prompt, never from a
+ * pane that holds them, so the dashboard closes first and the next view opens holding the keys.
+ */
+const handOver = async ($: EngineInterface, open: () => Promise<void>): Promise<void> => {
+  await $.ui.close({ id: DASHBOARD })
+  await open()
 }
 
 const isPersonThere = async ($: EngineInterface): Promise<boolean> => (await $.session.surfaces()).length > 0
 
 /**
- * Opens the board pane on the level commands/tasks.md names: the project's when it has open tasks, else the first
- * level with open tasks of this project, else the first with any open tasks.
+ * Opens the board pane holding the keys, on the level commands/tasks.md names: the project's when it has open
+ * tasks, else the first level with open tasks of this project, else the first with any open tasks.
  */
 const openBoard = async ($: EngineInterface): Promise<void> => {
   await loadTasks($, true)
   const view = await read($, taskViewAtom)
   await update($, boardPickAtom, () => null)
   await update($, boardLevelAtom, () => (view === null ? null : openingLevel(view)))
-  await $.ui.open({ id: BOARD, title: 'tasks' })
+  await markOpened($, BOARD)
+  await $.ui.open({ id: BOARD, title: 'tasks', focus: true, rows: paneRows('board', measuredRows()) })
 }
 
-/** The board pane's level switch: the next level after the shown one, back to the first after the last. */
-const nextLevel = async ($: EngineInterface): Promise<void> => {
+/** The level the board shows. */
+const shownLevel = async ($: EngineInterface): Promise<NfTaskLevel | undefined> => {
   const view = await read($, taskViewAtom)
-  if (view === null || view.levels.length === 0) return
   const shown = await read($, boardLevelAtom)
-  const at = view.levels.findIndex(level => level.id === shown)
+  return view?.levels.find(item => item.id === shown) ?? view?.levels[0]
+}
+
+/** A level's digit: that level's board, the ring on its first card. */
+const showLevel = async ($: EngineInterface, id: string): Promise<void> => {
   await update($, boardPickAtom, () => null)
-  await update($, boardLevelAtom, () => view.levels[(at + 1) % view.levels.length].id)
+  await update($, boardLevelAtom, () => id)
+  const level = await shownLevel($)
+  const first = level === undefined ? null : (cardKeys(level).find(column => column.length > 0)?.[0] ?? null)
+  if (first !== null) await focusRing($, BOARD, first)
+}
+
+/** Enter on a card picks it to move (again: puts it back); the ring goes to the next column's target. */
+const pickCard = async ($: EngineInterface, slug: string): Promise<void> => {
+  const level = await shownLevel($)
+  if (level === undefined || level.kind === 'remote') return
+  if ((await read($, boardPickAtom)) === slug) {
+    await update($, boardPickAtom, () => null)
+    return
+  }
+  await update($, boardPickAtom, () => slug)
+  const to = firstTarget(level.board, cardColumn(level.board, slug))
+  if (to !== null) await focusRing($, BOARD, `nf-move-${to}`)
+}
+
+/** x while a card is picked: nothing moves, the ring goes back to the card. */
+const cancelPick = async ($: EngineInterface): Promise<void> => {
+  const pick = await read($, boardPickAtom)
+  await update($, boardPickAtom, () => null)
+  if (pick !== null) await focusRing($, BOARD, `nf-card-${pick}`)
+}
+
+/** h, j, k and l on the board: card to card; once a card is picked, target to target (boardRingTarget). */
+const boardStep = async ($: EngineInterface, direction: Direction): Promise<void> => {
+  const level = await shownLevel($)
+  if (level === undefined) return
+  const at = (await read($, paneRingAtom))[BOARD] ?? null
+  const to = boardRingTarget(level, await read($, boardPickAtom), at, direction)
+  if (to !== null && to !== at) await focusRing($, BOARD, to)
+}
+
+/**
+ * Enter on a move target. At project and flowie level the move runs at once, as every key's command does (runKey);
+ * at a hive's it only goes into the prompt: the push to the team's repository is the person's to send (rule 16).
+ */
+const runMove = async ($: EngineInterface, level: NfTaskLevel, slug: string, target: string): Promise<void> => {
+  await update($, boardPickAtom, () => null)
+  if (level.kind === 'hive') {
+    const text = moveCommand(level, slug, target)
+    const filled = await $.prompt.fill({ text }).then(
+      result => result.isFilled,
+      () => false,
+    )
+    $.ui.toast(
+      filled
+        ? 'neuroflow: the move is in the prompt — Esc, then Enter sends it; /tasks shows what goes to the hive and pushes only after your yes'
+        : `neuroflow: a hive move is yours to send — type ${text}`,
+    )
+    return
+  }
+  await runKey($, 'neuroflow:tasks', `${levelArgs(level).trim()} --move ${slug} ${target}`.trim())
 }
 
 const hideBandToday = async ($: EngineInterface): Promise<void> => {
@@ -495,22 +723,40 @@ const hideBandToday = async ($: EngineInterface): Promise<void> => {
 }
 
 /**
- * A key's neuroflow command (the band's, the dashboard's migrate): run at once — or, while a flowie sync of the
- * mod's waits, put in the prompt for the person to send, so the sync runs before it (keyFillsPrompt). A prompt box
- * that does not take the text runs the command as before.
+ * A key's neuroflow command (the band's, the dashboard's, a board move): run at once — or, while a flowie sync of
+ * the mod's waits, put in the prompt for the person to send, so the sync runs before it (keyFillsPrompt). The band
+ * or pane keeps the keys after the press, so Esc comes first. A prompt box that does not take the text runs the
+ * command as before.
  */
 const runKey = async ($: EngineInterface, command: string, args: string): Promise<void> => {
   if (keyFillsPrompt(await read($, flowieSyncAtom))) {
-    const filled = await $.prompt.fill({ text: `/${command}${args === '' ? '' : ` ${args}`}` }).then(
+    const text = `/${command}${args === '' ? '' : ` ${args}`}`
+    const filled = await $.prompt.fill({ text }).then(
       result => result.isFilled,
       () => false,
     )
     if (filled) {
-      $.ui.toast('neuroflow: press Enter to run it — your flowie sync goes first')
+      $.ui.toast(`neuroflow: ${text} is in the prompt — Esc, then Enter runs it; your flowie sync goes first`)
       return
     }
   }
   await $.command.run({ command, args })
+}
+
+/** Stops the loop being driven (the band's x, the now tab's stop): the current iteration finishes, none starts. */
+const stopDriving = async ($: EngineInterface): Promise<void> => {
+  const drive = await read($, driveAtom)
+  if (drive === null) return
+  await update($, driveAtom, () => null)
+  const root = (await read($, scopeAtom))?.root
+  const now = await $.clock.now()
+  if (root) await appendLine(ioOf($), sessionLogPath(root, now), sessionLine(now, `autoresearch/${drive.name}`, `driver stopped after ${drive.turns} turn(s): stopped by the person`))
+  $.ui.toast(`neuroflow: stopped driving "${drive.name}" — the current iteration finishes, no new one starts`)
+}
+
+/** Ends a live note capture as typing `done` does (the band's x, the now tab's stop). */
+const endCapture = async ($: EngineInterface): Promise<void> => {
+  await $.prompt.submit({ text: 'done' })
 }
 
 /** The check this session runs (one at a time): a second caller waits for the first. */
@@ -554,8 +800,9 @@ export const parseWellbeing = (value: string): { anxiety: number; energy: number
   const match = /^\s*(\d{1,2})[\s,/]+(\d{1,2})[\s,/]+(\d{1,2})\s*(.*)$/s.exec(value)
   if (match === null) return null
   const [anxiety, energy, happiness] = [match[1], match[2], match[3]].map(Number)
+  if (anxiety === undefined || energy === undefined || happiness === undefined) return null
   if (![anxiety, energy, happiness].every(score => Number.isInteger(score) && score >= 1 && score <= 10)) return null
-  return { anxiety, energy, happiness, notes: match[4].trim() }
+  return { anxiety, energy, happiness, notes: (match[4] ?? '').trim() }
 }
 
 /**
@@ -624,6 +871,14 @@ const settleDraft = async ($: EngineInterface, keep: boolean): Promise<void> => 
     await $.store.set('drafter.dropped', (Number(await $.store.get('drafter.dropped')) || 0) + 1)
   }
   await update($, draftAtom, () => null)
+}
+
+/** Enter on a now-tab row: the band's own act for it. */
+const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
+  if (now.kind === 'command') await runKey($, now.command, now.args)
+  else if (now.kind === 'keep' || now.kind === 'drop') await settleDraft($, now.kind === 'keep')
+  else if (now.kind === 'stop-drive') await stopDriving($)
+  else await endCapture($)
 }
 
 /** M065 — the mark a phase command gets in the slash menu: the current phase and the recommended next one. */
@@ -725,6 +980,9 @@ const TONE_COLOR: Record<Tone, 'error' | 'warning' | 'success' | 'suggestion' | 
   subtle: 'subtle',
 }
 
+/** The footer of a pane that does not hold the keys (the terminal's): how to give them to it. */
+const unfocusedHint = (command: string): string => `${CHORD}: use the keys here · ${command} focuses it`
+
 export const registerViews = (on: On, opts: NfOptions): void => {
   // M065: the current phase's command and the recommended next one are marked in the slash menu.
   on('command.describe', { command: /^neuroflow:/ }, async ($, e, next) => {
@@ -744,14 +1002,14 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     if (arg !== '' && isPhase(arg)) return { text: await switchPhase($, arg, 'phase command') }
     if (arg !== '' || !(await isPersonThere($))) return next(e)
     await openPicker($)
-    return { text: 'Phase picker open — ↑↓ and Enter, or click. Esc closes it. (Any argument runs the full /phase flow.)' }
+    return { text: 'Phase picker open — ↓ or Enter opens the list, ↑↓ move, Enter switches, Esc closes. (Any argument runs the full /phase flow.)' }
   }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'neuroflow:dashboard' }, async ($, e, next) => {
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || !(await isPersonThere($))) return next(e)
     await openDashboard($, e.args.trim())
-    return { text: 'Dashboard open — p phase · d deadlines · i integrity · t tasks · l loop.' }
+    return { text: 'Dashboard open — 1–6 tabs, h/l previous/next, r reread, q close, Esc back to the prompt.' }
   }).catch(($, e, next) => next(e))
 
   // /neuroflow:tasks — bare: the task boards of every level as a pane (M070, M163); anything else: the prose flow.
@@ -759,12 +1017,11 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || e.args.trim() !== '' || !(await isPersonThere($))) return next(e)
     await openBoard($)
-    return {
-      text: 'Task boards open — project, flowie and each hive, v switches the level; pick a card, then the column to move it to. (Any argument runs the full /tasks flow: --list, --add, --move, --level, --hive.)',
-    }
+    return { text: 'Task boards open — digits pick the level, h/j/k/l or Tab reach a card, Enter moves it, q closes. (Any argument runs the full /tasks flow.)' }
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: BOARD }, async ($, e) => {
+    rememberViewport(e.viewport)
     const { Box, Button, Text } = $.ui.resolve(e)
     const view = await read($, taskViewAtom)
     if (view === null) return <Text dimColor>Reading the task boards…</Text>
@@ -772,40 +1029,43 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const level = view.levels.find(item => item.id === shown) ?? view.levels[0]
     if (level === undefined) return <Text dimColor>No task board here yet — /neuroflow:tasks --add "title" starts one.</Text>
     const board = level.board
-    const pick = await read($, boardPickAtom)
+    const isRemote = level.kind === 'remote'
+    const pick = isRemote ? null : await read($, boardPickAtom)
+    const picked = pick === null ? null : (board.columns.flatMap(column => column.cards).find(card => card.slug === pick) ?? null)
+    const grid = cardKeys(level)
+    const first = grid.find(column => column.length > 0)?.[0] ?? null
     const width = Math.max(14, Math.floor((e.props.bodyColumns - 2) / Math.max(1, board.columns.length)))
     const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
-    const isRemote = level.kind === 'remote'
+    const run = (fn: () => unknown) => act($, BOARD, fn)
+    const keysHere = e.surface !== 'terminal' || e.props.isFocused
+    const canStep = first !== null
     return (
-      <Box flexDirection="column" gap={1}>
-        <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
-          <Text>level:</Text>
-          {view.levels.map(item => (
-            <Button
-              key={`nf-level-${item.id}`}
-              label={item.id === level.id ? `[${item.name} ${item.open}]` : `${item.name} ${item.open}`}
-              variant={item.id === level.id ? 'primary' : 'secondary'}
-              onPress={async () => {
-                await update($, boardPickAtom, () => null)
-                await update($, boardLevelAtom, () => item.id)
-              }}
-            />
-          ))}
-          {view.levels.length > 1 ? <Button key="nf-level-next" label="next level" hotkey="v" onPress={() => nextLevel($)} /> : null}
+      <Box flexDirection="column">
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+          {view.levels.map((item, at) => {
+            const digit = DIGITS[at]
+            const name = `${item.name} ${item.open}${item.kind === 'remote' ? ' (read-only)' : ''}`
+            if (item.id === level.id) return <Text bold>{digit === undefined ? name : `${digit}: ${name}`}</Text>
+            return <Button key={`nf-level-${item.id}`} label={name} {...(digit === undefined ? {} : { hotkey: digit })} plain dimColor onPress={run(() => showLevel($, item.id))} />
+          })}
         </Box>
-        <Box flexDirection="row">
+        <Box flexDirection="row" marginTop={1}>
           {board.columns.map(column => (
             <Box key={`nf-col-${column.id}`} flexDirection="column" width={width} borderStyle="single" paddingX={1}>
               <Text bold wrap="truncate-end">{column.label} {column.total}</Text>
-              {column.cards.map(card => (
-                <Button
-                  key={`nf-card-${card.slug}`}
-                  label={levelCardLine(card, level.kind).slice(0, width - 4)}
-                  plain
-                  variant={pick === card.slug ? 'primary' : 'secondary'}
-                  onPress={() => update($, boardPickAtom, () => (pick === card.slug ? null : card.slug))}
-                />
-              ))}
+              {column.cards.map(card =>
+                isRemote ? (
+                  <Text wrap="truncate-end">{levelCardLine(card, level.kind)}</Text>
+                ) : (
+                  <Button
+                    key={`nf-card-${card.slug}`}
+                    label={fit(`${card.slug === pick ? '▸' : ' '} ${levelCardLine(card, level.kind)}`, width - 4)}
+                    plain
+                    {...(picked === null && `nf-card-${card.slug}` === first ? { autoFocus: true as const } : {})}
+                    onPress={run(() => pickCard($, card.slug))}
+                  />
+                ),
+              )}
               {column.total > column.cards.length ? <Text dimColor>+{column.total - column.cards.length} more</Text> : null}
             </Box>
           ))}
@@ -813,33 +1073,39 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         {isRemote ? (
           <Text dimColor wrap="wrap">{`Read-only: a copy of ${level.name}'s board${level.fetched ? `, fetched ${level.fetched}` : ''}. Move its tasks in that repository.`}</Text>
         ) : null}
-        {pick !== null && !isRemote ? (
-          <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
-            <Text>move {pick} to:</Text>
-            {[...board.columns.map(column => column.id), 'done'].map(target => (
-              <Button
-                key={`nf-move-${target}`}
-                label={target}
-                onPress={async () => {
-                  await $.prompt.fill({ text: moveCommand(level, pick, target) })
-                  await update($, boardPickAtom, () => null)
-                  $.ui.toast('neuroflow: press Enter to move it — /tasks moves the file and records it')
-                }}
-              />
+        {picked !== null ? (
+          <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+            <Text>{`move "${fit(picked.title, 32)}" to`}</Text>
+            {moveTargets(board, cardColumn(board, picked.slug)).map(target => (
+              <Button key={`nf-move-${target}`} label={target} plain onPress={run(() => runMove($, level, picked.slug, target))} />
             ))}
+            <Button key="nf-board-cancel" label="cancel" hotkey={NAV.cancel} plain dimColor onPress={run(() => cancelPick($))} />
           </Box>
         ) : null}
-        <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
-          <Text dimColor>{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
-          <Button key="nf-board-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($, true)} />
-          <Button key="nf-board-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: BOARD })} />
-        </Box>
+        <Text dimColor wrap="truncate-end">{`done: ${board.done} · archived: ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
+        {keysHere ? (
+          <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+            {canStep
+              ? [
+                  <Button key="nf-nav-left" label="◂" hotkey={NAV.left} plain dimColor onPress={run(() => boardStep($, 'left'))} />,
+                  <Button key="nf-nav-right" label="▸" hotkey={NAV.right} plain dimColor onPress={run(() => boardStep($, 'right'))} />,
+                  <Button key="nf-nav-down" label="▾" hotkey={NAV.down} plain dimColor onPress={run(() => boardStep($, 'down'))} />,
+                  <Button key="nf-nav-up" label="▴" hotkey={NAV.up} plain dimColor onPress={run(() => boardStep($, 'up'))} />,
+                ]
+              : null}
+            <Button key="nf-board-refresh" label="reread" hotkey={NAV.reread} plain dimColor onPress={run(() => loadTasks($, true))} />
+            <Button key="nf-board-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: BOARD }))} />
+            {e.surface === 'terminal' ? <Text dimColor>{canStep ? 'enter: pick · esc: prompt' : 'esc: prompt'}</Text> : null}
+          </Box>
+        ) : (
+          <Text dimColor wrap="truncate-end">{unfocusedHint('/neuroflow:tasks')}</Text>
+        )}
       </Box>
     )
   }).catch(($, e, next) => next(e))
 
   // The boards and the tasks tab follow the files: once read this session, they are read again as each turn
-  // ends (a /tasks --move the board filled in has run by then). Only the local files are read, never pulled.
+  // ends (a /tasks --move the board ran has run by then). Only the local files are read, never pulled.
   on('turn.complete', { reason: ['answer', 'aborted', 'error', 'refusal'] }, async ($, e, next) => {
     const result = await next(e)
     if (e.agentId === undefined && (await read($, taskViewAtom)) !== null) await loadTasks($).catch(() => undefined)
@@ -849,69 +1115,115 @@ export const registerViews = (on: On, opts: NfOptions): void => {
   }).catch(($, e, next) => next(e))
 
   // As an interactive session starts: whether today's wellbeing entry is already on the flowie remote (#253). Not
-  // awaited, so the first prompt never waits for the network; the band does not ask until it knows.
+  // awaited, so the first prompt never waits for the network; the band does not ask until it knows. And how often
+  // the band has taken the keys so far ($.store holds it across sessions; the state mirrors it for drawing).
   on('session.start', { isInteractive: true }, async ($, e, next) => {
     const result = await next(e)
     void checkWellbeingRemote($, opts.band).catch(() => undefined)
+    const learned = Number(await $.store.get(KEYS_LEARNED).catch(() => 0)) || 0
+    await update($, keysLearnedAtom, () => learned)
     return result
   }).catch(($, e, next) => next(e))
 
-  // The band: one line of what needs attention; nothing when nothing does.
+  // Where the focus ring is in the dashboard and the boards, so j, k, h and l move it on from there. The panes and
+  // the nf- keys are the mod's own, whatever name the engine gives the plugin's copy.
+  on('ui.focus', { requestId: [DASHBOARD, BOARD] }, async ($, e, next) => {
+    const result = await next(e)
+    const element = e.element
+    if (result.deny === undefined && element !== undefined && isRowKey(element)) {
+      await update($, paneRingAtom, ring => ({ ...ring, [e.requestId]: element }))
+    }
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // The band takes the keys (^X Tab, or a click) with its ring on the element it starts on (an autoFocus, raised
+  // under the plugin's origin): counted, so the band stops teaching the chord once it has been used LEARNED_AFTER times.
+  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const result = await next(e)
+    const element = e.element
+    if (result.deny === undefined && e.origin.kind === 'plugin' && element !== undefined && BAND_TAKES.includes(element)) {
+      const before = (await read($, keysLearnedAtom)) ?? (Number(await $.store.get(KEYS_LEARNED).catch(() => 0)) || 0)
+      if (before < LEARNED_AFTER) {
+        await $.store.set(KEYS_LEARNED, before + 1).catch(() => undefined)
+        await update($, keysLearnedAtom, () => before + 1)
+      }
+    }
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // The band: one row of what needs attention; nothing when nothing does.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    rememberViewport(e.viewport)
     if (opts.band === 'off' || e.props.hasSurvey) return next(e)
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || scope.isHeadless) return next(e)
     if ((await read($, activeCommandAtom))?.lifecycle === 'quiet' || isQuiet(await read($, quietAtom), await $.clock.now())) return next(e)
-    // A drafted decision waits for a person's keep or drop (M009); it outranks everything else.
-    const draft = await read($, draftAtom)
-    if (draft !== null) {
-      const { Box, Button, Text } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const columns = e.props.bodyColumns
+    // The band's keys work once it holds the keyboard: the engine's chord says how, until it has been used.
+    const hint = e.surface === 'terminal' && ((await read($, keysLearnedAtom)) ?? 0) < LEARNED_AFTER ? `${CHORD}: keys` : null
+    /** A band key: drawn as `k: text` (a plain Button), measured by the same words before anything is drawn. */
+    type Key = { element: string; hotkey: string; text: string; onPress: () => unknown; autoFocus?: true }
+    const key = (element: string, hotkey: string, text: string, onPress: () => unknown): Key => ({ element, hotkey, text, onPress })
+    const labels = (keys: readonly Key[]): string[] => keys.map(item => `${item.hotkey}: ${item.text}`)
+    // The ring starts here when the band takes the keys: it writes and consents to nothing.
+    const dashboard = (tab: NfDashboardTab): Key => ({ ...key('nf-band-dashboard', BAND.dashboard, 'dashboard', () => openDashboard($, tab)), autoFocus: true })
+    /** One row as wide as the band (bandPlan): the items, cut at their end; `+N more`; the keys; the chord hint. */
+    const row = (items: readonly { text: string; color: 'error' | 'warning' | 'suggestion' }[], total: number, keys: readonly Key[]): JSX.Element => {
+      const plan = bandPlan({ columns, items: items.length, total, buttons: labels(keys), hint })
       return (
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          <Text color="suggestion" wrap="truncate-end">✎ decision drafted for {draft.phase}: {draft.statement}</Text>
-          <Button key="nf-draft-keep" label="keep" hotkey="k" plain onPress={() => settleDraft($, true)} />
-          <Button key="nf-draft-drop" label="drop" hotkey="n" plain onPress={() => settleDraft($, false)} />
+        <Box flexDirection="row" columnGap={2}>
+          <Box flexDirection="row" columnGap={2} flexShrink={1}>
+            {items.slice(0, plan.items).map(item => (
+              <Text color={item.color} wrap="truncate-end">
+                {item.text}
+              </Text>
+            ))}
+          </Box>
+          {plan.more > 0 ? (
+            <Box flexShrink={0}>
+              <Text dimColor>{`+${plan.more} more`}</Text>
+            </Box>
+          ) : null}
+          <Box flexDirection="row" columnGap={2} flexShrink={0}>
+            {keys.map(item => (
+              <Button key={item.element} label={item.text} hotkey={item.hotkey} plain {...(item.autoFocus ? { autoFocus: true as const } : {})} onPress={item.onPress} />
+            ))}
+          </Box>
+          {plan.hint ? (
+            <Box flexShrink={0}>
+              <Text dimColor>{hint}</Text>
+            </Box>
+          ) : null}
         </Box>
       )
+    }
+    // A drafted decision waits for a person's keep or drop (M009); it outranks everything else. Its keys are never
+    // where the ring starts: the dashboard is.
+    const draft = await read($, draftAtom)
+    if (draft !== null) {
+      return row([{ text: `✎ decision drafted for ${draft.phase}: ${draft.statement}`, color: 'suggestion' }], 1, [
+        key('nf-draft-keep', BAND.keep, 'keep', () => settleDraft($, true)),
+        key('nf-draft-drop', BAND.drop, 'drop', () => settleDraft($, false)),
+        dashboard('now'),
+      ])
     }
     // A driven autoresearch loop always shows, with its stop control (charter: no paid turns without one).
     const drive = await read($, driveAtom)
     if (drive !== null) {
-      const { Box, Button, Text } = $.ui.resolve(e)
-      return (
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          <Text color="suggestion" wrap="truncate-end">
-            ↻ driving autoresearch "{drive.name}" · turn {drive.turns}
-            {drive.errors > 0 ? ` · ${drive.errors} error(s) in a row` : ''}
-          </Text>
-          <Button
-            key="nf-drive-stop"
-            label="stop"
-            hotkey="s"
-            plain
-            onPress={async () => {
-              await update($, driveAtom, () => null)
-              const root = (await read($, scopeAtom))?.root
-              const now = await $.clock.now()
-              if (root) await appendLine(ioOf($), sessionLogPath(root, now), sessionLine(now, `autoresearch/${drive.name}`, `driver stopped after ${drive.turns} turn(s): stopped by the person`))
-              $.ui.toast(`neuroflow: stopped driving "${drive.name}" — the current iteration finishes, no new one starts`)
-            }}
-          />
-          <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($, 'loop')} />
-        </Box>
+      return row(
+        [{ text: `↻ driving autoresearch "${drive.name}" · turn ${drive.turns}${drive.errors > 0 ? ` · ${drive.errors} error(s) in a row` : ''}`, color: 'suggestion' }],
+        1,
+        [key('nf-drive-stop', BAND.dismiss, 'stop', () => stopDriving($)), dashboard('loop')],
       )
     }
-    // A live note capture shows while it runs: messages go to the notes, not to the model.
+    // A live note capture shows while it runs: messages go to the notes, not to the model. x ends it as `done` does.
     const capture = await read($, captureAtom)
     if (capture !== null) {
-      const { Box, Button, Text } = $.ui.resolve(e)
-      return (
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          <Text color="warning" wrap="truncate-end">
-            ● capturing notes → {capture.target} · {capture.count} entr{capture.count === 1 ? 'y' : 'ies'} · messages are not sent to the model
-          </Text>
-          <Button key="nf-capture-done" label="done" hotkey="e" plain onPress={() => $.prompt.submit({ text: 'done' }).then(() => undefined)} />
-        </Box>
+      return row(
+        [{ text: `● capturing notes → ${capture.target} · ${capture.count} entr${capture.count === 1 ? 'y' : 'ies'} · messages are not sent to the model`, color: 'warning' }],
+        1,
+        [key('nf-capture-done', BAND.dismiss, 'stop', () => endCapture($))],
       )
     }
     // Hidden for today: the press sets the state (redraw now) and the store (kept across sessions).
@@ -920,44 +1232,52 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const snap = await read($, snapshotAtom)
     if (snap === null) return next(e)
     const items = bandItems(snap, opts.band === 'quiet', await read($, flowieSyncAtom))
-    // Self-reported wellbeing (M146, opt-in in flowie): one field, no scores kept anywhere but the file.
+    // Self-reported wellbeing (M146, opt-in in flowie): one field, no scores kept anywhere but the file. The ring
+    // starts in the field, so ^X Tab and the scores are all it takes.
     const idle = (await read($, activeCommandAtom)) === null
     const check = await read($, wellbeingCheckAtom)
     const today = isoDate(await $.clock.now())
     const askable = check === null || check.date !== today || check.state === 'absent' || check.state === 'unknown'
     if (snap.wellbeingDue && askable && idle && e.surface !== 'mobile' && items[0]?.level !== 'alert') {
-      const { Box, Button, Input, Text } = $.ui.resolve(e)
+      const { Input } = $.ui.resolve(e)
+      const ask = columns >= 100 ? 'wellbeing today — anxiety, energy, happiness (1–10):' : 'wellbeing 1–10: anxiety energy happiness'
       return (
-        <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-          <Text color="suggestion">wellbeing today — anxiety, energy, happiness (1–10):</Text>
-          <Input key="nf-wellbeing" placeholder="e.g. 3 6 7" submitLabel="save" onSubmit={(value: string) => saveWellbeing($, value)} />
-          <Button key="nf-band-hide" label="not today" hotkey="x" plain onPress={() => hideBandToday($)} />
+        <Box flexDirection="row" columnGap={2}>
+          <Box flexShrink={1}>
+            <Text color="suggestion" wrap="truncate-end">
+              {ask}
+            </Text>
+          </Box>
+          <Input key="nf-wellbeing" placeholder="e.g. 3 6 7" submitLabel="save" autoFocus onSubmit={(value: string) => saveWellbeing($, value)} />
+          <Box flexShrink={0}>
+            <Button key="nf-band-hide" label="not today" hotkey={BAND.dismiss} plain onPress={() => hideBandToday($)} />
+          </Box>
+          {hint !== null && columns >= 100 ? (
+            <Box flexShrink={0}>
+              <Text dimColor>{hint}</Text>
+            </Box>
+          ) : null}
         </Box>
       )
     }
     if (items.length === 0) return next(e)
-    const shown = items.slice(0, opts.band === 'quiet' ? 1 : 2)
-    const more = items.length - shown.length
-    const actions = bandActions(shown)
-    const { Box, Button, Text } = $.ui.resolve(e)
-    return (
-      <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
-        {shown.map(item => (
-          <Text color={item.level === 'alert' ? 'error' : item.level === 'warn' ? 'warning' : 'suggestion'} wrap="truncate-end">
-            {item.glyph} {item.text}
-          </Text>
-        ))}
-        {more > 0 ? <Text dimColor>+{more} more</Text> : null}
-        {actions.map(action => (
-          <Button key={action.key} label={action.label} hotkey={action.hotkey} plain onPress={() => runKey($, action.command, action.args)} />
-        ))}
-        <Button key="nf-band-dashboard" label="dashboard" hotkey="d" plain onPress={() => openDashboard($)} />
-        <Button key="nf-band-hide" label="hide today" hotkey="x" plain onPress={() => hideBandToday($)} />
-      </Box>
+    const offered = items.slice(0, opts.band === 'quiet' ? 1 : 2)
+    const fixed = (shown: readonly BandItem[]): Key[] => [
+      ...bandActions(shown).map(action => key(action.key, action.hotkey, action.label, () => runKey($, action.command, action.args))),
+      dashboard('now'),
+      key('nf-band-hide', BAND.dismiss, 'hide today', () => hideBandToday($)),
+    ]
+    // A second item stays only where it fits beside the keys it would bring; the first always shows.
+    const shown = offered.slice(0, bandPlan({ columns, items: offered.length, total: items.length, buttons: labels(fixed(offered)), hint }).items)
+    return row(
+      shown.map(item => ({ text: `${item.glyph} ${item.text}`, color: item.level === 'alert' ? 'error' : item.level === 'warn' ? 'warning' : 'suggestion' })),
+      items.length,
+      fixed(shown),
     )
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: DASHBOARD }, async ($, e) => {
+    rememberViewport(e.viewport)
     const { Box, Button, Text } = $.ui.resolve(e)
     const snap = await read($, snapshotAtom)
     if (snap === null) {
@@ -965,26 +1285,41 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       return <Text dimColor>neuroflow: {scope === null ? 'not started yet' : scope.reason}</Text>
     }
     const tab = await read($, tabAtom)
-    const lines = tabLines(tab, snap, await read($, loopViewAtom), tab === 'tasks' ? await read($, taskViewAtom) : null)
     const frozenByPerson = snap.prereg?.status === 'frozen' && snap.prereg.setBy === 'person'
     const title = `${snap.projectName ?? 'neuroflow project'} · ${snap.phase ?? 'no phase'}${snap.mode ? ` · ${snap.mode}` : ''}`
     // The prose dashboard's Update line (commands/dashboard.md): here too, also after the band was hidden for today.
     const behind = versionNotice(snap)
-    return (
-      <Box flexDirection="column" gap={1}>
-        <Text bold wrap="truncate-end">{title}</Text>
-        {behind !== null ? <Text color={TONE_COLOR.warning} wrap="wrap">{`↑ ${behind}`}</Text> : null}
-        <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
-          {TABS.map(item => (
-            <Button
-              key={`nf-tab-${item.id}`}
-              label={item.id === tab ? `[${item.label}]` : item.label}
-              hotkey={item.hotkey}
-              variant={item.id === tab ? 'primary' : 'secondary'}
-              onPress={() => selectTab($, item.id)}
-            />
-          ))}
-        </Box>
+    const run = (fn: () => unknown) => act($, DASHBOARD, fn)
+    const rows =
+      tab === 'now' ? nowRows(snap, await read($, flowieSyncAtom), { draft: await read($, draftAtom), drive: await read($, driveAtom), capture: await read($, captureAtom) }) : []
+    const ringKeys = tab === 'now' ? nowRingKeys(rows, behind !== null) : []
+    const lines = tab === 'now' ? [] : tabLines(tab, snap, await read($, loopViewAtom), tab === 'tasks' ? await read($, taskViewAtom) : null)
+    const keysHere = e.surface !== 'terminal' || e.props.isFocused
+    const body =
+      tab === 'now' ? (
+        rows.length === 0 ? (
+          <Text dimColor>Nothing needs your attention.</Text>
+        ) : (
+          <Box flexDirection="column">
+            {rows.map(row => (
+              <Box flexDirection="row" columnGap={2}>
+                <Box flexShrink={1}>
+                  <Text color={LEVEL_TONE[row.level] ? TONE_COLOR[LEVEL_TONE[row.level] as Tone] : undefined} wrap="truncate-end">
+                    {`${row.glyph} ${row.text}`}
+                  </Text>
+                </Box>
+                {row.actions.length > 0 ? (
+                  <Box flexDirection="row" columnGap={2} flexShrink={0}>
+                    {row.actions.map(action => (
+                      <Button key={action.key} label={action.label} plain onPress={run(() => runNow($, action.act))} />
+                    ))}
+                  </Box>
+                ) : null}
+              </Box>
+            ))}
+          </Box>
+        )
+      ) : (
         <Box flexDirection="column">
           {lines.map(line => (
             <Text color={line.tone ? TONE_COLOR[line.tone] : undefined} dimColor={line.dim === true} wrap="truncate-end">
@@ -992,30 +1327,83 @@ export const registerViews = (on: On, opts: NfOptions): void => {
             </Text>
           ))}
         </Box>
-        <Box flexDirection="row" columnGap={1}>
-          {tab === 'phase' ? <Button key="nf-dash-switch" label="switch phase" hotkey="s" onPress={() => openPicker($)} /> : null}
-          {tab === 'loop' ? <Button key="nf-dash-refresh" label="refresh" hotkey="r" onPress={() => loadLoopView($)} /> : null}
-          {tab === 'tasks' ? <Button key="nf-dash-boards" label="boards" hotkey="b" onPress={() => openBoard($)} /> : null}
-          {tab === 'tasks' ? <Button key="nf-dash-tasks-refresh" label="refresh" hotkey="r" onPress={() => loadTasks($, true)} /> : null}
-          {tab === 'integrity' && !frozenByPerson ? (
-            <Button key="nf-dash-freeze" label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'} hotkey="f" onPress={() => freezeFromDashboard($)} />
-          ) : null}
-          {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-verify" label="verify" hotkey="v" onPress={() => verifyFromDashboard($)} /> : null}
-          {tab === 'integrity' && frozenByPerson ? <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey="u" onPress={() => unfreezeFromDashboard($)} /> : null}
-          {behind !== null ? <Button key="nf-dash-migrate" label="migrate" hotkey="m" onPress={() => runKey($, 'neuroflow:migrate', '')} /> : null}
-          <Button key="nf-dash-close" label="close" hotkey="c" role="dismiss" onPress={() => $.ui.close({ id: DASHBOARD })} />
+      )
+    const tabActions = [
+      ...(tab === 'phase' ? [<Button key="nf-dash-switch" label="go to phase…" hotkey={DASH.goPhase} plain onPress={run(() => handOver($, () => openPicker($)))} />] : []),
+      ...(tab === 'tasks' ? [<Button key="nf-dash-boards" label="boards" hotkey={DASH.boards} plain onPress={run(() => handOver($, () => openBoard($)))} />] : []),
+      ...(tab === 'integrity' && !frozenByPerson
+        ? [<Button key="nf-dash-freeze" label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'} hotkey={DASH.freeze} plain onPress={run(() => freezeFromDashboard($))} />]
+        : []),
+      ...(tab === 'integrity' && frozenByPerson
+        ? [
+            <Button key="nf-dash-verify" label="verify" hotkey={DASH.verify} plain onPress={run(() => verifyFromDashboard($))} />,
+            <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey={DASH.unfreeze} plain onPress={run(() => unfreezeFromDashboard($))} />,
+          ]
+        : []),
+    ]
+    return (
+      <Box flexDirection="column">
+        <Text bold wrap="truncate-end">{title}</Text>
+        {behind !== null ? (
+          <Box flexDirection="row" columnGap={2}>
+            <Box flexShrink={1}>
+              <Text color={TONE_COLOR.warning} wrap="wrap">{`↑ ${behind}`}</Text>
+            </Box>
+            <Box flexShrink={0}>
+              <Button key="nf-dash-migrate" label="migrate" plain onPress={run(() => runKey($, 'neuroflow:migrate', ''))} />
+            </Box>
+          </Box>
+        ) : null}
+        <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
+          {DASHBOARD_TABS.map(item =>
+            item.id === tab ? (
+              <Text bold>{`${item.digit}: ${item.label}`}</Text>
+            ) : (
+              <Button key={`nf-tab-${item.id}`} label={item.label} hotkey={item.digit} plain dimColor onPress={run(() => selectTab($, item.id))} />
+            ),
+          )}
+        </Box>
+        <Box flexDirection="column" marginTop={1}>
+          {body}
+        </Box>
+        {tabActions.length > 0 ? (
+          <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={1}>
+            {tabActions}
+          </Box>
+        ) : null}
+        <Box marginTop={1}>
+          {keysHere ? (
+            <Box flexDirection="row" flexWrap="wrap" columnGap={2}>
+              <Button key="nf-nav-left" label="‹ tab" hotkey={NAV.left} plain dimColor onPress={run(() => selectTab($, tabNeighbour(tab, -1)))} />
+              <Button key="nf-nav-right" label="tab ›" hotkey={NAV.right} plain dimColor onPress={run(() => selectTab($, tabNeighbour(tab, 1)))} />
+              {ringKeys.length > 0
+                ? [
+                    <Button key="nf-nav-down" label="▾ row" hotkey={NAV.down} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, 1))} />,
+                    <Button key="nf-nav-up" label="▴ row" hotkey={NAV.up} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, -1))} />,
+                  ]
+                : null}
+              <Button key="nf-dash-reread" label="reread" hotkey={NAV.reread} plain dimColor onPress={run(() => rereadDashboard($))} />
+              <Button key="nf-dash-close" label="close" hotkey={NAV.close} plain dimColor role="dismiss" onPress={run(() => $.ui.close({ id: DASHBOARD }))} />
+              {e.surface === 'terminal' ? <Text dimColor>{ringKeys.length > 0 ? 'enter: the marked action · esc: prompt' : 'esc: prompt'}</Text> : null}
+            </Box>
+          ) : (
+            <Text dimColor wrap="truncate-end">{unfocusedHint('/neuroflow:dashboard')}</Text>
+          )}
         </Box>
       </Box>
     )
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PICKER }, async ($, e) => {
+    rememberViewport(e.viewport)
     const snap = await read($, snapshotAtom)
     const note = await read($, pickerNoteAtom)
     const order = pickerOrder(snap?.phase ?? null, snap?.recommendedPhases ?? [])
     const tag = (id: string): string =>
       id === snap?.phase ? '  (current)' : snap?.recommendedPhases.includes(id) ? '  (recommended)' : snap?.phasesVisited.includes(id) ? '  (visited)' : ''
     const pick = async (value: string): Promise<void> => {
+      // An Enter typed through the open would switch to the highlighted phase: dropped (lib/keys.ts).
+      if (!isPastTypeThrough(await $.clock.now(), (await read($, openedAtAtom))[PICKER])) return
       const message = await switchPhase($, value, 'phase picker')
       if (message.startsWith('Active phase')) {
         await $.ui.close({ id: PICKER })
@@ -1032,6 +1420,12 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       )
     }
     const { Box, Select, Text } = $.ui.resolve(e)
+    const legend =
+      e.surface !== 'terminal'
+        ? null
+        : e.props.isFocused
+          ? '↓ or enter opens the list · ↑↓ move · a letter jumps · enter switches · esc closes'
+          : unfocusedHint('/neuroflow:phase')
     return (
       <Box flexDirection="column">
         <Select
@@ -1045,7 +1439,11 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           }}
         />
         {note !== null ? <Text color="warning">{note}</Text> : null}
-        <Text dimColor>↑↓ move · Enter switch · Esc close</Text>
+        {legend !== null ? (
+          <Text dimColor wrap="truncate-end">
+            {legend}
+          </Text>
+        ) : null}
       </Box>
     )
   }).catch(($, e, next) => next(e))

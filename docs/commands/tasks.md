@@ -44,7 +44,17 @@ Every board display is a rendered ASCII Kanban — never a flat list, except `--
 
 ## With the neuroflow mod
 
-A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are, and — read-only — the boards of the project's other repositories, from a local cache that is refreshed in the background when the boards open. `v` (or a level's button) switches the level; it opens on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks. Pick a card, then a column: the move goes into the prompt as one command for you to send (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level, `--level hive --hive {org-repo}` at a hive's), and `/tasks` moves the file as usual. Any argument runs the full command.
+A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model turn: the project's, your flowie's and each hive's, read from the local copies as they are, and — read-only — the boards of the project's other repositories, from a local cache that is refreshed in the background when the boards open. It opens holding the keyboard, on the project board when it has open tasks, else on the first level with open tasks of this project, else on the first level with any open tasks.
+
+| Key | What it does |
+|---|---|
+| `1`–`9` | Show a level's board: the level row reads `1: project 3   2: flowie 12   3: example-lab-hive 4` |
+| Tab, `h` `j` `k` `l` | Move to a card — `h` and `l` between columns, `j` and `k` within one |
+| Enter | On a card: pick it to move (it is marked `▸`); on a column: move it there |
+| `x` | Cancel the pick |
+| `r` · `q` · Esc | Read the boards again · close the pane · give the keys back to the prompt |
+
+At project and flowie level the move runs at once as one `/tasks` command (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level), and `/tasks` moves the file as usual. At a hive's level the move only goes into the prompt (`/neuroflow:tasks --level hive --hive {org-repo} --move {slug} {column}`) for you to send with Esc and then Enter: it ends in a push to the team's repository, which `/tasks` shows you and makes only after your yes. Any argument runs the full command.
 
 ---
 
