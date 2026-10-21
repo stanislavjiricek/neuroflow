@@ -21,7 +21,7 @@ reads:
   - ~/.neuroflow/flowie/workbench.json       # --web: the workbench record, when a flowie is linked
   - ~/.neuroflow/hives/{org-repo}/hive.md    # --web: the team's workbench_mirror
 writes:
-  - ~/.neuroflow/user.yaml                   # --web only: the person's consent, levels and machine name (merged, never replaced)
+  - ~/.neuroflow/user.yaml                   # --web only: the person's consent, levels, machine name and pii_config (merged, never replaced)
   - ~/.neuroflow/workbench/                  # --web only: pending.json (machine-local)
   - ~/.neuroflow/flowie/workbench.json       # --web only: the workbench record, committed by path with the private sync
   - .neuroflow/sessions/YYYY-MM-DD.md         # --web only: one session line
