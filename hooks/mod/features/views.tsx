@@ -55,7 +55,7 @@ import {
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
-import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseState, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
+import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseStateMark, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, moveTargets, openColumnsOf, openingLevel, topCards } from '../lib/tasks'
@@ -1202,19 +1202,18 @@ const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
 /**
  * The phase picker's options, in picker order: each phase's id and label first (a typed letter finds the phase by its
  * name), then its glyph from the one legend and its state in words — current, next, recommended, visited, not
- * started — in one column; `short` for the mobile buttons.
+ * started — in one column, as the typeahead marks it (phaseStateMark); `short` for the mobile buttons.
  */
 export const pickerOptions = (
   current: string | null,
   visited: readonly string[],
   recommended: readonly string[],
 ): { value: string; label: string; short: string }[] => {
-  const next = nextPhase(current, recommended)
-  const rows = pickerOrder(current, recommended).map(phase => {
-    const state = phaseState(phase.id, current, visited, recommended)
-    const word = state === 'current' ? 'current' : phase.id === next ? 'next' : state === 'recommended' ? 'recommended' : state === 'visited' ? 'visited' : 'not started'
-    return { value: phase.id, text: `${phase.id} — ${phase.label}`, mark: `${PHASE_GLYPH[state]} ${word}` }
-  })
+  const rows = pickerOrder(current, recommended).map(phase => ({
+    value: phase.id,
+    text: `${phase.id} — ${phase.label}`,
+    mark: phaseStateMark(phase.id, current, visited, recommended),
+  }))
   const width = Math.max(0, ...rows.map(row => cells(row.text)))
   return rows.map(row => ({ value: row.value, label: `${pad(row.text, width)}  ${row.mark}`, short: `${row.value} · ${row.mark}` }))
 }

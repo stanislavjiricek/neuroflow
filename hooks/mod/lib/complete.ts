@@ -5,7 +5,7 @@
 // hives come once the boards have been read this session (the boards, or the dashboard's now or tasks tab).
 import type { NfTaskLevel, NfTaskView } from '../../../types'
 import { DASHBOARD_TABS } from './keys'
-import { PHASE_GLYPH, PHASE_WORD, nextPhase, phaseState, pickerOrder } from './phases'
+import { phaseStateMark, pickerOrder } from './phases'
 import { moveTargets } from './tasks'
 
 /** One typeahead row: what taking it writes over the token, and the dim line beside it. */
@@ -72,16 +72,12 @@ export const completions = (input: CompleteInput, context: CompleteContext): Sug
   if (command === null) return []
   const last = words[words.length - 1] ?? ''
   const rows = ((): Suggestion[] => {
-    // /neuroflow:phase <phase>: switches at once (the mod answers it), so the id is the whole argument.
+    // /neuroflow:phase <phase>: switches at once (the mod answers it), so the id is the whole argument. Each phase
+    // carries the mark the picker gives it (phaseStateMark).
     if (command === 'phase' && words.length === 1) {
-      const next = nextPhase(context.phase, context.recommended)
       return pickerOrder(context.phase, context.recommended)
         .filter(phase => starts(phase.id, token))
-        .map(phase => {
-          const state = phaseState(phase.id, context.phase, context.visited, context.recommended)
-          const word = phase.id === next && state !== 'current' ? 'next' : PHASE_WORD[state]
-          return { text: phase.id, description: `${PHASE_GLYPH[state]} ${word} · ${phase.label}` }
-        })
+        .map(phase => ({ text: phase.id, description: `${phaseStateMark(phase.id, context.phase, context.visited, context.recommended)} · ${phase.label}` }))
     }
     // /neuroflow:dashboard <tab>: opens the pane on that tab.
     if (command === 'dashboard' && words.length === 1) {

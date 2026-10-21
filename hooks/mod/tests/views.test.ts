@@ -3,8 +3,9 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import type { NfMeeting, NfSnapshot } from '../../../types'
+import { completions } from '../lib/complete'
 import { setActivePhase } from '../lib/config'
-import { nextPhase, phaseMap, pickerOrder } from '../lib/phases'
+import { PHASES, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
 import {
   bandActions,
   bandItems,
@@ -291,6 +292,23 @@ describe('phases', () => {
     ])
     // The marks start in one column: after the longest label (preregistration's) and two spaces.
     expect(new Set(options.map(option => option.label.search(/ {2}[◉●→○] /)))).toEqual(new Set([35]))
+    // A next phase already visited: the visited glyph keeps its word, next beside it.
+    expect(pickerOptions('data', ['ideation', 'data', 'paper'], ['ideation', 'data', 'paper', 'output'])[2]?.short).toBe('paper · ● visited · next')
+  })
+
+  test('the picker and the typeahead mark every phase alike', () => {
+    for (const [current, visited, recommended] of [
+      ['data', ['ideation', 'data'], ['ideation', 'data', 'data-analyze', 'paper']],
+      ['data', ['ideation', 'data', 'data-analyze'], ['ideation', 'data', 'data-analyze', 'paper']],
+      ['notes', [], []],
+      [null, ['ideation'], ['ideation', 'paper']],
+    ] as const) {
+      for (const option of pickerOptions(current, visited, recommended)) {
+        const text = `/neuroflow:phase ${option.value}`
+        const [row] = completions({ text, cursor: text.length, token: option.value, start: 17 }, { phase: current, visited, recommended, tasks: null }).filter(item => item.text === option.value)
+        expect(row?.description, option.value).toBe(`${option.short.slice(option.value.length + 3)} · ${PHASES.find(phase => phase.id === option.value)?.label}`)
+      }
+    }
   })
 
   test('setActivePhase edits only the one line', () => {

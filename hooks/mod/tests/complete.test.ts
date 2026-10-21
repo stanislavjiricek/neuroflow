@@ -47,8 +47,11 @@ describe('typeahead for the typed paths', () => {
       'data-analyze | → next · analysis',
       'data-preprocess | ○ not started · preprocessing',
     ])
-    expect(rows('/phase pa')).toEqual(['paper | → recommended next · manuscript'])
+    // paper is recommended, but data-analyze comes next: the picker's word, `recommended`.
+    expect(rows('/phase pa')).toEqual(['paper | → recommended · manuscript'])
     expect(rows('/neuroflow:phase I')).toEqual(['ideation | ● visited · question & literature'])
+    // A next phase already visited keeps the visited glyph's word, and says next beside it.
+    expect(rows('/neuroflow:phase data-a', { ...CONTEXT, visited: ['ideation', 'data', 'data-analyze'] })).toEqual(['data-analyze | ● visited · next · analysis'])
     // The id is the whole argument: nothing after it, and nothing for another command.
     expect(rows('/neuroflow:phase data-analyze x')).toEqual([])
     expect(rows('/neuroflow:paper da')).toEqual([])
