@@ -623,8 +623,10 @@ function drawWaiting() {
   const waiting = waitingCount(state.metas, state.intents)
   box.hidden = state.phase !== 'ready' || waiting === 0
   if (box.hidden) return box.replaceChildren()
+  const oldest = oldestWaiting(state.metas, state.intents)
+  const since = oldest ? ` (the oldest made ${relativeAge(oldest, Date.now())})` : ''
   box.replaceChildren(
-    h('span', { text: `${waiting} change${waiting === 1 ? '' : 's'} wait${waiting === 1 ? 's' : ''} for Claude Code. In a terminal, run` }),
+    h('span', { text: `${waiting} change${waiting === 1 ? '' : 's'} wait${waiting === 1 ? 's' : ''} for Claude Code${since}. In a terminal, run` }),
     h('code', { text: APPLY_COMMAND }), copyButton(APPLY_COMMAND),
     h('span', { class: 'dim', text: 'Each is checked against git first; hive pushes ask you.' }))
 }

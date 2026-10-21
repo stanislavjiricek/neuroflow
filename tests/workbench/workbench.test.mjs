@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import {
   activeIntents, assembleLevel, boardModel, daysUntil, defaultPrefs, freshnessLabel, intentDocument, intentsPath, isCollectionPath,
   isDocumentPath, isOverdue, lanes, levelOrder, makeAdd, makeCancel, makeMove, metaPath, neighbourColumn, newIntentId,
-  normalizePrefs, outcomeText, parseInline, parseMarkdown, partsPath, phaseMap, prefsPath, recentOutcomes, releasePatch,
+  normalizePrefs, oldestWaiting, outcomeText, parseInline, parseMarkdown, partsPath, phaseMap, prefsPath, recentOutcomes, releasePatch,
   safeHref, segments, tabSummary, upcomingDates, userRoot, validLevelKey, validSegment, waitingCount, waitingIntents, wikiIndex,
 } from '../../skills/neuroflow-core/assets/workbench/workbench.mjs'
 
@@ -132,6 +132,10 @@ test('what the snapshot contains, what a cancel undid and what depended on it ar
   assert.equal(waitingIntents(intents, 'flowie').length, 3)
   assert.equal(tabSummary(snapshot.metas, intents).flowie.waiting, 1) // the undone move no longer waits
   assert.equal(waitingCount(snapshot.metas, intents), 3)
+  // since when changes wait: the undone move (10:08) is not the oldest of its level, the add (10:07) is
+  assert.equal(tabSummary(snapshot.metas, intents).flowie.oldest, '2026-10-21T10:07:00.000Z')
+  assert.equal(oldestWaiting(snapshot.metas, intents), '2026-10-21T10:05:00.000Z')
+  assert.equal(oldestWaiting(snapshot.metas, []), null)
 })
 
 test('a claim shows who holds it, and an old one shows as stuck', () => {

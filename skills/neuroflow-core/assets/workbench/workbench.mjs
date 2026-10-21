@@ -573,11 +573,25 @@ export function wikiIndex(pages, query) {
     .map(([type, list]) => ({ type, pages: list.sort((a, b) => String(a.title).localeCompare(String(b.title))) }))
 }
 
-/** What the tab bar says about each level: its name, kind and the changes still waiting (an undone one is not). */
+/** The earliest created_at among the items; null when none has a readable one. */
+function earliest(stamps) {
+  let best = null
+  for (const stamp of stamps) {
+    const at = Date.parse(stamp || '')
+    if (!Number.isNaN(at) && (best === null || at < best.at)) best = { at, stamp }
+  }
+  return best ? best.stamp : null
+}
+
+/**
+ * What the tab bar says about each level: its name, kind, the changes still waiting (an undone one is not) and when
+ * the oldest of them was made.
+ */
 export function tabSummary(metas, intents) {
   const out = {}
   for (const [key, meta] of Object.entries(metas || {})) {
-    out[key] = { label: meta.label || key, kind: meta.kind, waiting: activeIntents(intents, key, meta).length }
+    const waiting = activeIntents(intents, key, meta)
+    out[key] = { label: meta.label || key, kind: meta.kind, waiting: waiting.length, oldest: earliest(waiting.map(item => item.created_at)) }
   }
   return out
 }
@@ -585,6 +599,11 @@ export function tabSummary(metas, intents) {
 /** The changes waiting for Claude Code across the levels this workbench shows. */
 export function waitingCount(metas, intents) {
   return Object.values(tabSummary(metas, intents)).reduce((sum, item) => sum + item.waiting, 0)
+}
+
+/** When the oldest change still waiting for Claude Code was made, across the levels; null when none waits. */
+export function oldestWaiting(metas, intents) {
+  return earliest(Object.values(tabSummary(metas, intents)).map(item => item.oldest))
 }
 
 /** The project phase map: ● the current one, ✔ a phase with a folder, ○ one not started — each with its word. */
