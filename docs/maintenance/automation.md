@@ -89,9 +89,9 @@ Change `--discussion-number 167` in the workflow's `run:` step.
 | V7 | Version bumped when substantive files changed (pull requests only) |
 | V8 | Rule markers (`<!-- nf-rule: ID -->`) use known ids; every rule a mod guard enforces has one |
 | V9 | No skill folder shares a command's name |
-| V10 | Every command, skill and agent is in the README tables and the docs nav, each page listed once; no dead links |
+| V10 | Every command, skill and agent is in the README tables and the docs nav, each page listed once; every relative link and image in the README resolves, and so does every link into this site (an in-page anchor nothing defines is a warning); the site logo, favicon and plugin icon exist; no dead nav links |
 | V11 | No dead `neuroflow:<name>` references in `SKILL.md` files |
-| V12 | Release notes match the version (warning) |
+| V12 | The README has one What's new section, and a second one fails; it is for the current version, and `docs/changelog.md` lists that version first (warnings) |
 | V13 | The repo's own `.neuroflow/` holds only `reasoning/` and `sessions/` (warning) |
 | V14 | No private keys; emails and hardcoded secrets flagged for review |
 | V15 | No stale flowie/hive paths or legacy field names (warning) |
@@ -133,7 +133,7 @@ These are set automatically in the workflow file. No additional secrets are need
 
 **Purpose:** Produce a weekly "Radar Brief" with new implementation ideas, detected capability gaps, and threats relevant to neuroflow's neuroscience/scientific workflow focus.
 
-**Repo context read:** `commands/`, `skills/`, `agents/`, `README.md` changelog headings, `.claude-plugin/plugin.json`.
+**Repo context read:** `commands/`, `skills/`, `agents/`, the version headings of `docs/changelog.md`, `.claude-plugin/plugin.json`.
 
 **Script:** `scripts/automation/research_radar.py`
 
@@ -190,7 +190,29 @@ The same validation runs locally from the repo root. To bump the version in all 
 
 ## 6 — Deploy documentation (`.github/workflows/deploy-docs.yml`)
 
-**Purpose:** Publish the documentation site. On every push to `main` it installs `requirements.txt`, runs `mkdocs build --strict` and deploys the result to GitHub Pages.
+**Purpose:** Publish the documentation site. On every push to `main` it installs `requirements.txt`, downloads the intro video, runs `mkdocs build --strict` and deploys the result to GitHub Pages.
+
+**The intro video** plays on the landing page and on the Overview (`overview/#intro-video`). It is the asset `neuroflow-en.mp4` of the GitHub Release `intro-video`, not a file in git, so plugin installs never contain it: `.gitignore` keeps `docs/assets/video/*.mp4` out, and only the poster, `docs/assets/video/poster-en.jpg`, is committed. Before the build, the step *Fetch the intro video* runs `gh release download intro-video --pattern neuroflow-en.mp4 --dir docs/assets/video` with the workflow's own token. If the release or the asset is missing, or the file is under 1 MB, the build job fails with an error annotation, the deploy job is skipped and the live site stays as it was. Pull-request builds (`validate`) never fetch it; their players show the poster, and `tests/automation/test_site_video.py` checks the video markup that strict mode cannot see.
+
+To replace the video, keep its file name and run, from a clone of the repository:
+
+```bash
+gh release upload intro-video neuroflow-en.mp4 --clobber
+gh release view intro-video --json assets --jq '.assets[] | {name, size}'
+gh workflow run deploy-docs.yml --ref main
+```
+
+`--clobber` deletes the old asset before it uploads the new one, so check the size with `gh release view` right away: while the asset is missing, every docs deploy fails (the live site keeps its copy). Run the deploy on `main`, because the `github-pages` environment deploys only from there. GitHub Pages caches files for up to ten minutes, so the old video can still be served for a while. A video of another length, or a new poster, needs a pull request: the length (4:33) is written in `overrides/home.html`, `docs/overview.md` and `README.md` (its caption and alt text, and the 'WATCH · 4:33' label in the README thumbnail `.github/readme/intro-video.jpg`), and the poster is committed. A file of another size needs one too: the '20 MB' download labels are in `overrides/home.html` and `docs/overview.md`. For a local preview, download the asset into `docs/assets/video/` (`gh release download intro-video --pattern neuroflow-en.mp4 --dir docs/assets/video`); `mkdocs serve` answers without byte ranges, so seeking is limited there and Safari may not play it at all; GitHub Pages serves byte ranges, so check those on the live site.
+
+---
+
+## Brand images (`scripts/automation/brand_assets.py`)
+
+The ring and every image made from it come from one generator: the site logo and favicon, the link-preview card, the README lockups and the plugin icon in `docs/assets/brand/`. Colours come from `docs/stylesheets/nf.css`, shapes from the generator's constants; the Visual style section of the `neuroflow-develop` skill has the asset table.
+
+- `python scripts/automation/brand_assets.py` (`--check`, the default) fails when a committed SVG differs from what the generator writes, an image has the wrong size or weight, or an SVG breaks a rule (no `<text>`, no external references). `tests/automation/test_brand_assets.py` runs it in CI; it needs no browser.
+- `--write` rewrites the SVGs. `--png` renders the PNGs with a local Chrome or Edge (`--browser PATH`) and needs the network, because the images with text load Albert Sans and DM Mono from Google Fonts, as the landing page does.
+- No workflow sets the GitHub social preview: upload `docs/assets/brand/social-card.png` by hand under Settings → General → Social preview.
 
 ---
 
@@ -226,8 +248,8 @@ python scripts/automation/post_discussion.py \
 - No secrets are stored in the repo — only `GITHUB_TOKEN` (auto-provided by Actions) is used.
 - The `daily-maintenance` and `research-radar` workflows use minimal permissions (`contents: read`, `discussions: write`).
 - The `sentinel-dev` workflow additionally needs `contents: write` and `pull-requests: write` to create fix branches and open PRs.
-- `validate` only reads (`contents: read`); `mod-canary` adds `issues: write` to open its issue; `deploy-docs` needs `pages: write` and `id-token: write` to publish the site.
-- Every workflow installs its tools first — Python packages from PyPI, and Claude Code from npm where it is needed. At run time the report workflows call no external service except `api.github.com`, and the docs deploy publishes to GitHub Pages.
+- `validate` only reads (`contents: read`); `mod-canary` adds `issues: write` to open its issue; `deploy-docs` needs `pages: write` and `id-token: write` to publish the site, and its `contents: read` covers the download of the intro video.
+- Every workflow installs its tools first — Python packages from PyPI, and Claude Code from npm where it is needed. At run time the report workflows call no external service except `api.github.com`, and the docs deploy downloads the intro video from the repository's own `intro-video` release and publishes to GitHub Pages.
 
 ---
 

@@ -5,8 +5,16 @@
   On the smallest phones the padding tightens so the scene still fits the screen, and a small dial
   keeps its centre text inside the ring of dots: on a dial narrower than 320px the text is centred
   even where the command is wider than its column, and below 290px the description is left to
-  screen readers, so the phase and its command stand alone. Built from the Orbit design;
-  docs/index.md selects it with `template: home.html`.
+  screen readers, so the phase and its command stand alone. The intro video plays in a dialog
+  opened from the links row: Esc, Close or a press outside closes it and pauses the video, and the
+  ring ignores keys while it is open. Without scripts the link opens the Overview, where the same
+  video sits under the title. The video file loads only after a press (preload="none"); it is not
+  in git: the docs deploy downloads it from the intro-video release. In the links row the video
+  link's pill takes no more height than a text link (a negative block margin), so the scene keeps
+  its height; Documentation and Source wrap as a pair, so a narrow column puts them under the
+  video link; and a row too narrow for all three (under 28.3em, a container query) leaves out the
+  length, which the dialog still shows. Built from the Orbit design; docs/index.md selects it with
+  `template: home.html`.
 -#}
 <!doctype html>
 <html lang="{{ config.theme.language | d('en') }}">
@@ -18,6 +26,7 @@
 <link rel="canonical" href="{{ config.site_url }}">
 <link rel="icon" href="{{ config.theme.favicon | url }}">
 <meta name="theme-color" content="#06070A">
+{% include "partials/nf-head.html" %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@200..600&amp;family=DM+Mono:wght@300;400;500&amp;display=swap" rel="stylesheet">
@@ -87,7 +96,28 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
 [data-tier][data-on] text{fill:#F2F2EE}
 [data-tier] circle{fill:#4A4D55;transition:fill .45s ease}
 [data-tier][data-on] circle{fill:#E9E9E4}
-@media (prefers-reduced-motion: reduce){.nfo-rise,.nfo-cue{animation:none!important}[data-at],[data-at][data-on]{transition:none}}
+.nfo-cta .nfo-watch{display:inline-flex;align-items:center;gap:10px;margin:-6px 0;padding:7px 14px 7px 12px;border:1px solid #2A2C33;border-radius:999px;color:#E9E9E4;white-space:nowrap;transition:border-color .2s ease}
+.nfo-cta .nfo-watch::before{content:"";border-left:7px solid currentColor;border-top:4.5px solid transparent;border-bottom:4.5px solid transparent}
+.nfo-cta .nfo-watch time{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;color:#7C7E84}
+.nfo-cta .nfo-watch:hover,.nfo-cta .nfo-watch:focus-visible{border-color:#7C7E84;color:#FFFFFF}
+.nfo-cta .nfo-links{display:flex;flex-wrap:wrap;align-items:center;gap:inherit}
+.nfo-cta{container-type:inline-size}
+.nfo-film{box-sizing:border-box;width:min(92vw,calc((92vh - 48px) * 16 / 9),1280px);width:min(92vw,calc((92svh - 48px) * 16 / 9),1280px);max-width:none;max-height:none;padding:0;border:1px solid #2A2C33;border-radius:14px;background:#06070A;color:#E9E9E4;overflow:hidden}
+.nfo-film:not([open]){display:none}
+.nfo-film[open]{animation:nfo-rise .6s cubic-bezier(.16,1,.3,1) both}
+.nfo-film::backdrop{background:rgba(6,7,10,.88)}
+.nfo-film-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:9px 9px 9px 18px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#7C7E84}
+.nfo-film-bar button{display:inline-flex;align-items:baseline;gap:8px;padding:6px 12px;border:1px solid #2A2C33;border-radius:999px;background:none;color:#CFD0D3;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
+.nfo-film-bar button:hover,.nfo-film-bar button:focus-visible{border-color:#7C7E84;color:#FFFFFF}
+.nfo-film-bar kbd{font:inherit;color:#7C7E84}
+.nfo-film video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#000}
+.nfo-film :focus-visible{outline:1px solid rgba(233,233,228,.6);outline-offset:2px}
+.nfo-film video:focus-visible{outline-offset:-2px}
+html:has(.nfo-film[open]){overflow:hidden}
+@media (max-width: 600px){.nfo-film-note{display:none}}
+@container (width < 28.3em){.nfo-cta .nfo-watch time{display:none}}
+@container (width < 24em){.nfo-cta .nfo-watch .nfo-watch-what{display:none}}
+@media (prefers-reduced-motion: reduce){.nfo-rise,.nfo-cue,.nfo-film[open]{animation:none!important}[data-at],[data-at][data-on]{transition:none}}
 @media (min-width: 901px) and (max-height: 600px){
 .nfo-hero p{display:none}
 }
@@ -169,8 +199,9 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
 
 <div class="nfo-cta">
 <code>/plugin install neuroflow --marketplace stanislavjiricek/neuroflow</code>
-<a class="nfo-docs" href="{{ 'overview/' | url }}">Documentation</a>
-<a class="nfo-src" href="https://github.com/stanislavjiricek/neuroflow">Source</a>
+<a class="nfo-watch" href="{{ 'overview/' | url }}#intro-video" data-nf-watch="" aria-label="Watch the intro, 4 minutes 33 seconds">Watch<span class="nfo-watch-what"> the intro</span> <time datetime="PT4M33S">4:33</time></a>
+<span class="nfo-links"><a class="nfo-docs" href="{{ 'overview/' | url }}">Documentation</a>
+<a class="nfo-src" href="https://github.com/stanislavjiricek/neuroflow">Source</a></span>
 </div>
 </div>
 
@@ -263,6 +294,13 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
 
 </div>
 </div>
+<dialog class="nfo-film" id="nfo-film" aria-labelledby="nfo-film-title">
+<div class="nfo-film-bar"><span id="nfo-film-title">The intro · 4:33<span class="nfo-film-note"> · with captions</span></span><button type="button" data-nf-close="" aria-keyshortcuts="Escape">Close <kbd aria-hidden="true">Esc</kbd></button></div>
+<video controls preload="none" playsinline width="1920" height="1080" poster="{{ 'assets/video/poster-en.jpg' | url }}" aria-label="The neuroflow intro, 4 minutes 33 seconds">
+<source src="{{ 'assets/video/neuroflow-en.mp4' | url }}" type="video/mp4">
+<a href="https://github.com/stanislavjiricek/neuroflow/releases/download/intro-video/neuroflow-en.mp4">Download the intro video (MP4, 20 MB)</a>
+</video>
+</dialog>
 <script>
 (() => {
   const scene = (root) => {
@@ -460,6 +498,8 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
     };
     const onKey = (e) => {
       if (e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented) return;
+      // While the intro video is open, its keys belong to the player.
+      if (document.querySelector('dialog[open]')) return;
       const from = e.target && e.target.closest ? e.target : null;
       if (from && from.closest('input, textarea, select, [contenteditable]')) return;
       if (from && (e.key === ' ' || e.key === 'Enter') && from.closest('a, button')) return;
@@ -518,7 +558,71 @@ a{color:#E9E9E4}a:hover{color:#FFFFFF}
       clearTimeout(settle);
     };
   };
-  const start = () => document.querySelectorAll('[data-nf-root="orbit"]').forEach((root) => scene(root));
+  // The intro video plays in a dialog over the scene. The dialog sits outside the scene's root, so
+  // wheel, touch and pointer reach the player, and the scene leaves the keys alone while it is open.
+  // Without scripts, or without <dialog>, the link opens the Overview, where the same video sits
+  // under the title.
+  const film = () => {
+    const dialog = document.getElementById('nfo-film');
+    const opener = document.querySelector('[data-nf-watch]');
+    if (!dialog || !opener || typeof dialog.showModal !== 'function') return;
+    const video = dialog.querySelector('video');
+    const closer = dialog.querySelector('[data-nf-close]');
+    let spaceDown = false;
+    let fromBackdrop = false;
+    opener.setAttribute('role', 'button');
+    opener.setAttribute('aria-haspopup', 'dialog');
+    const show = (e) => {
+      e.preventDefault();
+      if (dialog.open) return;
+      // Focus goes back to the chip when the dialog closes, also after a mouse press, which focuses
+      // the scene first. The press itself starts the video.
+      opener.focus({ preventScroll: true });
+      dialog.showModal();
+      if (!video) return;
+      video.focus();
+      const playing = video.play();
+      if (playing) playing.catch(() => {});
+    };
+    opener.addEventListener('click', (e) => {
+      // A click with a modifier keeps the link's own meaning: the Overview in a new tab or window.
+      if (e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      show(e);
+    });
+    // Like a native button, the chip acts on Space when the key comes up, so the key never reaches
+    // the player; while it is held, the page does not scroll and the ring does not turn.
+    opener.addEventListener('keydown', (e) => {
+      if (e.key !== ' ') return;
+      e.preventDefault();
+      spaceDown = true;
+    });
+    opener.addEventListener('keyup', (e) => {
+      if (e.key !== ' ' || !spaceDown) return;
+      spaceDown = false;
+      show(e);
+    });
+    opener.addEventListener('blur', () => {
+      spaceDown = false;
+    });
+    if (closer) closer.addEventListener('click', () => dialog.close());
+    // A press on the backdrop closes the dialog too (Esc closes it natively), but a drag that starts
+    // in the player and ends outside it does not.
+    dialog.addEventListener('pointerdown', (e) => {
+      fromBackdrop = e.target === dialog;
+    });
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog && fromBackdrop) dialog.close();
+      fromBackdrop = false;
+    });
+    dialog.addEventListener('close', () => {
+      if (video) video.pause();
+      opener.focus({ preventScroll: true });
+    });
+  };
+  const start = () => {
+    document.querySelectorAll('[data-nf-root="orbit"]').forEach((root) => scene(root));
+    film();
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Research Radar — weekly brief for stanislavjiricek/neuroflow.
 
-Reads the repo's changelog, docs, commands, and skills to detect
-capability gaps and produce a structured ideas + threat brief.
-Posts to Discussion #169.
+Reads the repo's changelog (the version headings of docs/changelog.md),
+docs, commands, and skills to detect capability gaps and produce a
+structured ideas + threat brief. Posts to Discussion #169.
 
 Usage:
     python research_radar.py --repo owner/name --discussion-number 169
@@ -145,11 +145,10 @@ def detect_capability_gaps(commands: list[str], skills: list[str]) -> list[str]:
     return gaps
 
 
-def recent_changelog_items(n: int = 5) -> list[str]:
-    """Extract the last N 'What's new' headings from README.md."""
-    readme = read_file_safe(REPO_ROOT / "README.md")
-    matches = re.findall(r"## What's new in ([0-9]+\.[0-9]+\.[0-9]+)", readme)
-    return matches[:n]
+def recent_changelog_items(n: int = 5, root: Path | None = None) -> list[str]:
+    """The newest N version headings of docs/changelog.md (the README keeps only the latest release)."""
+    changelog = read_file_safe((root or REPO_ROOT) / "docs" / "changelog.md")
+    return re.findall(r"(?m)^##[ \t]+v?([0-9]+\.[0-9]+\.[0-9]+)\b", changelog)[:n]
 
 
 def get_plugin_version() -> str:
@@ -235,7 +234,7 @@ def build_report(run_date: str, week_label: str) -> str:
     lines.append(
         "<details><summary>How this report is generated</summary>\n\n"
         "This radar brief is generated deterministically from the repo's own content:\n"
-        "commands, skills, agents, and the README changelog. "
+        "commands, skills, agents, and the version headings of docs/changelog.md. "
         "It does not make external web requests. "
         "Web-sourced intel can be added later by wiring an MCP search server "
         "(PubMed / bioRxiv are already configured in `.claude-plugin/plugin.json`).\n\n"

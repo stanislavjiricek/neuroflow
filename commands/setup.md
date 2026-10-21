@@ -143,7 +143,7 @@ Tell the user:
 >
 > **Part A — Create OAuth credentials:**
 > 1. Opening https://console.cloud.google.com/apis/credentials in your browser now.
-> 2. Create a project (or select an existing one)
+> 2. Create a project (or select an existing one). On its **OAuth consent screen**, choose **External** and add your own Google account under **Test users** — without it, sign-in fails with a generic "Access blocked" error.
 > 3. Click **+ Create Credentials → OAuth client ID**
 > 4. Application type: **Desktop app** → name it anything → **Create**
 > 5. Click **Download JSON** → save the file to:
@@ -169,9 +169,9 @@ Open the URL now: run `start https://console.cloud.google.com/apis/credentials` 
 
 Wait for the user to confirm they have downloaded `client_secret.json`, then run:
 ```bash
-gws auth login
+gws auth login -s calendar,gmail,drive,sheets,docs,slides,tasks
 ```
-This opens the browser for OAuth consent automatically. On success, `gws auth status` should show the authenticated account.
+An unverified app (the user's own OAuth client) gets only about 25 scopes, so name the services instead of the full preset. This opens the browser for OAuth consent automatically. On success, `gws auth status` should show the authenticated account.
 
 **Alternative — env vars (no file download needed):** the user sets the Client ID and Client Secret from the GCP Console as environment variables themselves — in their shell profile, not in this chat:
 > From the GCP Console OAuth credential page, copy the **Client ID** and **Client Secret** values into your shell profile:

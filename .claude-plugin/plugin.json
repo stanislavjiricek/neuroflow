@@ -1,13 +1,15 @@
 {
   "name": "neuroflow",
-  "version": "0.2.25",
-  "description": "A Claude Code plugin for neuroscience research — from hypothesis to publication, with project memory, research-integrity rules, and an optional mod for live project views and guard-rails. Supports EEG, iEEG, fMRI, eye tracking, ECG and other modalities.",
+  "version": "0.2.26",
+  "description": "Your team's shared memory, inside Claude Code: a complete research system for neuroscience teams, from hypothesis to publication, with project memory, research-integrity rules, and an optional mod for live project views and guard-rails. Supports EEG, iEEG, fMRI, eye tracking, ECG and other modalities.",
   "author": {
     "name": "Stanislav Jiricek"
   },
   "homepage": "https://github.com/stanislavjiricek/neuroflow",
+  "documentationUrl": "https://stanislavjiricek.github.io/neuroflow/",
   "repository": "https://github.com/stanislavjiricek/neuroflow",
   "license": "MIT",
+  "icon": "./docs/assets/brand/icon-512.png",
   "keywords": [
     "neuroscience",
     "research",

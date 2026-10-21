@@ -4,7 +4,17 @@ title: Changelog
 
 # Changelog
 
----
+Every neuroflow release, newest first. The README on GitHub shows only the newest one.
+
+## 0.2.26
+
+A new front page and one look:
+
+- The ring replaces the old logos everywhere: the site logo and favicon, link previews (a 1280×640 card), the README lockups and the plugin icon all come from one generator, `scripts/automation/brand_assets.py`. The old `logo.png` and the brain SVGs are gone, so every installed version is 5.5 MB lighter, and [`/neuroflow`](commands/neuroflow.md) greets with a ring of nineteen dots instead of the ASCII logo
+- The 4:33 intro video plays on the landing page and on the [Overview](overview.md#intro-video); the docs deploy fetches it from the `intro-video` release, so it never enters git or a plugin install
+- The README shows only the newest release, with links to the website, the documentation and this changelog, which now holds every release (0.1.7 to 0.2.3 backfilled). `validate_pr.py` V12 fails on a second What's new section, and V10 checks the whole README: links, images, anchors and the pages its site links point to
+- The docs now hold what only the README said: the flowie hook's hold-back of machine-local paths and its `--autostash` pulls, the Google Workspace CLI install, and the mod's paper, X-ray and wiki-review panes; `research_radar.py` reads this changelog
+- The plugin and marketplace descriptions open with "Your team's shared memory, inside Claude Code"; `plugin.json` names an icon and the documentation site
 
 ## 0.2.25
 
@@ -132,15 +142,11 @@ Fixes from a final review of 0.2.24:
 - **Docs mirrors created** — `/wiki`, `neuroflow:wiki`, `neuroflow:setup`, `neuroflow:phase-meeting`, `autoresearch` agent docs pages added
 - **Dead agent rows removed** — 16 stale phase agent rows removed from README; `mind.js` updated with `sk-flowie`, `sk-hive`, `sk-slideshow`, `ag-scholar`
 
----
-
 ## 0.2.16
 
 - **`flowie_profiles` list** — replaces `flowie_project` + `hive_member` scalars in `project_config.md` with a single `flowie_profiles:` list (`handle` + `repo` per entry); first entry = project owner; additional entries added by collaborators via `/flowie --link`; backward-compatible
 - **Global user identity config** — `/setup` Step 6 writes `~/.neuroflow/user.yaml` with `flowie_handle`, `flowie_repo`, and `hives`; `/neuroflow` Step 1b reads it to pre-fill the GitHub username on new projects
 - **Sentinel migration guard** — flags legacy `flowie_project:` and `hive_member:` scalar fields; suggests `/neuroflow` to migrate
-
----
 
 ## 0.2.15
 
@@ -148,34 +154,24 @@ Fixes from a final review of 0.2.24:
 - **3-tier task model** — tasks at personal (flowie), project (shared), and hive (team) levels; `--level` flag on `/flowie --tasks`; mandatory ASCII kanban rendering on all displays
 - **Collaboration model** — `.neuroflow/flowie/` gitignored from project repos; `.neuroflow/tasks/` git-tracked and shared; collaborator join flow added to `phase-hive`; `collaborators:` list in `project_config.md` for meeting invite resolution
 
----
-
 ## 0.2.14
 
 - **Personal wiki** ([`/flowie --wiki-*`](commands/flowie.md)) — Karpathy-style LLM-maintained knowledge base inside your flowie repo; ingest sources, query accumulated knowledge, lint for orphans/contradictions/stale pages; every page is tagged to flowie projects; closing prompts in `/notes`, `/ideation`, `/data-analyze`, and `/paper`
 - **New [`neuroflow:wiki`](skills/wiki-protocol/SKILL.md) skill** — page types/frontmatter schema, ingest/query/lint/add/schema workflows, project tagging (always prompted), ideas.md and profile.md sync, fails integration for method pages, sentinel Check 12 for wiki health
-
----
 
 ## 0.2.13
 
 - **`/autoresearch`** — infinite worker-evaluator loop for any research artifact; per-phase criteria auto-loaded; live dashboard at localhost:8765; triggers via `/autoresearch` or any phase command + `autoresearch` keyword
 - **Agent cleanup** — removed 16 unused phase agent files; 8 confirmed-spawned agents remain; orchestrator protocol merged into worker-critic skill
 
----
-
 ## 0.2.12
 
 - **Notes → flowie sync** ([`/notes`](commands/notes.md)) — after every notes session, Claude offers to copy the formatted note to `.neuroflow/flowie/notes/` for GitHub sync (default: yes); a local `config.json` stores per-project defaults for type, speaker, and project relation
 - **Daily wellbeing tracking** ([`/flowie --assess`](commands/flowie.md)) — opt-in daily self-assessment for anxiety, energy, and happiness on a 1–10 scale (5=neutral); stored in `flowie/wellbeing/`; Claude prompts on any sync operation if today's entry is missing; enabled via `/flowie --init` or `/flowie --assess`
 
----
-
 ## 0.2.11
 
 - **Removed broken `pubmed-mcp-server`** — `pubmed-mcp-server@1.0.0` on npm has an empty `dist/index.js` (TypeScript was never compiled before publishing); removed from `plugin.json`; PubMed search is now handled by `paper-search-mcp-nodejs` (the biorxiv server) which already includes `search_pubmed` and requires no credentials; `PUBMED_EMAIL` is no longer needed and has been removed from the setup wizard, skills, commands, and docs
-
----
 
 ## 0.2.10
 
@@ -183,8 +179,6 @@ Fixes from a final review of 0.2.24:
 - **Windows support** — [`/setup`](commands/setup.md), [`neuroflow:setup`](skills/setup-guide/SKILL.md), and the [custom gateway guide](skills/setup-guide/references/custom-gateway.md) now cover Windows paths (`%USERPROFILE%`), PowerShell env var syntax, and `where gws` detection throughout
 - **Proxy model-name fix** ([`proxy.mjs`](skills/setup-guide/scripts/gateway/proxy.mjs)) — proxy now patches `model` field in every response chunk back to the original `claude-*` name, preventing Claude Code's *"unexpected model"* error when using custom LLM providers via Mode B
 - **`integrations.json` gitignore in flowie** — [`flowie`](agents/flowie.md) agent now requires `integrations.json` to be gitignored in the flowie sync repo; warns before any push if it is missing; added to plugin `.gitignore` as well
-
----
 
 ## 0.2.9
 
@@ -202,14 +196,10 @@ Fixes from a final review of 0.2.24:
 - **Path rename** — local path changed from `.neuroflow/.flowie/` to `.neuroflow/flowie/`; `flowie_profile:` field in `project_config.md` renamed to `flowie_project:`
 - **Sentinel checks** — `sentinel` gains Check 11 (flowie structure validation); `sentinel-dev` gains Check 12 (stale path / field name scan)
 
----
-
 ## 0.2.8
 
 - **Session logging overhaul** — removed the noisy `[tool]` PostToolUse hook; Claude now owns all session logging and writes entries broadly after most actions; `neuroflow-core` logging rules are marked MUST and non-negotiable; `flow.md` purity rule added (pure index table only, no narrative content)
 - **mind.js consistency check** — `sentinel-dev` Check 11 audits that every skill, command, and agent has a node in `mind.js`; missing `humanizer` node added; `neuroflow-develop` release workflow now marks the mind.js update step as blocking
-
----
 
 ## 0.2.7
 
@@ -217,14 +207,10 @@ Fixes from a final review of 0.2.24:
 - **Humanizer replaces stop-slop** — new `neuroflow:humanizer` skill: AI word blacklist, structural pattern removal, rhythm checks, register calibration, voice preservation; applied across `/grant-proposal`, `/paper`, `/poster`, `/write-report`; `stop-slop` skill removed
 - **Memory quality improvements** — sessions use `##` milestone headers (commands) + `- HH:MM [tool]` audit lines (hook); reasoning mandate raised to 3–5 decisions/session with mandatory trigger list; `objectives.md` added as a root file read at the start of every command; `@modelcontextprotocol/server-sequential-thinking` MCP server added; review output moved from `reviews/` to `.neuroflow/review/`
 
----
-
 ## 0.2.6
 
 - **Scholar agent: download reporting fixes** — `.pdf`/`.txt` now correctly marked `⏭️ already downloaded`; `.md`-only stubs re-attempt download unless `reason: unavailable`; `✅ downloaded` gated on confirmed `.pdf`/`.txt` write; summary counter labelled `✅ [n] downloaded (PDF/text)` + new `⏭️ [n] unavailable (metadata cached)` bucket
 - **Scholar agent: search coverage fixes** — Semantic Scholar 429 rate-limit → 3 s wait + retry → falls back to CrossRef/arXiv with inline warning; PubMed query-overlap detection auto-generates 2–3 diversified queries when < 15 unique results or > 80% overlap; arXiv keyword fallback added when bioRxiv returns 0 results; mandatory per-source coverage summary table printed before results; any ⚠️/❌ row also surfaces as an inline warning block
-
----
 
 ## 0.2.5
 
@@ -232,24 +218,63 @@ Fixes from a final review of 0.2.24:
 - **New `poster-critic` agent** — five-area poster auditor (content, layout, scientific communication, QR code, LaTeX correctness); returns `[STATUS: APPROVED]`/`[STATUS: REJECTED]` with specific fixes; never rewrites content
 - **New `neuroflow:phase-poster` skill** — full LaTeX template catalogue, template selection guide, content extraction from `.neuroflow/`, QR code blocks, compilation instructions
 
----
-
 ## 0.2.4
 
 - **Sentinel Check 3b** — sentinel now validates that `.claude-plugin/marketplace.json` version matches `plugin.json`; marketplace version was silently stuck at `0.1.0`
 - **Hardened release checklist** — both dev agents now require `docs/changelog.md` entry, one-liner review, and `marketplace.json` bump on every release; `neuroflow-develop/SKILL.md` synced to match `neuroflow-developer.md` (was missing `mkdocs.yml` and sentinel-dev steps)
 - **Internal consistency fixes** — dead `neuroflow:scholar` ref in `phase-paper` fixed; `/hive` docs page created; `neuroflow-developer.md` and `orchestrator` synced to full repo structure (22 phases, all 4 workflows)
 
----
+## 0.2.3
+
+- **Scholar downloads resume and retry** — the [`scholar`](agents/scholar.md) agent skips papers already in `.neuroflow/ideation/papers/`, so an interrupted run can be repeated without duplicate work; each download tries Unpaywall → PubMed Central → bioRxiv → the journal's open-access page in turn, and the whole chain once more after 2 seconds; a transient failure (`⚠️ failed`, listed by name to retry) is reported apart from a paper with no open-access copy (`❌ unavailable`)
+- **`/paper-write` and `/paper-review` removed** — superseded by [`/paper`](commands/paper.md), which covers the full write→critique loop
+- **New [`/review`](commands/review.md)** — for when you referee a colleague's paper: a structured referee report calibrated to the target journal, delegating to `neuroflow:review-neuro`; with a `review` agent (since removed) and the [`neuroflow:phase-review`](skills/phase-review/SKILL.md) skill
+
+## 0.2.2
+
+- **Unified [`/paper`](commands/paper.md)** — writing and reviewing a manuscript in one command and phase: every section draft goes through a `paper-writer` → `paper-critic` loop (up to 3 iterations per section) and reaches disk only with the critic's approval or the user's explicit acceptance
+- **New [`paper-writer`](agents/paper-writer.md) and [`paper-critic`](agents/paper-critic.md) agents** — the writer drafts section by section from upstream project memory; the critic applies the full six-area `neuroflow:review-neuro` methodology to every draft, with zero tolerance for overclaims, statistical errors and underreported methods
+- **New [`neuroflow:phase-paper`](skills/phase-paper/SKILL.md) skill** — journal recommendation, the write→critique loop protocol, critic standards and output paths for the paper phase
+
+## 0.2.1
+
+- **ASCII welcome logo in [`/neuroflow`](commands/neuroflow.md)** — the entry command greets with an ASCII logo of "neuroflow", the current version and the tagline *agentic neuroscience research, from hypothesis to publication*, followed by one of three one-liners
+
+## 0.2.0
+
+- **Consent before issue reports** — project setup in [`/neuroflow`](commands/neuroflow.md) asks whether anonymous issue reports to the developers are allowed and saves the answer as `auto_issue_reporting: yes/no` in `project_config.md`; `auto-issue` files issues only when the answer was yes, and a missing or `no` value suppresses all automatic filing
+- **Cognitive probe on the home page** (since retired) — a simple static self-assessment block replaced the separate probe page
+
+## 0.1.9
+
+- **Worker-critic loop** — new `orchestrator` and `critic` agents (both since removed; the protocol lives on in the skill below) ran up to 3 revision cycles on any phase output: the orchestrator picked the worker for the active phase from `project_config.md` among the 15 phase agents of the time (18 phases covered), and the critic returned `[STATUS: APPROVED]` or `[STATUS: REJECTED]` with specific, actionable feedback; without approval the loop stopped cleanly with a logged critique
+- **New [`neuroflow:worker-critic`](skills/worker-critic/SKILL.md) skill** — the loop protocol: worker modes (initial draft, revision), rubric construction, the critic's output format and `critic-log.md` state tracking
+
+## 0.1.8
+
+- **New [`/slideshow`](commands/slideshow.md)** — build a structured slide deck from selected project phases, figures and key findings, with the [`neuroflow:phase-slideshow`](skills/phase-slideshow/SKILL.md) skill: audience calibration, slide-count heuristics, and Markdown/reveal.js and outline formats
+- **New [`/flowie`](commands/flowie.md)** — a personal identity layer: link a private GitHub repository that holds your research profile (stances, writing style, methodological preferences, key beliefs), which Claude reads to personalise every phase (`--init`, `--sync`, `--link`, `--view`, `--identify`); with the [`neuroflow:phase-flowie`](skills/phase-flowie/SKILL.md) skill (how to read and apply the profile, write rules, a sync protocol that always pulls before it pushes and shows conflicts side by side) and the [`flowie`](agents/flowie.md) agent, which reads the profile at session start and never exposes it in external-facing outputs
+- **Target journal in [`/neuroflow`](commands/neuroflow.md)** — when `paper-write` or `paper-review` is the active or a recommended phase and no target journal is set, neuroflow offers a recommendation: a `scholar` search of PubMed and bioRxiv, 3–5 candidate journals ranked by scope, paper type, open-access requirements, length and prestige versus speed, and the chosen journal saved to `project_config.md`; the same workflow in the `neuroflow:phase-paper-write` skill (since replaced by `neuroflow:phase-paper`), with recency (past 3 years) and recurrence (≥3 of the top 20 results) thresholds
+- **[`/output`](commands/output.md)** — `/export` renamed, because Claude Code's built-in `/export` exports conversations; the behaviour is unchanged and the skill is renamed to [`neuroflow:phase-output`](skills/phase-output/SKILL.md)
+- **[`/grant-proposal`](commands/grant-proposal.md) rebuilt** — discovers ideation outputs, fetches funder calls from URLs, knows the review criteria of major international and national funders, and drafts section by section with word-count tracking and quality checklists; the `grant-proposal` agent (since removed) parsed funder calls and drafted a neuroscience-aware Approach (EEG, fMRI, iEEG, eye tracking) with a confirmation after each section; the [`neuroflow:phase-grant-proposal`](skills/phase-grant-proposal/SKILL.md) skill gains a funder knowledge base, a review-criteria alignment table, a guide to common fatal weaknesses, and power-analysis and preprocessing standards
+- **`auto-issue` skill** (since removed; neuroflow-core took over its passive issue monitoring in 0.2.4) — passive frustration detection that filed a GitHub issue when the user expressed dissatisfaction, without being invoked
+- **Cognitive Development Probe** (since retired) — an interactive page of seven neuroscience-inspired yes/no questions (prediction error, model update, uncertainty, decision monitoring, self-model, global integration, subjective experience), the last one locked until the first six were yes, with status colours, a "Cognitive Level" progress bar and a read-only section in which the model answered each question about itself
+- **Homepage quotes** (since retired with the redesigned site in 0.2.22) — four new quotes in the hero rotation (`overrides/main.html`): *I will jump to version 1.0.0 once I manage to publish the first paper*, *We will probably be the first ones to understand the brain.*, *When I said we, I meant you as well, are you in?* and *Can you collect some brain data for me?*
+
+## 0.1.7
+
+- **`neuroflow-developer` agent** (since removed; the plugin targets Claude Code only) — a GitHub agent for developing and maintaining the plugin: it merged the `neuroflow-core` lifecycle rules and the `neuroflow-develop` guidance into one repo-aware agent and read the live state of every skill, command, agent and hook at the start of each session
 
 ## 0.1.6
 
+- **Neuroflow Mind** (since retired with the redesigned site in 0.2.22) — an interactive mind map of every command, skill, agent and concept as a force-directed graph with phase clusters; a click on a node showed its connections and opened its docs, and coloured dots on each node showed its domain tags (EEG, fMRI, brain-sim, stats, ML, writing, literature, memory, code, human); reached from the homepage hero
+- **Visual phase map in [`/phase`](commands/phase.md)** — four markers: `◉` current phase, `●` visited (its `.neuroflow/{phase}/` folder exists), `→` recommended after the interview, `○` not started; active and visited phases come first, then the recommended ones, then the rest
+- **Phase sequence in [`/neuroflow`](commands/neuroflow.md)** — after the interview (new Step 2b) neuroflow suggests an ordered sequence of phases for the project and saves it as `recommended_phases` in `project_config.md`, which `/phase` reads for its `→` markers
+- **Phase outlook in [`/interview`](commands/interview.md)** — at the end of an interview session, neuroflow suggests the phases most relevant to where the user is heading, from the session and the project config
 - **Version bump** — website and header badge updated to v0.1.6
 - **Mind map back button** — the back-to-docs link on the mind map page is now a full-width prominent button, easy to spot and reach
 - **Fails-folder awareness in core** — `neuroflow:neuroflow-core` now instructs every command to read `.neuroflow/fails/` at start (if it exists), so past logged dissatisfaction is always in context
 - **Removed AI-slop feature claims** — the "Built-in stats auditing" feature card removed from the homepage; the `/data-analyze` command page and skill are unchanged
-
----
 
 ## 0.1.5
 
@@ -265,8 +290,6 @@ Fixes from a final review of 0.2.24:
 - **`/neuroflow` greeting** — on start, neuroflow greets with `Hi, neuroflow here (v0.1.5)` followed by a randomly chosen line
 - **Behavioral flags** — three prompt-level personality modes added to `neuroflow:neuroflow-core`: `executor` (aggressive evaluation loop — reruns and self-critiques until high-quality threshold is met), `teacher` (clarify-first mode — asks targeted questions before each step, proceeds incrementally), and `critic` (interrogates assumptions, surfaces hard questions first)
 
----
-
 ## 0.1.4
 
 - **`/quiz`** — neuroscience quiz command with three modes: flashcards (saveable A4 printable layout), pub quiz (with neuroscience-themed house rules), and rapid-fire throw questions (default)
@@ -276,20 +299,14 @@ Fixes from a final review of 0.2.24:
 - **Brain simulation commands** — `/brain-build`, `/brain-optimize`, and `/brain-run` for assembling, fitting, and running computational brain models (NEURON, Brian2, NetPyNE, NEST, tvb-library); three new phase skills: `neuroflow:phase-brain-build`, `neuroflow:phase-brain-optimize`, `neuroflow:phase-brain-run`
 - **`neuroflow:phase-quiz`** — phase skill for `/quiz` covering mode behaviour, question quality standards, and mode-specific workflow
 
----
-
 ## 0.1.3
 
 - **`/start` renamed to `/neuroflow`** — the main entry point is now `/neuroflow` (run as `/neuroflow:neuroflow`); all command references and documentation updated
 - **Behavioral improvements** — end-of-command lifecycle hardened based on real-session feedback: continuous session logging at each milestone, live `flow.md` updates on every file write, phase transition prompts when outputs outpace the active phase, utility scripts routed to `.neuroflow/{phase}/tools/` instead of the project root, explicit `.claude/CLAUDE.md` creation in the project root, `decisions.md` removed from scaffold (superseded by `reasoning/general.json`), `.neuroflow/` now explicitly restricted to workflow state only
 
----
-
 ## 0.1.2
 
 - **12 phase skills** — `neuroflow:phase-ideation` through `neuroflow:phase-write-report`, each loaded automatically by its corresponding command to orient agent approach, relevant skills, and workflow hints
-
----
 
 ## 0.1.1
 
@@ -299,8 +316,6 @@ Fixes from a final review of 0.2.24:
 - `sentinel` checks plugin version against `project_config.md` and flags when the plugin has been updated; both sentinels clear their report to "All clear" after fixing issues
 - `project_config.md` now tracks `plugin_version` — kept in sync with `plugin.json` by `/neuroflow` and `/sentinel`
 - MCP servers declared in `plugin.json`: PubMed, bioRxiv, Miro, Context7
-
----
 
 ## 0.1.0
 

@@ -65,6 +65,14 @@ class VersionTests(RepoCase):
         self.assertIn(b'"keywords": ["a", "b"]', mkt.read_bytes())  # formatting kept
         self.assertNotIn(b"\r\n", mkt.read_bytes())  # line endings kept
 
+    def test_mkdocs_extra_block_with_crlf_or_a_comment(self):
+        mk = (self.root / rc.MKDOCS_YML).read_bytes().decode("utf-8")
+        write(self.root, {rc.MKDOCS_YML: mk.replace("extra:\n", "extra:  # site values\n")})
+        self.assertEqual(rc.site_versions(self.root, rc.MKDOCS_YML), ["1.2.3"])
+        (self.root / rc.MKDOCS_YML).write_bytes(mk.replace("\n", "\r\n").encode("utf-8"))
+        self.assertEqual(rc.site_versions(self.root, rc.MKDOCS_YML), ["1.2.3"])
+        self.assertEqual(self.run_checks("V2"), [])
+
     def test_mkdocs_only_extra_version_counts(self):
         self.assertEqual(rc.site_versions(self.root, rc.MKDOCS_YML), ["1.2.3"])
         rc.set_site_version(self.root, rc.MKDOCS_YML, "2.0.0")
@@ -173,12 +181,14 @@ class CollisionAndPropagationTests(RepoCase):
         self.assertIn("commands/beta.md is not in the mkdocs.yml nav", text)
 
     def test_dead_links(self):
-        write(self.root, {"README.md": FILES["README.md"] + "| [`gone`](agents/gone.md) | x |\n",
+        readme = FILES["README.md"].replace("- [Alpha](commands/alpha.md) got better",
+                                            "- [old thing](agents/removed-long-ago.md)")
+        write(self.root, {"README.md": readme + "| [`gone`](agents/gone.md) | x |\n",
                           "mkdocs.yml": FILES["mkdocs.yml"] + "  - Old: old-page.md\n"})
         text = self.text("V10")
         self.assertIn("links to non-existent file `agents/gone.md`", text)
         self.assertIn("non-existent file `old-page.md`", text)
-        self.assertNotIn("removed-long-ago", text)  # the What's new history is not checked
+        self.assertIn("links to non-existent file `agents/removed-long-ago.md`", text)  # What's new is checked too
 
     def test_a_page_listed_twice_in_the_nav(self):
         self.assertNotIn("times - the sidebar repeats", self.text("V10"))
@@ -190,11 +200,171 @@ class CollisionAndPropagationTests(RepoCase):
         self.assertIn("`neuroflow:ghost`", self.text("V11"))
 
 
-class HygieneTests(RepoCase):
-    def test_release_notes_are_warnings(self):
+class ReadmeLinkTests(RepoCase):
+    """V10 reads the whole README: Markdown links and images, HTML src/href/srcset, in-page anchors."""
+
+    def readme(self, old="", new="", extra=""):
+        write(self.root, {"README.md": FILES["README.md"].replace(old, new) + extra})
+        return self.run_checks("V10")
+
+    def test_dead_image_src_fails(self):
+        found = self.readme('src="docs/assets/logo.svg"', 'src="docs/assets/gone.svg"')
+        self.assertEqual([(f.severity, f.message) for f in found],
+                         [(rc.FAIL, "README.md links to non-existent file `docs/assets/gone.svg`")])
+
+    def test_dead_srcset_candidate_fails(self):
+        found = self.readme('srcset="docs/assets/logo-dark.svg"',
+                            'srcset="docs/assets/logo-dark.svg 1x, docs/assets/logo-dark@2x.svg 2x"')
+        self.assertEqual([f.message for f in found], ["README.md links to non-existent file `docs/assets/logo-dark@2x.svg`"])
+        self.assertEqual(found[0].severity, rc.FAIL)
+
+    def test_dead_markdown_image_fails(self):
+        found = self.readme(extra="\n![diagram](docs/assets/diagram.png)\n")
+        self.assertIn("non-existent file `docs/assets/diagram.png`", found[0].message)
+
+    def test_dead_anchor_warns(self):
+        found = self.readme(extra='\n<a href="#nowhere">x</a> and [y](#whats-new-in-999)\n')
+        self.assertEqual(sorted((f.severity, f.message) for f in found), [
+            (rc.WARN, "README.md links to `#nowhere`, which no heading or id in it defines"),
+            (rc.WARN, "README.md links to `#whats-new-in-999`, which no heading or id in it defines"),
+        ])
+
+    def test_anchors_from_ids_and_heading_slugs(self):
+        self.assertEqual(self.run_checks("V10"), [])  # #whats-new is an id, #installation a heading
+        found = self.readme(extra="\n## Notes\n\n## Notes\n\n[a](#whats-new-in-123) [b](#notes) [c](#notes-1) "
+                                  "[d](#user-content-whats-new) [e](#notes-2)\n")
+        self.assertEqual([f.message for f in found], ["README.md links to `#notes-2`, which no heading or id in it defines"])
+
+    def test_code_and_comments_are_not_links(self):
+        extra = ("\n```html\n<img src=\"gone.png\">\n[x](gone.md)\n```\n\n"
+                 "Inline `[y](gone2.md)` and ``<a href=\"gone3.md\">``.\n\n<!-- [z](gone4.md) -->\n")
+        self.assertEqual(self.readme(extra=extra), [])
+
+    def test_urls_are_not_fetched(self):
+        extra = "\n[site](https://example.org/x) <a href=\"mailto:team@example.org\">mail</a> [cdn](//example.org/a.png)\n"
+        self.assertEqual(self.readme(extra=extra), [])
+
+    def test_links_into_the_docs_site_name_a_page(self):
+        # site_url in mkdocs.yml maps a site link to its source, offline: docs/<page>.md, a static
+        # file in docs/, or a skills/ or agents/ page that docs/hooks.py copies in at build time
+        pages = ("https://example.org/neuroflow", "https://example.org/neuroflow/commands/alpha/#usage",
+                 "https://example.org/neuroflow/skills/phase-alpha/SKILL/", "https://example.org/neuroflow/assets/logo.svg",
+                 "https://example.org/neuroflow-other/gone/")
+        self.assertEqual(self.readme(extra="\n" + " ".join(f"[x]({u})" for u in pages) + "\n"), [])
+        found = self.readme(extra="\n[gone](https://example.org/neuroflow/concepts/gone/)\n")
+        self.assertEqual([(f.severity, f.message) for f in found], [(
+            rc.FAIL, "README.md links to `https://example.org/neuroflow/concepts/gone/`, a site page with no source in docs/")])
+
+    def test_site_links_the_build_does_not_serve(self):
+        # a folder with no index.md, a skill's folder (its page is .../SKILL/), an x.html under
+        # directory URLs and a Markdown source are no pages; x/index.html is the page x/
+        self.assertEqual(self.readme(extra="\n[a](https://example.org/neuroflow/commands/alpha/index.html)\n"), [])
+        for url in ("https://example.org/neuroflow/commands/", "https://example.org/neuroflow/skills/phase-alpha/",
+                    "https://example.org/neuroflow/commands/alpha.html", "https://example.org/neuroflow/commands/alpha.md"):
+            found = self.readme(extra=f"\n[x]({url})\n")
+            self.assertEqual([f.severity for f in found], [rc.FAIL], url)
+
+    def test_site_links_to_excluded_docs_fail(self):
+        write(self.root, {"mkdocs.yml": FILES["mkdocs.yml"].replace("theme:", "exclude_docs: |\n  hooks.py\n  __pycache__/\n\ntheme:", 1),
+                          "docs/hooks.py": "# build hook\n"})
+        found = self.readme(extra="\n[x](https://example.org/neuroflow/hooks.py)\n")
+        self.assertEqual([f.severity for f in found], [rc.FAIL])
+
+    def test_link_outside_the_repository_fails(self):
+        found = self.readme(extra="\n[up](../outside.md)\n")
+        self.assertEqual([f.message for f in found], ["README.md links to `../outside.md`, outside the repository"])
+
+    def test_paths_with_fragments_and_root_slashes(self):
+        self.assertEqual(self.readme(extra="\n[a](commands/alpha.md#usage) [b](/commands/alpha.md) [c](<docs/assets/logo.svg>)\n"), [])
+
+    def test_reference_definitions_but_not_footnotes(self):
+        found = self.readme(extra="\nSee [the guide][g].[^1]\n\n[g]: docs/guide.md\n[^1]: a footnote, not a path\n")
+        self.assertEqual([f.message for f in found], ["README.md links to non-existent file `docs/guide.md`"])
+
+    def test_the_markdown_comment_idiom_is_no_link(self):
+        self.assertEqual(self.readme(extra="\n[comment]: <> (Keep the Skills table sorted)\n[//]: <> (and this)\n"), [])
+
+    def test_mkdocs_theme_images(self):
+        mk = FILES["mkdocs.yml"]
+        write(self.root, {"mkdocs.yml": mk.replace("logo: assets/logo.svg", "logo: assets/brand/mark.svg")})
+        self.assertEqual(self.text("V10"), "V10 fail mkdocs.yml theme logo `assets/brand/mark.svg` does not exist in docs/")
+        write(self.root, {"mkdocs.yml": mk.replace("favicon: assets/logo.svg", "favicon: https://example.org/f.svg")})
+        self.assertEqual(self.run_checks("V10"), [])
+        # a deeper key of the same name (theme: icon: logo:) is not the theme logo
+        write(self.root, {"mkdocs.yml": mk.replace("  logo: assets/logo.svg\n", "")
+                          .replace("    repo: fontawesome/brands/github", "    logo: material/brain")})
+        self.assertEqual(self.run_checks("V10"), [])
+        # the theme's custom_dir counts too
+        write(self.root, {"mkdocs.yml": mk.replace("logo: assets/logo.svg", "logo: assets/own.svg\n  custom_dir: overrides"),
+                          "overrides/assets/own.svg": "<svg/>\n"})
+        self.assertEqual(self.run_checks("V10"), [])
+
+    def test_plugin_icon(self):
+        plugin = json.loads(FILES[".claude-plugin/plugin.json"])
+        for icon, ok in (("./docs/assets/logo.svg", True), ("docs/assets/logo.svg", True),
+                         ("https://example.org/icon.png", True), ("./docs/assets/brand/icon-512.png", False)):
+            write(self.root, {".claude-plugin/plugin.json": json.dumps({**plugin, "icon": icon}, indent=2) + "\n"})
+            found = self.run_checks("V10")
+            self.assertEqual(found == [], ok, (icon, found))
+        self.assertEqual(self.text("V10"),
+                         "V10 fail .claude-plugin/plugin.json icon `./docs/assets/brand/icon-512.png` does not exist")
+
+
+class ReleaseNotesTests(RepoCase):
+    """V12: one What's new section, for the plugin.json version; docs/changelog.md lists that version first."""
+
+    def readme(self, old, new):
+        write(self.root, {"README.md": FILES["README.md"].replace(old, new)})
+        return self.run_checks("V12")
+
+    def test_two_sections_fail_once(self):
+        found = self.readme("## Installation", "## What's new in 1.2.2\n\n- older\n\n## Installation")
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].severity, rc.FAIL)
+        self.assertIn("2 What's new sections (1.2.3, 1.2.2)", found[0].message)
+        self.assertIn("docs/changelog.md", found[0].message)
+
+    def test_a_curly_apostrophe_counts(self):
+        found = self.readme("## Installation", "<details><summary>What’s new in 1.2.2</summary>\n\n- older\n\n"
+                                               "</details>\n\n## Installation")
+        self.assertEqual([f.severity for f in found], [rc.FAIL])
+
+    def test_a_stale_section_warns(self):
+        found = self.readme("## What's new in 1.2.3", "## What's new in 1.2.2")
+        self.assertEqual([(f.severity, f.message) for f in found], [
+            (rc.WARN, "README.md What's new is for 1.2.2, plugin.json is 1.2.3 - replace the section with "
+                      "`## What's new in 1.2.3`")])
+
+    def test_the_version_must_match_exactly(self):
+        found = self.readme("## What's new in 1.2.3", "## What's new in 1.2.30")
+        self.assertEqual([f.severity for f in found], [rc.WARN])
+        self.assertIn("is for 1.2.30", found[0].message)
+
+    def test_no_section_warns(self):
+        found = self.readme("## What's new in 1.2.3", "## Recent changes")
+        self.assertEqual([(f.severity, f.message) for f in found],
+                         [(rc.WARN, "README.md has no `## What's new in 1.2.3` section")])
+
+    def test_naming_the_same_version_again_is_one_section(self):
+        found = self.readme("## Installation", '<a href="#whats-new">What\'s new in 1.2.3</a>\n\n## Installation')
+        self.assertEqual(found, [])
+
+    def test_mentions_in_code_do_not_count(self):
+        found = self.readme("## Installation", "```\n## What's new in 1.0.0\n```\n\n`What's new in 1.1.0`\n\n## Installation")
+        self.assertEqual(found, [])
+
+    def test_the_changelog_lists_the_version_first(self):
+        write(self.root, {"docs/changelog.md": "# Changelog\n\n## 1.2.2\n\n- older\n\n## 1.2.3\n\n- x\n"})
+        self.assertEqual([(f.severity, f.message) for f in self.run_checks("V12")], [
+            (rc.WARN, "docs/changelog.md lists 1.2.2 first - the newest entry (`## 1.2.3`) goes on top")])
+
+    def test_a_missing_changelog_entry_warns(self):
         write(self.root, {"docs/changelog.md": "# Changelog\n\n## 1.2.2\n\n- x\n"})
         found = self.run_checks("V12")
-        self.assertEqual([f.severity for f in found], [rc.WARN])
+        self.assertEqual([(f.severity, f.message) for f in found], [(rc.WARN, "docs/changelog.md has no `## 1.2.3` entry")])
+
+
+class HygieneTests(RepoCase):
 
     def test_private_key_material_not_mentions(self):
         write(self.root, {"skills/phase-alpha/scan.py": 'PEM = r"-----BEGIN (?:RSA )*PRIVATE KEY-----"\n'})
@@ -208,6 +378,12 @@ class HygieneTests(RepoCase):
         found = self.run_checks("V15")
         self.assertEqual(len(found), 1)
         self.assertIn("project-level `.neuroflow/flowie/`", found[0].message)
+
+    def test_stale_paths_in_the_readme(self):
+        # README.md keeps only the newest release notes now, so V15 reads it like any other page.
+        write(self.root, {"README.md": FILES["README.md"] + "Notes go to .neuroflow/flowie/notes/\n"})
+        line = len(FILES["README.md"].splitlines()) + 1
+        self.assertEqual([f.message.split(" uses ")[0] for f in self.run_checks("V15")], [f"README.md:{line}"])
 
     def test_repo_memory_folders(self):
         write(self.root, {".neuroflow/phase-alpha/x.md": "x"})

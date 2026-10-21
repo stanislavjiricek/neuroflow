@@ -1,6 +1,6 @@
 ---
 name: poster
-description: Generate a LaTeX academic conference poster from project memory. Selects a template (A0/A1/A2, portrait/landscape, custom sizes), injects project content, adds a QR code, and runs the result through the poster-critic agent in an iterative review loop.
+description: Generate a LaTeX academic conference poster from project memory. Selects a template (A0 portrait or landscape, A1 portrait, 90×120 cm, 48×36 in), injects project content, adds a QR code, and runs the result through the poster-critic agent in an iterative review loop.
 phase: poster
 reads:
   - .neuroflow/project_config.md

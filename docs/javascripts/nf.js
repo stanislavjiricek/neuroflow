@@ -369,3 +369,19 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+// The intro video on the Overview loads nothing until it is asked to (preload="none"), and Chrome
+// draws no play button over such a video, so a first click on the poster would do nothing. This
+// starts it; once it has data, the player's own controls take over.
+(() => {
+  const start = () => {
+    document.querySelectorAll('.nf-video video').forEach((video) => {
+      video.addEventListener('click', () => {
+        if (video.paused && video.readyState === 0) video.play().catch(() => {});
+      });
+    });
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();

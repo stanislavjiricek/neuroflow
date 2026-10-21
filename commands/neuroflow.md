@@ -37,24 +37,29 @@ next:
 
 First load the `neuroflow:neuroflow-core` skill with the Skill tool. Claude Code shows its base directory when it loads; every `<neuroflow-core base dir>` below is that path (`neuroflow:neuroflow-core` → **The plugin's own files**). Never search `~/.claude/plugins` or anywhere else for neuroflow's files: other versions may be cached there.
 
-Then, before anything else, display the ASCII welcome logo:
+Then, before anything else, display the welcome ring — the neuroflow ring of nineteen phase dots, the current one (`◉`) at the top, with the wordmark inside:
 
 ```
-   ____  ___  __  ___________  / __/ /___ _      __
-  / __ \/ _ \/ / / / ___/ __ \/ /_/ / __ \ | /| / /
- / / / /  __/ /_/ / /  / /_/ / __/ / /_/ / |/ |/ /
-/_/ /_/\___/\__,_/_/   \____/_/ /_/\____/|__/|__/
+             ◉
+      ·  ·       ·  ·
+    ·                 ·
+  ·                     ·
+  ·      neuroflow      ·
+   ·                   ·
+     ·               ·
+        ·         ·
+           ·   ·
 
   v{version}  ·  agentic neuroscience research, from hypothesis to publication
 ```
 
-Replace `{version}` with the `version` from the **installed plugin's** manifest: `<neuroflow-core base dir>/../../.claude-plugin/plugin.json` (Claude Code shows the base directory when the `neuroflow:neuroflow-core` skill loads). Never read a `.claude-plugin/plugin.json` relative to the working directory — user projects have none. If the version cannot be read, print the line without `v{version}  ·  `. Then pick **one** of the following lines at random and print it directly after the logo block:
+Replace `{version}` with the `version` from the **installed plugin's** manifest: `<neuroflow-core base dir>/../../.claude-plugin/plugin.json` (Claude Code shows the base directory when the `neuroflow:neuroflow-core` skill loads). Never read a `.claude-plugin/plugin.json` relative to the working directory — user projects have none. If the version cannot be read, print the line without `v{version}  ·  `. Then pick **one** of the following lines at random and print it directly after the ring block:
 
 - *let's do some magic today*
 - *let's go hack some stuff*
 - *I heard HARKing is fun*
 
-Print the logo, version, tagline, and the selected one-liner together as one block, then continue.
+Print the ring, the version and tagline line, and the selected one-liner together as one block, then continue.
 
 ---
 
@@ -70,7 +75,7 @@ It looks like neuroflow setup was started but not finished. Let's complete it no
 Skip Step 0d (the folder already exists) and continue directly to Step 1 to run the interview.
 
 **If `.neuroflow/project_config.md` exists and `active_phase` is anything other than `setup`:**
-1. Read `project_config.md` — facts from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**). If it uses a legacy dialect (no `nf_schema` frontmatter), say so in one line and offer `/neuroflow:migrate`. Otherwise, if its `plugin_version` is missing or older than the version printed in the logo, say the version notice verbatim, as one sentence on one line (`neuroflow:neuroflow-core` → **Command lifecycle**, step 3) — it names `/neuroflow:migrate`.
+1. Read `project_config.md` — facts from its frontmatter (`neuroflow:neuroflow-core` → **project_config.md — the config contract**). If it uses a legacy dialect (no `nf_schema` frontmatter), say so in one line and offer `/neuroflow:migrate`. Otherwise, if its `plugin_version` is missing or older than the version printed under the welcome ring, say the version notice verbatim, as one sentence on one line (`neuroflow:neuroflow-core` → **Command lifecycle**, step 3) — it names `/neuroflow:migrate`.
 2. Read `flow.md`
 3. Print a brief status: current phase(s), research question (if set), last session date (from `sessions/` folder)
 4. Run the journal check (Step 0b) and the integration check (Step 0c)

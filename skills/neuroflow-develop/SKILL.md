@@ -16,7 +16,8 @@ neuroflow/
 │       ├── validate.yml             ← every PR and push to main: validate_pr.py, unit tests, strict docs build;
 │       │                              mod job: claude plugin validate / test on 2.1.292, mod_policy.py
 │       ├── mod-canary.yml           ← weekly: the same mod checks on the newest Claude Code; opens an issue on failure
-│       ├── deploy-docs.yml          ← builds and deploys MkDocs site on push to main
+│       ├── deploy-docs.yml          ← on push to main: fetches the intro video (release intro-video),
+│       │                              then builds and deploys the MkDocs site
 │       ├── daily-maintenance.yml    ← posts daily maintainer report (Discussion #167)
 │       ├── research-radar.yml       ← posts weekly research radar (Discussion #169)
 │       └── sentinel-dev.yml         ← daily repo-check report + version auto-fix PR (Discussion #168)
@@ -27,6 +28,7 @@ neuroflow/
 │       ├── validate_pr.py           ← runs repo_checks — CI on every PR, and locally
 │       ├── sentinel_check.py        ← daily report on the same checks
 │       ├── bump_version.py          ← bumps or syncs the four version sites
+│       ├── brand_assets.py          ← writes and checks the ring images (Visual style)
 │       ├── pre_push_version_check.py, install_hooks.py
 │       ├── daily_maintenance.py, research_radar.py, post_discussion.py
 │       └── requirements.txt
@@ -38,12 +40,14 @@ neuroflow/
 │   ├── hooks.json         ← event hooks (PostToolUse, PreToolUse, etc.) and the optional `modules` entry
 │   └── mod/               ← the optional hooks module (docs/concepts/mods.md)
 ├── docs/
+│   ├── assets/brand/      ← the ring images, made by brand_assets.py (Visual style)
 │   └── commands/          ← MkDocs source pages (one .md per command)
-├── overrides/             ← MkDocs theme overrides (main.html)
+├── overrides/             ← MkDocs theme overrides: home.html (landing page), main.html (docs layout)
+│   └── partials/          ← nf-head.html: icons and link previews for every page
 ├── mkdocs.yml             ← docs site nav, theme, plugins, extra.version
 ├── requirements.txt       ← Python deps for the docs build (mkdocs-material)
 ├── .neuroflow/            ← plugin-level project memory (dev decisions, sentinel reports)
-└── README.md              ← public docs: What's new, Commands/Skills/Agents/Hooks tables
+└── README.md              ← GitHub front page: logo, pitch, video, links, the newest What's new, install, Commands/Skills/Agents tables
 ```
 
 ## Before adding anything — overlap audit
@@ -186,17 +190,62 @@ Frozen preregistration files are never edited; record changes in deviations.md.
 
 The ids come from the rule table in neuroflow-core. A guard cites the id it enforces as the literal text `nf-rule: <ID>` — a comment above its registration, or inside its deny reason. `validate_pr.py` V8 fails on a marker with an unknown id and on a guard whose rule has no marker in `skills/` or `commands/`: a guard may only enforce what the prose states. The marker proves the prose exists, not that guard and prose agree — sentinel-dev J4 reads both.
 
+## Visual style
+
+neuroflow has one look: the ring — nineteen phase dots on a thin circle, the current phase at the top — in the colours of the docs site, with the wordmark `neuroflow` in lowercase Albert Sans. Two files hold it; point to them, never copy their values:
+
+- **Colours:** the tokens in `docs/stylesheets/nf.css` — `:root` for dark, the `prefers-color-scheme: light` block for light.
+- **Shapes:** `scripts/automation/brand_assets.py` — the ring's geometry, which is the dial on the landing page (`overrides/home.html`; `tests/automation/test_brand_assets.py` keeps the two equal), and the wordmark's size and tracking.
+
+Every image in `docs/assets/brand/` is made by that script:
+
+| File | Used by |
+|---|---|
+| `neuroflow-mark.svg` | the ring alone, following light and dark: `mkdocs.yml` `theme.logo`, the vector master |
+| `favicon.svg`, `favicon-32.png` | the browser tab: `theme.favicon`, and the PNG fallback in `overrides/partials/nf-head.html` |
+| `apple-touch-icon.png` | the home-screen icon (180×180) |
+| `icon-512.png` | `plugin.json` `icon`: the plugin directory listing |
+| `neuroflow-lockup-dark.png`, `neuroflow-lockup-light.png` | ring and wordmark, light ink for dark backgrounds and dark ink for light ones: the README header |
+| `social-card.png` | link previews (`og:image` in `nf-head.html`) and the GitHub social preview |
+
+To change an image, change the generator or the tokens, never the image, then regenerate:
+
+```bash
+python scripts/automation/brand_assets.py --write   # the SVGs
+python scripts/automation/brand_assets.py --png     # the PNGs: headless Chrome or Edge, network for the fonts
+python scripts/automation/brand_assets.py           # --check: the same check the unit tests run in CI
+```
+
+`--png` finds Chrome or Edge on its own; `--browser PATH` names another. `--check` exits `1` when an SVG no longer matches the generator, a PNG is missing or has the wrong size, an SVG holds `<text>`, an external `url(...)`, an `@import` or an external `href`, a file in the folder is not in the asset table, or an image passes 512 KB (1 MB for the folder): fix what it names. `2` is a usage or runtime error — a missing colour token, no browser found, fonts that did not load — and its message says which. Before committing, look at every PNG: the ring crisp, no text clipped, each lockup legible on its own background.
+
+- **No version and no URL in an image**, so a release never needs new ones.
+- **The GitHub social preview is uploaded by hand**, in the repository's Settings → General → Social preview: after a change to `social-card.png` is merged, the maintainer uploads the new file there. Nothing in CI can check it.
+- **Type:** Albert Sans and DM Mono, both under the SIL Open Font License. The site and the generator load them from Google Fonts; no font file is kept in the repo.
+- **Neutral:** no Claude Code orange and no vendor marks in neuroflow's images; the words "Claude Code" are fine.
+- **Research outputs keep their own styles.** Posters, slides, reports and figures that the commands make for a person are that person's work, not neuroflow images: `/poster`, `/slideshow` and the others do not take this look.
+
+**In the terminal** the hex palette does not apply: the mod draws with Claude Code's theme colours. Marks for phases and dates follow one legend, the one `/phase` and the `/neuroflow` welcome ring use, so each glyph means one thing everywhere:
+
+| Glyph | Means |
+|---|---|
+| `◉` | current phase |
+| `●` | visited phase |
+| `→` | recommended next |
+| `○` | not started |
+| `·` | a phase drawn without a state (the welcome ring's other dots) |
+| `⚠` | overdue, or due within three days |
+
+`/dashboard` and the mod's panes still draw the current phase as `●` and a visited one as `✔`; they move to this legend when the mod's views are redrawn, and so does any other file with other marks when it is next changed.
+
 ## Release workflow
 
 1. Make your changes
    - If you added, renamed, or removed a **command, skill, or agent**: place it in the docs index (`mkdocs.yml` nav, each page once) — `validate_pr.py` V10 fails the PR otherwise. A new phase also belongs on the landing page's ring (`overrides/home.html`) and in the Phases list of `docs/overview.md`.
-2. **Update `README.md`** — two places:
-   - Add a `## What's new in X.Y.Z` section above the previous one, with up to 3 bullet points describing what changed. Each bullet should link to the relevant file. This is the first thing users see after the header — keep it tight. Move the `<a id="whats-new"></a>` line so it stays right above the newest heading: the header's What's new link points at it.
-   - Add the new command or skill to the Commands or Skills table if applicable, with a link to the file.
-3. Add an entry to **`docs/changelog.md`** — same bullet points as the README section, formatted as `## X.Y.Z` heading followed by one-line summaries.
+2. **Add the `docs/changelog.md` entry first** — a `## X.Y.Z` heading on top (newest first) and one-line summaries of everything that changed. The changelog is the permanent record of every release; the README and the docs link to it. Links are relative to `docs/`: `commands/<name>.md` is the command's docs page, and `skills/…` and `agents/…` are copied in at build time. Write anything else in the repo (`hooks/`, `scripts/`, `.github/`, `overrides/`) as code, or link it with its full GitHub URL: `mkdocs build --strict` fails on a link it cannot resolve. When a command, skill or agent is removed later, the same build names the entries that link to its page — keep their text and drop the link.
+3. **Replace the README's single What's new section** — `README.md` keeps one section, for the newest release. Rename its heading to `## What's new in X.Y.Z` and rewrite the bullets: up to 3, each linking to the relevant file. This is the first thing people see after the header — keep it tight. Never add a second section: the earlier notes are already in `docs/changelog.md`, and `validate_pr.py` V12 fails on two. Keep the `<a id="whats-new"></a>` line right above the heading. For a small fix release, keep the previous release's headline bullet, marked with its version, so the README still shows what is new. Add a new command, skill or agent to its README table, with a link to the file (V10).
 4. **`mkdocs.yml` `extra.version`** must match the new version — `bump_version.py` writes it in step 7.
 5. If the release changes a format that existing projects keep (`project_config.md`, task files, reasoning logs, git files), make sure `/neuroflow:migrate` converts it — the first command after the update points every person there (`docs/upgrading.md`).
-6. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the ASCII logo if any feel stale for this release.
+6. Review **`commands/neuroflow.md` one-liners** — add, remove, or rotate the random lines printed below the welcome ring if any feel stale for this release.
 7. Bump the patch version in **all four places** (always patch: `0.1.0` → `0.1.1` → `0.1.2`, regardless of how large the change is) with `python scripts/automation/bump_version.py` (`--dry-run` shows the change first; `--sync` repairs drift without bumping). It rewrites only the version strings:
    - `.claude-plugin/plugin.json` → `version` field
    - `.claude-plugin/marketplace.json` → `plugins[].version` field

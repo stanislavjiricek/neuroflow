@@ -170,4 +170,4 @@ This is normal after a plugin update. `plugin_version` in `project_config.md` re
 ## Getting help
 
 - [Open an issue](https://github.com/stanislavjiricek/neuroflow/issues) on GitHub
-- Check the [README](https://github.com/stanislavjiricek/neuroflow) for the latest information
+- What changed in each version: the [changelog](changelog.md)

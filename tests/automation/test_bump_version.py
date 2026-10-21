@@ -41,6 +41,10 @@ class BumpVersionTests(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertEqual(set(map(tuple, self.versions().values())), {("1.2.4",)})
         self.assertIn("What's new in 1.2.4", out)
+        # the changelog entry comes first, and the README keeps a single section (V12)
+        self.assertIn("docs/changelog.md `## 1.2.4` on top", out)
+        self.assertIn("replace README.md's What's new section", out)
+        self.assertIn("one section only", out)
         self.assertEqual(rc.run(self.root, only={"V2"}), [])
 
     def test_dry_run_writes_nothing(self):

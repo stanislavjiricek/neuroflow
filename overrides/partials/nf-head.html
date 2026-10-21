@@ -1,0 +1,33 @@
+{#-
+  Icons and link previews for every page. main.html includes this in its extrahead block; home.html
+  (the landing page, which does not extend the theme) includes it in its own head. The SVG favicon
+  comes from theme.favicon; this adds the PNG fallback, the home-screen icon and the og and twitter
+  tags, with the social card as the preview image. The 404 page renders without a page, so every
+  page.* access is guarded. scripts/automation/brand_assets.py makes the images in assets/brand/.
+-#}
+{%- if page and page.title and not page.is_homepage -%}
+  {%- set nf_title = (page.meta.title if page.meta and page.meta.title else page.title | striptags) ~ " - " ~ config.site_name -%}
+{%- else -%}
+  {%- set nf_title = config.site_name ~ " — your team’s shared memory, inside Claude Code" -%}
+{%- endif -%}
+{%- set nf_description = page.meta.description if page and page.meta and page.meta.description else config.site_description -%}
+{%- set nf_url = page.canonical_url if page and page.canonical_url else config.site_url -%}
+{%- if config.site_url -%}
+  {%- set nf_card = config.site_url.rstrip("/") ~ "/assets/brand/social-card.png" -%}
+{%- else -%}
+  {%- set nf_card = "assets/brand/social-card.png" | url -%}
+{%- endif -%}
+<link rel="icon" type="image/png" sizes="32x32" href="{{ 'assets/brand/favicon-32.png' | url }}">
+<link rel="apple-touch-icon" href="{{ 'assets/brand/apple-touch-icon.png' | url }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ config.site_name | e }}">
+<meta property="og:title" content="{{ nf_title | e }}">
+<meta property="og:description" content="{{ nf_description | e }}">
+{%- if nf_url %}
+<meta property="og:url" content="{{ nf_url | e }}">
+{%- endif %}
+<meta property="og:image" content="{{ nf_card | e }}">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="The neuroflow wordmark inside a ring of nineteen phase dots, beside the words: Your team’s shared memory. Inside Claude Code.">
+<meta name="twitter:card" content="summary_large_image">
