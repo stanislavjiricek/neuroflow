@@ -1820,20 +1820,23 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
                 touched = [rel_to]
             else:
                 rel_from = f"{tasks_rel}/{action['path_from'][len('tasks/'):]}"
-                # where the file is now: where the check saw it, or where a run that stopped half way left it
-                found = [memory / action["path_from"], target, *sorted((memory / "tasks").glob(f"*/{action['slug']}.md"))]
-                current = next((path for path in found if path.is_file()), None)
-                if current is None:
-                    raise ValueError(f"{action['path_from']} is gone")
+                # Only where the check saw the file — or, for a move a run left half done, where that run put it. A
+                # file anywhere else moved after the check (a pull brought a teammate's move): it is not touched, and
+                # the intent gets no outcome, so the next run checks it again.
+                current = target if action.get("half_done") else memory / action["path_from"]
+                if not current.is_file():
+                    now_in = [path.parent.name for path in sorted((memory / "tasks").glob(f"*/{action['slug']}.md")) if path.is_file()]
+                    raise ValueError(f"the task moved after the check (it is in {now_in[0]} now): the next run checks it "
+                                     "again" if now_in else f"{action['path_from']} is gone")
+                rel_now = f"{tasks_rel}/{current.relative_to(memory / 'tasks').as_posix()}"
                 text = current.read_bytes().decode("utf-8")
                 if action.get("base") and pj.task_hash(text) != action["base"]:
                     raise ValueError("the task changed after the check: refresh the workbench and move it again")
+                if current != target and target.exists():
+                    raise ValueError(f"{action['path_to']} already exists")
                 current.write_bytes(set_fields(text, {"status": action["to"], "updated": today}).encode("utf-8"))
                 if current != target:
-                    if target.exists():
-                        raise ValueError(f"{action['path_to']} already exists")
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    rel_now = f"{tasks_rel}/{current.relative_to(memory / 'tasks').as_posix()}"
                     tracked = git_level and git(repo, "ls-files", "--error-unmatch", "--", rel_now).returncode == 0
                     if tracked:
                         moved = git(repo, "mv", "--", rel_now, rel_to)
@@ -1845,12 +1848,13 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
                     stage = git(repo, "add", "--", rel_to)
                     if stage.returncode != 0:
                         raise ValueError(pj.first_line(stage))
-                touched = [rel_to] + ([rel_from] if rel_from != rel_to and known_to_git(repo, rel_from) else [])
+                # the commit names where the file went and every path it came from that git knows
+                touched = [rel_to, rel_from, rel_now]
         except (OSError, ValueError, UnicodeDecodeError) as error:
             failed.append({"slug": action["slug"], "intents": action["intents"], "reason": str(error)})
             continue
         applied.append({"slug": action["slug"], "op": action["op"], "to": action["to"], "intents": action["intents"]})
-        paths += [path for path in touched if path not in paths]
+        paths += [path for path in dict.fromkeys(touched) if path not in paths]
         intents += action["intents"]
         if level["kind"] == "project":
             entries = ledger["levels"].setdefault(level["key"], {})
@@ -1859,6 +1863,9 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
     if level["kind"] == "project" and applied:
         write_ledger(home, ledger, now)
     result: dict = {"level": level["key"], "applied": applied, "failed": failed, "push": level["push"]}
+    # a commit by path names only paths git knows (in the index or in HEAD): a file renamed twice in one run leaves an
+    # intermediate path git never saw
+    paths = [path for path in paths if known_to_git(repo, path)]
     if applied and level["kind"] != "project" and git_level:
         message = summary_of([a for a in level["actions"] if any(i in intents for i in a["intents"])]) + "\n\n" + \
             "\n".join(f"{TRAILER}: {intent}" for intent in intents) + "\n"

@@ -765,6 +765,34 @@ class IntentTests(Home):
         self.assertEqual(verdicts["i-n1-aaaa"]["note"], "already in git")
         self.assertEqual(plan["levels"][0]["actions"], [])
 
+    def test_a_task_moved_after_the_check_is_not_applied_and_is_checked_again(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-r1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        # a teammate's move to review arrives (a pull) between the check and the apply; status stays out of the hash
+        (self.hive / "tasks" / "review").mkdir(parents=True, exist_ok=True)
+        git(self.hive, "mv", "tasks/inbox/fix-map.md", "tasks/review/fix-map.md")
+        moved = self.hive / "tasks" / "review" / "fix-map.md"
+        moved.write_bytes(moved.read_bytes().replace(b"status: inbox", b"status: review"))
+        git(self.hive, "commit", "-q", "-am", "a teammate moves fix-map to review")
+        self.assertEqual(self.base_of(moved), base)
+        code, result = self.apply(hive)
+        self.assertEqual(code, 1, result)
+        self.assertEqual(result["applied"], [])
+        self.assertIn("moved after the check (it is in review now)", result["failed"][0]["reason"])
+        self.assertNotIn("commit", result)
+        self.assertEqual(git(self.hive, "status", "--porcelain").strip(), "")  # nothing moved, nothing staged
+        self.assertFalse((self.hive / "tasks" / "active" / "fix-map.md").exists())
+        # no outcome is written for it, so it stays claimed; the next check sees the teammate's move
+        listed = self.intents(docs, version=5)
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--remote", str(self.scratch / "empty"),
+                               "--outcomes", str(self.scratch / "plan.json"), "--intents", str(listed), "--level", hive)
+        self.assertEqual(result["outcomes"]["written"], 0)
+        self.assertEqual([item["intent"] for item in result["outcomes"]["not_yet"]], ["i-r1-aaaa"])
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual((verdicts["i-r1-aaaa"]["result"], verdicts["i-r1-aaaa"]["column"]), ("conflict", "review"))
+
     def test_a_project_move_stays_in_the_working_tree_and_the_ledger_remembers_it(self) -> None:
         self.make_project(git_repo=True)
         key = "project+oddball-eeg"

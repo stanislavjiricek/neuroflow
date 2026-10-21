@@ -168,15 +168,18 @@ every `{wb}` call takes `--json` (exit `0` clean, `1` findings to name, `2` an e
    one. Nothing to claim: say so, and what waits elsewhere, and go to step 7.
 3. **Claim.** Send the claim batch with ArtifactData `batch`, `writes` exactly as printed (each pinned with
    `if_version`). Refused: another machine or session claimed first — list again and redo step 2.
-4. **Check.** List the intents again into `{scratch}/intents2` (this sees a cancel or a release the page wrote since,
-   and gives the versions the outcomes pin to), then `{wb} validate --intents {scratch}/intents2 --out
+4. **Check.** First pull the flowie and each hive clone a claimed intent names, as at command start
+   (`git -C {clone} pull --rebase --autostash`), so the check sees what was pushed — nothing is pulled between the check
+   and the apply. Then list the intents again into `{scratch}/intents2` (this sees a cancel or a release the page wrote
+   since, and gives the versions the outcomes pin to), then `{wb} validate --intents {scratch}/intents2 --out
    {scratch}/plan.json`: one verdict per claimed intent — applied, coalesced, conflict, rejected or cancelled, with its
    reason — and per level the planned file changes.
-5. **Apply, level by level.** Pull a hive clone first, as at command start. For each level with planned changes run
-   `{wb} apply --plan {scratch}/plan.json --level {key}`: it changes the task files as Moves does — `status`, `updated`,
-   `git mv`, and for an added card a new file in the Task file format — and in a flowie or hive clone stages them. It
-   prints the commit to run, whose message carries one `Neuroflow-Intent: {id}` trailer per intent; a change it could
-   not make is listed with its reason and gets no outcome (the next pickup tries again).
+5. **Apply, level by level.** For each level with planned changes run `{wb} apply --plan {scratch}/plan.json --level
+   {key}`: it changes the task files as Moves does — `status`, `updated`, `git mv`, and for an added card a new file in
+   the Task file format — and in a flowie or hive clone stages them. It takes a task file only where the check saw it, so
+   a task moved since then is left as it is. It prints the commit to run, whose message carries one
+   `Neuroflow-Intent: {id}` trailer per intent and names every path the changes touched; a change it could not make is
+   listed with its reason and gets no outcome (the next run checks it again).
    - `flowie`: run the printed commit, then `git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push`.
 <!-- nf-rule: EGRESS-CONFIRM -->
    - `hive`: run the printed commit, show `git -C ~/.neuroflow/hives/{org-repo} log --stat @{u}..HEAD` and push only after your yes in this turn; a protected main branch takes a branch and a pull request (`neuroflow:phase-hive` → Pushing to the hive). A push you decline leaves the commit local; its outcome says *committed, not pushed*.
