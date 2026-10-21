@@ -61,10 +61,13 @@ export function validLevelKey(key) {
     (key === 'flowie' || key.startsWith('hive+') || key.startsWith('project+'))
 }
 
-/** A fresh intent id: the time in base 36 and random letters — sortable by creation, valid as a document id. */
-export function newIntentId(nowMs, random) {
-  const tail = String(random).toLowerCase().replace(/[^0-9a-z]/g, '').slice(0, 12).padEnd(6, '0')
-  return `i-${Math.max(0, Math.floor(nowMs)).toString(36)}-${tail}`
+/**
+ * A fresh intent id, `i-{8}-{12}` from random letters and digits only: valid as a document id, and silent about when
+ * the person clicked — the id travels into hive commits as a Neuroflow-Intent trailer. Order comes from created_at.
+ */
+export function newIntentId(random) {
+  const text = String(random || '').toLowerCase().replace(/[^0-9a-z]/g, '').padEnd(20, '0').slice(0, 20)
+  return `i-${text.slice(0, 8)}-${text.slice(8)}`
 }
 
 // ── dates in the viewer's own calendar ─────────────────────────────────────────────────────────────
@@ -309,6 +312,26 @@ function columnClosed(columns, id) {
   return Boolean(column && column.closed)
 }
 
+/**
+ * The lanes a column draws, in drawing order, with at most `limit` cards across them (a closed column shows its
+ * first few): the one order the keyboard follows too, so ↑ and ↓ go to the card drawn above or below.
+ */
+export function drawnLanes(cards, groupBy, limit = Infinity) {
+  let left = limit
+  const out = []
+  for (const lane of lanes(cards, groupBy)) {
+    const shown = lane.cards.slice(0, Math.max(0, left))
+    left -= shown.length
+    if (shown.length) out.push({ name: lane.name, cards: shown })
+  }
+  return out
+}
+
+/** The cards of a column in the order it draws them (lane by lane). */
+export function drawnCards(cards, groupBy, limit = Infinity) {
+  return drawnLanes(cards, groupBy, limit).flatMap(lane => lane.cards)
+}
+
 /** Groups of a column's cards for swimlanes: by project or by owner; one unnamed group without grouping. */
 export function lanes(cards, groupBy) {
   if (groupBy !== 'project' && groupBy !== 'owner') return [{ name: null, cards }]
@@ -371,6 +394,63 @@ export function releasePatch(nowMs) {
   return { cancel_requested_at: stamp(nowMs) }
 }
 
+/**
+ * What a card offers: Move to… (a movable card), Undo (its last change still waits, unclaimed) and Release — only for a
+ * claim older than CLAIM_TTL_MS that never finished (`stale`). A live claim offers nothing to undo: a run is applying
+ * it, and a release would arrive after that run's check.
+ */
+export function cardActions(card) {
+  const state = card && card.pending ? card.pending.state : null
+  return { move: Boolean(card && card.movable), undo: state === 'pending', release: state === 'stale', waiting: state === 'claimed' }
+}
+
+/**
+ * The board filter as it applies to a level: a project level has no project filter (nothing on its tab can clear one),
+ * and the owner and project choices are its own cards' — a stored choice none of them has stays listed, so the
+ * control always shows the filter in force.
+ */
+export function levelFilter(level, filter = {}) {
+  return level && level.kind === 'project' ? { ...filter, project: '' } : { ...filter }
+}
+
+export function filterChoices(level, filter = {}) {
+  const of = name => [...new Set(((level && level.cards) || []).map(card => card[name]).filter(Boolean))].sort()
+  const owners = of('owner')
+  const projects = level && level.kind === 'project' ? [] : of('project')
+  if (filter.owner && !owners.includes(filter.owner)) owners.unshift(filter.owner)
+  if (level && level.kind !== 'project' && filter.project && !projects.includes(filter.project)) projects.unshift(filter.project)
+  return { owners, projects }
+}
+
+/** The filter a newly opened tab starts with: the search and the overdue switch stay, owner and project are per level. */
+export function filterOnOpen(filter = {}) {
+  return { ...filter, owner: '', project: '' }
+}
+
+/**
+ * The page's settings kept in step with the store. A local change is written `delayMs` later (changes in between
+ * merge into one write); a snapshot from the store — another tab or device, or the record restored by an export —
+ * is taken whenever no local change waits to be written or is being written. `timer` is {set, clear}.
+ */
+export function prefsKeeper({ write, delayMs = 700, timer }) {
+  let waiting = null
+  let writing = 0
+  let chain = Promise.resolve()
+  return {
+    get busy() { return waiting !== null || writing > 0 },
+    change(body, onError) {
+      timer.clear(waiting)
+      waiting = timer.set(() => {
+        waiting = null
+        writing += 1
+        chain = chain.then(() => write(body())).catch(error => { if (onError) onError(error) }).finally(() => { writing -= 1 })
+      }, delayMs)
+    },
+    take(doc, current) { return this.busy ? current : normalizePrefs(doc) },
+    settled() { return chain },
+  }
+}
+
 function withId(intent, id) {
   return { ...intent, id }
 }
@@ -381,13 +461,22 @@ export function intentDocument(intent) {
   return doc
 }
 
-/** The column to the left or right of `column` on the board (for the keyboard move); null at the edge. */
+/**
+ * Whether a card may be moved or added to this column. Not the archive (the sweep fills it), and not an `extra`
+ * column — a folder tasks/config.json does not name, which Claude Code's check rejects as "no column".
+ */
+export function isMoveTarget(column) {
+  return Boolean(column) && !column.archive && !column.extra
+}
+
+/** The next column to the left or right of `column` a card may move to (the keyboard move); null at the edge. */
 export function neighbourColumn(columns, column, step) {
-  const ids = columns.filter(item => !item.archive).map(item => item.id)
-  const at = ids.indexOf(column)
+  const at = columns.findIndex(item => item.id === column)
   if (at < 0) return null
-  const next = at + step
-  return next >= 0 && next < ids.length ? ids[next] : null
+  for (let next = at + step; next >= 0 && next < columns.length; next += step) {
+    if (isMoveTarget(columns[next])) return columns[next].id
+  }
+  return null
 }
 
 // ── freshness: what the export saw, and what it could not ────────────────────────────────────────────
@@ -482,12 +571,25 @@ export function safeHref(url) {
   return /^https?:\/\/[^\s]+$/i.test(text) ? text : null
 }
 
-/** Block tokens: heading, paragraph, list (nested by indent), code, quote, table, hr. */
+/** A table's delimiter row: cells of one or more dashes, each with an optional colon at either end (`|:-|:-:|`, `---|---`). */
+export function isDelimiterRow(line) {
+  const text = String(line || '').trim()
+  if (!text.includes('-')) return false
+  return text.replace(/^\|/, '').replace(/\|$/, '').split('|').every(cell => /^:?-+:?$/.test(cell.trim()))
+}
+
+/**
+ * Block tokens: heading, paragraph, list (nested by indent), code, quote, table, hr. Every pass takes at least one
+ * line, so any text ends: a line no other block claims becomes a paragraph, and a `|` line starts a table only when
+ * a delimiter row follows it.
+ */
 export function parseMarkdown(text) {
   const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n')
   const blocks = []
   let i = 0
   const isBlank = line => line.trim() === ''
+  const startsTable = at => /^\s*\|/.test(lines[at]) && at + 1 < lines.length && isDelimiterRow(lines[at + 1])
+  const startsBlock = at => /^(#{1,6})\s/.test(lines[at]) || /^\s*(```|~~~|>)/.test(lines[at]) || /^\s*([-*+]|\d+[.)])\s+/.test(lines[at]) || startsTable(at)
   while (i < lines.length) {
     const line = lines[i]
     if (isBlank(line)) { i += 1; continue }
@@ -509,7 +611,7 @@ export function parseMarkdown(text) {
       blocks.push({ type: 'quote', blocks: parseMarkdown(body.join('\n')) })
       continue
     }
-    if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+    if (startsTable(i)) {
       const cells = row => row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => parseInline(cell.trim()))
       const header = cells(line)
       const rows = []
@@ -530,8 +632,10 @@ export function parseMarkdown(text) {
       blocks.push({ type: 'list', ordered: items[0].ordered, items: nestItems(items) })
       continue
     }
-    const body = []
-    while (i < lines.length && !isBlank(lines[i]) && !/^(#{1,6})\s/.test(lines[i]) && !/^\s*(```|~~~|>|\|)/.test(lines[i]) && !/^\s*([-*+]|\d+[.)])\s+/.test(lines[i])) {
+    // a paragraph: this line (whatever it starts with — no block above claimed it), then the lines up to the next block
+    const body = [line.trim()]
+    i += 1
+    while (i < lines.length && !isBlank(lines[i]) && !startsBlock(i)) {
       body.push(lines[i].trim())
       i += 1
     }

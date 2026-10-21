@@ -10,14 +10,19 @@ subcommands:
   levels                      the levels this machine can mirror: key, the team's opt-in, the person's consent
   export --out DIR            the snapshot documents of the mirrored levels and a preview; with --remote DIR (the
                               ArtifactData listing of data/users/me) also the refresh guard's verdicts and the batch
-                              writes; --outcomes PLAN adds the outcomes of an apply run; --fetch fetches each repo first
+                              writes; --outcomes PLAN adds the outcomes of an apply run; --fetch fetches each repo first;
+                              --held DIR (a listing of data/users/me; default --remote) names under `purge` the levels
+                              the workbench holds whose team no longer allows them — the ones a refresh deletes
   pickup --intents DIR        which queued intents this session may claim, and the claim batch (pinned)
   validate --intents DIR --out PLAN   one verdict per claimed intent and the plan of task-file changes, per level
   apply --plan PLAN --level KEY       edit and move the planned task files of one level (git mv) and stage them in
                               a flowie or hive clone; prints the commit to run, with its Neuroflow-Intent trailers
   pending --intents DIR [--plan PLAN] write ~/.neuroflow/workbench/pending.json (the mod's board and band read it)
-  gc --intents DIR --remote DIR       deletes: finished intents older than --days, orphaned parts, levels no
-                              longer mirrored (--purge KEY names more)
+  gc --intents DIR --remote DIR       deletes: finished intents older than --days, orphaned parts, the levels whose
+                              team no longer allows them and the ones --purge KEY names (the person took them off);
+                              never a level only because this machine lacks it. --remote lists every level's parts;
+                              a level whose parts it lacks is named under `unlisted`, and --listed KEY says that
+                              level's parts were listed even though the listing came back empty
   record [--set KEY=VALUE ...] [--prefs FILE]   the workbench record: the flowie's workbench.json, else user.yaml
   stage --out DIR             the page: template plus logic module, with its hashes, capabilities and contract
   page --check FILE           whether a page read back from claude.ai is still the one neuroflow published
@@ -50,14 +55,16 @@ ASSETS = HERE.parent / "assets" / "workbench"
 TEMPLATE = ASSETS / "workbench.html"
 MODULE = ASSETS / "workbench.mjs"
 PII_SCAN = PLUGIN / "skills" / "phase-output" / "scripts" / "pii_scan.py"
+LOCAL_PATHS = PLUGIN / "skills" / "phase-flowie" / "scripts" / "local_paths.py"
 
 SNAP_SCHEMA = 1
 INTENT_SCHEMA = 1
 PREFS_SCHEMA = 1
 PART_MAX = 200_000          # bytes of one part document (the store takes 256 KiB)
 BODY_MAX = 150_000          # bytes of one wiki page body
-NOTES_MAX = 1000            # characters of a card's notes
-TEXT_MAX = 60_000           # characters of a panel text (ideas, hive.md)
+NOTES_MAX = 1000            # characters of a card's notes and of a registry description
+TEXT_MAX = 40_000           # bytes of a panel text (ideas, hive.md): two of them and the lists fit the core part
+LIST_MAX = 200              # entries of a panel list (notes, meetings, an erratum's rows): the newest
 BATCH_WRITES = 50
 BATCH_BYTES = 900_000       # under the batch limit of 1 MiB
 SIZE_WARN = 8_000_000       # bytes of one export: past this the page is slow to load
@@ -115,6 +122,11 @@ mg = _load("_nf_core_migrate", HERE / "migrate.py")          # slugs, phases, fr
 def pii():
     """pii_scan.py: the one home of the personal-data and secret patterns (imported as header_scan.py does)."""
     return _load("_nf_phase_output_pii_scan", PII_SCAN)
+
+
+def local_paths():
+    """local_paths.py: the one home of the machine-local path patterns (phase-flowie → Write rules)."""
+    return _load("_nf_phase_flowie_local_paths", LOCAL_PATHS)
 
 
 # ── small helpers ───────────────────────────────────────────────────────────────────────────────
@@ -276,9 +288,11 @@ def as_keys(value) -> list[str]:
 # so a case-insensitive file system cannot fold two levels into one file.
 
 def escape_segment(text: str) -> str:
-    """A card id in key characters: lower-case letters, digits and `_ . -` stay, every other byte becomes `~hh`."""
-    return "".join(ch if re.fullmatch(r"[a-z0-9_.\-]", ch) else "".join(f"~{byte:02x}" for byte in ch.encode("utf-8"))
-                   for ch in text.lower())
+    """A card id in key characters: lower-case letters, digits and `_ . -` stay, every other byte becomes `~hh` — and
+    so does a last `.`, which Windows drops from a folder name (`study-2024.` would be filed as `study-2024`)."""
+    out = "".join(ch if re.fullmatch(r"[a-z0-9_.\-]", ch) else "".join(f"~{byte:02x}" for byte in ch.encode("utf-8"))
+                  for ch in text.lower())
+    return out[:-1] + "~2e" if out.endswith(".") else out
 
 
 def project_key(card: str | None, origin: str | None) -> str | None:
@@ -345,10 +359,14 @@ class Source:
     """One level this machine can read: the flowie, a hive clone or the project here."""
 
     def __init__(self, kind: str, key: str, label: str, repo: Path, memory: Path, policy: str | None,
-                 board: str, card: str | None = None) -> None:
+                 board: str, card: str | None = None, upstream: tuple[bool, str | None] = (False, None)) -> None:
         self.kind, self.key, self.label = kind, key, label
         self.repo, self.memory = repo, memory            # the git work tree, and where tasks/ and wiki/ live
-        self.policy = policy                             # own | allow | allow-names | forbid | None (absent)
+        self.local_policy = policy                       # the team's value in this working tree
+        self.upstream_known, self.upstream_policy = upstream  # the upstream's value, as last fetched
+        # own | allow | allow-names | forbid | None (absent): the stricter of the two — a clone that is behind cannot
+        # keep mirroring what the team stopped, and a value nobody pushed cannot start it
+        self.policy = stricter(policy, self.upstream_policy) if self.upstream_known else policy
         self.board = board                               # the mod's board id: flowie | hive:{folder} | project
         self.card = card
 
@@ -370,15 +388,44 @@ def policy_of(text: str | None) -> str | None:
     return value.lower() if value and value.lower() in POLICIES else None
 
 
+STRICTNESS = {"forbid": 0, None: 1, "allow": 2, "allow-names": 3}
+
+
+def stricter(a: str | None, b: str | None) -> str | None:
+    return a if STRICTNESS.get(a, 1) <= STRICTNESS.get(b, 1) else b
+
+
+def upstream_policy(repo: Path, rel: str) -> tuple[bool, str | None]:
+    """(whether the clone has an upstream, the workbench_mirror its copy of `rel` holds, as last fetched)."""
+    if not is_repo(repo) or out_of(git(repo, "rev-parse", "--verify", "--quiet", "@{u}")) is None:
+        return False, None
+    shown = git(repo, "show", f"@{{u}}:./{rel}")
+    return True, (policy_of(shown.stdout) if shown.returncode == 0 else None)
+
+
+def fetch_clone(repo: Path, home: Path) -> None:
+    """A read-only fetch, so the upstream's values are current (a repository git cannot read, or without a commit, is
+    left as it is)."""
+    if is_repo(repo) and out_of(git(repo, "rev-parse", "HEAD")):
+        git(repo, "fetch", "--quiet", home=home, timeout=120)
+
+
 def project_root(start: Path | None) -> Path | None:
-    return pj.find_root(start.resolve()) if start is not None else None
+    """The project folder at or above `start`, spelled as it was reached and never resolved: through a junction or a
+    mapped drive it keeps the path the person opened, which is the one the mod sees (pending.json names both)."""
+    return pj.find_root(Path(os.path.abspath(start))) if start is not None else None
 
 
-def discover(home: Path, root: Path | None) -> tuple[list[Source], list[dict]]:
-    """Every level this machine has, and the ones that can get no key (said why)."""
+def discover(home: Path, root: Path | None, fetch: bool = False) -> tuple[list[Source], list[dict]]:
+    """Every level this machine has, and the ones that can get no key (said why). The team's workbench_mirror is read
+    from the working tree and from the clone's upstream as last fetched — `fetch` fetches every clone first."""
     found: list[Source] = []
     unkeyed: list[dict] = []
     levels = pj.all_levels(home)
+    here = project_root(root)
+    if fetch:
+        for repo in [level.root for level in levels] + ([here] if here is not None else []):
+            fetch_clone(repo, home)
     for level in levels:
         if level.kind == "flowie":
             found.append(Source("flowie", "flowie", "flowie", level.root, level.root, "own", "flowie"))
@@ -388,8 +435,8 @@ def discover(home: Path, root: Path | None) -> tuple[list[Source], list[dict]]:
             unkeyed.append({"kind": "hive", "folder": level.name, "reason": "the clone has no origin remote, so it gets no tab"})
             continue
         found.append(Source("hive", key, level.repo or level.name, level.root, level.root,
-                            policy_of(read_text(level.root / "hive.md")), f"hive:{level.name}"))
-    here = project_root(root)
+                            policy_of(read_text(level.root / "hive.md")), f"hive:{level.name}",
+                            upstream=upstream_policy(level.root, "hive.md")))
     if here is not None:
         card = pj.linked_id(home, levels, here)
         key = project_key(card, pj.origin_url(here))
@@ -400,7 +447,7 @@ def discover(home: Path, root: Path | None) -> tuple[list[Source], list[dict]]:
                                                          "so it gets no tab (/flowie --projects --add registers it)"})
         else:
             found.append(Source("project", key, name or card or here.name, here, here / ".neuroflow", policy_of(config),
-                                "project", card))
+                                "project", card, upstream=upstream_policy(here, ".neuroflow/project_config.md")))
     return found, unkeyed
 
 
@@ -408,7 +455,28 @@ def consent(home: Path) -> dict:
     data = read_user_yaml(home)
     return {"on": on(data.get("workbench")), "levels": as_keys(data.get("workbench_levels")),
             "index_only": as_keys(data.get("workbench_index_only")), "machine": str(data.get("workbench_machine") or "").strip(),
-            "account": str(data.get("workbench_account") or "").strip(), "handle": str(data.get("flowie_handle") or "").strip()}
+            "account": str(data.get("workbench_account") or "").strip(), "handle": str(data.get("flowie_handle") or "").strip(),
+            "pii_config": str(data.get("pii_config") or "").strip() if not isinstance(data.get("pii_config"), (list, dict)) else ""}
+
+
+def pii_settings(path_text: str | None) -> dict | None:
+    """The person's pii_scan.py config (id_patterns, roster) — from --pii-config, else the file `pii_config` names in
+    user.yaml; None without one. A relative roster path is read from the config's own folder. A config that cannot be
+    read stops the export: going on would upload ID numbers and roster names the person asked to be caught."""
+    if not path_text:
+        return None
+    path = Path(path_text).expanduser()
+    try:
+        config = json.loads(path.read_bytes().decode("utf-8-sig"))
+    except (OSError, ValueError) as error:
+        raise UsageError(f"the pii_scan config {path} cannot be read ({error}); fix it, or remove pii_config from "
+                         "~/.neuroflow/user.yaml") from error
+    if not isinstance(config, dict):
+        raise UsageError(f"the pii_scan config {path} must be a JSON object")
+    roster = config.get("roster")
+    if isinstance(roster, str) and roster.strip() and not Path(roster.strip()).expanduser().is_absolute():
+        config = {**config, "roster": str(path.parent / roster.strip())}
+    return config
 
 
 def level_rows(sources: list[Source], person: dict) -> list[dict]:
@@ -420,11 +488,21 @@ def level_rows(sources: list[Source], person: dict) -> list[dict]:
             where = "hive.md" if src.kind == "hive" else "project_config.md"
             reason = ("the team forbids mirroring it" if src.policy == "forbid" else
                       f"the team has not opted in (workbench_mirror in {where})")
+            if src.local_policy in ("allow", "allow-names"):
+                reason += f" — so says the upstream {where}; this clone's copy differs"
+            elif src.upstream_policy in ("allow", "allow-names"):
+                reason += f" — so says this clone; the upstream {where} allows it"
         elif not person["on"]:
             reason = "your workbench is off (workbench: on in ~/.neuroflow/user.yaml)"
         elif not consented:
             reason = "not one of your workbench_levels"
+        # purge: the team no longer allows it — a shared decision every machine reads alike, so gc deletes the level
+        # wherever the person's workbench holds it; when the upstream still allows it (this clone is behind, or holds
+        # a change nobody pushed), another machine may mirror it rightly, so it stays. This machine's own settings never
+        # purge a level by themselves: the person takes a level off with --web --levels, which names it to gc.
+        upstream_allows = src.upstream_known and src.upstream_policy in ("allow", "allow-names")
         rows.append({**src.as_dict(), "consented": consented, "mirrored": reason is None,
+                     "purge": not src.allowed and not upstream_allows,
                      "index_only": src.key in person["index_only"], **({"reason": reason} if reason else {})})
     return rows
 
@@ -485,7 +563,8 @@ SOURCES = [
      "note": "extra marks a folder that config.json does not name"},
     {"source": "registry", "levels": "flowie, hive", "from": "projects/projects.json",
      "fields": ["core.registry", *every("registry")],
-     "note": "remote repository URLs only; a flowie pointer as its id and hive only"},
+     "note": "remote repository URLs only, without a user name, password or query; the first 1,000 characters of a "
+             "description; a flowie pointer as its id and hive only"},
     {"source": "wiki", "levels": "flowie, hive, project", "from": "wiki/pages/**, wiki/index.md",
      "fields": ["part.pages", *every("page")],
      "note": "no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded"},
@@ -493,16 +572,16 @@ SOURCES = [
      "fields": ["core.people", *every("person")],
      "note": "name and role only with allow-names; your own handle only at flowie level; never an email address"},
     {"source": "ideas", "levels": "flowie, hive", "from": "ideas.md, ideas-inbox.md (flowie)",
-     "fields": ["flowie_panel.ideas", "flowie_panel.ideas_inbox", "hive_panel.ideas"], "note": "the text"},
+     "fields": ["flowie_panel.ideas", "flowie_panel.ideas_inbox", "hive_panel.ideas"], "note": "the text, at most 40 KB"},
     {"source": "notes", "levels": "flowie", "from": "notes/*.md", "fields": ["flowie_panel.notes", *every("note")],
-     "note": "never the notes themselves"},
+     "note": "never the notes themselves; the newest 200"},
     {"source": "meetings", "levels": "flowie, hive, project", "from": "meetings/*.md",
      "fields": ["flowie_panel.meetings", "hive_panel.meetings", "project_panel.meetings", *every("meeting")],
-     "note": "never attendees, agenda or notes"},
+     "note": "never attendees, agenda or notes; the newest 200"},
     {"source": "team", "levels": "hive", "from": "hive.md", "fields": ["hive_panel.team"],
-     "note": "the text after the frontmatter: the team's name, description, norms and research directions"},
+     "note": "the text after the frontmatter, at most 40 KB: the team's name, description, norms and research directions"},
     {"source": "errata", "levels": "hive", "from": "errata/*.md", "fields": ["hive_panel.errata", *every("erratum")],
-     "note": "the table rows: date, scope, problem, workaround, reported_by"},
+     "note": "the table rows (the newest 200 per dataset): date, scope, problem, workaround, reported_by"},
     {"source": "phases", "levels": "project", "from": "project_config.md, phase folders",
      "fields": ["project_panel.project_name", "project_panel.active_phase", "project_panel.recommended_phases",
                 "project_panel.visited", "project_panel.ethics_not_applicable", "core.phases", "core.card"],
@@ -529,12 +608,15 @@ NEVER = ["sessions/, review/, paper/xray-*, wiki/.pending/ and every other local
          "integrations.json, user.yaml, local-projects.json, boards/", "fails/, finance/, reasoning/",
          "the flowie's profile.md and wellbeing/", "wiki raw/ files and images", "email addresses, anywhere",
          "meeting attendees, agendas and notes", "machine-local paths"]
-SCRUB = ("Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) "
+SCRUB = ("Free text (titles, notes, descriptions, a project's status and phase, column labels, wiki pages with their type "
+         "and status, ideas, team text, people's names and roles, errata rows, dated rows) "
          "goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address "
-         "becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. "
-         "An item with secret-like text or a name from your participant roster is held back whole, and so is one whose "
-         "file name, tags or links carry personal data, as they travel unchanged. The preview names each item held back; "
-         "the page only counts them.")
+         "becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed], "
+         "and a machine-local path (C:\\Users\\…, /home/…, ~/…, as local_paths.py finds them) [local path removed]. "
+         "An item with secret-like text or a name from that config's participant roster is held back whole, and so is one "
+         "whose file name, tags or links carry personal data, as they travel unchanged. Your pii_scan config is the file "
+         "pii_config names in ~/.neuroflow/user.yaml (its id_patterns and roster); without it, ID numbers and participant "
+         "names are not checked. The preview names each item held back; the page only counts them.")
 
 
 def sources_markdown() -> str:
@@ -557,15 +639,25 @@ class Scrubber:
         self.mod = mod
         cfg = config or {}
         roster_file = cfg.get("roster")
-        roster = mod.load_roster(Path(roster_file).expanduser()) if roster_file else None
+        try:
+            roster = mod.load_roster(Path(roster_file).expanduser()) if roster_file else None
+            patterns = mod.id_patterns_from(cfg)
+        except mod.ConfigError as error:
+            raise UsageError(f"the pii_scan config: {error}") from error
         # No allowed or known addresses: an email address never leaves (only reserved example domains pass).
-        self.scanner = mod.Scanner(mod.id_patterns_from(cfg), roster, (), (), secrets=True)
+        self.scanner = mod.Scanner(patterns, roster, (), (), secrets=True)
+        self.paths = local_paths()
 
     def text(self, value: str | None) -> tuple[str, set[str]]:
         if not value:
             return value or "", set()
         hits: set[str] = set()
         mod = self.mod
+        # a folder on one machine (C:\Users\…, /home/…, ~/…) means nothing on the page and says where the data is
+        for path in sorted({hit["path"] for hit in self.paths.findings_in_text(value)}, key=len, reverse=True):
+            if path in value:
+                value = value.replace(path, "[local path removed]")
+                hits.add("local-path")
 
         def email(match: re.Match) -> str:
             if self.scanner._email_ignored(match.group()):
@@ -630,6 +722,20 @@ def clip(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[:limit].rstrip() + " …"
 
 
+def clip_bytes(text: str, limit: int) -> str:
+    """At most `limit` bytes of UTF-8 (a part's limit is bytes: 60,000 CJK characters are 180 KB)."""
+    data = text.encode("utf-8")
+    return text if len(data) <= limit else data[:limit].decode("utf-8", "ignore").rstrip() + " …"
+
+
+def newest(items: list, source: str, withheld: list[dict]) -> list:
+    """The newest LIST_MAX entries of a list sorted oldest first; how many were left out is counted, with why."""
+    if len(items) <= LIST_MAX:
+        return items
+    withheld.append({"source": source, "item": f"{len(items) - LIST_MAX} older", "reason": f"the panel lists the newest {LIST_MAX}"})
+    return items[-LIST_MAX:]
+
+
 # ── what a level holds ──────────────────────────────────────────────────────────────────────────
 
 def columns_of(tasks: Path) -> tuple[list[dict], int]:
@@ -648,9 +754,25 @@ def columns_of(tasks: Path) -> tuple[list[dict], int]:
     return columns, days if isinstance(days, int) and days > 0 else 90
 
 
-def roster(src: Source, person: dict) -> list[dict]:
-    """The level's people as roster handles; names and roles only where the team's opt-in allows them."""
+def roster(src: Source, person: dict, scrub: Scrubber | None = None, withheld: list[dict] | None = None) -> list[dict]:
+    """The level's people as roster handles; names and roles only where the team's opt-in allows them, and only through
+    the scrubber (without one — the validator needs handles only — none at all)."""
     people: dict[str, dict] = {}
+
+    def named(entry: dict, values: dict) -> dict:
+        if not src.names or scrub is None:
+            return entry
+        for key in ("name", "role"):
+            if not values.get(key):
+                continue
+            text, hits = scrub.text(str(values[key]))
+            if held(hits):
+                if withheld is not None:
+                    withheld.append({"source": "people", "item": entry["handle"], "reason": held(hits)})
+                continue
+            entry[key] = text
+        return entry
+
     if src.kind == "flowie":
         handle = handle_of(person.get("handle"))
         if handle:
@@ -662,10 +784,7 @@ def roster(src: Source, person: dict) -> list[dict]:
             cell = lambda name: row[index[name]].strip() if name in index and index[name] < len(row) else ""  # noqa: E731
             handle = handle_of(cell("github") or cell("handle"))
             if handle:
-                entry = {"handle": handle}
-                if src.names:
-                    entry.update({key: cell(key) for key in ("name", "role") if cell(key)})
-                people[handle.lower()] = entry
+                people[handle.lower()] = named({"handle": handle}, {key: cell(key) for key in ("name", "role")})
     else:
         config = read_text(src.repo / ".neuroflow" / "project_config.md") or ""
         split = mg.sc.split_frontmatter(config)
@@ -677,10 +796,7 @@ def roster(src: Source, person: dict) -> list[dict]:
                 if isinstance(item, dict):
                     handle = handle_of(item.get("handle"))
                     if handle:
-                        entry = {"handle": handle}
-                        if src.names:
-                            entry.update({key: str(item[key]) for key in ("name", "role") if item.get(key)})
-                        people[handle.lower()] = entry
+                        people[handle.lower()] = named({"handle": handle}, item)
     return sorted((allow("person", entry) for entry in people.values()), key=lambda entry: entry["handle"].lower())
 
 
@@ -704,7 +820,9 @@ def parse_table(text: str) -> tuple[list[str], list[list[str]]]:
     return headers, rows
 
 
-def export_cards(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dict]:
+def export_cards(src: Source, scrub: Scrubber, withheld: list[dict], handles: set[str] | None = None) -> list[dict]:
+    """The level's cards; an owner goes up only as a handle on the level's roster (`handles`, lower case) — a legacy
+    `assignee: Kristyna` that matches no roster entry is left out."""
     cards = []
     for task in pj.read_board(src.memory / "tasks", details=True):
         title, title_hits = scrub.text(task["title"])
@@ -714,15 +832,30 @@ def export_cards(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dic
         if reason:
             withheld.append({"source": "tasks", "item": task["file"], "reason": reason})
             continue
-        owner = task.get("owner")
+        owner = handle_of(task.get("owner")) if task.get("owner") else None
+        if owner and owner.lower() not in (handles or set()):
+            owner = None
         cards.append(allow("card", {
             "slug": task["slug"], "file": task["file"], "column": task["column"], "title": title,
-            "owner": handle_of(owner) if owner else None, "due": task["due"] if task["due"] and DATE.match(task["due"]) else None,
+            "owner": owner, "due": task["due"] if task["due"] and DATE.match(task["due"]) else None,
             "created": date_of(task.get("created")), "updated": date_of(task.get("updated")), "phase": task.get("phase"),
             "tags": task.get("tags") or [], "project": task.get("project"), "blocked_by": task.get("blocked_by") or [],
             "sha256": task["sha256"], "notes": notes, "legacy": task["legacy"], "readable": not task["conflicted"],
         }))
     return cards
+
+
+def public_url(url: str) -> str:
+    """A repository URL as it may leave: without a user name or password (`https://user:token@host/…`, a clone made
+    with a token), a query or a fragment; an scp-style address keeps only the generic `git@` user."""
+    url = url.strip()
+    match = re.match(r"^([a-z][a-z0-9+.-]*://)(?:[^/?#]*@)?([^?#]*)", url, re.I)
+    if match:
+        return match.group(1) + match.group(2)
+    scp = re.match(r"^([^@/\\:\s]+)@([^:/\s]+:\S+)$", url)
+    if scp:
+        return url if scp.group(1).lower() == "git" else scp.group(2)
+    return url
 
 
 def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dict]:
@@ -739,14 +872,22 @@ def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[
         if pj.is_pointer(entry):
             out.append(allow("registry", {"id": pid, "pointer": True, "hive": entry["ref"][len("hive:"):].strip()}))
             continue
-        description, hits = scrub.text(str(entry.get("description") or ""))
-        if held(hits):
-            withheld.append({"source": "registry", "item": pid, "reason": held(hits)})
-            description = ""
+        # a URL travels unchanged, like a name: personal data or a secret left in it holds the entry back
+        repos = [public_url(url) for url in pj.repo_values(entry) if pj.is_remote(url) and not url.lower().startswith("file:")]
+        visited = pj.as_list(entry.get("visited_phases"))
+        reason = name_held(scrub, *repos, *visited)
+        if reason:
+            withheld.append({"source": "registry", "item": pid, "reason": reason})
+            continue
+        text: dict[str, str] = {}
+        for name in ("description", "status", "current_phase"):  # free text: rewritten, or left out when held back
+            text[name], hits = scrub.text(clip(str(entry.get(name) or ""), NOTES_MAX))
+            if held(hits):
+                withheld.append({"source": "registry", "item": pid, "reason": held(hits)})
+                text[name] = ""
         out.append(allow("registry", {
-            "id": pid, "description": description, "status": str(entry.get("status") or "") or None,
-            "current_phase": str(entry.get("current_phase") or "") or None, "visited_phases": pj.as_list(entry.get("visited_phases")),
-            "repos": [url for url in pj.repo_values(entry) if pj.is_remote(url) and not url.lower().startswith("file:")]}))
+            "id": pid, "description": text["description"], "status": text["status"] or None,
+            "current_phase": text["current_phase"] or None, "visited_phases": visited, "repos": repos}))
     return out
 
 
@@ -756,7 +897,7 @@ def text_block(path: Path, source: str, scrub: Scrubber, withheld: list[dict], f
         return None
     if frontmatter:
         text = split_fm(text)[1]
-    value, hits = scrub.text(clip(text.replace("\r\n", "\n").strip(), TEXT_MAX))
+    value, hits = scrub.text(clip_bytes(text.replace("\r\n", "\n").strip(), TEXT_MAX))
     if held(hits):
         withheld.append({"source": source, "item": path.name, "reason": held(hits)})
         return None
@@ -774,9 +915,9 @@ def dated_list(folder: Path, source: str, kind: str, scrub: Scrubber, withheld: 
         if reason:
             withheld.append({"source": source, "item": path.name, "reason": reason})
             continue
-        out.append(allow(kind, {"slug": path.stem, "file": path.name, "title": title,
+        out.append(allow(kind, {"slug": path.stem, "file": path.name, "title": clip(title, 300),
                                 "date": date_of(scalar(fm, "date"), path.stem)}))
-    return out
+    return newest(out, source, withheld)
 
 
 def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
@@ -807,7 +948,7 @@ def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
                     continue
                 clean.append(cells)
             errata.append(allow("erratum", {"dataset": path.stem, "columns": [scrub.text(cell)[0] for cell in headers],
-                                            "rows": clean}))
+                                            "rows": newest(clean, "errata", withheld)}))
         return allow("hive_panel", {
             "team": text_block(src.repo / "hive.md", "team", scrub, withheld, frontmatter=True),
             "ideas": text_block(src.repo / "ideas.md", "ideas", scrub, withheld),
@@ -840,7 +981,7 @@ def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
         "ethics_not_applicable": scalar(fm, "ethics") == "not-applicable",
         "ethics": marker(nf / "ethics" / "status.md", "status", "expires"),
         "prereg": marker(nf / "preregistration" / "status.md", "status", "frozen_at"),
-        "dates": timeline, "meetings": dated_list(nf / "meetings", "meetings", "meeting", scrub, withheld)})
+        "dates": newest(timeline, "dates", withheld), "meetings": dated_list(nf / "meetings", "meetings", "meeting", scrub, withheld)})
 
 
 WIKILINK = re.compile(r"(!?)\[\[([^\[\]\n|#]*)(?:#[^\[\]\n|]*)?(?:\|([^\[\]\n]*))?\]\]")
@@ -905,8 +1046,11 @@ def export_wiki(src: Source, scrub: Scrubber, withheld: list[dict], index_only: 
     for rel, fm, body in raw:
         title, hits = scrub.text(scalar(fm, "title") or rel.split("/")[-1])
         summary, summary_hits = scrub.text(summaries.get(rel, ""))
+        page_type, type_hits = scrub.text(scalar(fm, "type") or "")
+        status, status_hits = scrub.text(scalar(fm, "status") or "")
+        summary_hits |= type_hits | status_hits
         tags = pj.as_list(fm.get("tags"))
-        sources = [name.split("/")[-1] for name in pj.as_list(fm.get("sources"))]
+        sources = [name.replace("\\", "/").split("/")[-1] for name in pj.as_list(fm.get("sources"))]  # a name, never a path
         text = ""
         if not index_only:
             text, body_hits = scrub.text(rewrite(body.strip(), rel))
@@ -917,7 +1061,7 @@ def export_wiki(src: Source, scrub: Scrubber, withheld: list[dict], index_only: 
         if reason:
             withheld.append({"source": "wiki", "item": rel, "reason": reason})
             continue
-        page = {"id": rel, "title": title, "type": scalar(fm, "type"), "tags": tags, "status": scalar(fm, "status"),
+        page = {"id": rel, "title": title, "type": page_type or None, "tags": tags, "status": status or None,
                 "updated": date_of(scalar(fm, "updated")), "summary": summary, "sources": sources}
         if not index_only:
             page["body"] = text
@@ -1025,6 +1169,25 @@ def write_ledger(home: Path, ledger: dict, now: datetime) -> None:
     write_json(local_dir(home) / "ledger.json", ledger)
 
 
+def effect_present(src: Source, entry: dict) -> bool:
+    """Whether a ledger entry's change is still in the working tree: its task file where it put it, in its column."""
+    rel = entry.get("path")
+    if not isinstance(rel, str) or not rel.startswith("tasks/"):
+        return False
+    path = src.memory / rel
+    return path.is_file() and scalar(split_fm(read_text(path) or "")[0], "status") == entry.get("to")
+
+
+def staged_entries(src: Source, ledger: dict, ids: set[str], committed: set[str]) -> dict[str, dict]:
+    """A flowie's or hive's changes `apply` made whose commit never ran (no trailer yet), while the working tree still
+    holds them: the next run commits them as they are and never makes them again."""
+    out = {}
+    for intent, entry in (ledger["levels"].get(src.key) or {}).items():
+        if intent in ids and intent not in committed and isinstance(entry, dict) and effect_present(src, entry):
+            out[intent] = entry
+    return out
+
+
 def ledger_states(src: Source, ledger: dict) -> dict[str, dict]:
     """Intents applied to a project's working tree (no trailer exists there): contained while their effect is."""
     out = {}
@@ -1049,10 +1212,26 @@ def ledger_states(src: Source, ledger: dict) -> dict[str, dict]:
 
 # ── export ──────────────────────────────────────────────────────────────────────────────────────
 
+def part_overhead(level: str, kind: str, field: str) -> int:
+    return doc_bytes({"snap_schema": SNAP_SCHEMA, "level": level, "part": f"{kind}-000", field: [], "sha256": "0" * 64})
+
+
+def fitting(level: str, kind: str, field: str, items: list[dict], source: str, name: str, withheld: list[dict]) -> list[dict]:
+    """The items that fit a part on their own; one that does not is held back with a reason, never the whole run."""
+    overhead = part_overhead(level, kind, field)
+    out = []
+    for item in items:
+        if doc_bytes(item) + 1 + overhead > PART_MAX:
+            withheld.append({"source": source, "item": str(item.get(name)), "reason": f"larger than one part ({PART_MAX // 1000} KB)"})
+        else:
+            out.append(item)
+    return out
+
+
 def pack(level: str, kind: str, items: list[dict], field: str) -> list[dict]:
-    """Items packed into parts of at most PART_MAX bytes: `{kind}-000`, `{kind}-001`, …"""
+    """Items packed into parts of at most PART_MAX bytes: `{kind}-000`, `{kind}-001`, … (each item fits alone)."""
     parts, current, size = [], [], 0
-    overhead = doc_bytes({"snap_schema": SNAP_SCHEMA, "level": level, "part": f"{kind}-000", field: [], "sha256": "0" * 64})
+    overhead = part_overhead(level, kind, field)
     for item in items:
         weight = doc_bytes(item) + 1
         if current and size + weight + overhead > PART_MAX:
@@ -1069,7 +1248,8 @@ def pack(level: str, kind: str, items: list[dict], field: str) -> list[dict]:
 def build_level(src: Source, person: dict, scrub: Scrubber, home: Path, now: datetime, machine: str, fetch: bool) -> dict:
     withheld: list[dict] = []
     columns, archive_days = columns_of(src.memory / "tasks")
-    cards = export_cards(src, scrub, withheld)
+    people = roster(src, person, scrub, withheld)
+    cards = export_cards(src, scrub, withheld, {entry["handle"].lower() for entry in people})
     known = {column["id"] for column in columns}
     for card in cards:
         if card["column"] not in known:
@@ -1080,16 +1260,32 @@ def build_level(src: Source, person: dict, scrub: Scrubber, home: Path, now: dat
         column["label"] = column["id"] if held(hits) else label
     columns = [allow("column", column) for column in columns]
     index_only = src.key in person["index_only"]
-    pages = export_wiki(src, scrub, withheld, index_only)
-    core = with_hash(allow("core", {
-        "snap_schema": SNAP_SCHEMA, "level": src.key, "part": "core", "kind": src.kind, "label": src.label,
-        "columns": columns, "archive_after_days": archive_days, "people": roster(src, person),
-        "registry": export_registry(src, scrub, withheld), "panel": export_panel(src, scrub, withheld),
-        "phases": sorted(mg.canonical_phases() - {"setup"}), "card": src.card}))
+    cards = fitting(src.key, "cards", "cards", cards, "tasks", "file", withheld)
+    pages = fitting(src.key, "wiki", "pages", export_wiki(src, scrub, withheld, index_only), "wiki", "id", withheld)
+    registry, panel = export_registry(src, scrub, withheld), export_panel(src, scrub, withheld)
+    # The core part is one document. Panel texts are clipped by bytes and lists keep their newest entries, so it fits;
+    # if it still does not, the panel goes, then the registry — said why — and only then is the level skipped.
+    core = None
+    for keep_panel, keep_registry in ((True, True), (False, True), (True, False), (False, False)):
+        candidate = with_hash(allow("core", {
+            "snap_schema": SNAP_SCHEMA, "level": src.key, "part": "core", "kind": src.kind, "label": src.label,
+            "columns": columns, "archive_after_days": archive_days, "people": people,
+            "registry": registry if keep_registry else [], "panel": panel if keep_panel else {},
+            "phases": sorted(mg.canonical_phases() - {"setup"}), "card": src.card}))
+        if doc_bytes(candidate) <= PART_MAX:
+            core = candidate
+            break
+    too_big = f"larger than one part ({PART_MAX // 1000} KB) with the rest of the level"
+    if core is None:
+        return {"source": src, "skipped": f"its columns and people alone are larger than one part ({PART_MAX // 1000} KB)"}
+    if not keep_panel:
+        withheld.append({"source": "panel", "item": "the level's panel", "reason": too_big})
+    if not keep_registry:
+        withheld.append({"source": "registry", "item": "the project registry", "reason": too_big})
     parts = [core, *pack(src.key, "cards", cards, "cards"), *(pack(src.key, "wiki", pages, "pages") if pages else [])]
     oversized = [part["part"] for part in parts if doc_bytes(part) > PART_MAX]
     if oversized:
-        raise UsageError(f"{src.label}: {', '.join(oversized)} would exceed {PART_MAX} bytes")
+        return {"source": src, "skipped": f"{', '.join(oversized)} would exceed {PART_MAX} bytes"}
     source = git_source(src, home, fetch)
     applied: dict[str, dict] = {}
     if src.kind != "project" and source.get("git"):
@@ -1180,6 +1376,17 @@ def load_docs(folder: Path | None, versions: dict | None = None) -> dict[str, di
         key = normal_path(rel)
         docs[key] = {"body": body, "version": version if version is not None else extra.get(key), "file": str(path)}
     return docs
+
+
+def held_levels(docs: dict[str, dict]) -> set[str]:
+    """The level keys a listing of the store holds anything of: a level's meta (data/users/me/{key}) or a part."""
+    held = set()
+    for path in docs:
+        parts = path.split("/")
+        if parts[:3] == ["data", "users", "me"] and len(parts) in (4, 6) and valid_level_key(parts[3]) and (
+                len(parts) == 4 or parts[4] == "parts"):
+            held.add(parts[3])
+    return held
 
 
 def is_ancestor(repo: Path, older: str, newer: str) -> bool | None:
@@ -1320,7 +1527,7 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
     machine = args.machine or person["machine"]
     if not machine:
         raise UsageError("no machine label: set workbench_machine in ~/.neuroflow/user.yaml (/dashboard --web asks once)")
-    sources, unkeyed = discover(home, args.root)
+    sources, unkeyed = discover(home, args.root, fetch=args.fetch)
     rows = {row["level"]: row for row in level_rows(sources, person)}
     wanted = set(args.level or [])
     if wanted - set(rows):
@@ -1330,17 +1537,31 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
         refused = [key for key in wanted if not rows[key]["mirrored"]]
         if refused:
             raise UsageError("not mirrored: " + "; ".join(f"{key} ({rows[key]['reason']})" for key in refused))
-    scrub = Scrubber(json.loads(Path(args.pii_config).read_text(encoding="utf-8")) if args.pii_config else None)
+    scrub = Scrubber(pii_settings(args.pii_config or person["pii_config"]))
     out = Path(args.out)
-    built = [build_level(src, person, scrub, home, now, machine, args.fetch) for src in chosen]
+    built, skipped = [], []
+    for src in chosen:
+        item = build_level(src, person, scrub, home, now, machine, False)  # discover fetched them
+        if "skipped" in item:  # one level too large never stops the others
+            skipped.append({"level": src.key, "label": src.label, "reason": item["skipped"]})
+        else:
+            built.append(item)
+    # What a refresh deletes (gc, step 8 of /dashboard --web): the levels the workbench holds whose team no longer
+    # allows mirroring them, so the preview names them before the yes. Only a listing of the store says what it holds:
+    # without one (a first publish, nothing stored yet) nothing is named.
+    listing = args.held or args.remote
+    held = held_levels(load_docs(Path(listing))) if listing else set()
     result: dict = {"machine": machine, "exported_at": iso(now), "levels": preview(built), "unkeyed": unkeyed,
-                    "not_mirrored": [row for row in rows.values() if not row["mirrored"]]}
+                    "skipped": skipped,
+                    "not_mirrored": [row for row in rows.values() if not row["mirrored"]],
+                    "purge": [{"level": row["level"], "label": row["label"], "reason": row.get("reason")}
+                              for row in rows.values() if row.get("purge") and row["level"] in held]}
     for item in built:
         key = item["meta"]["level"]
         write_doc(out / "docs" / key_file(key) / "meta.json", item["meta"])
         for part in item["parts"]:
             write_doc(out / "docs" / key_file(key) / f"{part['part']}.json", part)
-    findings = any(row["withheld"] for row in result["levels"]) or bool(unkeyed)
+    findings = any(row["withheld"] for row in result["levels"]) or bool(unkeyed) or bool(skipped)
     total = sum(row["bytes"] for row in result["levels"])
     if total > SIZE_WARN:
         def wiki_bytes(item: dict) -> int:
@@ -1446,6 +1667,9 @@ def schema_problem(intent: dict) -> str | None:
             return "schema: due is not YYYY-MM-DD"
         if fields.get("tags") is not None and not (isinstance(fields["tags"], list) and all(isinstance(t, str) for t in fields["tags"])):
             return "schema: tags must be a list of words"
+        for name in ("owner", "phase", "project"):
+            if fields.get(name) is not None and not isinstance(fields[name], str):
+                return f"schema: {name} must be text"
         if intent.get("to") is not None and not isinstance(intent["to"], str):
             return "schema: to must be a column id"
     return None
@@ -1461,6 +1685,23 @@ def claim_of(intent: dict) -> tuple[str | None, datetime | None]:
     return claim.get("machine"), parse_time(claim.get("claimed_at"))
 
 
+# An intent is data a page wrote, maybe a newer page: before any check, a field is read only in the shape it must
+# have, so one malformed intent can never stop a run (it is claimed, and validate rejects it with its reason).
+
+def text_of(value) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def target_intent(body: dict) -> str | None:
+    target = body.get("target")
+    return text_of(target.get("intent")) if isinstance(target, dict) else None
+
+
+def outcome_of(body) -> dict:
+    outcome = body.get("outcome") if isinstance(body, dict) else None
+    return outcome if isinstance(outcome, dict) else {}
+
+
 def cmd_pickup(args, home: Path, now: datetime) -> tuple[int, dict]:
     person = consent(home)
     machine = args.machine or person["machine"]
@@ -1474,11 +1715,11 @@ def cmd_pickup(args, home: Path, now: datetime) -> tuple[int, dict]:
     out = Path(args.out) if args.out else Path(args.intents).parent / "claims"
     held_back: set[str] = set()
     for intent_id, doc in sorted(docs.items(), key=lambda pair: (str(pair[1]["body"].get("created_at")), pair[0])):
-        after = doc["body"].get("after")
+        after = text_of(doc["body"].get("after"))
         # a chain is claimed whole: a link whose earlier link waits elsewhere waits too
-        if after in held_back or (after in docs and docs[after]["body"].get("status") == "claimed"
-                                  and claim_of(docs[after]["body"])[0] != machine
-                                  and (claim_of(docs[after]["body"])[1] or now) > now - CLAIM_TTL):
+        if after is not None and (after in held_back or (after in docs and docs[after]["body"].get("status") == "claimed"
+                                                         and claim_of(docs[after]["body"])[0] != machine
+                                                         and (claim_of(docs[after]["body"])[1] or now) > now - CLAIM_TTL)):
             if doc["body"].get("status") != "done":
                 held_back.add(intent_id)
                 skipped.append({"intent": intent_id, "reason": f"waits for {after}"})
@@ -1493,8 +1734,8 @@ def cmd_pickup(args, home: Path, now: datetime) -> tuple[int, dict]:
         if status == "claimed" and who != machine and when is not None and now - when < CLAIM_TTL:
             skipped.append({"intent": intent_id, "reason": f"claimed by {who} {int((now - when).total_seconds() // 60)} min ago"})
             continue
-        level = body.get("level")
-        if level not in here and valid_level_key(level):
+        level = text_of(body.get("level"))
+        if valid_level_key(level) and level not in here:
             label = str(level)
             reason = (f"open Claude Code in the project {label[len('project+'):]}" if label.startswith("project+") else
                       f"{label[len('hive+'):].replace('+', '/')} is not cloned on this machine" if label.startswith("hive+")
@@ -1525,11 +1766,18 @@ def unique_slug(title: str, taken: set[str]) -> str:
     return slug
 
 
+RELEASED_LATE = "already applied — the release came after it; move the card back"
+
+
 def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str, dict], machine: str,
-                   people: set[str], phases: set[str], applied: dict[str, dict]) -> dict:
+                   people: set[str], phases: set[str], applied: dict[str, dict], staged: dict[str, dict] | None = None) -> dict:
     """Verdicts and actions for one level's intents, in creation order (neuroflow-core → Workbench snapshot):
     an accepted intent's result is the base of the ones after it, consecutive moves of one card merge into one,
-    an added card's slug comes from the add, and a chain whose first intent failed fails with 'depends on'."""
+    an added card's slug comes from the add, and a chain whose first intent failed fails with 'depends on'.
+    `staged` holds the ledger entries of changes a run made without committing them: each keeps the verdict it had and
+    becomes a `commit` action, never a second change."""
+    staged = staged or {}
+    commits: dict[str, dict] = {}          # lead intent → the commit action of a change a run made, not committed
     state = board_state(src)
     cards = {slug: {"column": task["column"], "sha256": task["sha256"], "file": f"tasks/{task['file']}", "legacy": task["legacy"],
                     "conflicted": task["conflicted"]} for slug, task in state["cards"].items()}
@@ -1540,9 +1788,8 @@ def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str,
     planned_slug: dict[str, str] = {}      # add intent id → its slug (this run, or an earlier outcome)
     touched: dict[str, dict] = {}          # slug → the last action that touched it in this run
     for intent_id, body in done.items():
-        outcome = body.get("outcome") if isinstance(body.get("outcome"), dict) else {}
-        if body.get("op") == "add" and outcome.get("slug"):
-            planned_slug[intent_id] = outcome["slug"]
+        if body.get("op") == "add" and text_of(outcome_of(body).get("slug")):
+            planned_slug[intent_id] = outcome_of(body)["slug"]
     cancels = {}
     for intent_id, body in intents:
         if body.get("op") == "cancel" and schema_problem(body) is None:
@@ -1556,11 +1803,29 @@ def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str,
         op = body["op"]
         if intent_id in applied:
             # its trailer (flowie, hive) or ledger entry (project) is already there: a run that stopped half way
-            verdicts[intent_id] = {"result": "applied", **applied[intent_id], "note": "already in git"}
+            verdicts[intent_id] = {"result": "applied", **applied[intent_id],
+                                   "note": RELEASED_LATE if body.get("cancel_requested_at") else "already in git"}
+            continue
+        if intent_id in staged:
+            # applied by a run that stopped before its commit: commit it as it is — never add, move or judge it again,
+            # and a release that came after it cannot undo it
+            entry = staged[intent_id]
+            verdict = dict(entry.get("verdict") or {"result": "applied", "slug": entry.get("slug"), "column": entry.get("to")})
+            if body.get("cancel_requested_at"):
+                verdict["note"] = RELEASED_LATE
+            verdicts[intent_id] = verdict
+            lead = entry.get("lead") or intent_id
+            if lead not in commits:
+                commits[lead] = {"op": "commit", "of": entry.get("op"), "intents": [], "lead": lead, "slug": entry.get("slug"),
+                                 "to": entry.get("to"), "path_to": entry.get("path"), "paths": list(entry.get("paths") or [])}
+                actions.append(commits[lead])
+            commits[lead]["intents"].append(intent_id)
+            if entry.get("op") == "add" and entry.get("slug"):
+                planned_slug[intent_id] = entry["slug"]
             continue
         if op == "cancel":
             target = body["target"]["intent"]
-            prior = verdicts.get(target) or ((done[target].get("outcome") or {}) if target in done else None)
+            prior = verdicts.get(target) or (outcome_of(done[target]) if target in done else None)
             if prior is None and target not in present:
                 verdicts[intent_id] = {"result": "rejected", "reason": f"{target} is not in the workbench"}
             elif prior is not None and prior.get("result") in ("applied", "coalesced"):
@@ -1578,7 +1843,7 @@ def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str,
         if after:
             # a chain whose earlier link failed fails too; an earlier link the store no longer holds (gc) leaves the
             # checks below to decide, against the files as they are
-            before = verdicts.get(after) or ((done[after].get("outcome") or {}) if after in done else None)
+            before = verdicts.get(after) or (outcome_of(done[after]) if after in done else None)
             if before is not None and before.get("result") in ("rejected", "cancelled", "conflict"):
                 verdicts[intent_id] = {"result": "rejected", "reason": f"depends on {after}"}
                 continue
@@ -1710,19 +1975,24 @@ def cmd_validate(args, home: Path, now: datetime) -> tuple[int, dict]:
             continue
         by_level.setdefault(level, []).append((iid, body))
     for iid, body in pending_cancels.items():
-        if body.get("level") in by_level and (body.get("target") or {}).get("intent") in mine:
-            by_level[body["level"]].append((iid, body))  # a cancel the page queued after the claim still counts
+        level = text_of(body.get("level"))
+        if level in by_level and target_intent(body) in mine:
+            by_level[level].append((iid, body))  # a cancel the page queued after the claim still counts
     plan: dict = {"machine": machine, "validated_at": iso(now), "levels": [], "rejected": rejected}
+    ledger = read_ledger(home)
     for key, items in by_level.items():
         src = here[key]
         items.sort(key=lambda pair: (str(pair[1].get("created_at")), pair[0]))
         people = {entry["handle"].lower() for entry in roster(src, person)}
-        applied = {}
+        ids = {iid for iid, _ in items}
+        applied, staged = {}, {}
         if src.kind != "project" and is_repo(src.repo):
-            applied = landed_states(src.repo, {iid: sha for iid, sha in trailer_commits(src.repo).items() if iid in dict(items)})
+            trailers = trailer_commits(src.repo)
+            applied = landed_states(src.repo, {iid: sha for iid, sha in trailers.items() if iid in ids})
+            staged = staged_entries(src, ledger, ids, set(trailers))
         elif src.kind == "project":
-            applied = {iid: {"state": "worktree"} for iid in (read_ledger(home)["levels"].get(key) or {}) if iid in dict(items)}
-        result = validate_level(src, items, done, machine, people, phases, applied)
+            applied = {iid: {"state": "worktree"} for iid in (ledger["levels"].get(key) or {}) if iid in ids}
+        result = validate_level(src, items, done, machine, people, phases, applied, staged)
         plan["levels"].append({"key": key, "kind": src.kind, "label": src.label, "repo": str(src.repo),
                                "memory": str(src.memory), "push": {"flowie": "flowie", "hive": "hive"}.get(src.kind, "none"),
                                "actions": result["actions"], "verdicts": result["verdicts"]})
@@ -1788,9 +2058,19 @@ def known_to_git(repo: Path, rel: str) -> bool:
 
 
 def summary_of(actions: list[dict]) -> str:
-    words = [f"move {a['slug']} → {a['to']}" if a["op"] == "move" else f"add {a['slug']}" for a in actions]
+    kind = lambda a: a.get("of") if a["op"] == "commit" else a["op"]  # noqa: E731 — a commit names what was done
+    words = [f"add {a['slug']}" if kind(a) == "add" else f"move {a['slug']} → {a['to']}" for a in actions]
     head = ", ".join(words[:3]) + (f" and {len(words) - 3} more" if len(words) > 3 else "")
     return f"tasks: workbench — {head}"
+
+
+def restage(repo: Path, rel: str) -> None:
+    """Stages a path again as the working tree has it (the file, or its deletion); a path git never saw is left alone.
+    A pull with --autostash between two runs can leave a staged rename half unstaged."""
+    if (repo / rel).exists() or git(repo, "ls-files", "--error-unmatch", "--", rel).returncode == 0:
+        proc = git(repo, "add", "-A", "--", rel)
+        if proc.returncode != 0:
+            raise ValueError(pj.first_line(proc))
 
 
 def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
@@ -1804,11 +2084,25 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
     git_level = is_repo(repo)
     applied, failed, paths, intents = [], [], [], []
     ledger = read_ledger(home)
+    entries = ledger["levels"].setdefault(level["key"], {})
+    if level["kind"] != "project" and git_level:
+        # a flowie's or hive's entry lives only until its commit exists
+        landed = set(trailer_commits(repo)) & set(entries)
+        for intent in landed:
+            del entries[intent]
+        if landed:
+            write_ledger(home, ledger, now)
     for action in level["actions"]:
         target = memory / action["path_to"]
         rel_to = f"{tasks_rel}/{action['path_to'][len('tasks/'):]}"
         try:
-            if action["op"] == "add":
+            if action["op"] == "commit":
+                # made by a run that stopped before its commit (the ledger names it): stage it again, change nothing
+                for rel in action.get("paths") or []:
+                    if git_level:
+                        restage(repo, rel)
+                touched = list(action.get("paths") or [])
+            elif action["op"] == "add":
                 if target.exists():
                     raise ValueError(f"{action['path_to']} already exists")
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -1820,20 +2114,23 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
                 touched = [rel_to]
             else:
                 rel_from = f"{tasks_rel}/{action['path_from'][len('tasks/'):]}"
-                # where the file is now: where the check saw it, or where a run that stopped half way left it
-                found = [memory / action["path_from"], target, *sorted((memory / "tasks").glob(f"*/{action['slug']}.md"))]
-                current = next((path for path in found if path.is_file()), None)
-                if current is None:
-                    raise ValueError(f"{action['path_from']} is gone")
+                # Only where the check saw the file — or, for a move a run left half done, where that run put it. A
+                # file anywhere else moved after the check (a pull brought a teammate's move): it is not touched, and
+                # the intent gets no outcome, so the next run checks it again.
+                current = target if action.get("half_done") else memory / action["path_from"]
+                if not current.is_file():
+                    now_in = [path.parent.name for path in sorted((memory / "tasks").glob(f"*/{action['slug']}.md")) if path.is_file()]
+                    raise ValueError(f"the task moved after the check (it is in {now_in[0]} now): the next run checks it "
+                                     "again" if now_in else f"{action['path_from']} is gone")
+                rel_now = f"{tasks_rel}/{current.relative_to(memory / 'tasks').as_posix()}"
                 text = current.read_bytes().decode("utf-8")
                 if action.get("base") and pj.task_hash(text) != action["base"]:
                     raise ValueError("the task changed after the check: refresh the workbench and move it again")
+                if current != target and target.exists():
+                    raise ValueError(f"{action['path_to']} already exists")
                 current.write_bytes(set_fields(text, {"status": action["to"], "updated": today}).encode("utf-8"))
                 if current != target:
-                    if target.exists():
-                        raise ValueError(f"{action['path_to']} already exists")
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    rel_now = f"{tasks_rel}/{current.relative_to(memory / 'tasks').as_posix()}"
                     tracked = git_level and git(repo, "ls-files", "--error-unmatch", "--", rel_now).returncode == 0
                     if tracked:
                         moved = git(repo, "mv", "--", rel_now, rel_to)
@@ -1845,20 +2142,27 @@ def cmd_apply(args, home: Path, now: datetime) -> tuple[int, dict]:
                     stage = git(repo, "add", "--", rel_to)
                     if stage.returncode != 0:
                         raise ValueError(pj.first_line(stage))
-                touched = [rel_to] + ([rel_from] if rel_from != rel_to and known_to_git(repo, rel_from) else [])
+                # the commit names where the file went and every path it came from that git knows
+                touched = [rel_to, rel_from, rel_now]
         except (OSError, ValueError, UnicodeDecodeError) as error:
             failed.append({"slug": action["slug"], "intents": action["intents"], "reason": str(error)})
             continue
-        applied.append({"slug": action["slug"], "op": action["op"], "to": action["to"], "intents": action["intents"]})
-        paths += [path for path in touched if path not in paths]
+        applied.append({"slug": action["slug"], "op": action.get("of") or action["op"], "to": action["to"], "intents": action["intents"]})
+        paths += [path for path in dict.fromkeys(touched) if path not in paths]
         intents += action["intents"]
-        if level["kind"] == "project":
-            entries = ledger["levels"].setdefault(level["key"], {})
+        if action["op"] != "commit":
+            # Recorded the moment the change is made, before any commit: a project's entry says the change is in its
+            # working tree; a flowie's or hive's lets the next run commit a change whose commit never ran, never redo it.
+            lead = action.get("lead") or action["intents"][0]
             for intent in action["intents"]:
-                entries[intent] = {"op": action["op"], "slug": action["slug"], "to": action["to"], "path": action["path_to"], "at": iso(now)}
-    if level["kind"] == "project" and applied:
-        write_ledger(home, ledger, now)
+                entries[intent] = {"op": action["op"], "slug": action["slug"], "to": action["to"], "path": action["path_to"],
+                                   "paths": list(dict.fromkeys(touched)), "lead": lead,
+                                   "verdict": dict((level.get("verdicts") or {}).get(intent) or {}), "at": iso(now)}
+            write_ledger(home, ledger, now)
     result: dict = {"level": level["key"], "applied": applied, "failed": failed, "push": level["push"]}
+    # a commit by path names only paths git knows (in the index or in HEAD): a file renamed twice in one run leaves an
+    # intermediate path git never saw
+    paths = [path for path in paths if known_to_git(repo, path)]
     if applied and level["kind"] != "project" and git_level:
         message = summary_of([a for a in level["actions"] if any(i in intents for i in a["intents"])]) + "\n\n" + \
             "\n".join(f"{TRAILER}: {intent}" for intent in intents) + "\n"
@@ -1883,21 +2187,23 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
     here = {src.key: src for src in sources}
     levels: dict[str, dict] = {}
     # an undone change (a cancel or a release waits for it) is no longer waiting, as the page counts it too
-    undone = {(doc["body"].get("target") or {}).get("intent") for doc in docs.values()
-              if doc["body"].get("op") == "cancel" and doc["body"].get("status") != "done"}
+    undone = {target_intent(doc["body"]) for doc in docs.values()
+              if doc["body"].get("op") == "cancel" and doc["body"].get("status") != "done"} - {None}
     undone |= {iid for iid, doc in docs.items() if doc["body"].get("cancel_requested_at")}
     grew = True
     while grew:  # a change chained to an undone one is rejected later ("depends on …"): not waiting either
         grew = False
         for iid, doc in docs.items():
-            if iid not in undone and doc["body"].get("after") in undone and doc["body"].get("status") != "done":
+            if iid not in undone and text_of(doc["body"].get("after")) in undone and doc["body"].get("status") != "done":
                 undone.add(iid)
                 grew = True
     for intent_id, doc in docs.items():
         body = doc["body"]
         if body.get("status") == "done" or intent_id in finished or body.get("op") == "cancel" or intent_id in undone:
             continue
-        key = body.get("level")
+        key = text_of(body.get("level"))
+        if not valid_level_key(key):
+            continue  # no board shows it; the next --apply-web rejects it with its reason
         entry = levels.setdefault(key, {"level": key, "slugs": [], "adds": 0, "count": 0, "oldest": None})
         entry["count"] += 1
         made = parse_time(body.get("created_at"))
@@ -1906,13 +2212,20 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
         target = body.get("target") if isinstance(body.get("target"), dict) else {}
         if body.get("op") == "add":
             entry["adds"] += 1
-        elif target.get("slug") and target["slug"] not in entry["slugs"]:
+        elif text_of(target.get("slug")) and target["slug"] not in entry["slugs"]:
             entry["slugs"].append(target["slug"])
         src = here.get(key)
         if src is not None:
             entry.update({"kind": src.kind, "label": src.label, "board": src.board})
             if src.kind == "project":
+                # the folder as it was reached, and as it resolves (a junction's target, a mapped drive's share): the
+                # mod matches its own project root against either
+                try:
+                    resolved = src.repo.resolve().as_posix()
+                except OSError:
+                    resolved = src.repo.as_posix()
                 entry["root"] = src.repo.as_posix()
+                entry["roots"] = list(dict.fromkeys([src.repo.as_posix(), resolved]))
     record = active_record(home)
     data = {"checked_at": iso(now), "url": (record or {}).get("url"), "count": sum(e["count"] for e in levels.values()),
             "oldest": min((e["oldest"] for e in levels.values() if e["oldest"]), key=parse_time, default=None),
@@ -1930,28 +2243,45 @@ def cmd_gc(args, home: Path, now: datetime) -> tuple[int, dict]:
     person = consent(home)
     sources, _ = discover(home, args.root)
     rows = {row["level"]: row for row in level_rows(sources, person)}
+    asked = set(args.purge or [])
+    listed = set(args.listed or [])     # levels whose parts collection was listed, even if it came back empty
+    bad = sorted(key for key in asked | listed if not valid_level_key(key))
+    if bad:
+        raise UsageError(f"--purge/--listed {', '.join(bad)}: not a level key")
+    still = sorted(key for key in asked if (rows.get(key) or {}).get("mirrored"))
+    if still:
+        raise UsageError(f"still mirrored on this machine: {', '.join(still)} — take it off workbench_levels first")
     cutoff = now - timedelta(days=args.days)
-    deletes, missing, reasons = [], [], []
+    deletes, missing, reasons, unlisted = [], [], [], []
     for intent_id, doc in sorted(intents.items()):
         body = doc["body"]
         at = parse_time((body.get("outcome") or {}).get("at") if isinstance(body.get("outcome"), dict) else None)
         if body.get("status") == "done" and at is not None and at < cutoff:
             deletes.append(pinned({"op": "delete", "collection": intents_collection(), "doc_id": intent_id}, doc, missing))
     metas = {path.split("/")[-1]: doc for path, doc in docs.items()
-             if path.startswith(meta_collection() + "/") and segments(path) == 4 and path.split("/")[-1] != PREFS_DOC}
-    purge = set(args.purge or [])
+             if path.startswith(meta_collection() + "/") and segments(path) == 4 and valid_level_key(path.split("/")[-1])}
+    # What is purged: the levels the person took off (--purge), and the levels this machine has whose team no longer
+    # allows mirroring them. Never a level only because this machine lacks it or does not list it: workbench_levels is
+    # this machine's own, and another machine of the person's may mirror that level.
+    purge = {key: "you took it off your workbench" for key in asked}
     for key in metas:
-        gone = key in rows and not rows[key]["mirrored"]
-        forgotten = key not in rows and key not in person["levels"] and key != "flowie"
-        if gone or forgotten:
-            purge.add(key)
+        if (rows.get(key) or {}).get("purge"):
+            purge.setdefault(key, rows[key].get("reason") or "the team no longer allows mirroring it")
     for key in sorted(purge):
         part_docs = {path: doc for path, doc in docs.items() if path.startswith(parts_collection(key) + "/")}
+        named = {part.get("id") for part in ((metas.get(key) or {}).get("body") or {}).get("parts") or [] if isinstance(part, dict)}
+        if named and not part_docs and key not in listed:
+            # deleting the meta alone would leave every part behind, unreachable (a delete never deletes what is below);
+            # once that collection is listed (--listed), an empty listing means its parts are gone already
+            unlisted.append({"level": key, "list": parts_collection(key)})
+            continue
+        before = len(deletes)
         for path, doc in sorted(part_docs.items()):     # the parts first, then the meta above them
             deletes.append(pinned({"op": "delete", "collection": parts_collection(key), "doc_id": path.split("/")[-1]}, doc, missing))
         if key in metas:
             deletes.append(pinned({"op": "delete", "collection": meta_collection(), "doc_id": key}, metas[key], missing))
-        reasons.append({"level": key, "reason": (rows.get(key) or {}).get("reason") or "no longer one of your levels"})
+        if len(deletes) > before:   # a level the store does not hold has nothing to purge
+            reasons.append({"level": key, "reason": purge[key]})
     for key, meta in metas.items():
         if key in purge:
             continue
@@ -1962,7 +2292,7 @@ def cmd_gc(args, home: Path, now: datetime) -> tuple[int, dict]:
     if missing:
         raise MissingVersions("the listing shows no version for: " + ", ".join(missing) + " — pass them with --versions")
     batches = plan_batches(deletes)
-    return (1 if deletes else 0), {"deletes": len(deletes), "purge": reasons, "batches": batches}
+    return (1 if deletes or unlisted else 0), {"deletes": len(deletes), "purge": reasons, "unlisted": unlisted, "batches": batches}
 
 
 # ── the workbench record ────────────────────────────────────────────────────────────────────────
@@ -2138,7 +2468,7 @@ def cmd_levels(args, home: Path, now: datetime) -> tuple[int, dict]:
     person = consent(home)
     sources, unkeyed = discover(home, args.root)
     return 0, {"workbench": "on" if person["on"] else "off", "machine": person["machine"] or None,
-               "levels": level_rows(sources, person), "unkeyed": unkeyed}
+               "pii_config": person["pii_config"] or None, "levels": level_rows(sources, person), "unkeyed": unkeyed}
 
 
 def cmd_key(args, home: Path, now: datetime) -> tuple[int, dict]:
@@ -2227,6 +2557,7 @@ def print_human(command: str, code: int, result: dict) -> None:
         return
     if command == "levels":
         print(f"workbench: {result['workbench']} · machine: {result['machine'] or 'not named yet'}")
+        print(f"ID numbers and participant names: {'checked with ' + result['pii_config'] if result['pii_config'] else 'not checked (no pii_config)'}")
         for row in result["levels"]:
             print(f"  {row['level']}: {row['label']} — {'mirrored' if row['mirrored'] else row['reason']}")
         for item in result["unkeyed"]:
@@ -2241,6 +2572,10 @@ def print_human(command: str, code: int, result: dict) -> None:
                 print(f"  held back: {item['source']} {item['item']} ({item['reason']})")
         for warning in result.get("warnings") or []:
             print(f"warning: {warning}")
+        for row in result.get("skipped") or []:
+            print(f"not exported: {row['label']} ({row['level']}) — {row['reason']}")
+        for row in result.get("purge") or []:
+            print(f"deleted from the workbench by this refresh: {row['label']} ({row['level']}) — {row['reason']}")
         for key, verdict in (result.get("guard") or {}).items():
             print(f"  {key}: {verdict['verdict']} — {verdict.get('question') or verdict['reason']}")
         if result.get("prefs"):
@@ -2262,6 +2597,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", help="export, stage, fixtures: the folder to write to; validate: the plan file")
     parser.add_argument("--level", action="append", help="export: only this level key; apply: the level to apply")
     parser.add_argument("--remote", help="export, gc: an ArtifactData listing of data/users/me saved with out_dir")
+    parser.add_argument("--held", help="export: a listing of data/users/me (default: --remote); `purge` names the levels "
+                                       "it holds that a refresh deletes")
     parser.add_argument("--intents", help="pickup, validate, pending, gc, export --outcomes: a listing of the intents")
     parser.add_argument("--versions", help="a JSON file {document path: version} for documents a listing saved without one")
     parser.add_argument("--outcomes", metavar="PLAN", help="export: add the outcome writes of this validated plan")
@@ -2270,9 +2607,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--plan", help="apply, pending: the plan validate wrote")
     parser.add_argument("--today", help="apply: the date written into updated: (default: today)")
     parser.add_argument("--machine", help="the machine label (default: workbench_machine in user.yaml)")
-    parser.add_argument("--pii-config", help="export: a pii_scan.py config (id_patterns, roster)")
+    parser.add_argument("--pii-config", help="export: a pii_scan.py config (id_patterns, roster) instead of the one pii_config "
+                                             "in user.yaml names")
     parser.add_argument("--days", type=int, default=GC_DAYS, help="gc: keep finished intents this many days")
-    parser.add_argument("--purge", action="append", metavar="KEY", help="gc: also delete this level's documents")
+    parser.add_argument("--purge", action="append", metavar="KEY",
+                        help="gc: delete this level's documents too — one the person took off (its parts must be listed)")
+    parser.add_argument("--listed", action="append", metavar="KEY",
+                        help="gc: this level's parts collection was listed into --remote, even if the listing was empty")
     parser.add_argument("--set", action="append", metavar="KEY=VALUE", help="record: write a field of the workbench record")
     parser.add_argument("--prefs", help="record: the page's prefs document (an ArtifactData get saved with out_dir)")
     parser.add_argument("--check", help="page: the page file an Artifact read saved")

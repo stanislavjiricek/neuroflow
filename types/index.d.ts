@@ -107,7 +107,8 @@ export type NfWebPending = {
   checkedAt: string | null
   oldest: string | null
   count: number
-  levels: { level: string; kind: string | null; board: string | null; root: string | null; slugs: string[]; count: number }[]
+  /** `root`: a project's folder as workbench.py reached it; `roots`: that and the folder it resolves to. */
+  levels: { level: string; kind: string | null; board: string | null; root: string | null; roots: string[]; slugs: string[]; count: number }[]
 }
 
 /** One row of a wiki's index.md: which wiki, the page title, its file and one-line summary. */

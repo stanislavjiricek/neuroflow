@@ -151,7 +151,7 @@
   .col-name { display: inline-flex; align-items: baseline; gap: 10px; min-width: 0; }
   .col-head .count { font: 400 var(--s1)/1 var(--mono); color: var(--dim); }
   .col-head .count.over { color: var(--warn); }
-  .lane { font: 500 10px/1.2 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); padding: 6px 2px 0; }
+  .lane { font: 500 10px/1.2 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--mute); padding: 6px 2px 0; }
   .cards { display: flex; flex-direction: column; gap: 8px; }
   .card {
     position: relative; border: 1px solid var(--line2); border-radius: var(--r-card); background: var(--bg); padding: 10px 12px;
@@ -388,15 +388,16 @@ async function writeIntent(intent, message) {
   }
 }
 
-let prefsTimer = null
-let prefsWriting = Promise.resolve()
+// settings: a local change is written once the person pauses; another tab's or device's settings are taken whenever
+// no local change waits to be written (prefsKeeper)
+const prefsSync = prefsKeeper({
+  write: body => (state.db && state.owner ? state.db.doc(prefsPath(state.uid)).set(body) : undefined),
+  timer: { set: (run, ms) => setTimeout(run, ms), clear: id => clearTimeout(id) },
+})
 function savePrefs() {
-  clearTimeout(prefsTimer)
-  prefsTimer = setTimeout(() => {
-    if (!state.db || !state.owner) return
-    const body = { ...state.prefs, prefs_schema: PREFS_SCHEMA, updated_at: new Date().toISOString() }
-    prefsWriting = prefsWriting.then(() => state.db.doc(prefsPath(state.uid)).set(body)).catch(error => problem(error, 'saving your settings'))
-  }, 700)
+  if (!state.db || !state.owner) return
+  prefsSync.change(() => ({ ...state.prefs, prefs_schema: PREFS_SCHEMA, updated_at: new Date().toISOString() }),
+    error => problem(error, 'saving your settings'))
 }
 
 function setPrefs(change) {
@@ -406,9 +407,9 @@ function setPrefs(change) {
 }
 
 function newId() {
-  const bytes = new Uint8Array(6)
+  const bytes = new Uint8Array(20)
   crypto.getRandomValues(bytes)
-  return newIntentId(Date.now(), Array.from(bytes, b => (b % 36).toString(36)).join(''))
+  return newIntentId(Array.from(bytes, b => (b % 36).toString(36)).join(''))
 }
 
 function subscribeParts(key) {
@@ -447,7 +448,7 @@ async function boot() {
       else if (validLevelKey(doc.id) && doc.data()) metas[doc.id] = doc.data()
     }
     state.metas = metas
-    if (!prefsTimer) state.prefs = normalizePrefs(prefsDoc)
+    state.prefs = prefsSync.take(prefsDoc, state.prefs)
     state.prefsDoc = prefsDoc
     const order = levelOrder(metas, state.prefs)
     state.current = chooseLevel(order)
@@ -520,7 +521,7 @@ function currentLevel() {
 
 function boardOptions(level) {
   return {
-    today: localDate(Date.now()), nowMs: Date.now(), filter: state.filter, focusProject: state.prefs.focus_project,
+    today: localDate(Date.now()), nowMs: Date.now(), filter: levelFilter(level, state.filter), focusProject: state.prefs.focus_project,
     hiddenColumns: [...(state.prefs.hidden_columns[level.key] || []), ...(state.prefs.show_archive ? [] : level.columns.filter(c => c.archive).map(c => c.id))],
     wip: state.prefs.wip[level.key] || {},
   }
@@ -588,6 +589,7 @@ function drawTabs() {
 }
 
 function openLevel(key) {
+  if (key !== state.current) state.filter = filterOnOpen(state.filter)  // owner and project belong to a level
   state.current = key
   state.menu = null
   state.adding = null
@@ -701,8 +703,7 @@ function drawLevelHead(level, view) {
 
 function drawBoard(level) {
   const board = boardModel(level, state.intents, boardOptions(level))
-  const owners = [...new Set(level.cards.map(card => card.owner).filter(Boolean))].sort()
-  const projects = [...new Set(level.cards.map(card => card.project).filter(Boolean))].sort()
+  const { owners, projects } = filterChoices(level, state.filter)  // a choice in force is always listed
   const toolbar = h('div', { class: 'toolbar' },
     h('label', { class: 'sr-only', for: 'filter-text' }, 'Search the cards'),
     h('input', { id: 'filter-text', type: 'search', placeholder: 'Search cards', value: state.filter.text, oninput: event => { state.filter.text = event.target.value; render() } }),
@@ -723,7 +724,7 @@ function drawBoard(level) {
 }
 
 function firstOpen(level) {
-  return (level.columns.find(column => !column.closed) || { id: 'inbox' }).id
+  return (level.columns.find(column => !column.closed && isMoveTarget(column)) || { id: 'inbox' }).id
 }
 
 function select(id, label, options, value, onchange) {
@@ -733,25 +734,30 @@ function select(id, label, options, value, onchange) {
       ...options.map(([v, text]) => h('option', { value: v, selected: v === value }, text))))
 }
 
+/** How many cards a column shows: a closed one its first three until "Show more". */
+function columnLimit(column) {
+  return column.closed && !state.expanded[column.id] ? 3 : Infinity
+}
+
 function drawColumn(level, column, board) {
-  const lanesOf = lanes(column.cards, state.prefs.group_by)
-  const limit = column.closed && !state.expanded[column.id] ? 3 : Infinity
-  let shown = 0
+  const limit = columnLimit(column)
+  const grouped = lanes(column.cards, state.prefs.group_by).length > 1
   const body = []
-  for (const lane of lanesOf) {
-    const cards = lane.cards.filter(() => shown++ < limit)
-    if (!cards.length) continue
-    if (lane.name !== null || lanesOf.length > 1) body.push(h('div', { class: 'lane', text: lane.name ? (state.prefs.group_by === 'owner' ? `@${lane.name}` : lane.name) : `no ${state.prefs.group_by}` }))
-    body.push(...cards.map(card => drawCard(level, card, board)))
+  // drawnLanes is the order the keyboard follows too (cardKeys)
+  for (const lane of drawnLanes(column.cards, state.prefs.group_by, limit)) {
+    if (lane.name !== null || grouped) body.push(h('div', { class: 'lane', text: lane.name ? (state.prefs.group_by === 'owner' ? `@${lane.name}` : lane.name) : `no ${state.prefs.group_by}` }))
+    body.push(...lane.cards.map(card => drawCard(level, card, board)))
   }
   const hiddenCount = column.cards.length - Math.min(column.cards.length, limit)
+  const target = isMoveTarget(column)  // never the archive, never a folder tasks/config.json does not name
   const el = h('section', {
     class: `column${column.closed ? ' closed' : ''}`, 'aria-label': `${column.label}, ${column.count} card${column.count === 1 ? '' : 's'}`, dataset: { column: column.id },
-    ondragover: event => { if (Array.from(event.dataTransfer.types || []).includes('text/plain')) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; el.classList.add('drop') } },
+    ondragover: event => { if (target && Array.from(event.dataTransfer.types || []).includes('text/plain')) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; el.classList.add('drop') } },
     ondragleave: event => { if (!el.contains(event.relatedTarget)) el.classList.remove('drop') },
     ondrop: event => {
       event.preventDefault()
       el.classList.remove('drop')
+      if (!target) return
       const key = event.dataTransfer.getData('text/plain')
       const card = board.columns.flatMap(c => c.cards).find(item => item.key === key)
       if (card) moveCard(card, column.id, 'dragged')
@@ -761,10 +767,11 @@ function drawColumn(level, column, board) {
     h('span', { class: 'col-name' },
       h('span', { class: 'label', text: column.label }),
       h('span', { class: `count${column.overLimit ? ' over' : ''}`, title: column.wip ? `limit ${column.wip} (display only)` : null, text: column.wip ? `${column.count} / ${column.wip}${column.overLimit ? ' · over' : ''}` : String(column.count) })),
-    !column.closed ? h('button', { class: 'btn quiet', type: 'button', 'aria-label': `Add a task to ${column.label}`, onclick: () => { state.adding = { column: column.id }; render(); const t = $('add-title'); if (t) t.focus() } }, '+') : null),
+    !column.closed && target ? h('button', { class: 'btn quiet', type: 'button', 'aria-label': `Add a task to ${column.label}`, onclick: () => { state.adding = { column: column.id }; render(); const t = $('add-title'); if (t) t.focus() } }, '+') : null),
   h('div', { class: 'cards' }, ...body),
   hiddenCount > 0 ? h('button', { class: 'more', type: 'button', onclick: () => { state.expanded[column.id] = true; render() } }, `Show ${hiddenCount} more`) : null,
-  column.closed && column.count === 0 ? h('p', { class: 'dim', text: 'Drop a card here to finish it.' }) : null)
+  column.closed && column.count === 0 && target ? h('p', { class: 'dim', text: 'Drop a card here to finish it.' }) : null,
+  column.extra ? h('p', { class: 'dim', text: 'A folder tasks/config.json does not name: cards move out of it, never into it.' }) : null)
   return el
 }
 
@@ -772,7 +779,7 @@ function cardLabel(card) {
   const bits = [card.title]
   if (card.owner) bits.push(`owner ${card.owner}`)
   if (card.due) bits.push(`due ${card.due}${card.overdue ? ', overdue' : ''}`)
-  if (card.pending) bits.push(card.pending.state === 'claimed' ? `being applied on ${card.pending.by}` : 'waiting for Claude Code')
+  if (card.pending) bits.push(card.pending.state === 'claimed' ? `being applied on ${card.pending.by}` : card.pending.state === 'stale' ? `claimed by ${card.pending.by}, never finished` : 'waiting for Claude Code')
   return bits.join(', ')
 }
 
@@ -788,7 +795,7 @@ function drawCard(level, card, board) {
   else if (card.pending) {
     const fromLabel = (board.columns.find(c => c.id === card.pending.from) || {}).label || card.pending.from
     if (card.pending.state === 'pending') badges.push(h('span', { class: 'chip wait', text: `↻ from ${fromLabel} · waits for Claude Code` }))
-    else if (card.pending.state === 'claimed') badges.push(h('span', { class: 'chip wait', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())}` }))
+    else if (card.pending.state === 'claimed') badges.push(h('span', { class: 'chip wait', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())} — being applied there; wait for it` }))
     else badges.push(h('span', { class: 'chip warn', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())} — it never finished` }))
   }
   if (card.outcome) badges.push(h('span', { class: 'chip alert', text: outcomeText(card.outcome) }))
@@ -796,9 +803,10 @@ function drawCard(level, card, board) {
   if (card.legacy) badges.push(h('span', { class: 'chip', text: 'legacy file: move it once with /tasks --move' }))
   if (card.readable === false) badges.push(h('span', { class: 'chip alert', text: 'merge-conflict markers: no moves' }))
   const actions = []
-  if (card.movable) actions.push(h('button', { class: 'btn quiet', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': String(Boolean(state.menu && state.menu.key === card.key)), onclick: () => { state.menu = { key: card.key }; render() } }, 'Move to…'))
-  if (card.pending && card.pending.state === 'pending') actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => undoCard(card) }, 'Undo'))
-  if (card.pending && card.pending.state !== 'pending') actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => release(card) }, 'Release'))
+  const offers = cardActions(card)  // Release only for a claim that never finished: a live one is being applied
+  if (offers.move) actions.push(h('button', { class: 'btn quiet', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': String(Boolean(state.menu && state.menu.key === card.key)), onclick: () => { state.menu = { key: card.key }; render() } }, 'Move to…'))
+  if (offers.undo) actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => undoCard(card) }, 'Undo'))
+  if (offers.release) actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => release(card) }, 'Release'))
   const el = h('article', {
     class: `card${card.pending ? ' pending' : ''}${card.mine ? ' mine' : ''}`, tabindex: '0', draggable: card.movable ? 'true' : null,
     'aria-label': cardLabel(card), dataset: { key: card.key, column: card.column },
@@ -816,7 +824,7 @@ function drawCard(level, card, board) {
 }
 
 function drawMenu(card, board) {
-  const targets = board.columns.filter(column => !column.archive)
+  const targets = board.columns.filter(column => column.id === card.column || isMoveTarget(column))
   return h('div', {
     class: 'menu', role: 'menu', 'aria-label': `Move ${card.title} to`,
     onkeydown: event => {
@@ -845,12 +853,14 @@ function cardKeys(event, level, card, board) {
   if (event.target !== event.currentTarget) return
   const key = event.key
   const open = board.columns
+  // the cards in the order drawColumn draws them — lane by lane when grouped, a closed column's first few — so ↑ and ↓
+  // reach the card drawn above or below
+  const drawn = c => (open[c] ? drawnCards(open[c].cards, state.prefs.group_by, columnLimit(open[c])) : [])
   const ci = open.findIndex(column => column.id === card.column)
-  const column = open[ci]
-  const index = column ? column.cards.findIndex(item => item.key === card.key) : -1
+  const index = drawn(ci).findIndex(item => item.key === card.key)
   const focusCard = (c, i) => {
-    const list = open[c] && open[c].cards
-    if (!list || !list.length) return
+    const list = drawn(c)
+    if (!list.length) return
     const target = list[Math.max(0, Math.min(i, list.length - 1))]
     const el = [...document.querySelectorAll('.card')].find(item => item.dataset.key === target.key)
     if (el) el.focus()
@@ -865,7 +875,7 @@ function cardKeys(event, level, card, board) {
   } else if (key === 'ArrowRight' || key === 'ArrowLeft') {
     event.preventDefault()
     let c = ci
-    do { c += key === 'ArrowRight' ? 1 : -1 } while (c >= 0 && c < open.length && !open[c].cards.length)
+    do { c += key === 'ArrowRight' ? 1 : -1 } while (c >= 0 && c < open.length && !drawn(c).length)
     focusCard(c, index)
   } else if ((key === 'Enter' || key === ' ' || key === 'm' || key === 'M') && card.movable) {
     event.preventDefault()
@@ -895,7 +905,7 @@ function drawAddForm(level) {
   h('div', { class: 'form-grid' },
     h('label', { for: 'add-title' }, 'Title', h('input', { id: 'add-title', name: 'title', class: 'field', required: true, maxlength: 200, autocomplete: 'off', value: draft.title || '', oninput: keep('title') })),
     h('label', { for: 'add-column' }, 'Column', h('select', { id: 'add-column', name: 'column', class: 'field', onchange: keep('column') },
-      ...level.columns.filter(column => !column.archive).map(column => h('option', { value: column.id, selected: column.id === draft.column }, column.label)))),
+      ...level.columns.filter(isMoveTarget).map(column => h('option', { value: column.id, selected: column.id === draft.column }, column.label)))),
     h('label', { for: 'add-owner' }, 'Owner', h('select', { id: 'add-owner', name: 'owner', class: 'field', onchange: keep('owner') }, h('option', { value: '' }, 'Nobody yet'),
       ...roster.map(([v, t]) => h('option', { value: v, selected: v === draft.owner }, t)))),
     h('label', { for: 'add-due' }, 'Due', h('input', { id: 'add-due', name: 'due', type: 'date', class: 'field', value: draft.due || '', oninput: keep('due') })),

@@ -14,7 +14,8 @@
 //   nf-rule: LOGIN-NODE         heavy compute on an HPC login node (asks)
 //   nf-rule: INTEGRITY-MARKER   the model writing `set_by: person` into an integrity status file (asks)
 //   nf-rule: EGRESS-CONFIRM     uploads to outside services (asks); ArtifactData writes go without a question only to
-//                               the recorded workbench, under data/users/me, for a mirrored level — and Claude never
+//                               the recorded workbench, under data/users/me (any spelling of the viewer's id), for a
+//                               level `workbench.py levels` says is mirrored from this machine — and Claude never
 //                               creates or rewrites a workbench intent (denies)
 //   nf-rule: MEMORY-PURITY      files outside the documented .neuroflow/ structure (warns only)
 // Bash, PowerShell and scripts can reach around every rule here; that is why detection (hash checks,
@@ -770,7 +771,9 @@ export const registerGuards = (on: On, opts: NfOptions): void => {
       bodies.set(write.file_path, parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null)
     }
     const home = await io.home()
-    const violations = artifactViolations(input, await workbenchContext(io, home ? toSlash(home) : null), bodies).map(item => ({ rule: 'EGRESS-CONFIRM' as const, ...item }))
+    // which levels this machine mirrors is workbench.py's to say (`levels`): asked only when a write uploads one
+    const context = await workbenchContext(io, home ? toSlash(home) : null, scope.root ?? null, input)
+    const violations = artifactViolations(input, context, bodies).map(item => ({ rule: 'EGRESS-CONFIRM' as const, ...item }))
     return decide($, e.tool_use_id, violations, opts, scope.isHeadless, toasted, () => next(e)) as ReturnType<typeof next>
   }).catch(($, e, next) => (next.called ? next(e) : mayEnforce(opts) ? { deny: 'neuroflow: a guard could not check this ArtifactData write — try again, or set the neuroflow mod to observe' } : next(e)))
 }

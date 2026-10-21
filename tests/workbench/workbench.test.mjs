@@ -6,12 +6,14 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { Script, createContext } from 'node:vm'
 
 import {
-  activeIntents, assembleLevel, boardModel, daysUntil, defaultPrefs, freshnessLabel, intentDocument, intentsPath, isCollectionPath,
-  isDocumentPath, isOverdue, lanes, levelOrder, makeAdd, makeCancel, makeMove, metaPath, neighbourColumn, newIntentId,
-  normalizePrefs, oldestWaiting, outcomeText, parseInline, parseMarkdown, partsPath, phaseMap, prefsPath, recentOutcomes, releasePatch,
-  safeHref, segments, tabSummary, upcomingDates, userRoot, validLevelKey, validSegment, waitingCount, waitingIntents, wikiIndex,
+  activeIntents, assembleLevel, boardModel, cardActions, daysUntil, defaultPrefs, drawnCards, drawnLanes, filterChoices, filterOnOpen,
+  freshnessLabel, intentDocument, intentsPath, isCollectionPath, isDelimiterRow, isDocumentPath, isMoveTarget, isOverdue, lanes,
+  levelFilter, levelOrder, makeAdd, makeCancel, makeMove, metaPath, neighbourColumn, newIntentId, normalizePrefs, oldestWaiting,
+  outcomeText, parseInline, parseMarkdown, partsPath, phaseMap, prefsKeeper, prefsPath, recentOutcomes, releasePatch, safeHref,
+  segments, tabSummary, upcomingDates, userRoot, validLevelKey, validSegment, waitingCount, waitingIntents, wikiIndex,
 } from '../../skills/neuroflow-core/assets/workbench/workbench.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -40,17 +42,22 @@ test('every database path the page builds has the right parity', () => {
     assert.ok(isDocumentPath(`${partsPath(uid, key)}/core`), key) // 6
   }
   assert.ok(isCollectionPath(intentsPath(uid))) // 5
-  assert.ok(isDocumentPath(`${intentsPath(uid)}/${newIntentId(NOW, 'abc123xyz')}`)) // 6
+  assert.ok(isDocumentPath(`${intentsPath(uid)}/${newIntentId('abc123xyz')}`)) // 6
   assert.ok(isDocumentPath(prefsPath(uid))) // 4
   assert.ok(!isDocumentPath(`${userRoot(uid)}/hive:example-lab:hive/parts`))
   assert.ok(!validLevelKey('prefs') && !validLevelKey('inbox') && !validLevelKey('hive:example-lab:hive'))
 })
 
-test('intent ids are valid document ids that sort by creation', () => {
-  const a = newIntentId(Date.parse('2026-10-21T10:00:00Z'), 'k3j2h1g0')
-  const b = newIntentId(Date.parse('2026-10-21T10:00:01Z'), 'a0a0a0a0')
-  assert.match(a, /^i-[0-9a-z]+-[0-9a-z]{6,12}$/)
-  assert.ok(validSegment(a) && a < b)
+test('intent ids are random letters only: valid document ids that say nothing about the click time', () => {
+  const a = newIntentId('k3j2h1g0a9b8c7d6e5f4')
+  assert.equal(a, 'i-k3j2h1g0-a9b8c7d6e5f4')
+  assert.match(newIntentId('xY-z'), /^i-[0-9a-z]{8}-[0-9a-z]{12}$/)
+  assert.ok(validSegment(a))
+  assert.match(a, /^i-[0-9a-z]{1,16}-[0-9a-z]{4,24}$/) // workbench.py's INTENT_ID, which reads `after`
+  assert.equal(newIntentId.length, 1) // no clock goes in: the id travels into hive commits as a trailer
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /newIntentId\(Array\.from\(bytes/)
+  assert.doesNotMatch(html, /newIntentId\(Date\.now\(\)/)
 })
 
 test('a level is drawn only from a complete, current snapshot', () => {
@@ -187,6 +194,101 @@ test('the keyboard moves a card one column at a time', () => {
   assert.equal(neighbourColumn(columns, 'done', 1), null) // the archive is no keyboard target
 })
 
+test('a folder tasks/config.json does not name (extra) and the archive are no targets: menu, keys, drop, add form', () => {
+  // the golden hive has a leftover tasks/blocked/ folder: the export marks it extra, and the validator rejects moves into it
+  const hive = level(HIVE)
+  const blocked = hive.columns.find(column => column.id === 'blocked')
+  assert.equal(blocked.extra, true)
+  assert.deepEqual(hive.columns.filter(isMoveTarget).map(column => column.id), ['inbox', 'active', 'review', 'done'])
+  const board = boardModel(hive, [], { today: '2026-10-21', nowMs: NOW })
+  assert.equal(neighbourColumn(board.columns, 'done', 1), null) // neither the archive nor blocked
+  assert.equal(neighbourColumn(board.columns, 'blocked', -1), 'done') // out of it is fine
+  const card = board.columns.find(column => column.id === 'blocked').cards[0]
+  assert.equal(card.slug, 'wait-for-amendment')
+  assert.equal(makeMove({ level: HIVE, card, to: 'review', nowMs: NOW, id: 'i-x-aaaa' }).to, 'review')
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /const targets = board\.columns\.filter\(column => column\.id === card\.column \|\| isMoveTarget\(column\)\)/) // Move to…
+  assert.match(html, /const target = isMoveTarget\(column\)/) // drop and the column's + button
+  assert.match(html, /level\.columns\.filter\(isMoveTarget\)\.map/) // the add form's Column choices
+})
+
+test('the board filter belongs to its level: a choice in force stays listed, a project tab has no project filter', () => {
+  const hive = level(HIVE)
+  const flowie = level('flowie')
+  const project = level('project+oddball-eeg')
+  assert.deepEqual(filterChoices(hive, {}).owners, ['alice', 'jana'])
+  assert.deepEqual(filterChoices(hive, { owner: 'li' }).owners, ['li', 'alice', 'jana']) // shown, so it can be cleared
+  assert.deepEqual(filterOnOpen({ text: 'ica', owner: 'li', project: 'x', overdue: true }), { text: 'ica', owner: '', project: '', overdue: true })
+  assert.deepEqual(filterChoices(project, { project: 'solo-review' }).projects, [])
+  assert.equal(boardModel(project, [], { filter: { project: 'solo-review' } }).total, 0) // what the bug did
+  assert.equal(boardModel(project, [], { filter: levelFilter(project, { project: 'solo-review' }) }).total, project.cards.length)
+  assert.equal(boardModel(flowie, [], { filter: levelFilter(flowie, { project: 'solo-review' }) }).total, 1)
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /filterOnOpen\(state\.filter\)/)
+  assert.match(html, /filter: levelFilter\(level, state\.filter\)/)
+})
+
+test('settings: a local change is written after a pause, another device\'s are taken whenever none waits', async () => {
+  const timers = []
+  const timer = { set: run => timers.push(run), clear: id => { if (id) timers[id - 1] = null } }
+  const written = []
+  let finish = null
+  const keeper = prefsKeeper({ write: body => new Promise(resolve => { written.push(body); finish = resolve }), timer })
+  const mine = { ...defaultPrefs(), density: 'compact' }
+  assert.equal(keeper.take({ theme: 'light' }, mine).theme, 'light') // nothing waits: the store's settings win
+  keeper.change(() => ({ ...mine, theme: 'dark' }))
+  keeper.change(() => ({ ...mine, theme: 'light' })) // within the pause: one write, of the last change
+  assert.ok(keeper.busy)
+  assert.equal(keeper.take({ theme: 'dark' }, mine), mine) // a change waits: this tab's settings stay
+  for (const run of timers.filter(Boolean)) run()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.deepEqual(written.map(body => body.theme), ['light'])
+  assert.ok(keeper.busy) // being written
+  finish()
+  await keeper.settled()
+  assert.ok(!keeper.busy)
+  assert.equal(keeper.take({ theme: 'dark', density: 'comfortable' }, mine).theme, 'dark') // then another device's show
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /state\.prefs = prefsSync\.take\(prefsDoc, state\.prefs\)/)
+  assert.doesNotMatch(html, /prefsTimer/)
+})
+
+test('a card offers Release only for a claim that never finished; a live claim is left to finish', () => {
+  const claimed = goldenList().filter(item => item.id === 'i-mh2a0001-aaaa')
+    .map(item => ({ ...item, status: 'claimed', claim: { machine: 'laptop', claimed_at: '2026-10-21T10:20:00Z' } }))
+  const card = (intents, nowMs) => boardModel(level(HIVE), intents, { nowMs }).columns.flatMap(c => c.cards).find(c => c.slug === 'fix-channel-map')
+  assert.deepEqual(cardActions(card(claimed, NOW)), { move: true, undo: false, release: false, waiting: true })
+  assert.deepEqual(cardActions(card(claimed, NOW + 31 * 60000)), { move: true, undo: false, release: true, waiting: false })
+  assert.deepEqual(cardActions(card(goldenList(), NOW)), { move: true, undo: true, release: false, waiting: false })
+  assert.deepEqual(cardActions(card([], NOW)), { move: true, undo: false, release: false, waiting: false })
+})
+
+test('the keyboard walks a grouped column in the order it is drawn', () => {
+  const cards = [{ key: 'A', project: 'b' }, { key: 'B', project: 'a' }, { key: 'C', project: 'b' }]
+  assert.deepEqual(drawnCards(cards, 'project').map(card => card.key), ['B', 'A', 'C']) // ↓ from B is A, not C
+  assert.deepEqual(drawnCards(cards, 'none').map(card => card.key), ['A', 'B', 'C'])
+  assert.deepEqual(drawnLanes(cards, 'project', 2).map(lane => [lane.name, lane.cards.map(card => card.key)]), [['a', ['B']], ['b', ['A']]])
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /for \(const lane of drawnLanes\(column\.cards, state\.prefs\.group_by, limit\)\)/) // drawn
+  assert.match(html, /drawnCards\(open\[c\]\.cards, state\.prefs\.group_by, columnLimit\(open\[c\]\)\)/) // walked
+})
+
+test('swimlane labels are readable: at least 4.5:1 against the column in both themes', () => {
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  const css = html.slice(0, html.indexOf('</style>'))
+  const block = selector => css.slice(css.indexOf(selector), css.indexOf('}', css.indexOf(selector)))
+  const token = (text, name) => new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`).exec(text)[1]
+  const lane = /\.lane\s*\{[^}]*color:\s*var\(--([a-z0-9]+)\)/.exec(css)[1]
+  const luminance = hex => {
+    const [r, g, b] = [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16) / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05) }
+  for (const theme of [block(':root {'), block(':root[data-theme="light"]')]) {
+    for (const ground of ['raise', 'bg']) assert.ok(ratio(token(theme, lane), token(theme, ground)) >= 4.5, `--${lane} on --${ground}`)
+  }
+})
+
 test('markdown renders as tokens only: HTML stays text and only http links leave', () => {
   const page = level('flowie').pages.find(item => item.id === 'concepts/alpha-oscillations')
   const blocks = parseMarkdown(page.body)
@@ -207,6 +309,33 @@ test('markdown renders as tokens only: HTML stays text and only http links leave
   assert.equal(mixed[1].items[1].task, true)
   assert.equal(mixed[3].text, '<b>code</b>')
   assert.ok(mixed[6].ordered)
+})
+
+test('markdown always ends: a pipe that starts no table, a one-dash delimiter row, a quoted pipe', () => {
+  // run under a time limit: a parser that stops advancing would otherwise hang the test (and the page's tab)
+  const context = createContext({ parse: parseMarkdown, text: '' })
+  const script = new Script('parse(text)')
+  const within = text => {
+    context.text = text
+    return script.runInContext(context, { timeout: 1000 })
+  }
+  const types = blocks => blocks.map(block => block.type)
+  assert.deepEqual(types(within('text\n| just a pipe')), ['paragraph'])
+  assert.equal(within('text\n| just a pipe')[0].inline[0].text, 'text | just a pipe')
+  const table = within('| Left | Center |\n|:-|:-:|\n| a | b |')
+  assert.deepEqual(types(table), ['table'])
+  assert.deepEqual([table[0].header.length, table[0].rows.length], [2, 1])
+  assert.deepEqual(types(within('| A | B |')), ['paragraph'])
+  assert.deepEqual(types(within('intro\n| A | B |')), ['paragraph'])
+  assert.deepEqual(types(within('> | quoted')), ['quote'])
+  assert.deepEqual(types(within('> | quoted')[0].blocks), ['paragraph'])
+  assert.equal(within('# a b').length, 1)
+  assert.deepEqual(types(within('text\n| a | b |\n|---|---|\n| 1 | 2 |')), ['paragraph', 'table'])
+  // every mix of three block starters ends
+  const starts = ['|', '| a |', '|:-|', '---', '> ', '> |', '# ', '# x', '- ', '1. ', '```', 'text', '', '  x', '|-']
+  for (const a of starts) for (const b of starts) for (const c of starts) assert.ok(Array.isArray(within([a, b, c].join('\n'))))
+  assert.ok(isDelimiterRow('|:-|:-:|') && isDelimiterRow('---|---') && isDelimiterRow('| --- | :--: |'))
+  assert.ok(!isDelimiterRow('| a |') && !isDelimiterRow('|') && !isDelimiterRow(''))
 })
 
 test('the wiki index groups pages by type and searches titles, tags and summaries', () => {

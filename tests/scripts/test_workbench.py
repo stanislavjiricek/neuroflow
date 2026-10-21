@@ -142,10 +142,14 @@ class KeyTests(Home):
         self.assertIsNone(wb.project_key(None, None))
         long_key = wb.project_key("x" * 300, None)
         self.assertTrue(long_key.startswith("project+~~") and len(long_key) <= 200)
-        for key in ("flowie", "hive+example-lab+hive", wb.project_key("Oddball EEG", None), "project+github.com+org+repo", long_key):
+        self.assertEqual(wb.project_key("study-2024.", None), "project+study-2024~2e")  # Windows drops a last dot
+        self.assertEqual(wb.project_key("a..", None), "project+a.~2e")
+        for key in ("flowie", "hive+example-lab+hive", wb.project_key("Oddball EEG", None), "project+github.com+org+repo", long_key,
+                    wb.project_key("study-2024.", None), wb.project_key("v1.0 .", None)):
             self.assertTrue(wb.valid_level_key(key), key)
             # a key is a valid file name everywhere: an ArtifactData listing saved with out_dir names files after it
             self.assertIsNone(re.search(r'[<>:"/\\|?*A-Z]', key), key)
+            self.assertFalse(key.endswith((".", " ")), key)
         for key in ("prefs", "inbox", "project+a b", "hive", "../x", "", "hive:example-lab:hive"):
             self.assertFalse(wb.valid_level_key(key), key)
 
@@ -171,6 +175,7 @@ class PathParityTests(unittest.TestCase):
             self.assertTrue(wb.is_document(f"{wb.parts_collection(key)}/core"), key)             # 6: a part
         self.assertTrue(wb.is_collection(wb.intents_collection()))                                # 5
         self.assertTrue(wb.is_document(f"{wb.intents_collection()}/i-abc123-x7y8"))              # 6: an intent
+        self.assertTrue(wb.INTENT_ID.match("i-k3j2h1g0-a9b8c7d6e5f4"))  # the page's ids: random letters, no time
         self.assertTrue(wb.is_document(f"{wb.meta_collection()}/{wb.PREFS_DOC}"))                # 4: the preferences
         self.assertEqual(wb.segments(f"{wb.parts_collection('flowie')}/core"), 6)
         self.assertEqual(wb.segments(wb.meta_collection("u_abc")), 3)
@@ -295,6 +300,44 @@ class ExportTests(Home):
             self.assertEqual(wb.with_hash(doc)["sha256"], doc["sha256"])
         self.assertEqual(sum(len(self.doc("flowie", i)["cards"]) for i in ids if i.startswith("cards-")), 402)
 
+    def test_a_level_too_large_for_one_part_is_trimmed_and_never_stops_the_others(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy="allow")
+        self.write(self.flowie / "ideas.md", "idea " * 12_000)              # 60,000 characters
+        self.write(self.flowie / "ideas-inbox.md", "注意" * 30_000)          # 60,000 CJK characters: 180 KB
+        for n in range(800):
+            self.write(self.flowie / "notes" / f"note-{n:04d}.md", f"# Note {n}\n")
+        self.write(self.flowie / "tasks" / "inbox" / "huge.md", task("x" * 250_000, "inbox"))
+        code, result = self.export()
+        self.assertEqual(code, 1)
+        self.assertEqual([row["level"] for row in result["levels"]], ["flowie", "hive+example-lab+hive"])
+        core = self.doc("flowie", "core")
+        self.assertLessEqual(wb.doc_bytes(core), wb.PART_MAX)
+        self.assertLessEqual(len(core["panel"]["ideas_inbox"].encode("utf-8")), wb.TEXT_MAX + 4)
+        self.assertEqual(len(core["panel"]["notes"]), wb.LIST_MAX)
+        self.assertEqual(core["panel"]["notes"][-1]["file"], "note-0799.md")  # the newest stay
+        withheld = result["levels"][0]["withheld"]
+        self.assertIn({"source": "notes", "item": "600 older", "reason": "the panel lists the newest 200"}, withheld)
+        self.assertIn({"source": "tasks", "item": "inbox/huge.md", "reason": "larger than one part (200 KB)"}, withheld)
+        self.assertNotIn("huge", {card["slug"] for card in self.doc("flowie", "cards-000")["cards"]})
+        # a registry too large to share the core with the panel goes, said why; the level is still exported
+        self.write(self.flowie / "projects" / "projects.json", json.dumps({"projects": [
+            {"id": f"p{n:03d}", "description": "d" * 1000} for n in range(400)]}))
+        code, result = self.export()
+        self.assertEqual(self.doc("flowie", "core")["registry"], [])
+        self.assertIn({"source": "registry", "item": "the project registry",
+                       "reason": "larger than one part (200 KB) with the rest of the level"}, result["levels"][0]["withheld"])
+        self.assertEqual(result["skipped"], [])
+        # a level whose columns and people alone overflow a part is skipped with its reason; the others still go up
+        self.make_hive(policy="allow-names")
+        self.write(self.hive / "members.md", "| name | email | github | role |\n|---|---|---|---|\n" + "".join(
+            f"| Name {n} | m{n}@example.org | user{n} | role {n} |\n" for n in range(4000)))
+        code, result = self.export()
+        self.assertEqual(code, 1)
+        self.assertEqual([row["level"] for row in result["levels"]], ["flowie"])
+        self.assertEqual([(row["level"], row["reason"]) for row in result["skipped"]],
+                         [("hive+example-lab+hive", "its columns and people alone are larger than one part (200 KB)")])
+
     def test_every_exported_field_is_in_the_allowlist(self) -> None:
         snapshot = json.loads((FIXTURES / "snapshot.json").read_text(encoding="utf-8"))
         seen: set[str] = set()
@@ -358,6 +401,97 @@ class ExportTests(Home):
         everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
         for leak in (token, "jana@", "deploy", "Catch-up"):
             self.assertNotIn(leak, everything, leak)
+
+    def test_every_free_text_field_is_scrubbed_and_an_owner_must_be_on_the_roster(self) -> None:
+        hive = "hive+example-lab+hive"
+        self.make_hive(policy="allow-names")
+        self.write(self.hive / "members.md", "| name | email | github | role |\n|---|---|---|---|\n"
+                                             "| Jana Example (jana@uni.example.org) | jana@uni.example.org | jana | postdoc, +420 777 123 456 |\n")
+        self.write(self.hive / "projects" / "projects.json", json.dumps({"projects": [
+            {"id": "oddball", "status": "waiting on jana@uni.example.org", "current_phase": "call +420 777 123 456"}]}))
+        self.write(self.hive / "wiki" / "pages" / "people" / "contact.md",
+                   "---\ntitle: Contact\ntype: contact jana@uni.example.org\nstatus: ask bob@uni.example.org\n---\nbody\n")
+        self.write(self.hive / "tasks" / "inbox" / "legacy.md", task("Old one", "inbox", assignee="Kristyna"))
+        code, result = self.export()
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        for leak in ("jana@", "bob@", "777 123", "Kristyna"):
+            self.assertNotIn(leak, everything, leak)
+        core = self.doc(hive, "core")
+        self.assertEqual(core["people"], [{"handle": "jana", "name": "Jana Example ([email removed])", "role": "postdoc, [phone removed]"}])
+        self.assertEqual((core["registry"][0]["status"], core["registry"][0]["current_phase"]),
+                         ("waiting on [email removed]", "call [phone removed]"))
+        page = self.doc(hive, "wiki-000")["pages"][0]
+        self.assertEqual((page["type"], page["status"]), ("contact [email removed]", "ask [email removed]"))
+        owners = {card["slug"]: card["owner"] for card in self.doc(hive, "cards-000")["cards"]}
+        self.assertEqual((owners["legacy"], owners["fix-map"]), (None, "jana"))  # format alone is not enough: the roster
+
+    def test_machine_local_paths_never_leave_in_free_text_or_wiki_sources(self) -> None:
+        self.make_flowie()
+        self.write(self.flowie / "tasks" / "inbox" / "raw.md", task("Copy the raw files", "inbox")
+                   + "\nThe raw files are in C:\\Users\\jana\\Studies\\oddball\\raw and /home/jana/data.\n")
+        self.write(self.flowie / "wiki" / "pages" / "concepts" / "paper.md",
+                   "---\ntitle: Paper\nsources: [C:\\Users\\jana\\Documents\\paper.pdf, /home/jana/x/y.pdf]\n---\n\n"
+                   "The copy is in `/home/jana/x/y.pdf`; see https://example.org/home/x too.\n")
+        code, result = self.export()
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        self.assertNotIn("jana", everything)
+        cards = {card["slug"]: card for card in self.doc("flowie", "cards-000")["cards"]}
+        self.assertEqual(cards["raw"]["notes"], "The raw files are in [local path removed] and [local path removed].")
+        page = next(page for page in self.doc("flowie", "wiki-000")["pages"] if page["id"] == "concepts/paper")
+        self.assertEqual(page["sources"], ["paper.pdf", "y.pdf"])
+        self.assertIn("`[local path removed]`", page["body"])
+        self.assertIn("https://example.org/home/x", page["body"])  # a web address is no local path
+        self.assertEqual(result["levels"][0]["withheld"], [])     # replaced, not held back
+
+    def test_registry_urls_leave_without_user_info_and_a_secret_holds_the_entry_back(self) -> None:
+        self.make_flowie()
+        token = "ghp_" + "A1b2C3d4" * 5
+        self.write(self.flowie / "projects" / "projects.json", json.dumps({"projects": [
+            {"id": "oddball", "repos": [f"https://jana:{token}@github.com/example-lab/oddball.git",
+                                        "git@github.com:example-lab/oddball.git", "ssh://jana@lab.example.org/git/oddball.git",
+                                        "https://gitlab.example.org/lab/oddball?private_token=abc123#readme", "C:/Users/jana/oddball"]},
+            {"id": "leaky", "repos": [f"https://example.org/{token}/leaky.git"]}]}))
+        code, result = self.export()
+        registry = {entry["id"]: entry for entry in self.doc("flowie", "core")["registry"]}
+        self.assertEqual(registry["oddball"]["repos"], [
+            "https://github.com/example-lab/oddball.git", "git@github.com:example-lab/oddball.git",
+            "ssh://lab.example.org/git/oddball.git", "https://gitlab.example.org/lab/oddball"])
+        self.assertNotIn("leaky", registry)
+        self.assertIn({"source": "registry", "item": "leaky", "reason": "secret-like text"}, result["levels"][0]["withheld"])
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        for leak in (token, "jana", "abc123"):
+            self.assertNotIn(leak, everything, leak)
+        self.assertEqual(wb.public_url("jana@lab-server:repos/x.git"), "lab-server:repos/x.git")
+
+    def test_ids_and_roster_names_follow_the_pii_config_user_yaml_names(self) -> None:
+        hive = "hive+example-lab+hive"
+        self.make_hive(policy="allow")
+        keys = self.base / "keys"  # outside every project, as pii_scan.py wants the roster
+        names = self.write(keys / "names.txt", "Jana Novakova\n")
+        wb.pii().build_roster(names, keys / "roster.json", self.base / "work")
+        self.write(keys / "pii.json", json.dumps({"id_patterns": [{"name": "subject", "regex": r"\bsub-\d{2}\b"}],
+                                                  "roster": "roster.json"}))  # relative: read next to the config
+        self.write(self.hive / "tasks" / "inbox" / "call.md", task("Call Jana Novakova (sub-07) about session 2", "inbox"))
+        self.write(self.hive / "tasks" / "inbox" / "ids.md", task("Re-run sub-07", "inbox"))
+        base = 'workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["hive+example-lab+hive"]\n'
+        self.user_yaml(base)
+        code, result = self.export()  # without pii_config neither is checked — the consent table says so
+        titles = {card["slug"]: card["title"] for card in self.doc(hive, "cards-000")["cards"]}
+        self.assertEqual(titles["ids"], "Re-run sub-07")
+        self.assertIn("call", titles)
+        self.assertIn("without it, ID numbers and participant names are not checked", wb.SCRUB)
+        self.user_yaml(base + f"pii_config: {(keys / 'pii.json').as_posix()}\n")
+        self.assertEqual(self.wb("levels")[1]["pii_config"], (keys / "pii.json").as_posix())
+        code, result = self.export()
+        titles = {card["slug"]: card["title"] for card in self.doc(hive, "cards-000")["cards"]}
+        self.assertEqual(titles["ids"], "Re-run [id removed]")
+        self.assertNotIn("call", titles)
+        self.assertIn({"source": "tasks", "item": "inbox/call.md", "reason": "a name from your participant roster"},
+                      result["levels"][0]["withheld"])
+        self.user_yaml(base + f"pii_config: {(keys / 'missing.json').as_posix()}\n")
+        code, result = self.export()  # a config that cannot be read stops the export: nothing goes up unchecked
+        self.assertEqual(code, 2)
+        self.assertIn("pii_scan config", result["error"])
 
     def test_a_large_export_warns_and_names_index_only(self) -> None:
         self.make_flowie()
@@ -525,6 +659,59 @@ class GuardTests(Home):
         self.assertEqual([len(batch["writes"]) for batch in many], [50, 50, 20])
 
 
+class UpstreamPolicyTests(Home):
+    """The team's workbench_mirror as the upstream holds it: a clone that is behind follows the stricter value."""
+
+    HIVE = "hive+example-lab+hive"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["hive+example-lab+hive"]\n')
+
+    def teammate_sets(self, policy: str) -> None:
+        """A teammate pushes hive.md with this workbench_mirror; this member's clone has not pulled it."""
+        other = self.base / "teammate"
+        git(self.base, "clone", "-q", str(self.base / "remotes" / "example-lab-hive.git"), str(other))
+        self.write(other / "hive.md", f"---\nworkbench_mirror: {policy}\n---\n# Example Lab\n")
+        git(other, "commit", "-q", "-am", f"hive: workbench_mirror {policy}")
+        git(other, "push", "-q", "origin", "main")
+
+    def stored(self) -> Path:
+        remote = self.scratch / "remote"
+        users = remote / "data" / "users" / "me"
+        self.write(users / f"{self.HIVE}.json", json.dumps({"data": {"parts": [{"id": "core"}]}, "version": 3}))
+        self.write(users / self.HIVE / "parts" / "core.json", json.dumps({"data": {}, "version": 4}))
+        return remote
+
+    def test_a_forbid_the_team_pushed_stops_the_export_and_purges_after_a_fetch(self) -> None:
+        self.make_hive(policy="allow", git_repo=True)
+        self.teammate_sets("forbid")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"))  # nothing fetched yet: as this clone knows
+        self.assertEqual([row["level"] for row in result["levels"]], [self.HIVE])
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch", "--held", str(self.stored()))
+        self.assertEqual(result["levels"], [])
+        row = next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)
+        self.assertEqual(row["reason"], "the team forbids mirroring it — so says the upstream hive.md; this clone's copy differs")
+        self.assertEqual([row["level"] for row in result["purge"]], [self.HIVE])
+        code, result = self.wb("gc", "--remote", str(self.stored()))
+        self.assertEqual([(w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]],
+                         [("core", 4), (self.HIVE, 3)])
+
+    def test_an_opt_in_this_clone_has_not_pulled_neither_exports_nor_purges(self) -> None:
+        self.make_hive(policy=None, git_repo=True)
+        self.teammate_sets("allow")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--fetch", "--held", str(self.stored()))
+        self.assertEqual(result["levels"], [])  # the stricter value: not until this clone has the team's opt-in
+        self.assertEqual(next(row for row in result["not_mirrored"] if row["level"] == self.HIVE)["reason"],
+                         "the team has not opted in (workbench_mirror in hive.md) — so says this clone; the upstream hive.md allows it")
+        self.assertEqual(result["purge"], [])  # another machine with a current clone may mirror it rightly
+        code, result = self.wb("gc", "--remote", str(self.stored()))
+        self.assertEqual((code, result["deletes"]), (0, 0))
+        git(self.hive, "pull", "-q")
+        code, result = self.wb("export", "--out", str(self.scratch / "up"))
+        self.assertEqual([row["level"] for row in result["levels"]], [self.HIVE])
+
+
 def intent(op: str, level: str, created: str, status: str = "claimed", machine: str = "laptop", **fields) -> dict:
     body = {"intent_schema": 1, "op": op, "level": level, "created_at": f"2026-10-21T10:{created}:00.000Z", "status": status, **fields}
     if status == "claimed":
@@ -580,6 +767,35 @@ class IntentTests(Home):
         self.assertEqual((write["op"], write["if_version"]), ("update", 2))
         body = json.loads(Path(write["file_path"]).read_text(encoding="utf-8"))
         self.assertEqual(body, {"status": "claimed", "claim": {"machine": "laptop", "claimed_at": NOW}})
+
+    def test_malformed_or_newer_intents_never_stop_a_run_and_are_rejected_with_a_reason(self) -> None:
+        hive = "hive+example-lab+hive"
+
+        def docs(status: str) -> dict[str, dict]:
+            return {
+                "i-x1-aaaa": intent("move", hive, "01", status=status, target={"slug": "fix-map"}, **{"from": "inbox"}, to="active",
+                                    base="0" * 64, intent_schema=2, after=["i-zz-zzzz"]),
+                "i-x2-bbbb": intent("move", {"org": "example-lab"}, "02", status=status, target={"slug": "fix-map"}, **{"from": "inbox"}, to="active"),
+                "i-x3-cccc": intent("add", hive, "03", status=status, fields={"title": "T", "phase": ["data"]}),
+                "i-x4-dddd": intent("move", hive, "04", status=status, target=["fix-map"], **{"from": "inbox"}, to="active"),
+                "i-x5-eeee": intent("cancel", hive, "05", status=status, target={"intent": ["i-x1-aaaa"]}),
+                "i-x6-ffff": intent("cancel", {"x": 1}, "06", status="pending", target=["i-x1-aaaa"]),
+                "i-x7-gggg": dict(intent("add", hive, "07", status="done", fields={"title": "U"}), outcome="applied"),
+            }
+        code, result = self.wb("pickup", "--intents", str(self.intents(docs("pending"))), "--out", str(self.scratch / "claims"))
+        self.assertIn(code, (0, 1), result)
+        claimed = sorted(w["doc_id"] for batch in result["batches"] for w in batch["writes"])
+        self.assertEqual(claimed, ["i-x1-aaaa", "i-x2-bbbb", "i-x3-cccc", "i-x4-dddd", "i-x5-eeee", "i-x6-ffff"])
+        code, result = self.wb("pending", "--intents", str(self.intents(docs("pending"))))
+        self.assertEqual(code, 0, result)
+        code, plan, verdicts = self.validate(docs("claimed"))
+        self.assertEqual(code, 1)
+        self.assertIn("intent_schema 2", verdicts["i-x1-aaaa"]["reason"])
+        self.assertEqual(verdicts["i-x2-bbbb"]["reason"], "schema: no valid level")
+        self.assertEqual(verdicts["i-x3-cccc"]["reason"], "schema: phase must be text")
+        self.assertEqual(verdicts["i-x4-dddd"]["reason"], "schema: target must name one slug or one intent")
+        self.assertEqual(verdicts["i-x5-eeee"]["reason"], "schema: target must name one slug or one intent")
+        self.assertTrue(all(verdict["result"] == "rejected" for verdict in verdicts.values()))
 
     def test_a_chain_waits_whole_while_its_first_link_is_claimed_elsewhere(self) -> None:
         hive = "hive+example-lab+hive"
@@ -748,22 +964,135 @@ class IntentTests(Home):
         git(self.hive, "fetch", "-q", "origin")
         self.assertEqual(wb.landed_states(self.hive, wb.trailer_commits(self.hive))["i-m2-bbbb"]["state"], "merged")
 
+    def ledger(self) -> dict:
+        return json.loads((self.home / ".neuroflow" / "workbench" / "ledger.json").read_text(encoding="utf-8"))
+
+    def commit(self, result: dict) -> None:
+        subprocess.run(result["commit"]["argv"], check=True, capture_output=True, env=dict(os.environ, **GIT_ENV))
+
     def test_a_run_that_stopped_before_the_commit_is_finished_not_repeated(self) -> None:
         hive = "hive+example-lab+hive"
         base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
         docs = {"i-n1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
         self.validate(docs)
         self.apply(hive)  # moved and staged, never committed
+        self.assertEqual(self.ledger()["levels"][hive]["i-n1-aaaa"]["to"], "active")  # recorded before any commit
         code, plan, verdicts = self.validate(docs)
-        action = plan["levels"][0]["actions"][0]
-        self.assertTrue(action["half_done"])
+        self.assertEqual([(a["op"], a["intents"]) for a in plan["levels"][0]["actions"]], [("commit", ["i-n1-aaaa"])])
+        self.assertEqual(verdicts["i-n1-aaaa"], {"result": "applied", "slug": "fix-map", "column": "active"})
         code, result = self.apply(hive)
         self.assertEqual(code, 0, result)
         self.assertEqual(sorted(result["commit"]["paths"]), ["tasks/active/fix-map.md", "tasks/inbox/fix-map.md"])
-        subprocess.run(result["commit"]["argv"], check=True, capture_output=True, env=dict(os.environ, **GIT_ENV))
+        self.assertEqual(result["commit"]["message"].splitlines()[0], "tasks: workbench — move fix-map → active")
+        self.commit(result)
         code, plan, verdicts = self.validate(docs)
         self.assertEqual(verdicts["i-n1-aaaa"]["note"], "already in git")
         self.assertEqual(plan["levels"][0]["actions"], [])
+        self.apply(hive)  # once its commit exists, the entry goes
+        self.assertNotIn("i-n1-aaaa", self.ledger()["levels"][hive])
+
+    def test_without_a_ledger_a_move_found_in_its_target_column_is_committed_not_moved_again(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-n2-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        self.apply(hive)
+        (self.home / ".neuroflow" / "workbench" / "ledger.json").unlink()  # e.g. applied by an older neuroflow
+        code, plan, verdicts = self.validate(docs)
+        self.assertTrue(plan["levels"][0]["actions"][0]["half_done"])
+        code, result = self.apply(hive)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(sorted(result["commit"]["paths"]), ["tasks/active/fix-map.md", "tasks/inbox/fix-map.md"])
+
+    def test_an_add_applied_but_not_committed_is_committed_never_added_twice(self) -> None:
+        hive = "hive+example-lab+hive"
+        docs = {"i-s1-aaaa": intent("add", hive, "01", fields={"title": "Check the stats", "owner": "jana"})}
+        self.validate(docs)
+        self.apply(hive)  # written and staged; the commit was refused
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual(verdicts["i-s1-aaaa"], {"result": "applied", "slug": "check-the-stats", "column": "inbox"})
+        self.assertEqual([a["op"] for a in plan["levels"][0]["actions"]], ["commit"])
+        code, result = self.apply(hive)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["commit"]["paths"], ["tasks/inbox/check-the-stats.md"])
+        self.assertEqual(result["commit"]["message"].splitlines()[0], "tasks: workbench — add check-the-stats")
+        self.commit(result)
+        self.assertEqual(sorted(path.name for path in (self.hive / "tasks").rglob("check-the-stats*.md")), ["check-the-stats.md"])
+        self.assertIn("i-s1-aaaa", wb.trailer_commits(self.hive))
+        self.assertEqual(git(self.hive, "status", "--porcelain").strip(), "")
+
+    def test_a_merged_chain_applied_but_not_committed_keeps_its_verdicts(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {
+            "i-u1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base),
+            "i-u2-bbbb": intent("move", hive, "02", target={"slug": "fix-map"}, **{"from": "active"}, to="review", after="i-u1-aaaa", base=base),
+        }
+        self.validate(docs)
+        self.apply(hive)  # inbox → review, staged; the commit never ran
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual(code, 0)  # no conflict and no "depends on"
+        self.assertEqual(verdicts["i-u1-aaaa"], {"result": "coalesced", "into": "i-u2-bbbb"})
+        self.assertEqual(verdicts["i-u2-bbbb"], {"result": "applied", "slug": "fix-map", "column": "review"})
+        self.assertEqual([(a["op"], a["intents"]) for a in plan["levels"][0]["actions"]], [("commit", ["i-u1-aaaa", "i-u2-bbbb"])])
+        code, result = self.apply(hive)
+        self.commit(result)
+        self.assertLessEqual({"i-u1-aaaa", "i-u2-bbbb"}, set(wb.trailer_commits(self.hive)))
+        self.assertEqual(git(self.hive, "ls-tree", "-r", "--name-only", "HEAD", "tasks").split(),
+                         ["tasks/active/rerun-ica.md", "tasks/review/fix-map.md"])
+
+    def test_a_release_or_an_undo_after_the_change_was_made_cannot_undo_it(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-v1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        self.apply(hive)
+        docs["i-v1-aaaa"]["cancel_requested_at"] = "2026-10-21T10:40:00Z"
+        docs["i-v2-bbbb"] = intent("cancel", hive, "02", target={"intent": "i-v1-aaaa"})
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual(verdicts["i-v1-aaaa"]["result"], "applied")
+        self.assertIn("move the card back", verdicts["i-v1-aaaa"]["note"])
+        self.assertEqual(verdicts["i-v2-bbbb"]["result"], "rejected")
+        self.assertIn("already applied", verdicts["i-v2-bbbb"]["reason"])
+        self.assertEqual([a["op"] for a in plan["levels"][0]["actions"]], ["commit"])
+
+    def test_a_ledger_entry_whose_change_is_gone_is_judged_again(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-w1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        self.apply(hive)
+        git(self.hive, "reset", "-q", "--hard")  # the person threw the staged change away
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual([(a["op"], a["from"], a["to"]) for a in plan["levels"][0]["actions"]], [("move", "inbox", "active")])
+
+    def test_a_task_moved_after_the_check_is_not_applied_and_is_checked_again(self) -> None:
+        hive = "hive+example-lab+hive"
+        base = self.base_of(self.hive / "tasks" / "inbox" / "fix-map.md")
+        docs = {"i-r1-aaaa": intent("move", hive, "01", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active", base=base)}
+        self.validate(docs)
+        # a teammate's move to review arrives (a pull) between the check and the apply; status stays out of the hash
+        (self.hive / "tasks" / "review").mkdir(parents=True, exist_ok=True)
+        git(self.hive, "mv", "tasks/inbox/fix-map.md", "tasks/review/fix-map.md")
+        moved = self.hive / "tasks" / "review" / "fix-map.md"
+        moved.write_bytes(moved.read_bytes().replace(b"status: inbox", b"status: review"))
+        git(self.hive, "commit", "-q", "-am", "a teammate moves fix-map to review")
+        self.assertEqual(self.base_of(moved), base)
+        code, result = self.apply(hive)
+        self.assertEqual(code, 1, result)
+        self.assertEqual(result["applied"], [])
+        self.assertIn("moved after the check (it is in review now)", result["failed"][0]["reason"])
+        self.assertNotIn("commit", result)
+        self.assertEqual(git(self.hive, "status", "--porcelain").strip(), "")  # nothing moved, nothing staged
+        self.assertFalse((self.hive / "tasks" / "active" / "fix-map.md").exists())
+        # no outcome is written for it, so it stays claimed; the next check sees the teammate's move
+        listed = self.intents(docs, version=5)
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--remote", str(self.scratch / "empty"),
+                               "--outcomes", str(self.scratch / "plan.json"), "--intents", str(listed), "--level", hive)
+        self.assertEqual(result["outcomes"]["written"], 0)
+        self.assertEqual([item["intent"] for item in result["outcomes"]["not_yet"]], ["i-r1-aaaa"])
+        code, plan, verdicts = self.validate(docs)
+        self.assertEqual((verdicts["i-r1-aaaa"]["result"], verdicts["i-r1-aaaa"]["column"]), ("conflict", "review"))
 
     def test_a_project_move_stays_in_the_working_tree_and_the_ledger_remembers_it(self) -> None:
         self.make_project(git_repo=True)
@@ -781,6 +1110,28 @@ class IntentTests(Home):
         meta = json.loads((self.scratch / "up" / "docs" / "project+oddball-eeg" / "meta.json").read_text(encoding="utf-8"))
         self.assertEqual(meta["applied"], {"i-p1-aaaa": {"state": "worktree"}})
         self.assertEqual(meta["source"]["uncommitted_tasks"], 1)  # one staged rename
+
+    def test_pending_names_the_project_root_as_reached_and_as_resolved(self) -> None:
+        link = self.base / "jn"
+        try:
+            if os.name == "nt":
+                import _winapi
+                _winapi.CreateJunction(str(self.project.parent), str(link))
+            else:
+                os.symlink(self.project.parent, link, target_is_directory=True)
+        except (OSError, AttributeError, ImportError) as error:
+            self.skipTest(f"no junction or symlink here: {error}")
+        try:
+            via = link / "oddball"
+            docs = {"i-j1-aaaa": intent("move", "project+oddball-eeg", "01", status="pending", target={"slug": "qc-report"},
+                                        **{"from": "review"}, to="done", base="0" * 64)}
+            code, result = run("pending", "--intents", str(self.intents(docs)), "--home", str(self.home), "--root", str(via),
+                               "--now", NOW, "--json")
+            level = next(item for item in result["levels"] if item["level"] == "project+oddball-eeg")
+            self.assertEqual(level["root"], via.as_posix())  # the spelling the person opened, which the mod sees
+            self.assertEqual(level["roots"], [via.as_posix(), self.project.resolve().as_posix()])
+        finally:
+            os.rmdir(link) if os.name == "nt" else os.unlink(link)
 
     def test_pending_json_tells_the_mod_which_cards_wait(self) -> None:
         hive = "hive+example-lab+hive"
@@ -821,6 +1172,147 @@ class GcTests(Home):
         self.assertEqual(deletes, [("intents", "i-old-aaaa", 2), ("parts", "core", 4), ("me", "hive+example-lab+hive", 3),
                                    ("parts", "wiki-007", 7)])
         self.assertIn("forbids", result["purge"][0]["reason"])
+
+    def store(self, levels: dict[str, list[str]], listed: tuple[str, ...] | None = None) -> Path:
+        """A saved listing of data/users/me: each level's meta naming its parts, and those parts (for `listed` levels)."""
+        remote = self.scratch / "remote"
+        shutil.rmtree(remote, ignore_errors=True)
+        users = remote / "data" / "users" / "u_0123456789abcdefghijkl"
+        for n, (key, parts) in enumerate(levels.items()):
+            self.write(users / f"{key}.json", json.dumps({"data": {"parts": [{"id": part} for part in parts]}, "version": 10 + n}))
+            for m, part in enumerate(parts if listed is None or key in listed else []):
+                self.write(users / key / "parts" / f"{part}.json", json.dumps({"data": {}, "version": 100 + 10 * n + m}))
+        return remote
+
+    def test_levels_another_machine_mirrors_are_never_purged_from_here(self) -> None:
+        self.make_flowie()
+        self.make_project()
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["flowie", "project+oddball-eeg"]\n')
+        remote = self.store({"flowie": ["core"], "project+oddball-eeg": ["core"], "project+other-study": ["core", "cards-000"],
+                             "hive+other-lab+hive": ["core"]})
+        code, result = self.wb("gc", "--remote", str(remote))
+        self.assertEqual((code, result["deletes"], result["purge"], result["unlisted"]), (0, 0, [], []))
+
+    def test_a_level_taken_off_here_is_purged_only_when_named_and_always_with_its_parts(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy="allow")
+        self.user_yaml('workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["flowie"]\n')
+        hive = "hive+example-lab+hive"
+        remote = self.store({"flowie": ["core"], hive: ["core", "cards-000"]})
+        code, result = self.wb("gc", "--remote", str(remote))
+        self.assertEqual((code, result["deletes"]), (0, 0))  # only this machine leaves it out: another may mirror it
+        code, result = self.wb("gc", "--remote", str(remote), "--purge", hive)
+        self.assertEqual(code, 1)
+        deletes = [(w["collection"], w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]]
+        self.assertEqual(deletes, [(f"data/users/me/{hive}/parts", "cards-000", 111), (f"data/users/me/{hive}/parts", "core", 110),
+                                   ("data/users/me", hive, 11)])
+        self.assertEqual(result["purge"], [{"level": hive, "reason": "you took it off your workbench"}])
+        # the parts were not listed: the meta is not deleted alone, and gc says what to list
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core"], hive: ["core", "cards-000"]}, listed=("flowie",))),
+                               "--purge", hive)
+        self.assertEqual((code, result["deletes"]), (1, 0))
+        self.assertEqual(result["unlisted"], [{"level": hive, "list": f"data/users/me/{hive}/parts"}])
+        # that collection listed and empty (a purge cut off after its parts went): --listed lets the meta go too
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core"], hive: ["core", "cards-000"]}, listed=("flowie",))),
+                               "--purge", hive, "--listed", hive)
+        self.assertEqual((code, result["unlisted"]), (1, []))
+        self.assertEqual([(w["collection"], w["doc_id"], w["if_version"]) for batch in result["batches"] for w in batch["writes"]],
+                         [("data/users/me", hive, 11)])
+        # a level the store does not hold has nothing to purge, and gc names none
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core"]})), "--purge", hive)
+        self.assertEqual((code, result["deletes"], result["purge"], result["unlisted"]), (0, 0, [], []))
+        code, result = self.wb("gc", "--remote", str(remote), "--purge", "flowie")
+        self.assertEqual(code, 2)
+        self.assertIn("still mirrored on this machine: flowie", result["error"])
+        code, result = self.wb("gc", "--remote", str(remote), "--listed", "not a key")
+        self.assertEqual(code, 2)
+
+    def test_orphans_are_judged_against_the_metas_of_the_listing_given(self) -> None:
+        # after an upload cut off before its meta, the next refresh writes a meta naming wiki-000 again: judged against a
+        # listing taken before that upload, wiki-000 looks orphaned; against one taken after it (step 8 lists again), not
+        self.make_flowie()
+        stale = self.store({"flowie": ["core"]})
+        self.write(stale / "data" / "users" / "u_0123456789abcdefghijkl" / "flowie" / "parts" / "wiki-000.json",
+                   json.dumps({"data": {}, "version": 20}))
+        code, result = self.wb("gc", "--remote", str(stale))
+        self.assertEqual([w["doc_id"] for batch in result["batches"] for w in batch["writes"]], ["wiki-000"])
+        code, result = self.wb("gc", "--remote", str(self.store({"flowie": ["core", "wiki-000"]})))
+        self.assertEqual((code, result["deletes"]), (0, 0))
+
+    def test_the_prose_lists_the_store_again_with_every_parts_collection_before_gc(self) -> None:
+        text = " ".join((REPO / "commands" / "dashboard.md").read_text(encoding="utf-8").split())
+        step = text[text.index("8. **Clean up.**"):text.index("9. **Check and record.**")]
+        self.assertIn("List again what the store holds", step)
+        self.assertIn("`data/users/me/{level}/parts` for every level that listing shows", step)
+        self.assertIn("gc --intents {scratch}/intents --remote {scratch}/remote2", step)
+        self.assertIn("--purge {level}", step)
+        self.assertIn("run gc again with `--listed {level}`", step)  # an empty parts listing ends the loop
+        self.assertIn("and delete {levels} from it", text)
+
+    def test_the_prose_lists_the_workbench_before_the_preview_names_what_it_deletes(self) -> None:
+        text = " ".join((REPO / "commands" / "dashboard.md").read_text(encoding="utf-8").split())
+        record = text[text.index("3. **The record and the account.**"):text.index("4. **Export.**")]
+        export = text[text.index("4. **Export.**"):text.index("5. **Preview, then your yes.**")]
+        preview = text[text.index("5. **Preview, then your yes.**"):text.index("6. **Publish")]
+        self.assertIn("list what it holds — ArtifactData `list` of `data/users/me` with `out_dir` `{scratch}/held`", record)
+        self.assertLess(record.index("before any ArtifactData call"), record.index("list what it holds"))
+        self.assertIn("`--held {scratch}/held`", export)
+        self.assertIn("the export's `purge` (the workbench holds them", preview)
+
+    def test_the_export_names_what_a_refresh_deletes_from_what_the_workbench_holds(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy="forbid")
+        self.make_project(policy=None)
+        hive, project = "hive+example-lab+hive", "project+oddball-eeg"
+        # without a listing of the store nothing is known to be held (a first publish): nothing to name
+        code, result = self.wb("export", "--out", str(self.scratch / "up"))
+        self.assertEqual(result["purge"], [])
+        # a project that never opted in, which the workbench does not hold, is not named on every refresh
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--held", str(self.store({"flowie": ["core"], hive: ["core"]})))
+        self.assertEqual({row["level"]: row["reason"] for row in result["purge"]}, {hive: "the team forbids mirroring it"})
+        # held is anything of the level: its meta, or only parts left behind; the step-7 listing (--remote) serves too
+        held = self.store({"flowie": ["core"], hive: ["core"]})
+        self.write(held / "data" / "users" / "me" / project / "parts" / "core.json", json.dumps({"data": {}, "version": 2}))
+        code, result = self.wb("export", "--out", str(self.scratch / "up"), "--remote", str(held))
+        self.assertEqual({row["level"]: row["reason"] for row in result["purge"]},
+                         {hive: "the team forbids mirroring it",
+                          project: "the team has not opted in (workbench_mirror in project_config.md)"})
+        self.assertEqual(wb.held_levels(wb.load_docs(held)), {"flowie", hive, project})
+
+
+def prose(*parts: str) -> str:
+    """A prose file with its line breaks folded to spaces (the checks below are about words, not wrapping)."""
+    return " ".join(REPO.joinpath(*parts).read_bytes().decode("utf-8").split())
+
+
+class ProseTests(unittest.TestCase):
+    """What the commands tell Claude to do around workbench.py (the script cannot enforce these steps itself)."""
+
+    def test_apply_web_pulls_before_the_check_and_never_between_it_and_the_apply(self) -> None:
+        text = prose("commands", "tasks.md")
+        check = text[text.index("4. **Check.**"):text.index("5. **Apply, level by level.**")]
+        apply = text[text.index("5. **Apply, level by level.**"):text.index("6. **Outcomes")]
+        self.assertIn("First pull the flowie and each hive clone a claimed intent names", check)
+        self.assertIn("nothing is pulled between the check and the apply", check)
+        self.assertNotIn("pull", apply.split("- `flowie`")[0].lower())
+
+    def test_a_claim_is_previewed_and_asked_like_every_upload(self) -> None:
+        text = prose("commands", "tasks.md")
+        claim = text[text.index("<!-- nf-rule: EGRESS-CONFIRM --> 3. **Claim, after your yes.**"):text.index("4. **Check.**")]
+        self.assertIn("preview it in one line and ask", claim)
+        self.assertIn("Without a yes, claim nothing and stop", claim)
+        self.assertIn("every claim of its clicks", prose("skills", "neuroflow-core", "SKILL.md"))
+
+    def test_the_rule_on_intents_carries_the_marker_its_guard_cites(self) -> None:
+        lines = REPO.joinpath("skills", "neuroflow-core", "SKILL.md").read_bytes().decode("utf-8").splitlines()
+        at = next(n for n, line in enumerate(lines) if line.startswith("**Intents** — the page writes them; Claude Code never creates one"))
+        self.assertEqual(lines[at - 1].strip(), "<!-- nf-rule: EGRESS-CONFIRM -->")  # the guard's deny cites this id
+
+    def test_the_docs_give_the_write_limit_per_batch(self) -> None:
+        text = prose("docs", "concepts", "workbench.md")
+        self.assertIn("50 writes and 1 MiB per batch — an upload is split into as many batches as it needs", text)
+        self.assertNotIn("50 writes per upload", text)
+        self.assertEqual((wb.BATCH_WRITES, wb.BATCH_BYTES < 1024 * 1024), (50, True))
 
 
 class RecordTests(Home):

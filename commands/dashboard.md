@@ -21,7 +21,7 @@ reads:
   - ~/.neuroflow/flowie/workbench.json       # --web: the workbench record, when a flowie is linked
   - ~/.neuroflow/hives/{org-repo}/hive.md    # --web: the team's workbench_mirror
 writes:
-  - ~/.neuroflow/user.yaml                   # --web only: the person's consent, levels and machine name (merged, never replaced)
+  - ~/.neuroflow/user.yaml                   # --web only: the person's consent, levels, machine name and pii_config (merged, never replaced)
   - ~/.neuroflow/workbench/                  # --web only: pending.json (machine-local)
   - ~/.neuroflow/flowie/workbench.json       # --web only: the workbench record, committed by path with the private sync
   - .neuroflow/sessions/YYYY-MM-DD.md         # --web only: one session line
@@ -133,15 +133,16 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      replace it).
    - Without `workbench_machine`: ask once for a name for this machine (suggest two, e.g. *laptop*, *lab desktop*) and
      write it.
+   - Without `pii_config` (the `levels` result names none), on the first run: ask whether the person keeps a
+     pii_scan.py config — ID patterns, a participant roster built with `pii_scan.py --build-roster` (AskUserQuestion:
+     *Yes — I'll give its path* / *No*). Write the path they give as `pii_config` (merge); every export applies it. Ask
+     only for the file's path, never for names. Without one, ID numbers and participant names are not checked — the
+     table says so.
    - On the first run and with `--levels`: ask which levels to mirror (AskUserQuestion, several may be picked), offering
      only those the team allows; name the others with the reason `{wb} levels` gives — never write a team's
      `workbench_mirror` yourself. Write `workbench_levels` as a JSON list, and `workbench_index_only` for levels whose
      wiki should go up without page bodies.
-3. **Export.** `{wb} export --out {scratch}/wb`: per level the documents, the size, the cards and wiki pages, the
-   freshness label, and every item held back with its reason (exit `1`). A `warnings` line flags an export over 8 MB as
-   slow for the page to load and names the level whose wiki weighs most: offer to add it to `workbench_index_only`
-   (AskUserQuestion) and export again after a yes.
-4. **The record and the account.** `{wb} record`.
+3. **The record and the account.** `{wb} record`.
    - With a record: read its URL with the Artifact tool (`action: read`) before any ArtifactData call. If the result does
      not say you can edit it, Claude Code is signed into another account than the workbench's: stop with one line that
      names the record's account label, and never create a second workbench without asking. Run
@@ -149,12 +150,23 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      published it — ask before replacing it; `upgrade: true` means the plugin's page is newer — step 6 republishes it.
    - Without one: ask for an account label (*personal*, *institute*, …). Without a linked flowie, an Artifact `list` may
      show a workbench made on another machine (title *neuroflow workbench*): ask whether it is yours and use its URL
-     rather than making another.
+     rather than making another — read it as above.
+   - With a workbench to refresh (its URL read): list what it holds — ArtifactData `list` of `data/users/me` with
+     `out_dir` `{scratch}/held` — so step 4 can say which levels this refresh deletes from it.
+4. **Export.** `{wb} export --out {scratch}/wb --fetch`, with `--held {scratch}/held` when step 3 listed the workbench —
+   it fetches every clone first (read-only), so a team's `workbench_mirror` is read as the team pushed it, the stricter
+   of that and the clone's own: per level the documents, the size, the cards and wiki pages, the freshness label, every
+   item held back with its reason (exit `1`), under `skipped` a level too large for the store's documents (say why; the
+   other levels go on), and under `purge` the levels the workbench holds whose team no longer allows mirroring them,
+   which this refresh deletes. A `warnings` line flags an export over 8 MB as slow for the page to load and names the
+   level whose wiki weighs most: offer to add it to `workbench_index_only` (AskUserQuestion) and export again after a
+   yes.
 <!-- nf-rule: EGRESS-CONFIRM -->
 5. **Preview, then your yes.** One line, then one question: *"Upload to your private workbench ({account}): {levels} —
-   {n} documents, {KB} KB{; and publish the page, neuroflow template {t}, {KB} KB}. Go ahead?"* Nothing leaves before a
-   yes in this turn. Without one, upload nothing and say how to run it later. No upload ever runs on a timer or at the end
-   of another command.
+   {n} documents, {KB} KB{; and publish the page, neuroflow template {t}, {KB} KB}{; and delete {levels} from it}. Go
+   ahead?"* — the levels to delete are the export's `purge` (the workbench holds them, and their team no longer allows
+   mirroring them) and each level taken off with `--levels`. Nothing leaves before a yes in this turn. Without one,
+   upload nothing and say how to run it later. No upload ever runs on a timer or at the end of another command.
 6. **Publish — the first time, or to upgrade.** `{wb} stage --out {scratch}/page` prints the file, its hashes, the
    capabilities, the contract, the title, the icon and the description. Read the staged file in full (the Artifact tool
    requires it for a file Claude did not write), then publish it with the Artifact tool: `file_path` the staged file,
@@ -171,9 +183,15 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
    the meta last). A batch refused because a document changed: list again and redo it — never force. When the page
    holds no preferences yet (a new or rebuilt page) and the record keeps a copy, the export says `prefs: restored from
    the record` and the first batch puts them back.
-8. **Clean up.** ArtifactData `list` of `data/users/me/inbox/intents` (`out_dir` `{scratch}/intents`), then
-   `{wb} gc --intents {scratch}/intents --remote {scratch}/remote`: finished intents older than 7 days, and every document
-   of a level no longer mirrored (parts first, then the meta). A delete sends nothing; send its batches.
+8. **Clean up.** List again what the store holds, now that step 7 wrote to it: ArtifactData `list` of `data/users/me`,
+   then of `data/users/me/{level}/parts` for every level that listing shows, each with `out_dir` `{scratch}/remote2`, and
+   of `data/users/me/inbox/intents` (`out_dir` `{scratch}/intents`). Then `{wb} gc --intents {scratch}/intents --remote
+   {scratch}/remote2`, with `--purge {level}` for each level taken off with `--levels`: finished intents older than 7
+   days, parts no level's meta names, and every document of a level step 5 named for deletion — its parts first, then its
+   meta. A level is never deleted only because this machine lacks it or leaves it out: another machine may mirror it.
+   `unlisted` names a level whose meta lists parts the listing does not hold: list that collection into
+   `{scratch}/remote2` and run gc again with `--listed {level}` as well — an empty listing then means its parts are
+   gone already, and the meta goes too. A delete sends nothing; send its batches.
 9. **Check and record.** ArtifactData `list` of `data/users/me` with `as_level: admin` must come back empty — the
    owner-only rules hide the workbench even from an editor; report it as *owner-only rules checked {date}*. Copy the
    page's preferences into the record: ArtifactData `get` of `data/users/me` · `prefs` (`out_dir`), then
@@ -186,7 +204,8 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
 
 `--web --status` reads local files only — the record, `{wb} levels` and `~/.neuroflow/workbench/pending.json` — and
 prints the account, the URL, the page's template against the plugin's, each level with its consent and the team's
-opt-in, and how many changes wait and since when (`oldest`, as of the time pending.json was written). It uploads
-nothing.
+opt-in, whether ID numbers and participant names are checked (`pii_config`), and how many changes wait and since when
+(`oldest`, as of the time pending.json was written). It uploads nothing.
 
-`--web --levels` asks step 2's level question again; a level taken off is purged in step 8, after the step 5 yes.
+`--web --levels` asks step 2's level question again; each level taken off is named in the step 5 preview and, after its
+yes, purged in step 8 (`--purge {level}`).

@@ -46,8 +46,9 @@ Every board display is a rendered ASCII Kanban — never a flat list, except `--
 ## Changes from your workbench (`--apply-web`)
 
 A card you move or add on [your claude.ai workbench](../concepts/workbench.md) is a request; `--apply-web` is where it
-lands in git. It picks up the waiting requests (a project's only when you run it in that project), claims them so a
-second machine cannot apply them too, and checks each against git: a task that changed or moved since your snapshot is
+lands in git. It picks up the waiting requests (a project's only when you run it in that project), claims them — after
+a one-line preview and your yes — so a second machine cannot apply them too, and checks each against git: a task that
+changed or moved since your snapshot is
 a conflict and nothing is written. Accepted changes move the task files exactly as `--move` does — two moves of one card
 become one move, a card you added on the page gets its slug here — and every flowie or hive commit names the requests it
 holds, so nothing is applied twice. Your flowie is synced; a hive's push waits for your yes; a project's change stays in

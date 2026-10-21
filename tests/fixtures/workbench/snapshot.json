@@ -47,8 +47,8 @@
   "hive+example-lab+hive": {
    "applied": {},
    "counts": {
-    "cards": 2,
-    "open": 2,
+    "cards": 3,
+    "open": 3,
     "pages": 1
    },
    "exported_at": "2026-10-21T10:00:00Z",
@@ -60,14 +60,14 @@
    "machine": "fixture-machine",
    "parts": [
     {
-     "bytes": 1619,
+     "bytes": 1698,
      "id": "core",
-     "sha256": "a1600dc7b31ca9709876310949acb48311981647f331f9e5044cbaaa665ac2b8"
+     "sha256": "a4dabd673cd6658efc84caf4aaf312a289437fe01a8bd1e1abe93b777bcac97b"
     },
     {
-     "bytes": 892,
+     "bytes": 1271,
      "id": "cards-000",
-     "sha256": "df2668cd51d5b19ec09778f6f0043f4ef86eb2d5daf3d53fbb1fd80009a815ca"
+     "sha256": "cbb094ee118a346f216297453af11a33e315fd0b66de176392b7dee665982029"
     },
     {
      "bytes": 278,
@@ -376,6 +376,24 @@
      },
      {
       "blocked_by": [],
+      "column": "blocked",
+      "created": "2026-10-05",
+      "due": null,
+      "file": "blocked/wait-for-amendment.md",
+      "legacy": false,
+      "notes": "",
+      "owner": null,
+      "phase": null,
+      "project": "oddball-eeg",
+      "readable": true,
+      "sha256": "154a5b4488b3f7026850a46b213650fd7b3d9759feedb567c6b3dcf5e2a9a997",
+      "slug": "wait-for-amendment",
+      "tags": [],
+      "title": "Wait for the ethics amendment",
+      "updated": "2026-10-05"
+     },
+     {
+      "blocked_by": [],
       "column": "inbox",
       "created": "2026-10-01",
       "due": null,
@@ -395,7 +413,7 @@
     ],
     "level": "hive+example-lab+hive",
     "part": "cards-000",
-    "sha256": "df2668cd51d5b19ec09778f6f0043f4ef86eb2d5daf3d53fbb1fd80009a815ca",
+    "sha256": "cbb094ee118a346f216297453af11a33e315fd0b66de176392b7dee665982029",
     "snap_schema": 1
    },
    "core": {
@@ -431,6 +449,13 @@
       "closed": true,
       "id": "archive",
       "label": "Archive"
+     },
+     {
+      "archive": false,
+      "closed": false,
+      "extra": true,
+      "id": "blocked",
+      "label": "blocked"
      }
     ],
     "kind": "hive",
@@ -514,7 +539,7 @@
       "visited_phases": []
      }
     ],
-    "sha256": "a1600dc7b31ca9709876310949acb48311981647f331f9e5044cbaaa665ac2b8",
+    "sha256": "a4dabd673cd6658efc84caf4aaf312a289437fe01a8bd1e1abe93b777bcac97b",
     "snap_schema": 1
    },
    "wiki-000": {

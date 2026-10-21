@@ -38,7 +38,8 @@ settings into your flowie, so a rebuilt workbench keeps them.
 
 1. You move a card on the page. It writes an intent into your private database and draws the card in its new column,
    marked as waiting.
-2. In Claude Code you run `/neuroflow:tasks --apply-web`. It claims the waiting intents, checks each one against git —
+2. In Claude Code you run `/neuroflow:tasks --apply-web`. After a one-line preview and your yes it claims the waiting
+   intents, so no other machine applies them, then checks each one against git —
    has the task changed since your snapshot, is it still in the column you saw — and moves the task files exactly as
    [`/tasks`](../commands/tasks.md) does. Two moves of one card become one move; a card you added and then moved is
    written once, in its last column.
@@ -79,11 +80,14 @@ account the workbench was recorded under, rather than making a second one.
 
 `workbench_mirror` is `allow`, `allow-names` (adds the names and roles the roster lists — never an email address) or
 `forbid`. **Without the key, nothing of that hive or project is mirrored**: it is the team's decision, recorded in a
-commit the team can see, and `/dashboard --web` never writes it for you. Your other keys: `workbench_machine` (the
-name each export shows), `workbench_index_only` (levels whose wiki goes up as an index without page bodies) and
-`workbench_account` (which recorded workbench this machine uses). The record itself — the page's address, the account
-label, the page version and a copy of your settings — lives in your flowie's `workbench.json`, or in `user.yaml`
-when no flowie is linked.
+commit the team can see, and `/dashboard --web` never writes it for you. It fetches first and follows the stricter of
+what your clone holds and what the team pushed, so a team's `forbid` takes effect before you pull, and a value nobody
+pushed does not start a mirror. Your other keys: `workbench_machine` (the name each export shows),
+`workbench_index_only` (levels whose wiki goes up as an index without page bodies), `workbench_account` (which recorded
+workbench this machine uses) and `pii_config` (the path of your `pii_scan.py` config — ID patterns and a participant
+roster — which every export applies; without it, ID numbers and participant names are not checked). The record itself —
+the page's address, the account label, the page version and a copy of your settings — lives in your flowie's
+`workbench.json`, or in `user.yaml` when no flowie is linked.
 
 ---
 
@@ -97,14 +101,14 @@ and a test keeps the two equal.
 |---|---|---|---|
 | tasks | flowie, hive, project | `tasks/{column}/{slug}.md` | `cards`, `slug`, `file`, `column`, `title`, `owner`, `due`, `created`, `updated`, `phase`, `tags`, `project`, `blocked_by`, `sha256`, `notes`, `legacy`, `readable` — owner only as a roster handle; the first 1,000 characters of the notes; sha256 is the content hash; legacy and readable say whether the file is in an older format or carries a merge conflict |
 | columns | flowie, hive, project | `tasks/config.json` | `columns`, `id`, `label`, `archive`, `closed`, `extra`, `archive_after_days` — extra marks a folder that config.json does not name |
-| registry | flowie, hive | `projects/projects.json` | `registry`, `id`, `description`, `status`, `current_phase`, `visited_phases`, `repos`, `pointer`, `hive` — remote repository URLs only; a flowie pointer as its id and hive only |
+| registry | flowie, hive | `projects/projects.json` | `registry`, `id`, `description`, `status`, `current_phase`, `visited_phases`, `repos`, `pointer`, `hive` — remote repository URLs only, without a user name, password or query; the first 1,000 characters of a description; a flowie pointer as its id and hive only |
 | wiki | flowie, hive, project | `wiki/pages/**, wiki/index.md` | `pages`, `id`, `title`, `type`, `tags`, `status`, `updated`, `summary`, `sources`, `body` — no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded |
 | people | flowie, hive, project | `your handle, members.md, collaborators` | `people`, `handle`, `name`, `role` — name and role only with allow-names; your own handle only at flowie level; never an email address |
-| ideas | flowie, hive | `ideas.md, ideas-inbox.md (flowie)` | `ideas`, `ideas_inbox` — the text |
-| notes | flowie | `notes/*.md` | `notes`, `file`, `title`, `date` — never the notes themselves |
-| meetings | flowie, hive, project | `meetings/*.md` | `meetings`, `slug`, `title`, `date` — never attendees, agenda or notes |
-| team | hive | `hive.md` | `team` — the text after the frontmatter: the team's name, description, norms and research directions |
-| errata | hive | `errata/*.md` | `errata`, `dataset`, `columns`, `rows` — the table rows: date, scope, problem, workaround, reported_by |
+| ideas | flowie, hive | `ideas.md, ideas-inbox.md (flowie)` | `ideas`, `ideas_inbox` — the text, at most 40 KB |
+| notes | flowie | `notes/*.md` | `notes`, `file`, `title`, `date` — never the notes themselves; the newest 200 |
+| meetings | flowie, hive, project | `meetings/*.md` | `meetings`, `slug`, `title`, `date` — never attendees, agenda or notes; the newest 200 |
+| team | hive | `hive.md` | `team` — the text after the frontmatter, at most 40 KB: the team's name, description, norms and research directions |
+| errata | hive | `errata/*.md` | `errata`, `dataset`, `columns`, `rows` — the table rows (the newest 200 per dataset): date, scope, problem, workaround, reported_by |
 | phases | project | `project_config.md, phase folders` | `project_name`, `active_phase`, `recommended_phases`, `visited`, `ethics_not_applicable`, `phases`, `card` — visited names the phase folders that exist, card the project's id in your registry; no other config field |
 | dates | project | `timeline.md` | `dates`, `date`, `what`, `gates` — the dated rows; gates names the phase a date gates |
 | integrity | project | `ethics/status.md, preregistration/status.md` | `ethics`, `prereg`, `status`, `expires`, `frozen_at`, `by_person` — by_person says whether a person set the marker; never approval documents |
@@ -113,12 +117,12 @@ and a test keeps the two equal.
 
 Never uploaded: sessions/, review/, paper/xray-*, wiki/.pending/ and every other local-tier path; integrations.json, user.yaml, local-projects.json, boards/; fails/, finance/, reasoning/; the flowie's profile.md and wellbeing/; wiki raw/ files and images; email addresses, anywhere; meeting attendees, agendas and notes; machine-local paths.
 
-Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. An item with secret-like text or a name from your participant roster is held back whole, and so is one whose file name, tags or links carry personal data, as they travel unchanged. The preview names each item held back; the page only counts them.
+Free text (titles, notes, descriptions, a project's status and phase, column labels, wiki pages with their type and status, ideas, team text, people's names and roles, errata rows, dated rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed], and a machine-local path (C:\Users\…, /home/…, ~/…, as local_paths.py finds them) [local path removed]. An item with secret-like text or a name from that config's participant roster is held back whole, and so is one whose file name, tags or links carry personal data, as they travel unchanged. Your pii_scan config is the file pii_config names in ~/.neuroflow/user.yaml (its id_patterns and roster); without it, ID numbers and participant names are not checked. The preview names each item held back; the page only counts them.
 <!-- workbench-sources:end -->
 
-Every upload — the first publish, each refresh, each write-back of outcomes — needs a one-line preview and your yes
-in that turn. Nothing is uploaded on a timer or at the end of another command. Teammates' text reaches your page as
-text: it is never run as HTML, and only `http` and `https` links leave it.
+Every upload — the first publish, each refresh, each claim of your clicks, each write-back of outcomes — needs a
+one-line preview and your yes in that turn. Nothing is uploaded on a timer or at the end of another command. Teammates'
+text reaches your page as text: it is never run as HTML, and only `http` and `https` links leave it.
 
 ---
 
@@ -130,8 +134,10 @@ text: it is never run as HTML, and only `http` and `https` links leave it.
 - **One person, one account.** There is no shared board and no read-only page for a supervisor in this version; a
   teammate sees your changes in git.
 - **Phones:** drag and drop needs a mouse or trackpad; on a touch screen use *Move to…*.
-- **The store's limits:** 256 KiB per document, 25,000 documents and 50 writes per upload. Finished requests are
-  deleted after 7 days, and a level you stop mirroring is purged.
+- **The store's limits:** 256 KiB per document, 25,000 documents per workbench, and 50 writes and 1 MiB per batch — an
+  upload is split into as many batches as it needs. Finished requests are deleted after 7 days. A level you take off
+  with `--web --levels`, or whose team stops allowing it, is purged — the preview names it; a level is never purged only
+  because the machine you run it on lacks it, since another of your machines may mirror it.
 - **Big wikis:** an export over 8 MB is flagged as slow to load; `workbench_index_only` sends a level's wiki as an index
   without page bodies.
 
@@ -143,7 +149,7 @@ text: it is never run as HTML, and only `http` and `https` links leave it.
 |---|---|
 | Claude Code is not running when you move cards | The cards wait, marked as such; nothing is half done in git |
 | A teammate changed or moved the task after your snapshot | A conflict: nothing is written, the card says why and where the task is now |
-| A run stopped half way (closed laptop, a refused approval) | The claim expires after 30 minutes; the next run checks git first and finishes the move instead of repeating it. A stuck card offers *Release* |
+| A run stopped half way (closed laptop, a refused approval) | The claim expires after 30 minutes; the next run finds what the stopped run already changed — in git, and in a note on your machine that lasts until the commit exists — and commits it instead of repeating it, so an added card is never added twice. A stuck card offers *Release*, which cancels only a change that was not made yet |
 | You declined the hive push | The commit stays local and the card says *committed, not pushed*; a later push updates it |
 | Another machine of yours exported the level | Claude Code asks before overwriting, naming both machines; a clone that is behind is skipped |
 | A newer neuroflow wrote the workbench from another machine | It is never overwritten: update neuroflow here first |
