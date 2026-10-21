@@ -271,16 +271,19 @@ describe('the boards in a session', () => {
     props: { title: requestId, isFocused: true, bodyColumns: 140, placement: 'inline', scroll: { offset: 0, bodyRows: rows }, view: {} },
   })
 
-  type Seen = { filled: string[]; ran: string[]; toasts: string[]; fs: FakeFs; clock: ReturnType<typeof mock.clock>; dialog: Dialog }
+  type Seen = { filled: string[]; ran: string[]; toasts: string[]; opens: { id: string; focus?: boolean }[]; fs: FakeFs; clock: ReturnType<typeof mock.clock>; dialog: Dialog }
   const setUp = (on: On, files: Record<string, string> = FILES): Seen => {
     const fs = fakeFs(on, files, ROOT)
     mock.env(on, { HOME })
     const clock = mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
     mock.store(on)
     // A move asks first: answered as a stray Enter would answer it, unless the test answers otherwise.
-    const seen: Seen = { filled: [], ran: [], toasts: [], fs, clock, dialog: answerAsks(on) }
+    const seen: Seen = { filled: [], ran: [], toasts: [], opens: [], fs, clock, dialog: answerAsks(on) }
     on('session.start', ($, e) => ({ cwd: e.cwd }))
-    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.open', ($, e) => {
+      seen.opens.push(e as never)
+      return { value: { isPlaced: true } }
+    })
     on('ui.close', () => ({ value: undefined }))
     on('ui.toast', ($, e) => {
       seen.toasts.push(JSON.stringify(e))
@@ -317,7 +320,7 @@ describe('the boards in a session', () => {
   })
 
   test('/neuroflow:tasks: digits pick the level; Enter on a card and a target runs the move at project and flowie level after a yes and only fills a hive\'s', { options: { runtime: 'observe' } }, async ($, on) => {
-    const { filled, ran, toasts, clock, dialog } = setUp(on)
+    const { filled, ran, toasts, opens, clock, dialog } = setUp(on)
     dialog.answer(() => 'Move it')
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     expect((await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)).text).toContain('Task boards open')
@@ -394,6 +397,8 @@ describe('the boards in a session', () => {
     expect(dialog.asked[1]?.question).toBe('Move "Rerun ICA" to review? /neuroflow:tasks --move rerun-ica review runs now.')
     expect(ran).toHaveLength(1)
     expect(buttons(await ui.drawn()).find(button => button.key === 'nf-card-rerun-ica')?.label).toContain('▸')
+    // The dialog handed the keys to the prompt; the board asks for them back, so the person goes on with the pick.
+    expect(opens.at(-1)).toMatchObject({ id: 'nf-board', focus: true })
     dialog.answer(() => 'Move it')
     await enter('nf-move-review')
     expect(ran).toEqual(['neuroflow:tasks --level flowie --move check-stats done', 'neuroflow:tasks --move rerun-ica review'])

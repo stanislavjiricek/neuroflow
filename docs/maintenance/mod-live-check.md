@@ -215,11 +215,13 @@ And on every state:
 - [ ] Now lists every band item with its actions. From no highlight, `j` and `k` go to the tab's own name (`1: now`),
   then between the actions (*note* whether a hotkey moves it, or only Tab does); `m`, `y`, `p` and `s` do nothing there.
 - [ ] Enter on an action asks first in Claude Code's question dialog, *Not now* (or *Keep it waiting*) on top: Enter
-  there runs and writes nothing; the yes runs it. *Note* whether a digit typed into the dialog picks an option.
+  there runs and writes nothing, and the pane takes the keys back; the yes runs it. *Note* whether a digit typed into the
+  dialog picks an option.
 - [ ] Words typed for the prompt: open the dashboard, wait a second, type `ok` and Enter — nothing is kept, migrated or
-  run, and no question appears. Type `k`, wait a second and press Enter: the tab is read again, nothing else.
+  run, and no question appears (on 2.1.306 `o` is no key of the pane, so the keys go back to the prompt and `ok` is sent
+  to Claude as a message). Type `k`, wait a second and press Enter: the tab is read again, nothing else.
 - [ ] *Note* what Up and Down do in the pane: scroll, or nothing.
-- [ ] *Note* what a letter with no key does while the pane holds the keys: dropped, or typed into the prompt.
+- [ ] A letter with no key while the pane holds the keys goes to the prompt, which takes the keys back (2.1.306).
 - [ ] Integrity: `f` and `u` do nothing; Tab to *freeze prereg…* and Enter asks before it freezes, *unfreeze…* asks for a
   reason; `v` re-checks the hashes.
 - [ ] `r` reads the files again.
@@ -230,7 +232,7 @@ And on every state:
 - [ ] The highlight starts on the first card; `h` and `l` move between columns, `j` and `k` within one; Tab works too.
 - [ ] Enter on a card marks it `▸` and moves the highlight to the next column's target; `h`, `l`, `j` and `k` move
   between the targets; Enter there at project level asks first, *Not now* on top — Enter in the question leaves the card
-  picked, the yes runs the move (it shows in the conversation); `x` cancels a pick.
+  picked and the board takes the keys back, the yes runs the move (it shows in the conversation); `x` cancels a pick.
 - [ ] An Enter pressed at once after `h`, `j`, `k` or `l` does nothing; one a moment later acts.
 - [ ] At a hive's level, Enter on a target only puts the command in the prompt; Esc and then Enter would send it — do not
   send it during the check.

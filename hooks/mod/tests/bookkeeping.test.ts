@@ -32,9 +32,9 @@ describe('status', () => {
     expect(projectCheckLine({ summary: { error: 0, warn: 0, info: 3 } })?.status).toBe('ok')
     expect(projectCheckLine({ summary: { error: 1, warn: 2 } })?.message).toBe('project memory checks: 1 error(s), 2 warning(s) — /neuroflow:sentinel shows them')
     expect(projectCheckLine(null)).toBe(null)
-    expect(statusLine(base, [], ['⚠ frozen preregistration changed'])).toBe('neuroflow: ⚠ frozen preregistration changed')
+    expect(statusLine(base, [], ['⚠ frozen preregistration changed'])).toBe('⚠ frozen preregistration changed')
     const busy = { ...base, deadlines: [{ date: '2026-10-08', what: 'Abstract', gates: null, daysLeft: 1 }, { date: '2026-10-09', what: 'Poster', gates: null, daysLeft: 2 }], problems: ['legacy'] } as NfSnapshot
-    expect(statusLine(busy, ['guards'])).toBe('neuroflow: ⚠ Abstract tomorrow (+1) · ! config needs attention — /neuroflow:doctor · ! mod: 1 feature(s) degraded — /neuroflow:doctor')
+    expect(statusLine(busy, ['guards'])).toBe('⚠ Abstract tomorrow (+1) · ! config needs attention — /neuroflow:doctor · ! mod: 1 feature(s) degraded — /neuroflow:doctor')
   })
 
   test('version floor and doctor text', () => {

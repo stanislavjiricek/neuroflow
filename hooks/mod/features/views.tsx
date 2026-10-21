@@ -619,13 +619,23 @@ const actOn =
     await run()
   }
 
+/** A pane a question came from: its id and the title it was opened with. */
+type PaneRef = { id: string; title: string }
+const DASH_PANE: PaneRef = { id: DASHBOARD, title: 'neuroflow' }
+const BOARD_PANE: PaneRef = { id: BOARD, title: 'tasks' }
+const PICKER_PANE: PaneRef = { id: PICKER, title: 'Switch phase' }
+
 /**
  * Asks before an action of a pane writes, consents or starts a model turn: the engine's question dialog with the safe
  * answer first, so a stray Enter there answers no. Only the exact yes acts — a dismissed dialog, an answer typed under
- * "Other" and a run with nobody to ask all mean no.
+ * "Other" and a run with nobody to ask all mean no. The dialog takes the keys and hands them to the prompt when it
+ * closes, so after a no the pane it came from (`pane`) asks for them back: the person goes on where they were.
  */
-const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string): Promise<boolean> =>
-  (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
+const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string, pane?: PaneRef): Promise<boolean> => {
+  const answer = (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
+  if (!answer && pane !== undefined) await $.ui.open({ id: pane.id, title: pane.title, focus: true }).catch(() => undefined)
+  return answer
+}
 
 /**
  * The deadlines tab's gates column: as wide as its longest `gates …` text, but never more than 22 cells or a quarter of
@@ -917,7 +927,7 @@ const runMove = async ($: EngineInterface, level: NfTaskLevel, slug: string, tar
   }
   const title = level.board.columns.flatMap(column => column.cards).find(card => card.slug === slug)?.title ?? slug
   const args = `${levelArgs(level).trim()} --move ${slug} ${target}`.trim()
-  if (await runKey($, 'neuroflow:tasks', args, { question: moveQuestion(level, slug, title, target), yes: 'Move it', header: 'Tasks' })) {
+  if (await runKey($, 'neuroflow:tasks', args, { question: moveQuestion(level, slug, title, target), yes: 'Move it', header: 'Tasks', pane: BOARD_PANE })) {
     await update($, boardPickAtom, () => null)
   }
 }
@@ -928,7 +938,7 @@ const hideBandToday = async ($: EngineInterface): Promise<void> => {
 }
 
 /** What a pane asks before a key's command runs (confirm): the question, its yes and the dialog's chip. */
-type Ask = { question: string; yes: string; header: string }
+type Ask = { question: string; yes: string; header: string; pane?: PaneRef }
 
 /**
  * A key's neuroflow command (the band's, the dashboard's, a board move): run — or, while a flowie sync of the mod's
@@ -949,7 +959,7 @@ const runKey = async ($: EngineInterface, command: string, args: string, ask?: A
       return true
     }
   }
-  if (ask !== undefined && !(await confirm($, ask.question, 'Not now', ask.yes, ask.header))) return false
+  if (ask !== undefined && !(await confirm($, ask.question, 'Not now', ask.yes, ask.header, ask.pane))) return false
   await $.command.run({ command, args })
   return true
 }
@@ -1108,7 +1118,7 @@ const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
     return
   }
   if (now.kind === 'command') {
-    await runKey($, now.command, now.args, runAsk(now.command, now.args))
+    await runKey($, now.command, now.args, { ...runAsk(now.command, now.args), pane: DASH_PANE })
     return
   }
   if (now.kind === 'keep' || now.kind === 'drop') {
@@ -1116,19 +1126,19 @@ const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
     if (draft === null) return
     const keep = now.kind === 'keep'
     const yes = keep
-      ? await confirm($, `Keep "${draft.statement}" in the reasoning log, as a decision you approved?`, 'Not now', 'Keep it', 'Decision')
-      : await confirm($, `Drop the drafted decision "${draft.statement}"? It is not written anywhere.`, 'Keep it waiting', 'Drop it', 'Decision')
+      ? await confirm($, `Keep "${draft.statement}" in the reasoning log, as a decision you approved?`, 'Not now', 'Keep it', 'Decision', DASH_PANE)
+      : await confirm($, `Drop the drafted decision "${draft.statement}"? It is not written anywhere.`, 'Keep it waiting', 'Drop it', 'Decision', DASH_PANE)
     if (yes) await settleDraft($, keep)
     return
   }
   if (now.kind === 'stop-drive') {
     const drive = await read($, driveAtom)
-    if (drive !== null && (await confirm($, `Stop driving "${drive.name}"? The current iteration finishes; no new one starts.`, 'Keep driving', 'Stop it', 'Autoresearch'))) {
+    if (drive !== null && (await confirm($, `Stop driving "${drive.name}"? The current iteration finishes; no new one starts.`, 'Keep driving', 'Stop it', 'Autoresearch', DASH_PANE))) {
       await stopDriving($)
     }
     return
   }
-  if (await confirm($, 'End the note capture? Your next messages go to the model again.', 'Keep capturing', 'End it', 'Notes')) await endCapture($)
+  if (await confirm($, 'End the note capture? Your next messages go to the model again.', 'Keep capturing', 'End it', 'Notes', DASH_PANE)) await endCapture($)
 }
 
 /**
@@ -2043,7 +2053,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
               <Text color={TONE_COLOR.warning} wrap={compact ? 'truncate-end' : 'wrap'}>{`↑ ${behind}`}</Text>
             </Box>
             <Box flexShrink={0}>
-              <Button key="nf-dash-migrate" label="migrate" plain onPress={runOn(() => runKey($, 'neuroflow:migrate', '', runAsk('neuroflow:migrate', '')))} />
+              <Button key="nf-dash-migrate" label="migrate" plain onPress={runOn(() => runKey($, 'neuroflow:migrate', '', { ...runAsk('neuroflow:migrate', ''), pane: DASH_PANE }))} />
             </Box>
           </Box>
         ) : null}
@@ -2097,7 +2107,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       // An Enter typed through the open would switch to the highlighted phase: dropped (lib/keys.ts).
       if (!isPastTypeThrough(await $.clock.now(), (await read($, openedAtAtom))[PICKER])) return
       // A switch is recorded as the person's choice (project_config.md and a reasoning entry): asked, safe answer first.
-      if (!(await confirm($, `Make ${value} the active phase? It is recorded as your choice.`, 'Not now', `Switch to ${value}`, 'phase'))) return
+      if (!(await confirm($, `Make ${value} the active phase? It is recorded as your choice.`, 'Not now', `Switch to ${value}`, 'phase', PICKER_PANE))) return
       const message = await switchPhase($, value, 'phase picker')
       if (message.startsWith('Active phase')) {
         await $.ui.close({ id: PICKER })

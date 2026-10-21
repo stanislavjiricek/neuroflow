@@ -162,10 +162,12 @@ starts a model turn. Every action on the dashboard's now tab and its Update line
 decision, migrating, a flowie sync, a meeting's prepare, notes or close, stopping a driven loop —, a move on a project
 or flowie board, accepting or skipping a wiki card, accepting or rejecting an X-ray finding, syncing the living paper,
 and freezing or unfreezing the preregistration is Enter on its button — Tab, `j` or `k` put the highlight there — and
-asks first in Claude Code's question dialog, the safe answer on top, so a stray Enter there answers no. (The
+asks first in Claude Code's question dialog, the safe answer on top, so a stray Enter there answers no; after a no the
+pane takes the keys back. (The
 workbench's apply only puts its command in the prompt, for you to send.) An Enter that comes within 400 ms of another
 key of the pane does nothing, and on the now tab `j` and `k` start on the tab's own name, never on an action: `ok` and
-Enter typed for the prompt press nothing. The band keeps its letters — `y` keeps, `n` drops — because it holds the
+Enter typed for the prompt press nothing. A letter that is no key of the pane gives the keys back to the prompt and lands
+there (Claude Code does this), so a message typed while a pane holds the keys still reaches the prompt. The band keeps its letters — `y` keeps, `n` drops — because it holds the
 keys only after ^X Tab.
 
 ### The keys
