@@ -41,17 +41,22 @@ test('every database path the page builds has the right parity', () => {
     assert.ok(isDocumentPath(`${partsPath(uid, key)}/core`), key) // 6
   }
   assert.ok(isCollectionPath(intentsPath(uid))) // 5
-  assert.ok(isDocumentPath(`${intentsPath(uid)}/${newIntentId(NOW, 'abc123xyz')}`)) // 6
+  assert.ok(isDocumentPath(`${intentsPath(uid)}/${newIntentId('abc123xyz')}`)) // 6
   assert.ok(isDocumentPath(prefsPath(uid))) // 4
   assert.ok(!isDocumentPath(`${userRoot(uid)}/hive:example-lab:hive/parts`))
   assert.ok(!validLevelKey('prefs') && !validLevelKey('inbox') && !validLevelKey('hive:example-lab:hive'))
 })
 
-test('intent ids are valid document ids that sort by creation', () => {
-  const a = newIntentId(Date.parse('2026-10-21T10:00:00Z'), 'k3j2h1g0')
-  const b = newIntentId(Date.parse('2026-10-21T10:00:01Z'), 'a0a0a0a0')
-  assert.match(a, /^i-[0-9a-z]+-[0-9a-z]{6,12}$/)
-  assert.ok(validSegment(a) && a < b)
+test('intent ids are random letters only: valid document ids that say nothing about the click time', () => {
+  const a = newIntentId('k3j2h1g0a9b8c7d6e5f4')
+  assert.equal(a, 'i-k3j2h1g0-a9b8c7d6e5f4')
+  assert.match(newIntentId('xY-z'), /^i-[0-9a-z]{8}-[0-9a-z]{12}$/)
+  assert.ok(validSegment(a))
+  assert.match(a, /^i-[0-9a-z]{1,16}-[0-9a-z]{4,24}$/) // workbench.py's INTENT_ID, which reads `after`
+  assert.equal(newIntentId.length, 1) // no clock goes in: the id travels into hive commits as a trailer
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /newIntentId\(Array\.from\(bytes/)
+  assert.doesNotMatch(html, /newIntentId\(Date\.now\(\)/)
 })
 
 test('a level is drawn only from a complete, current snapshot', () => {

@@ -406,9 +406,9 @@ function setPrefs(change) {
 }
 
 function newId() {
-  const bytes = new Uint8Array(6)
+  const bytes = new Uint8Array(20)
   crypto.getRandomValues(bytes)
-  return newIntentId(Date.now(), Array.from(bytes, b => (b % 36).toString(36)).join(''))
+  return newIntentId(Array.from(bytes, b => (b % 36).toString(36)).join(''))
 }
 
 function subscribeParts(key) {

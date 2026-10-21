@@ -61,10 +61,13 @@ export function validLevelKey(key) {
     (key === 'flowie' || key.startsWith('hive+') || key.startsWith('project+'))
 }
 
-/** A fresh intent id: the time in base 36 and random letters — sortable by creation, valid as a document id. */
-export function newIntentId(nowMs, random) {
-  const tail = String(random).toLowerCase().replace(/[^0-9a-z]/g, '').slice(0, 12).padEnd(6, '0')
-  return `i-${Math.max(0, Math.floor(nowMs)).toString(36)}-${tail}`
+/**
+ * A fresh intent id, `i-{8}-{12}` from random letters and digits only: valid as a document id, and silent about when
+ * the person clicked — the id travels into hive commits as a Neuroflow-Intent trailer. Order comes from created_at.
+ */
+export function newIntentId(random) {
+  const text = String(random || '').toLowerCase().replace(/[^0-9a-z]/g, '').padEnd(20, '0').slice(0, 20)
+  return `i-${text.slice(0, 8)}-${text.slice(8)}`
 }
 
 // ── dates in the viewer's own calendar ─────────────────────────────────────────────────────────────

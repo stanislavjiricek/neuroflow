@@ -171,6 +171,7 @@ class PathParityTests(unittest.TestCase):
             self.assertTrue(wb.is_document(f"{wb.parts_collection(key)}/core"), key)             # 6: a part
         self.assertTrue(wb.is_collection(wb.intents_collection()))                                # 5
         self.assertTrue(wb.is_document(f"{wb.intents_collection()}/i-abc123-x7y8"))              # 6: an intent
+        self.assertTrue(wb.INTENT_ID.match("i-k3j2h1g0-a9b8c7d6e5f4"))  # the page's ids: random letters, no time
         self.assertTrue(wb.is_document(f"{wb.meta_collection()}/{wb.PREFS_DOC}"))                # 4: the preferences
         self.assertEqual(wb.segments(f"{wb.parts_collection('flowie')}/core"), 6)
         self.assertEqual(wb.segments(wb.meta_collection("u_abc")), 3)
