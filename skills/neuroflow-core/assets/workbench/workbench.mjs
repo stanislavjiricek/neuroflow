@@ -312,6 +312,26 @@ function columnClosed(columns, id) {
   return Boolean(column && column.closed)
 }
 
+/**
+ * The lanes a column draws, in drawing order, with at most `limit` cards across them (a closed column shows its
+ * first few): the one order the keyboard follows too, so ↑ and ↓ go to the card drawn above or below.
+ */
+export function drawnLanes(cards, groupBy, limit = Infinity) {
+  let left = limit
+  const out = []
+  for (const lane of lanes(cards, groupBy)) {
+    const shown = lane.cards.slice(0, Math.max(0, left))
+    left -= shown.length
+    if (shown.length) out.push({ name: lane.name, cards: shown })
+  }
+  return out
+}
+
+/** The cards of a column in the order it draws them (lane by lane). */
+export function drawnCards(cards, groupBy, limit = Infinity) {
+  return drawnLanes(cards, groupBy, limit).flatMap(lane => lane.cards)
+}
+
 /** Groups of a column's cards for swimlanes: by project or by owner; one unnamed group without grouping. */
 export function lanes(cards, groupBy) {
   if (groupBy !== 'project' && groupBy !== 'owner') return [{ name: null, cards }]
@@ -384,13 +404,22 @@ export function intentDocument(intent) {
   return doc
 }
 
-/** The column to the left or right of `column` on the board (for the keyboard move); null at the edge. */
+/**
+ * Whether a card may be moved or added to this column. Not the archive (the sweep fills it), and not an `extra`
+ * column — a folder tasks/config.json does not name, which Claude Code's check rejects as "no column".
+ */
+export function isMoveTarget(column) {
+  return Boolean(column) && !column.archive && !column.extra
+}
+
+/** The next column to the left or right of `column` a card may move to (the keyboard move); null at the edge. */
 export function neighbourColumn(columns, column, step) {
-  const ids = columns.filter(item => !item.archive).map(item => item.id)
-  const at = ids.indexOf(column)
+  const at = columns.findIndex(item => item.id === column)
   if (at < 0) return null
-  const next = at + step
-  return next >= 0 && next < ids.length ? ids[next] : null
+  for (let next = at + step; next >= 0 && next < columns.length; next += step) {
+    if (isMoveTarget(columns[next])) return columns[next].id
+  }
+  return null
 }
 
 // ── freshness: what the export saw, and what it could not ────────────────────────────────────────────
