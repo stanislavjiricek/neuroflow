@@ -154,8 +154,9 @@ Keys you type in the first 400 ms after a view opened holding the keys do nothin
 next sentence never acts in a pane you did not mean to type into. Esc gives the keys back to the prompt and leaves the
 pane open — only the phase picker, a dialog, closes on Esc; `q` closes the dashboard, the boards and the review panes.
 A pane that does not hold the keys says so at its foot: `/neuroflow:dashboard gives it the keys`. Running the pane's
-command again is the way back into it; for the dashboard, `d` on the band works too. ^X Tab gives the keys to the band,
-not to an open pane (seen on Claude Code 2.1.306).
+command again, typed or with [one chord per view](#one-chord-per-view), is the way back into it. Claude Code gives a
+pane the keys only from the prompt: ^X Tab gives them to the band, not to an open pane, and `d` on the band shows the
+dashboard while the band keeps the keys (seen on Claude Code 2.1.306, locally and over SSH).
 
 A pane holds the keys while you may think you are typing into the prompt, so no letter in a pane writes, consents or
 starts a model turn. Every action on the dashboard's now tab and its Update line — keeping or dropping a drafted
@@ -188,7 +189,7 @@ the keys, so a number you type into the prompt ("2026", "128 channels") never pr
 
 | View | Its keys |
 |---|---|
-| Band | `d` dashboard (opens on now; on loop while a loop is driven) · `x` hide today, not today, stop a driven loop or a note capture · `p` prepare and `o` notes for a meeting soon · `c` close a meeting left open · `m` migrate · `w` review wiki cards · `s` sync the flowie · `a` apply your workbench changes (puts the command in the prompt for you to send) · `y` keep and `n` drop a drafted decision · the wellbeing check-in is a field: ^X Tab lands in it |
+| Band | `d` dashboard (opens on now, on loop while a loop is driven; the band keeps the keys) · `x` hide today, not today, stop a driven loop or a note capture · `p` prepare and `o` notes for a meeting soon · `c` close a meeting left open · `m` migrate · `w` review wiki cards · `s` sync the flowie · `a` apply your workbench changes (puts the command in the prompt for you to send) · `y` keep and `n` drop a drafted decision · the wellbeing check-in is a field: ^X Tab lands in it |
 | Dashboard | `1` now · `2` phase · `3` deadlines · `4` integrity · `5` tasks · `6` loop · `h` `l` · `r` · `q`; on phase `g` go to a phase; on integrity `v` verify, and Enter on freeze or unfreeze, each after a yes; on tasks `b` the boards. On now every action is Enter on its row, after a yes (the workbench's apply only fills the prompt); `j` and `k` walk the rows from the tab's own name |
 | Task boards | `1`–`9` level · `h` `j` `k` `l` or Tab to a card, `j` past a column's fifth to its next five · Enter picks it (▸), Enter on a column moves it — after a yes at project and flowie level, into the prompt for you to send at a hive's · `x` cancel · `r` · `q` |
 | Phase picker | Down or Enter opens the list · the arrows move · a letter jumps to the phases that start with it · Enter switches after a yes · Esc closes (no `q`) |
@@ -223,7 +224,9 @@ opens holding the keys; it works while the prompt has them (Esc first when a pan
 
 ### Over SSH, in tmux and in screen
 
-- **No mouse needed.** Every view above opens and works from the keys alone.
+- **No mouse needed.** Every view above opens and works from the keys alone. Checked over SSH on Claude Code
+  2.1.306 (OpenSSH 9.6, inside tmux at 80 × 24): the dashboard, the boards and a board move work as in a local
+  terminal.
 - **Inline, not docked.** On Claude Code's main screen — the default inside tmux — panes sit above the prompt. Each view
   asks for its rows; on a terminal under 30 rows (24 over SSH) it asks for fewer and drops its blank rows and summaries,
   so the conversation keeps room. Docked beside a fullscreen transcript, each asks for its width (the dashboard 64
