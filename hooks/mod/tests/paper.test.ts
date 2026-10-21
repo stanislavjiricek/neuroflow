@@ -155,6 +155,25 @@ describe('paper commands in a session', () => {
     expect(ranProse).toBe(true)
   })
 
+  test('a finding id longer than the label column is cut a cell short of it, so it never runs into the finding\'s place', { options: { runtime: 'observe' } }, async ($, on) => {
+    const long = xrayLines.replace('"S3.2-1"', '"S12.10.4-11"')
+    fakeFs(on, { ...files, [`${root}/.neuroflow/paper/xray-results-2026-10-07.jsonl`]: long }, root)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: 0 })
+    on('session.start', ($, e) => ({ cwd: e.cwd }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: undefined }))
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:paper', args: '--xray view' })
+    const pane = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-xray',
+      props: { title: 'X-ray', isFocused: true, bodyColumns: 72, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+    } as never)
+    // A 10-cell column: nine cells of the id and a blank, then `sentence, line 42 · script:statcheck`.
+    expect(lines(await pane.drawn())).toEqual(expect.arrayContaining(['S12.10.4…', 'sentence, line 42 · script:statcheck', 'FIX']))
+    await pane.unmount()
+  })
+
   test('the living paper syncs on Enter and a yes, never on a typed s: a stray Enter in the question keeps the pane and starts no turn', { options: { runtime: 'observe' } }, async ($, on) => {
     fakeFs(on, files, root)
     mock.env(on, { HOME: '/home/me' })

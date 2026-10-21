@@ -224,24 +224,25 @@ python scripts/automation/brand_assets.py           # --check: the same check th
 - **Neutral:** no Claude Code orange and no vendor marks in neuroflow's images; the words "Claude Code" are fine.
 - **Research outputs keep their own styles.** Posters, slides, reports and figures that the commands make for a person are that person's work, not neuroflow images: `/poster`, `/slideshow` and the others do not take this look.
 
-**In the terminal** the hex palette does not apply: the mod draws with Claude Code's theme colours. Marks for phases and dates follow one legend, the one `/phase` and the `/neuroflow` welcome ring use, so each glyph means one thing everywhere:
+**In the terminal** the hex palette does not apply: the mod draws with Claude Code's theme colours. Marks for phases and dates follow one legend, the one `/phase`, `/dashboard` and the `/neuroflow` welcome ring use, so a glyph that marks a phase or a date means the same thing everywhere:
 
 | Glyph | Means |
 |---|---|
-| `◌` | neuroflow's mark in the terminal: before the lowercase wordmark at the top of the mod's views, and first on the band |
+| `◌` | neuroflow's mark in the terminal: first on the band, and at the top of each of the mod's views, before the view's name |
 | `◉` | current phase |
 | `●` | visited phase |
 | `→` | recommended next |
 | `○` | not started |
-| `·` | a phase drawn without a state (the welcome ring's other dots) |
+| `·` | a phase drawn without a state (the welcome ring's other dots); a date more than two weeks away |
 | `⚠` | overdue, or due within three days |
+| `▸` | due within two weeks |
 
-A file that still draws other marks — `/flowie`'s project timeline (`✓`) — moves to this legend when it is next changed.
+Outside phases and dates a view may give one of these glyphs another job — `▸` marks the picked card or finding, `·` a row with no state to mark — always with a word beside it. A file that still draws other marks — `/flowie`'s project timeline (`✓`) — moves to this legend when it is next changed.
 
 The mod's views (`hooks/mod/features/views.tsx`, `user.tsx`) draw this look with what every terminal has:
 
 - **Colours:** theme keys only — `text`, dim (`dimColor`, `subtle`), `suggestion`, `warning`, `error`, `success` — never a hex value or a background fill, so light themes and 8- and 16-colour terminals read the same. Every state also has a glyph and a word.
-- **Type:** the mark and the wordmark (`◌ neuroflow`, never bold) head each view; section labels are UPPERCASE and dim (`PHASE`, `NEEDS ATTENTION`, `INBOX 2`); a rule (`─`) sets off the body, with a heavy segment (`━`) under the shown tab; board columns have round corners (`╭╮╰╯`); text cut to its room ends in `…`; key legends are dim.
+- **Type:** the mark heads each view before its name, in the text colour and never bold — the wordmark on the dashboard (`◌ neuroflow`), then `◌ tasks`, `◌ switch phase`, `◌ wiki cards`, `◌ X-ray`, `◌ living paper`; section labels are UPPERCASE and dim (`PHASE`, `NEEDS ATTENTION`, `INBOX 2`); a rule (`─`) sets off the body, with a heavy segment (`━`) under the shown tab; board columns have round corners (`╭╮╰╯`); text cut to its room ends in `…`; key legends are dim.
 - **Layout:** from the body's width — narrow under 56 cells, medium to 89, wide from 90 — and the terminal's height (compact under 30 rows): `hooks/mod/lib/layout.ts` holds the breakpoints, the phase flow line, the dates ruler and the board's grid and pages, each with its plain-text form.
 
 ## Release workflow

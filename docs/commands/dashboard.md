@@ -34,8 +34,9 @@ Enter, and the sync runs first, so the migration finds your flowie clean. All ke
 the panes, and working over SSH: [The neuroflow mod → Keyboard and SSH](../concepts/mods.md#keyboard-and-ssh).
 
 Every symbol comes with a word, so the dashboard reads correctly without colour and with a screen reader. The pane lays
-itself out for its width — side by side in a wide terminal, stacked in a narrow dock — and drops its blank rows on a
-terminal under 30 rows, such as 24 rows over SSH.
+itself out for its width — the now tab side by side where the pane gets 90 cells or more (inline in a terminal of about
+95 columns and up), stacked in a dock at its own width — and drops its blank rows on a terminal under 30 rows, such as
+24 rows over SSH.
 
 ## Without the mod
 

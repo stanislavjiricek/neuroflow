@@ -98,8 +98,8 @@ the flowie's and every hive clone's, read as the local clones are (nothing is pu
 keyboard, on the project board when it has open tasks, else on the first level with open tasks of this project, else
 on the first with any; the digits pick the level. Tab, or `h` `j` `k` `l`, reaches a card; Enter picks it (marked
 `▸`), and Enter on a column moves it. A column shows five cards at a time, as below; `j` past the fifth shows the next
-five. Where the pane is too narrow for the columns side by side (a dock beside the conversation), they stand one under
-the other. The pane holds the keys while the person may be typing for the prompt, so an Enter that comes right after
+five. Where a column would get under 18 cells (a narrow dock, or five columns on an 80-column terminal), they stand one
+under the other. The pane holds the keys while the person may be typing for the prompt, so an Enter that comes right after
 another key does nothing, and at project and flowie level the mod runs the move only after the person's yes in a
 question whose safe answer comes first — `/neuroflow:tasks --move {slug} {column}`, with `--level flowie` before
 `--move` there — and the move runs as below. At
@@ -143,13 +143,13 @@ Every board display renders as an ASCII Kanban — never a flat list, except in 
 │                  │   due 08-20      │                 │
 │                  │ spin-tests       │                 │
 └──────────────────┴──────────────────┴─────────────────┘
-[done: 3 · level: project]
+[done: 3 · level: project · ⚠ overdue]
 ```
 
 - Columns in board order. Omit empty columns except `inbox` and `active`; `done` and `archive` are counted in the footer, not drawn.
 - At most 5 cards per column (`+N more` underneath); titles or slugs truncated to fit; `owner` as `@handle`, `due` as `due MM-DD`.
 - Overdue tasks (past `due` and not done) are marked `⚠`. Within a column: at `flowie` and `hive` level this project's tasks first (Levels → This project), marked `◆`; then overdue tasks; then by `due`, undated last.
-- Footer: the done count and the level shown — at flowie or hive level with `◆ {project}` when this project's tasks are marked.
+- Footer: the done count and the level shown — at flowie or hive level with `◆ {project}` when this project's tasks are marked — and `⚠ overdue` when a card is marked `⚠`, so every mark on the board has its word.
 - When `~/.neuroflow/workbench/pending.json` lists changes waiting on the claude.ai workbench, the cards it names are marked `↻` and one more line follows the footer: `↻ {n} workbench changes wait (oldest {age of its oldest}, as of {HH:MM}) — /neuroflow:tasks --apply-web`.
 
 ## Web changes (`--apply-web`)

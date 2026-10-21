@@ -148,7 +148,8 @@ done: `claude plugin enable neuroflow@neuroflow`.
 - **80 × 24 over SSH, inside tmux, mouse off.** `ssh` to a host with Claude Code, `tmux new -s nf` with
   `set -g mouse off` and `set -sg escape-time 10` in `~/.tmux.conf`; size the window until `stty size` prints `24 80`.
   Once with `TERM=xterm-16color`, and once with a light Claude Code theme (`/theme`).
-- **120 × 40, the fullscreen layout**, where panes dock beside the conversation from 110 columns.
+- **120 × 40, the fullscreen layout**, where panes dock beside the conversation from 110 columns; and once **inline at
+  120 columns** (Claude Code's main screen, as inside tmux), where a pane has the terminal's width.
 - Once in **GNU screen**, for its Ctrl+A prefix.
 - Once on the desktop app, if you have it: the same views by mouse, with no chord to teach.
 
@@ -241,8 +242,9 @@ And on every state:
 
 ### The picker and the review panes
 
-- [ ] Picker (`/neuroflow:phase`): each option names the phase first, then its mark and state (`◉ current`,
-  `→ next`). Down or Enter opens the list, a letter jumps to the phase that starts with it, Enter asks and a yes switches, Esc
+- [ ] Picker (`/neuroflow:phase`): each option names the phase first, then its mark and state — `◉ current` on
+  data-analyze, `● visited · next` on paper (the fixture gives it a folder), `● visited` or `○ not started` on the rest.
+  Down or Enter opens the list, a letter jumps to the phase that starts with it, Enter asks and a yes switches, Esc
   closes. *Note* whether the list takes letters for itself.
 - [ ] Wiki cards (`/neuroflow:wiki --review`): `y` and `n` do nothing; Tab to *accept* and Enter asks first, and the yes
   runs `/neuroflow:wiki --add`; *skip* asks before it skips the card for good; `j` and `k`, `q`.
@@ -263,14 +265,17 @@ Each view is drawn with characters: *note* every line below that does not hold.
   rule fills the pane's width without wrapping to a second line.
 - [ ] Rows with `⚠` or `✔` (the band, now, deadlines, integrity, a board card) keep the pane's right edge straight,
   and a board column's right border stays in line on a row with `⚠`; *note* any row where a glyph takes two cells.
-- [ ] The phase tab: `◉` on the current phase, the line heavy (`━`) up to it and light after; in a dock under 56
-  columns, the word list instead.
+- [ ] The phase tab: `◉` on the current phase, the line heavy (`━`) up to it and light after; where a phase would get
+  under nine cells (under 45 columns for the fixture's five phases), the word list instead.
 - [ ] The deadlines tab: the ruler's ticks fall every seven cells, tomorrow's `⚠` under day 1 and the ethics expiry's
   `▸` under day 12.
 - [ ] The board's columns have round corners and dim borders; a long card ends in `…` inside its column.
 - [ ] At 80 × 24 the dashboard is compact: the title on the mark's line, no blank rows, no summary under now, no
-  closing rule. At 120 × 40 the now tab stands as NEEDS ATTENTION beside AT A GLANCE.
-- [ ] Fullscreen at 120 columns: *note* how wide the docked dashboard (asks 64 columns) and boards (84) open.
+  closing rule. Inline at 120 columns the now tab stands as NEEDS ATTENTION beside AT A GLANCE (side by side needs a
+  pane of 90 cells).
+- [ ] Fullscreen at 120 columns: *note* how wide the docked dashboard (asks 64 columns) and boards (84) open. In a dock
+  at its own width the now tab is stacked; widened until the pane has 90 cells (a dock of about 94 columns), it stands
+  side by side.
 - [ ] Light theme and 16 colours: the dim text, the warnings and the errors stay readable; nothing is drawn on a
   background colour except the engine's own focus highlight.
 
@@ -279,8 +284,8 @@ Each view is drawn with characters: *note* every line below that does not hold.
 - [ ] Type `/neuroflow:phase da`: under Claude Code's own rows, `data`, `data-analyze` and `data-preprocess` with
   their marks and states; taking one writes it over `da`.
 - [ ] `/neuroflow:dashboard d` offers `deadlines`; `/neuroflow:tasks --level h` offers `hive`.
-- [ ] After the dashboard has been open once: `/neuroflow:tasks --move s` offers the `step-…` cards, then
-  `/neuroflow:tasks --move step-1 r` offers `ready` and `review`.
+- [ ] After the boards, or the dashboard on its now or tasks tab, have been open once: `/neuroflow:tasks --move s`
+  offers the `step-…` cards, then `/neuroflow:tasks --move step-1 r` offers `ready` and `review`.
 
 ### One chord per view
 

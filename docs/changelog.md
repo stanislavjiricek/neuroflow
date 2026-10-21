@@ -6,6 +6,16 @@ title: Changelog
 
 Every neuroflow release, newest first. The README on GitHub shows only the newest one.
 
+## 0.2.28
+
+Fixes from a review of 0.2.27's mod views:
+
+- Wide text fits: `cells`, `fit` and `pad` count East Asian wide characters and emoji as two cells, and a label cut to its column keeps a blank cell before its value (the loop tab, the X-ray, wiki and living-paper panes)
+- The task board's footer says what `⚠` means; the phase picker and the typeahead give each phase the same mark and word (`◉ current`, `→ next`, `→ recommended`, `● visited · next`, `○ not started`), and the workbench page marks recommended phases `→`
+- [`/phase`](commands/phase.md) and meeting agendas mark dates like the dashboard (`⚠` within three days or overdue, `▸` within 14 days, `·` later); the glyph legend gains `▸`
+- The typeahead: `--level hive` without `--hive` uses your only hive's board, and `/neuroflow:migrate` is no longer offered `--hive`
+- The dashboard's integrity tab names what the model may read in words; the text form of every tab is tested on what the pane draws; the docs' figures draw symbols one cell wide, and the layout and live-check pages state the widths the views use ([mods](concepts/mods.md))
+
 ## 0.2.27
 
 The mod from the keyboard, its new look, and the claude.ai workbench:

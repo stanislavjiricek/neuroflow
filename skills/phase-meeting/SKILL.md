@@ -190,7 +190,7 @@ Compose an agenda draft:
 {done tasks and decisions since the previous meeting of this template — omit section if none}
 
 ### Upcoming deadlines
-{timeline.md entries within 30 days, ⚠ on anything within 14 — omit section if none}
+{timeline.md entries within 30 days, ⚠ within 3 days and ▸ within 14, as /dashboard marks dates — omit section if none}
 
 ### Team context
 {relevant hive directions if any}

@@ -26,7 +26,7 @@ import type { EngineInterface, On } from 'claude-code'
 import type { NfPaperView, NfWikiCard, NfXrayView } from '../../../types'
 import type { NfIo } from '../lib/io'
 import { NAV, isPastTypeThrough, paneRows, unfocusedHint } from '../lib/keys'
-import { MARK, fit, isCompact, measuredRows, paneColumns, rememberViewport, rule, widthClass } from '../lib/layout'
+import { MARK, fit, isCompact, labelCell, measuredRows, paneColumns, rememberViewport, rule, widthClass } from '../lib/layout'
 import { isoDate } from '../lib/memory'
 import { mayWrite } from '../lib/options'
 import type { NfOptions } from '../lib/options'
@@ -65,7 +65,7 @@ const PAPER_PANE = 'nf-paper'
 const XRAY_PANE = 'nf-xray'
 const WIKI_PANE = 'nf-wiki'
 const PAPER_DIR = '.neuroflow/paper'
-/** The column the panes' UPPERCASE labels (EVIDENCE, CHANGED, FIX) stand in. */
+/** The column the panes' UPPERCASE labels (EVIDENCE, CHANGED, FIX) stand in, a cell of it kept blank (labelCell). */
 const LABEL = 10
 
 /** The allow-listed source folders a sync reads (phase-paper → Living paper skeleton), for the staleness count. */
@@ -448,7 +448,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
           <Box flexDirection="row">
             <Box width={LABEL} flexShrink={0}>
               <Text dimColor wrap="truncate-end">
-                {item.label}
+                {labelCell(item.label, LABEL)}
               </Text>
             </Box>
             <Box flexShrink={1}>
@@ -563,7 +563,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     const labelled = (label: string, children: JSX.Element): JSX.Element => (
       <Box flexDirection="row">
         <Box width={LABEL} flexShrink={0}>
-          <Text dimColor>{label}</Text>
+          <Text dimColor>{labelCell(label, LABEL)}</Text>
         </Box>
         <Box flexDirection="column" flexShrink={1}>
           {children}
@@ -674,7 +674,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
       <Box flexDirection="row">
         <Box width={LABEL} flexShrink={0}>
           <Text dimColor wrap="truncate-end">
-            {label}
+            {labelCell(label, LABEL)}
           </Text>
         </Box>
         <Box flexShrink={1}>

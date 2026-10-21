@@ -15,7 +15,8 @@
 // letter there writes, consents or starts a model turn: those actions are Enter on their row (never right after
 // another key: actOn) and ask first, the safe answer on top (confirm); the band, reached by ^X Tab, keeps its
 // letters. Each draws the one look (skills/neuroflow-develop → Visual style) for the width
-// and height it gets, from the pure helpers of lib/layout.ts; tabLines and the row helpers below are its text form.
+// and height it gets, from the pure helpers of lib/layout.ts; the row helpers below (nowRows, integrityRows, dateRows,
+// cardRows, …) are its text form, the rows every surface draws.
 // Without the mod, commands/phase.md, commands/dashboard.md and commands/tasks.md do the same in prose.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -39,6 +40,7 @@ import {
   fit,
   flowLine,
   isCompact,
+  labelCell,
   measuredRows,
   moreLabel,
   pad,
@@ -54,7 +56,7 @@ import {
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
-import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseState, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
+import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseStateMark, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, moveTargets, openColumnsOf, openingLevel, topCards } from '../lib/tasks'
@@ -94,7 +96,6 @@ const BAND_TAKES: readonly string[] = ['nf-band-dashboard', 'nf-wellbeing']
 // ── pure helpers (exported for tests) ──────────────────────────────────────────────────────────
 
 export type Tone = 'error' | 'warning' | 'success' | 'suggestion' | 'subtle'
-export type Line = { text: string; tone?: Tone; dim?: boolean }
 /** A press on the band runs one neuroflow command (the person's explicit request); `fill` puts it in the prompt instead. */
 export type BandAction = { key: string; label: string; hotkey: string; command: string; args: string; fill?: boolean }
 export type BandItem = { level: 'alert' | 'warn' | 'info'; glyph: string; text: string; actions?: BandAction[] }
@@ -323,6 +324,22 @@ export const cardKeys = (level: Pick<NfTaskLevel, 'kind' | 'board'>): string[][]
 export const cardColumn = (board: NfBoard, slug: string): string | null =>
   board.columns.find(column => column.cards.some(card => card.slug === slug))?.id ?? null
 
+/**
+ * The board's foot: what is done and archived, the level, and a word for each mark its cards carry — `◆ Oddball EEG
+ * (this project)` at flowie and hive level, `⚠ overdue` (commands/tasks.md → Rendering).
+ */
+export const boardFoot = (level: Pick<NfTaskLevel, 'kind' | 'name' | 'mine' | 'project' | 'board'>): string => {
+  const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
+  const overdue = level.board.columns.some(column => column.cards.some(card => card.overdue))
+  return [
+    `done ${level.board.done}`,
+    `archived ${level.board.archived}`,
+    `level: ${level.name}`,
+    ...(marked ? [`${MINE} ${level.project} (this project)`] : []),
+    ...(overdue ? ['⚠ overdue'] : []),
+  ].join(' · ')
+}
+
 /** The target the ring goes to once a card is picked: the column after the card's, else the first target. */
 export const firstTarget = (board: NfBoard, from: string | null): string | null => {
   const ids = openColumnsOf(board)
@@ -397,92 +414,7 @@ const label = (id: string | null): string => PHASES.find(phase => phase.id === i
 
 const LEVEL_TONE: Record<BandItem['level'], Tone | undefined> = { alert: 'error', warn: 'warning', info: undefined }
 
-/**
- * The tasks tab (commands/dashboard.md → Tasks): open tasks per level on one line, this project's share in
- * brackets, then the first open cards across levels — this project's first, overdue first, then by due date —
- * each tagged with its level. Every mark has a word in the last line.
- */
-export const taskLines = (view: NfTaskView | null, max = 5): Line[] => {
-  if (view === null) return [{ text: 'Reading the task boards…', dim: true }]
-  const cards = topCards(view, max)
-  const key = [...cardLegend(view, max), '/neuroflow:tasks opens the boards (digits pick the level)']
-  return [
-    { text: levelSummary(view) },
-    ...(cards.length === 0
-      ? [{ text: 'No open tasks.', dim: true }]
-      : cards.map(({ level, card }) => ({ text: `[${level.name}] ${levelCardLine(card, level.kind)}`, tone: card.overdue ? ('warning' as Tone) : undefined }))),
-    { text: key.join(' · '), dim: true },
-  ]
-}
-
-/** The dashboard body for one tab, as plain lines (the text form every surface can show). */
-export const tabLines = (tab: NfDashboardTab, snap: NfSnapshot, loop: NfLoopView | null, tasks: NfTaskView | null = null): Line[] => {
-  if (tab === 'now') {
-    const notice = versionNotice(snap)
-    const items = bandItems(snap, false).filter(item => item.text !== notice)
-    if (items.length === 0) return [{ text: 'Nothing needs your attention.', dim: true }]
-    return items.map(item => ({
-      text: `${item.glyph} ${item.text}${(item.actions ?? []).length > 0 ? ` — ${(item.actions ?? []).map(action => action.label).join(', ')}` : ''}`,
-      tone: LEVEL_TONE[item.level],
-    }))
-  }
-  if (tab === 'phase') {
-    const nodes = phaseNodes(snap.phase, snap.phasesVisited, snap.recommendedPhases)
-    const next = nextPhase(snap.phase, snap.recommendedPhases)
-    return [
-      { text: nodes.length === 0 ? 'No phases recorded yet.' : phaseMap(snap.phase, snap.phasesVisited, snap.recommendedPhases) },
-      { text: `Current: ${snap.phase ?? 'none'}${snap.phase ? ` — ${label(snap.phase)}` : ''}` },
-      ...(next !== null ? [{ text: `Next: /neuroflow:${next} — ${label(next)}`, dim: true }] : []),
-      ...(nodes.length > 0 ? [{ text: phaseLegend(nodes), dim: true }] : []),
-    ]
-  }
-  if (tab === 'deadlines') {
-    if (snap.deadlines.length === 0) return [{ text: 'No upcoming dates in .neuroflow/timeline.md.', dim: true }]
-    return snap.deadlines.slice(0, 12).map(deadline => ({
-      text: `${deadline.daysLeft <= 3 ? '⚠' : deadline.daysLeft <= 14 ? '▸' : '·'} ${deadline.date}  ${deadline.what} — ${when(deadline.daysLeft)}${deadline.gates ? `  (gates ${deadline.gates})` : ''}`,
-      tone: deadline.daysLeft <= 3 ? 'error' : deadline.daysLeft <= 14 ? 'warning' : undefined,
-    }))
-  }
-  if (tab === 'integrity') {
-    const lines: Line[] = []
-    const ethics = snap.ethics
-    if (ethics === null) lines.push({ text: '· ethics: no status yet — /neuroflow:ethics', dim: true })
-    else {
-      const ok = ethics.status === 'approved' && ethics.setBy === 'person'
-      lines.push({
-        text: `${ok ? '✔' : '⚠'} ethics ${ethics.status}${ethics.expires ? ` · expires ${ethics.expires}` : ''}${ethics.setBy !== 'person' ? ' · not set by a person' : ''}`,
-        tone: ok ? 'success' : 'warning',
-      })
-      if (ethics.aiProcessing !== null) lines.push({ text: `  participant data the model may read: ${ethics.aiProcessing}`, dim: true })
-    }
-    const prereg = snap.prereg
-    if (prereg === null) lines.push({ text: '· preregistration: none frozen', dim: true })
-    else if (prereg.status === 'frozen') {
-      const trusted = prereg.setBy === 'person'
-      lines.push({
-        text: `${trusted ? '■' : '?'} preregistration frozen${prereg.frozenAt ? ` ${prereg.frozenAt.slice(0, 10)}` : ''} · ${Object.keys(prereg.files).length} file(s)${trusted ? '' : ' · marker not set by a person'}`,
-        tone: trusted ? 'success' : 'warning',
-      })
-      if (prereg.plannedN !== null) lines.push({ text: `  planned N: ${prereg.plannedN}`, dim: true })
-    } else lines.push({ text: `· preregistration: ${prereg.status}`, dim: true })
-    lines.push({ text: snap.rawRoots.length > 0 ? `■ read-only raw data: ${snap.rawRoots.join(', ')}` : '· no raw-data folders declared (raw_roots)', dim: snap.rawRoots.length === 0 })
-    for (const problem of snap.problems) lines.push({ text: `! ${problem}`, tone: 'warning' })
-    return lines
-  }
-  if (tab === 'tasks') return taskLines(tasks)
-  if (loop === null) return [{ text: snap.loops.length === 0 ? 'No autoresearch loops.' : 'Loading the loop…', dim: true }]
-  const last = loop.running.length > 0 ? loop.running[loop.running.length - 1] : null
-  return [
-    { text: `${loop.name} (${loop.phase}) · ${loop.status} · iteration ${loop.iterations} · best ${loop.best}` },
-    { text: loop.running.length > 0 ? `quality ${sparkline(loop.running)}  ${last !== null && last !== undefined && last > 0 ? '+' : ''}${last ?? ''}` : 'no iterations recorded yet', dim: loop.running.length === 0 },
-    ...(loop.questions.length > 0
-      ? [{ text: 'Open questions:', tone: 'warning' as Tone }, ...loop.questions.map(question => ({ text: `  ${question}` }))]
-      : [{ text: 'No open questions.', dim: true }]),
-    { text: 'Answer in the session (A3: …) or in the loop\'s answers.md.', dim: true },
-  ]
-}
-
-// ── the dashboard's rows as the pane lays them out (pure; tabLines above stays the plain-text form) ──
+// ── the dashboard's rows as the pane lays them out (pure: the text form every surface draws) ──
 
 /** Right of the wordmark: project · phase · mode. */
 export const dashboardTitle = (snap: NfSnapshot): string =>
@@ -536,7 +468,8 @@ export const integrityRows = (snap: NfSnapshot): IntegrityRow[] => {
       name: 'ethics',
       value: `${ethics.status}${ethics.expires ? ` · expires ${ethics.expires}` : ''}`,
       note: approved ? (byPerson ? 'set by a person' : 'not set by a person') : null,
-      more: ethics.aiProcessing !== null ? [`model may read: ${ethics.aiProcessing}`] : [],
+      // As the prose dashboard says it: `model may read: pseudonymised data`.
+      more: ethics.aiProcessing !== null ? [`model may read: ${ethics.aiProcessing}${/^(pseudonymised|identifiable)$/.test(ethics.aiProcessing) ? ' data' : ''}`] : [],
     })
   }
   const prereg = snap.prereg
@@ -1201,19 +1134,18 @@ const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
 /**
  * The phase picker's options, in picker order: each phase's id and label first (a typed letter finds the phase by its
  * name), then its glyph from the one legend and its state in words — current, next, recommended, visited, not
- * started — in one column; `short` for the mobile buttons.
+ * started — in one column, as the typeahead marks it (phaseStateMark); `short` for the mobile buttons.
  */
 export const pickerOptions = (
   current: string | null,
   visited: readonly string[],
   recommended: readonly string[],
 ): { value: string; label: string; short: string }[] => {
-  const next = nextPhase(current, recommended)
-  const rows = pickerOrder(current, recommended).map(phase => {
-    const state = phaseState(phase.id, current, visited, recommended)
-    const word = state === 'current' ? 'current' : phase.id === next ? 'next' : state === 'recommended' ? 'recommended' : state === 'visited' ? 'visited' : 'not started'
-    return { value: phase.id, text: `${phase.id} — ${phase.label}`, mark: `${PHASE_GLYPH[state]} ${word}` }
-  })
+  const rows = pickerOrder(current, recommended).map(phase => ({
+    value: phase.id,
+    text: `${phase.id} — ${phase.label}`,
+    mark: phaseStateMark(phase.id, current, visited, recommended),
+  }))
   const width = Math.max(0, ...rows.map(row => cells(row.text)))
   return rows.map(row => ({ value: row.value, label: `${pad(row.text, width)}  ${row.mark}`, short: `${row.value} · ${row.mark}` }))
 }
@@ -1389,7 +1321,6 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const ring = (await read($, paneRingAtom))[BOARD] ?? null
     const near = ring !== null && ring.startsWith('nf-card-') ? ring.slice('nf-card-'.length) : pick
     const pageFor = (cards: readonly NfCard[]) => pageOf(cards, near === null ? -1 : cards.findIndex(card => card.slug === near))
-    const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
     const run = (fn: () => unknown) => act($, BOARD, fn)
     // A card and a move target are pressed by Enter: not right after another key (actOn), and a move asks first.
     const runOn = (fn: () => unknown) => actOn($, BOARD, fn)
@@ -1486,7 +1417,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           </Box>
         ) : null}
         <Box flexDirection="column" marginTop={space}>
-          <Text dimColor wrap="wrap">{`done ${board.done} · archived ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
+          <Text dimColor wrap="wrap">{boardFoot(level)}</Text>
           {view.web ? (
             <Text color="warning" wrap="wrap">{`↻ ${pendingText(view.web, now)}`}</Text>
           ) : null}
@@ -1754,14 +1685,17 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const rows =
       tab === 'now' ? nowRows(snap, await read($, flowieSyncAtom), { draft: await read($, draftAtom), drive: await read($, driveAtom), capture: await read($, captureAtom) }) : []
     const ringKeys = tab === 'now' ? nowRingKeys(rows, behind !== null) : []
-    /** Rows under UPPERCASE dim labels, the labels in a column `labelWidth` cells wide. */
+    /**
+     * Rows under UPPERCASE dim labels, the labels in a column `labelWidth` cells wide; a label is cut a cell short of
+     * it (labelCell), so a long one never runs into its value.
+     */
     const labelled = (items: readonly LabelRow[], labelWidth: number): JSX.Element => (
       <Box flexDirection="column">
         {items.map(item => (
           <Box flexDirection="row">
             <Box width={labelWidth} flexShrink={0}>
               <Text dimColor wrap="truncate-end">
-                {item.label}
+                {labelCell(item.label, labelWidth)}
               </Text>
             </Box>
             <Box flexShrink={1}>

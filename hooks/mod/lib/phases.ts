@@ -57,6 +57,18 @@ export const PHASE_GLYPH: Readonly<Record<PhaseState, string>> = { current: '◉
 /** The word that goes with each glyph, so a map reads the same without colour or glyphs. */
 export const PHASE_WORD: Readonly<Record<PhaseState, string>> = { current: 'current', visited: 'visited', recommended: 'recommended next', other: 'not started' }
 
+/**
+ * A phase's mark where phases are listed one by one (the picker, the typeahead): its glyph and that glyph's word, and
+ * `next` for the phase after the current one — `◉ current`, `→ next`, `→ recommended`, `● visited · next`, `○ not
+ * started`. A recommended phase that is not the next one is `recommended`, never `recommended next`.
+ */
+export const phaseStateMark = (id: string, current: string | null, visited: readonly string[], recommended: readonly string[]): string => {
+  const state = phaseState(id, current, visited, recommended)
+  const isNext = state !== 'current' && id === nextPhase(current, recommended)
+  if (state === 'recommended') return `${PHASE_GLYPH.recommended} ${isNext ? 'next' : 'recommended'}`
+  return `${PHASE_GLYPH[state]} ${PHASE_WORD[state]}${isNext ? ' · next' : ''}`
+}
+
 /** Picker order: the current phase, then the recommended ones (in their order), then the rest canonically. */
 export const pickerOrder = (current: string | null, recommended: readonly string[]): PhaseInfo[] => {
   const first = PHASES.filter(phase => phase.id === current)

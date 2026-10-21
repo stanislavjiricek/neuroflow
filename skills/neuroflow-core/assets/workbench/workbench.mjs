@@ -710,14 +710,18 @@ export function oldestWaiting(metas, intents) {
   return earliest(Object.values(tabSummary(metas, intents)).map(item => item.oldest))
 }
 
-/** The project phase map in neuroflow's glyph legend: ◉ the current one, ● a phase with a folder, ○ one not started — each with its word. */
+/**
+ * The project phase map in neuroflow's glyph legend, as /phase draws it: ◉ the current one, ● a phase with a folder, → a
+ * recommended one not visited yet — each with its word. The map lists the recommended phases (else the visited ones), so
+ * no phase in it is ○ not started.
+ */
 export function phaseMap(panel) {
   const order = Array.isArray(panel.recommended_phases) && panel.recommended_phases.length ? panel.recommended_phases : (panel.visited || [])
   const visited = new Set(panel.visited || [])
   return order.map(phase => ({
     phase,
-    state: phase === panel.active_phase ? 'current' : visited.has(phase) ? 'visited' : 'not started',
-    glyph: phase === panel.active_phase ? '◉' : visited.has(phase) ? '●' : '○',
+    state: phase === panel.active_phase ? 'current' : visited.has(phase) ? 'visited' : 'recommended',
+    glyph: phase === panel.active_phase ? '◉' : visited.has(phase) ? '●' : '→',
   }))
 }
 
