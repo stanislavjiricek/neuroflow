@@ -64,6 +64,7 @@ const keyAtAtom = atom({ plugin: 'neuroflow', key: 'keyAt' } as const, {})
 const PAPER_PANE = 'nf-paper'
 const XRAY_PANE = 'nf-xray'
 const WIKI_PANE = 'nf-wiki'
+const WIKI_REF = { id: WIKI_PANE, title: 'wiki cards' }
 const PAPER_DIR = '.neuroflow/paper'
 /** The column the panes' UPPERCASE labels (EVIDENCE, CHANGED, FIX) stand in, a cell of it kept blank (labelCell). */
 const LABEL = 10
@@ -196,13 +197,20 @@ const actOn =
     await run()
   }
 
+/** A pane a question came from: its id and the title it was opened with. */
+type PaneRef = { id: string; title: string }
+
 /**
  * Asks before a pane's action writes or starts a model turn: the engine's question dialog with the safe answer
  * first, so a stray Enter there answers no. Only the exact yes acts — a dismissed dialog, an answer typed under
- * "Other" and a run with nobody to ask all mean no.
+ * "Other" and a run with nobody to ask all mean no. The dialog takes the keys and hands them to the prompt when it
+ * closes, so after a no the pane it came from (`pane`) asks for them back: the person goes on where they were.
  */
-const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string): Promise<boolean> =>
-  (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
+const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string, pane?: PaneRef): Promise<boolean> => {
+  const answer = (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
+  if (!answer && pane !== undefined) await $.ui.open({ id: pane.id, title: pane.title, focus: true }).catch(() => undefined)
+  return answer
+}
 
 /** U1 — reads the three skeleton files and counts sources newer than the skeleton. */
 const loadPaperView = async ($: EngineInterface, root: string, on: boolean): Promise<NfPaperView> => {
@@ -253,7 +261,7 @@ const decide = async ($: EngineInterface, id: string, status: 'accepted' | 'reje
   const view = await read($, xrayViewAtom)
   if (scope === null || scope.root === null || view === null) return
   let reason: string | undefined
-  if (status === 'accepted' && !(await confirm($, `Accept ${id}? Its box is ticked in both X-ray files; the fix is applied only when you ask Claude to.`, 'Keep it open', 'Accept', 'X-ray'))) {
+  if (status === 'accepted' && !(await confirm($, `Accept ${id}? Its box is ticked in both X-ray files; the fix is applied only when you ask Claude to.`, 'Keep it open', 'Accept', 'X-ray', { id: XRAY_PANE, title: `X-ray ${view.title}` }))) {
     return
   }
   if (status === 'rejected') {
@@ -344,8 +352,8 @@ const settleCard = async ($: EngineInterface, file: string, title: string, accep
   const scope = await read($, scopeAtom)
   if (scope === null || scope.root === null) return
   const yes = accept
-    ? await confirm($, `Accept "${title}"? /neuroflow:wiki --add writes the page from the card, as a model turn.`, 'Not now', 'Accept', 'Wiki')
-    : await confirm($, `Skip "${title}" for good? A skipped card is never raised again.`, 'Keep it waiting', 'Skip it', 'Wiki')
+    ? await confirm($, `Accept "${title}"? /neuroflow:wiki --add writes the page from the card, as a model turn.`, 'Not now', 'Accept', 'Wiki', WIKI_REF)
+    : await confirm($, `Skip "${title}" for good? A skipped card is never raised again.`, 'Keep it waiting', 'Skip it', 'Wiki', WIKI_REF)
   if (!yes) return
   const path = join(scope.root, PENDING_DIR, file)
   if (!accept) {
@@ -617,7 +625,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
                 label="sync now"
                 plain
                 onPress={runOn(async () => {
-                  if (!(await confirm($, syncQuestion(view.frozen), 'Not now', 'Sync now', 'Paper'))) return
+                  if (!(await confirm($, syncQuestion(view.frozen), 'Not now', 'Sync now', 'Paper', { id: PAPER_PANE, title: 'living paper' }))) return
                   await $.ui.close({ id: PAPER_PANE })
                   await $.command.run({ command: 'neuroflow:paper', args: '--auto sync' })
                 })}

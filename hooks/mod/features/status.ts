@@ -32,7 +32,8 @@ export const statusLine = (snap: NfSnapshot, degraded: readonly string[], alerts
   if (snap.prereg?.status === 'frozen' && snap.prereg.setBy !== 'person') items.push('? prereg marker not set by a person')
   if (snap.problems.length > 0) items.push(`! ${snap.problems.length === 1 ? 'config needs attention' : `${snap.problems.length} config problems`} — /neuroflow:doctor`)
   if (degraded.length > 0) items.push(`! mod: ${degraded.length} feature(s) degraded — /neuroflow:doctor`)
-  return items.length === 0 ? undefined : `neuroflow: ${items.slice(0, 3).join(' · ')}`
+  // The engine names the plugin before its status entry, so the text carries no 'neuroflow:' of its own.
+  return items.length === 0 ? undefined : items.slice(0, 3).join(' · ')
 }
 
 export type DoctorCheck = { id: string; status: 'ok' | 'info' | 'warn' | 'fail'; message: string }
