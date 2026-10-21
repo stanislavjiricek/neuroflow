@@ -1,7 +1,8 @@
 // Pure layout helpers for the mod's views (no `$`): widths and heights, text cut to a width with an ellipsis, the
 // rules under the dashboard's tabs, the phase flow line, the dates ruler, the board's grid and its pages, and what the
-// one-row band above the prompt has room for. Widths are terminal cells, one per character of the glyphs the views use
-// (Box Drawing, Geometric Shapes, Arrows: no emoji, no wide glyphs). The look is skills/neuroflow-develop → Visual style.
+// one-row band above the prompt has room for. Widths are terminal cells: one for each of the views' own glyphs (Box
+// Drawing, Geometric Shapes, Arrows), two for a wide character in the text they show (CJK, an emoji: charCells). The
+// look is skills/neuroflow-develop → Visual style.
 import { COMPACT_BELOW } from './keys'
 import type { View } from './keys'
 
@@ -54,16 +55,49 @@ export const paneColumns = (view: Exclude<View, 'band'>): number => DOCK[view]
 
 // ── text ──────────────────────────────────────────────────────────────────────────────────────
 
-/** Cells a text takes: one per character (the views draw no wide glyphs and no emoji). */
-export const cells = (text: string): number => Array.from(text).length
+/** An emoji drawn as a picture (Emoji_Presentation) takes two cells. */
+const EMOJI = /\p{Emoji_Presentation}/u
+
+/**
+ * The East Asian Wide and Fullwidth characters (Unicode's EastAsianWidth.txt, W and F) besides the emoji: Hangul, the
+ * CJK ideographs, radicals and punctuation, kana, Yi, the fullwidth forms. Ambiguous ones (`○ ● ■ ─ →` among them) stay
+ * narrow, as Claude Code's renderer draws them.
+ */
+const WIDE: readonly (readonly [number, number])[] = [
+  [0x1100, 0x115f], [0x2329, 0x232a], [0x2e80, 0x303e], [0x3041, 0x3247], [0x3250, 0x4dbf], [0x4e00, 0x9fff],
+  [0xa000, 0xa4cf], [0xa960, 0xa97f], [0xac00, 0xd7a3], [0xf900, 0xfaff], [0xfe10, 0xfe19], [0xfe30, 0xfe6f],
+  [0xff00, 0xff60], [0xffe0, 0xffe6], [0x16fe0, 0x16fff], [0x17000, 0x18dff], [0x1aff0, 0x1b2ff], [0x1f200, 0x1f2ff],
+  [0x20000, 0x2fffd], [0x30000, 0x3fffd],
+]
+
+/** Cells one character takes: two for a wide one or an emoji (a CJK title, a 🎉 in a task), else one. */
+export const charCells = (char: string): number => {
+  const code = char.codePointAt(0) ?? 0
+  if (code < 0x1100) return 1
+  return EMOJI.test(char) || WIDE.some(([from, to]) => code >= from && code <= to) ? 2 : 1
+}
+
+/** Cells a text takes in a terminal (charCells): the views' own glyphs one each, a wide character two. */
+export const cells = (text: string): number => {
+  let total = 0
+  for (const char of text) total += charCells(char)
+  return total
+}
 
 /** The text cut to `width` cells, ending in `…` when it was cut; never mid-way through a character. */
 export const fit = (text: string, width: number): string => {
-  const chars = Array.from(text)
-  if (chars.length <= width) return text
+  if (cells(text) <= width) return text
   if (width <= 0) return ''
   if (width === 1) return '…'
-  return `${chars.slice(0, width - 1).join('').trimEnd()}…`
+  let used = 0
+  let kept = ''
+  for (const char of text) {
+    const size = charCells(char)
+    if (used + size > width - 1) break
+    kept += char
+    used += size
+  }
+  return `${kept.trimEnd()}…`
 }
 
 /** The text fitted to `width` cells and padded with spaces to exactly that width. */

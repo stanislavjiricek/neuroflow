@@ -6,6 +6,7 @@ import {
   bandPlan,
   boardLayout,
   cells,
+  charCells,
   fit,
   flowLine,
   isCompact,
@@ -49,6 +50,22 @@ describe('widths and heights', () => {
     expect(align('a long left part', 'right', 12)).toBe('a lo…  right')
     expect(align('x', 'too long right', 10)).toBe('too long…')
     expect(align('only left', '', 6)).toBe('only…')
+  })
+
+  test('a wide character (CJK, an emoji) takes two cells, so a title in it is cut to its room; the views\' own glyphs take one', () => {
+    const title = '重新运行独立成分分析并检查标记通道'
+    expect(cells(title)).toBe(34)
+    expect(fit(title, 10)).toBe('重新运行…')
+    expect(cells(fit(title, 10))).toBe(9)
+    expect(pad('重新', 6)).toBe('重新  ')
+    expect(align('任务', 'due', 10)).toBe('任务   due')
+    expect([charCells('中'), charCells('ｶ'), charCells('Ａ'), charCells('🎉'), charCells('a')]).toEqual([2, 1, 2, 2, 1])
+    expect(cells('🎉 done')).toBe(7)
+    // Ambiguous and text-style glyphs stay narrow, as Claude Code's renderer draws them.
+    const glyphs = '◌ ◉ ● → ○ · ▸ ◂ ▾ ▴ ‹ › ◆ ⚠ ✔ ✖ ✎ ✓ ↻ ↑ ■ ▁ █ ─ ━ ┼ ┬ … —'
+    expect(cells(glyphs)).toBe(Array.from(glyphs).length)
+    // The band sizes an item's box by its cells: a CJK item is not cut while the band has room for it.
+    expect(bandItemWidths(40, ['⚠ 摘要截止日期 — 明天'])).toEqual([21])
   })
 })
 
