@@ -553,7 +553,8 @@ export const integrityRows = (snap: NfSnapshot): IntegrityRow[] => {
       name: 'ethics',
       value: `${ethics.status}${ethics.expires ? ` · expires ${ethics.expires}` : ''}`,
       note: approved ? (byPerson ? 'set by a person' : 'not set by a person') : null,
-      more: ethics.aiProcessing !== null ? [`model may read: ${ethics.aiProcessing}`] : [],
+      // As the prose dashboard says it: `model may read: pseudonymised data`.
+      more: ethics.aiProcessing !== null ? [`model may read: ${ethics.aiProcessing}${/^(pseudonymised|identifiable)$/.test(ethics.aiProcessing) ? ' data' : ''}`] : [],
     })
   }
   const prereg = snap.prereg

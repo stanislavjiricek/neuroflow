@@ -216,7 +216,7 @@ describe('the dashboard\'s rows', () => {
     ])
     expect(integrityRows(snap).map(row => [row.glyph, row.name, row.value, row.note, row.more.join('; ')])).toEqual([
       // Approved, but not by a person: `?` and the words (commands/dashboard.md → Integrity).
-      ['?', 'ethics', 'approved · expires 2027-06-30', 'not set by a person', 'model may read: pseudonymised'],
+      ['?', 'ethics', 'approved · expires 2027-06-30', 'not set by a person', 'model may read: pseudonymised data'],
       ['■', 'preregistration', 'frozen 2026-10-01 · 2 files', 'set by a person', 'planned N: 24'],
       ['■', 'raw data', 'read-only: sourcedata/', null, ''],
     ])
@@ -227,6 +227,9 @@ describe('the dashboard\'s rows', () => {
       '· raw data: no folders declared (raw_roots)',
     ])
     expect(integrityRows(snapshot({ ethics: { status: 'expired', setBy: 'person', setAt: null, approvalId: null, expires: null, aiProcessing: null } }))[0]).toMatchObject({ glyph: '⚠', tone: 'error' })
+    // What the model may read, in the prose dashboard's words (commands/dashboard.md): `none`, or the kind of data.
+    const reads = (aiProcessing: string) => integrityRows(snapshot({ ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: null, expires: null, aiProcessing } }))[0]?.more
+    expect([reads('none'), reads('identifiable')]).toEqual([['model may read: none'], ['model may read: identifiable data']])
   })
 
   test('the ruler\'s marks keep their colours; the loop and the now tab\'s summary read as one line each', () => {
