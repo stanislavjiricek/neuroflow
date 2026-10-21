@@ -1464,11 +1464,12 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       const more = moreLabel(fits.more, fits.short)
       return (
         <Box flexDirection="row" columnGap={2}>
-          <Box flexDirection="row" columnGap={1} flexShrink={0}>
+          {/* The items keep the widths bandPlan gave them, and give way first should a surface measure a glyph wider. */}
+          <Box flexDirection="row" columnGap={1} flexShrink={1}>
             <Text dimColor>{MARK}</Text>
-            <Box flexDirection="row" columnGap={2}>
+            <Box flexDirection="row" columnGap={2} flexShrink={1}>
               {shown.map((item, at) => (
-                <Box width={widths[at] ?? 0} flexShrink={0}>
+                <Box width={widths[at] ?? 0} flexShrink={1}>
                   <Text color={item.color} wrap="truncate-end">
                     {item.text}
                   </Text>
