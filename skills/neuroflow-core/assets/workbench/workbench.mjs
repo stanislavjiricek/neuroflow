@@ -394,6 +394,63 @@ export function releasePatch(nowMs) {
   return { cancel_requested_at: stamp(nowMs) }
 }
 
+/**
+ * What a card offers: Move to… (a movable card), Undo (its last change still waits, unclaimed) and Release — only for a
+ * claim older than CLAIM_TTL_MS that never finished (`stale`). A live claim offers nothing to undo: a run is applying
+ * it, and a release would arrive after that run's check.
+ */
+export function cardActions(card) {
+  const state = card && card.pending ? card.pending.state : null
+  return { move: Boolean(card && card.movable), undo: state === 'pending', release: state === 'stale', waiting: state === 'claimed' }
+}
+
+/**
+ * The board filter as it applies to a level: a project level has no project filter (nothing on its tab can clear one),
+ * and the owner and project choices are its own cards' — a stored choice none of them has stays listed, so the
+ * control always shows the filter in force.
+ */
+export function levelFilter(level, filter = {}) {
+  return level && level.kind === 'project' ? { ...filter, project: '' } : { ...filter }
+}
+
+export function filterChoices(level, filter = {}) {
+  const of = name => [...new Set(((level && level.cards) || []).map(card => card[name]).filter(Boolean))].sort()
+  const owners = of('owner')
+  const projects = level && level.kind === 'project' ? [] : of('project')
+  if (filter.owner && !owners.includes(filter.owner)) owners.unshift(filter.owner)
+  if (level && level.kind !== 'project' && filter.project && !projects.includes(filter.project)) projects.unshift(filter.project)
+  return { owners, projects }
+}
+
+/** The filter a newly opened tab starts with: the search and the overdue switch stay, owner and project are per level. */
+export function filterOnOpen(filter = {}) {
+  return { ...filter, owner: '', project: '' }
+}
+
+/**
+ * The page's settings kept in step with the store. A local change is written `delayMs` later (changes in between
+ * merge into one write); a snapshot from the store — another tab or device, or the record restored by an export —
+ * is taken whenever no local change waits to be written or is being written. `timer` is {set, clear}.
+ */
+export function prefsKeeper({ write, delayMs = 700, timer }) {
+  let waiting = null
+  let writing = 0
+  let chain = Promise.resolve()
+  return {
+    get busy() { return waiting !== null || writing > 0 },
+    change(body, onError) {
+      timer.clear(waiting)
+      waiting = timer.set(() => {
+        waiting = null
+        writing += 1
+        chain = chain.then(() => write(body())).catch(error => { if (onError) onError(error) }).finally(() => { writing -= 1 })
+      }, delayMs)
+    },
+    take(doc, current) { return this.busy ? current : normalizePrefs(doc) },
+    settled() { return chain },
+  }
+}
+
 function withId(intent, id) {
   return { ...intent, id }
 }

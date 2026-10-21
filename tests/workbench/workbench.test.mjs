@@ -9,11 +9,11 @@ import { fileURLToPath } from 'node:url'
 import { Script, createContext } from 'node:vm'
 
 import {
-  activeIntents, assembleLevel, boardModel, daysUntil, defaultPrefs, drawnCards, drawnLanes, freshnessLabel, intentDocument,
-  intentsPath, isCollectionPath, isDelimiterRow, isDocumentPath, isMoveTarget, isOverdue, lanes, levelOrder, makeAdd, makeCancel,
-  makeMove, metaPath, neighbourColumn, newIntentId, normalizePrefs, oldestWaiting, outcomeText, parseInline, parseMarkdown,
-  partsPath, phaseMap, prefsPath, recentOutcomes, releasePatch, safeHref, segments, tabSummary, upcomingDates, userRoot,
-  validLevelKey, validSegment, waitingCount, waitingIntents, wikiIndex,
+  activeIntents, assembleLevel, boardModel, cardActions, daysUntil, defaultPrefs, drawnCards, drawnLanes, filterChoices, filterOnOpen,
+  freshnessLabel, intentDocument, intentsPath, isCollectionPath, isDelimiterRow, isDocumentPath, isMoveTarget, isOverdue, lanes,
+  levelFilter, levelOrder, makeAdd, makeCancel, makeMove, metaPath, neighbourColumn, newIntentId, normalizePrefs, oldestWaiting,
+  outcomeText, parseInline, parseMarkdown, partsPath, phaseMap, prefsKeeper, prefsPath, recentOutcomes, releasePatch, safeHref,
+  segments, tabSummary, upcomingDates, userRoot, validLevelKey, validSegment, waitingCount, waitingIntents, wikiIndex,
 } from '../../skills/neuroflow-core/assets/workbench/workbench.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -210,6 +210,57 @@ test('a folder tasks/config.json does not name (extra) and the archive are no ta
   assert.match(html, /const targets = board\.columns\.filter\(column => column\.id === card\.column \|\| isMoveTarget\(column\)\)/) // Move to…
   assert.match(html, /const target = isMoveTarget\(column\)/) // drop and the column's + button
   assert.match(html, /level\.columns\.filter\(isMoveTarget\)\.map/) // the add form's Column choices
+})
+
+test('the board filter belongs to its level: a choice in force stays listed, a project tab has no project filter', () => {
+  const hive = level(HIVE)
+  const flowie = level('flowie')
+  const project = level('project+oddball-eeg')
+  assert.deepEqual(filterChoices(hive, {}).owners, ['alice', 'jana'])
+  assert.deepEqual(filterChoices(hive, { owner: 'li' }).owners, ['li', 'alice', 'jana']) // shown, so it can be cleared
+  assert.deepEqual(filterOnOpen({ text: 'ica', owner: 'li', project: 'x', overdue: true }), { text: 'ica', owner: '', project: '', overdue: true })
+  assert.deepEqual(filterChoices(project, { project: 'solo-review' }).projects, [])
+  assert.equal(boardModel(project, [], { filter: { project: 'solo-review' } }).total, 0) // what the bug did
+  assert.equal(boardModel(project, [], { filter: levelFilter(project, { project: 'solo-review' }) }).total, project.cards.length)
+  assert.equal(boardModel(flowie, [], { filter: levelFilter(flowie, { project: 'solo-review' }) }).total, 1)
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /filterOnOpen\(state\.filter\)/)
+  assert.match(html, /filter: levelFilter\(level, state\.filter\)/)
+})
+
+test('settings: a local change is written after a pause, another device\'s are taken whenever none waits', async () => {
+  const timers = []
+  const timer = { set: run => timers.push(run), clear: id => { if (id) timers[id - 1] = null } }
+  const written = []
+  let finish = null
+  const keeper = prefsKeeper({ write: body => new Promise(resolve => { written.push(body); finish = resolve }), timer })
+  const mine = { ...defaultPrefs(), density: 'compact' }
+  assert.equal(keeper.take({ theme: 'light' }, mine).theme, 'light') // nothing waits: the store's settings win
+  keeper.change(() => ({ ...mine, theme: 'dark' }))
+  keeper.change(() => ({ ...mine, theme: 'light' })) // within the pause: one write, of the last change
+  assert.ok(keeper.busy)
+  assert.equal(keeper.take({ theme: 'dark' }, mine), mine) // a change waits: this tab's settings stay
+  for (const run of timers.filter(Boolean)) run()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.deepEqual(written.map(body => body.theme), ['light'])
+  assert.ok(keeper.busy) // being written
+  finish()
+  await keeper.settled()
+  assert.ok(!keeper.busy)
+  assert.equal(keeper.take({ theme: 'dark', density: 'comfortable' }, mine).theme, 'dark') // then another device's show
+  const html = readFileSync(join(root, 'skills', 'neuroflow-core', 'assets', 'workbench', 'workbench.html'), 'utf8')
+  assert.match(html, /state\.prefs = prefsSync\.take\(prefsDoc, state\.prefs\)/)
+  assert.doesNotMatch(html, /prefsTimer/)
+})
+
+test('a card offers Release only for a claim that never finished; a live claim is left to finish', () => {
+  const claimed = goldenList().filter(item => item.id === 'i-mh2a0001-aaaa')
+    .map(item => ({ ...item, status: 'claimed', claim: { machine: 'laptop', claimed_at: '2026-10-21T10:20:00Z' } }))
+  const card = (intents, nowMs) => boardModel(level(HIVE), intents, { nowMs }).columns.flatMap(c => c.cards).find(c => c.slug === 'fix-channel-map')
+  assert.deepEqual(cardActions(card(claimed, NOW)), { move: true, undo: false, release: false, waiting: true })
+  assert.deepEqual(cardActions(card(claimed, NOW + 31 * 60000)), { move: true, undo: false, release: true, waiting: false })
+  assert.deepEqual(cardActions(card(goldenList(), NOW)), { move: true, undo: true, release: false, waiting: false })
+  assert.deepEqual(cardActions(card([], NOW)), { move: true, undo: false, release: false, waiting: false })
 })
 
 test('the keyboard walks a grouped column in the order it is drawn', () => {

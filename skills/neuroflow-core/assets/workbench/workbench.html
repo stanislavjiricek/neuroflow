@@ -388,15 +388,16 @@ async function writeIntent(intent, message) {
   }
 }
 
-let prefsTimer = null
-let prefsWriting = Promise.resolve()
+// settings: a local change is written once the person pauses; another tab's or device's settings are taken whenever
+// no local change waits to be written (prefsKeeper)
+const prefsSync = prefsKeeper({
+  write: body => (state.db && state.owner ? state.db.doc(prefsPath(state.uid)).set(body) : undefined),
+  timer: { set: (run, ms) => setTimeout(run, ms), clear: id => clearTimeout(id) },
+})
 function savePrefs() {
-  clearTimeout(prefsTimer)
-  prefsTimer = setTimeout(() => {
-    if (!state.db || !state.owner) return
-    const body = { ...state.prefs, prefs_schema: PREFS_SCHEMA, updated_at: new Date().toISOString() }
-    prefsWriting = prefsWriting.then(() => state.db.doc(prefsPath(state.uid)).set(body)).catch(error => problem(error, 'saving your settings'))
-  }, 700)
+  if (!state.db || !state.owner) return
+  prefsSync.change(() => ({ ...state.prefs, prefs_schema: PREFS_SCHEMA, updated_at: new Date().toISOString() }),
+    error => problem(error, 'saving your settings'))
 }
 
 function setPrefs(change) {
@@ -447,7 +448,7 @@ async function boot() {
       else if (validLevelKey(doc.id) && doc.data()) metas[doc.id] = doc.data()
     }
     state.metas = metas
-    if (!prefsTimer) state.prefs = normalizePrefs(prefsDoc)
+    state.prefs = prefsSync.take(prefsDoc, state.prefs)
     state.prefsDoc = prefsDoc
     const order = levelOrder(metas, state.prefs)
     state.current = chooseLevel(order)
@@ -520,7 +521,7 @@ function currentLevel() {
 
 function boardOptions(level) {
   return {
-    today: localDate(Date.now()), nowMs: Date.now(), filter: state.filter, focusProject: state.prefs.focus_project,
+    today: localDate(Date.now()), nowMs: Date.now(), filter: levelFilter(level, state.filter), focusProject: state.prefs.focus_project,
     hiddenColumns: [...(state.prefs.hidden_columns[level.key] || []), ...(state.prefs.show_archive ? [] : level.columns.filter(c => c.archive).map(c => c.id))],
     wip: state.prefs.wip[level.key] || {},
   }
@@ -588,6 +589,7 @@ function drawTabs() {
 }
 
 function openLevel(key) {
+  if (key !== state.current) state.filter = filterOnOpen(state.filter)  // owner and project belong to a level
   state.current = key
   state.menu = null
   state.adding = null
@@ -701,8 +703,7 @@ function drawLevelHead(level, view) {
 
 function drawBoard(level) {
   const board = boardModel(level, state.intents, boardOptions(level))
-  const owners = [...new Set(level.cards.map(card => card.owner).filter(Boolean))].sort()
-  const projects = [...new Set(level.cards.map(card => card.project).filter(Boolean))].sort()
+  const { owners, projects } = filterChoices(level, state.filter)  // a choice in force is always listed
   const toolbar = h('div', { class: 'toolbar' },
     h('label', { class: 'sr-only', for: 'filter-text' }, 'Search the cards'),
     h('input', { id: 'filter-text', type: 'search', placeholder: 'Search cards', value: state.filter.text, oninput: event => { state.filter.text = event.target.value; render() } }),
@@ -778,7 +779,7 @@ function cardLabel(card) {
   const bits = [card.title]
   if (card.owner) bits.push(`owner ${card.owner}`)
   if (card.due) bits.push(`due ${card.due}${card.overdue ? ', overdue' : ''}`)
-  if (card.pending) bits.push(card.pending.state === 'claimed' ? `being applied on ${card.pending.by}` : 'waiting for Claude Code')
+  if (card.pending) bits.push(card.pending.state === 'claimed' ? `being applied on ${card.pending.by}` : card.pending.state === 'stale' ? `claimed by ${card.pending.by}, never finished` : 'waiting for Claude Code')
   return bits.join(', ')
 }
 
@@ -794,7 +795,7 @@ function drawCard(level, card, board) {
   else if (card.pending) {
     const fromLabel = (board.columns.find(c => c.id === card.pending.from) || {}).label || card.pending.from
     if (card.pending.state === 'pending') badges.push(h('span', { class: 'chip wait', text: `↻ from ${fromLabel} · waits for Claude Code` }))
-    else if (card.pending.state === 'claimed') badges.push(h('span', { class: 'chip wait', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())}` }))
+    else if (card.pending.state === 'claimed') badges.push(h('span', { class: 'chip wait', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())} — being applied there; wait for it` }))
     else badges.push(h('span', { class: 'chip warn', text: `claimed by ${card.pending.by} ${relativeAge(card.pending.at, Date.now())} — it never finished` }))
   }
   if (card.outcome) badges.push(h('span', { class: 'chip alert', text: outcomeText(card.outcome) }))
@@ -802,9 +803,10 @@ function drawCard(level, card, board) {
   if (card.legacy) badges.push(h('span', { class: 'chip', text: 'legacy file: move it once with /tasks --move' }))
   if (card.readable === false) badges.push(h('span', { class: 'chip alert', text: 'merge-conflict markers: no moves' }))
   const actions = []
-  if (card.movable) actions.push(h('button', { class: 'btn quiet', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': String(Boolean(state.menu && state.menu.key === card.key)), onclick: () => { state.menu = { key: card.key }; render() } }, 'Move to…'))
-  if (card.pending && card.pending.state === 'pending') actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => undoCard(card) }, 'Undo'))
-  if (card.pending && card.pending.state !== 'pending') actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => release(card) }, 'Release'))
+  const offers = cardActions(card)  // Release only for a claim that never finished: a live one is being applied
+  if (offers.move) actions.push(h('button', { class: 'btn quiet', type: 'button', 'aria-haspopup': 'menu', 'aria-expanded': String(Boolean(state.menu && state.menu.key === card.key)), onclick: () => { state.menu = { key: card.key }; render() } }, 'Move to…'))
+  if (offers.undo) actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => undoCard(card) }, 'Undo'))
+  if (offers.release) actions.push(h('button', { class: 'btn quiet', type: 'button', onclick: () => release(card) }, 'Release'))
   const el = h('article', {
     class: `card${card.pending ? ' pending' : ''}${card.mine ? ' mine' : ''}`, tabindex: '0', draggable: card.movable ? 'true' : null,
     'aria-label': cardLabel(card), dataset: { key: card.key, column: card.column },
