@@ -91,6 +91,11 @@ move "Rerun ICA" to  inbox  ready  <span class="b">review</span>  meeting  done 
 | Quiet | A `quiet` command such as `/idk` silences the band, status line and footer label until the next neuroflow command | — |
 | Autoresearch driver | `/neuroflow:autoresearch drive <name>`: one iteration per turn, caps checked between turns, a stop key | `runtime: on` |
 
+When changes you made on your claude.ai [workbench](workbench.md) wait for Claude Code (as `~/.neuroflow/workbench/pending.json`
+last recorded them), the band says how many and `a` puts `/neuroflow:tasks --apply-web` in the prompt for you to send;
+the boards mark those cards `↻`. The mod reads that file only — it never calls the workbench or uploads anything, and
+`/neuroflow:dashboard --web` always runs the full command.
+
 When you open the boards (`/neuroflow:tasks`, the dashboard's tasks tab) or press `r` there, the mod refreshes the cache of the project's other repositories' boards in `~/.neuroflow/boards/` in the background — a shallow, sparse fetch of their `.neuroflow/tasks/` only, with git hooks off and no password prompt; nothing leaves — at most once a minute, and ten minutes after a fetch that failed. Those boards are read-only in the pane.
 
 The band asks for the wellbeing check-in only once it knows today's entry is not already on your flowie's remote — made on another machine: as a session starts in a neuroflow project the mod fetches your flowie in the background (it reads the remote's refs: nothing leaves, your files are not touched, the first prompt never waits), and when the entry is there it does not ask — the next pull brings it down; offline, or with git hooks or LFS in your flowie, it asks as before. The wellbeing check-in on the band and `idea: …` write into your private [flowie](flowie.md). The mod commits those
@@ -141,7 +146,7 @@ the keys, so a number you type into the prompt ("2026", "128 channels") never pr
 
 | View | Its keys |
 |---|---|
-| Band | `d` dashboard (opens on now) · `x` hide today, not today, stop a driven loop or a note capture · `p` prepare and `o` notes for a meeting soon · `c` close a meeting left open · `m` migrate · `w` review wiki cards · `s` sync the flowie · `y` keep and `n` drop a drafted decision · the wellbeing check-in is a field: ^X Tab lands in it |
+| Band | `d` dashboard (opens on now) · `x` hide today, not today, stop a driven loop or a note capture · `p` prepare and `o` notes for a meeting soon · `c` close a meeting left open · `m` migrate · `w` review wiki cards · `s` sync the flowie · `a` apply your workbench changes (puts the command in the prompt for you to send) · `y` keep and `n` drop a drafted decision · the wellbeing check-in is a field: ^X Tab lands in it |
 | Dashboard | `1` now · `2` phase · `3` deadlines · `4` integrity · `5` tasks · `6` loop; on phase `g` go to a phase; on integrity `f` freeze (asks first), `v` verify, `u` unfreeze (asks first); on tasks `b` the boards. On now, every action runs with Enter on its row, never on a letter |
 | Task boards | `1`–`9` level · `h` `j` `k` `l` or Tab to a card · Enter picks it (▸), Enter on a column moves it · `x` cancel · a hive's move goes into the prompt for you to send |
 | Phase picker | Down or Enter opens the list · the arrows move · a letter jumps to the phases that start with it · Enter switches · Esc closes |
@@ -342,7 +347,7 @@ done. A guard that would ask denies instead in a headless run, where nobody is t
 | `GIT-NO-SECRETS` | `git clean -x`, staging local-only files (a project's, and any `integrations.json`; your flowie's other files are synced, so staging them by path is fine), `git add .` / `-A` / `-u` in your flowie or while `.gitignore` lacks the local-only lines; commands that throw work away (`reset --hard`, force push) | deny — ask for a broad `git add` and for discards |
 | `GIT-ALIAS-SCOPE` | A git verb beyond the endpoint of the running `/git` alias | deny |
 | `INTEGRITY-MARKER` | The model writing `set_by: person` into an ethics or preregistration status file | ask |
-| `EGRESS-CONFIRM` | Uploads to outside services (NotebookLM sources) | ask |
+| `EGRESS-CONFIRM` | Uploads to outside services (NotebookLM sources); `ArtifactData` writes to anything but your recorded [workbench](workbench.md) under `data/users/me` for a level you mirror; Claude creating or rewriting a workbench request, which only the page does | ask — deny for a workbench request |
 | `LOGIN-NODE` | Heavy compute on an HPC login node (a scheduler on `PATH`, no job around the session) | ask |
 | `MEMORY-PURITY` | Files outside the documented `.neuroflow/` structure (read from `nf_check.py --structure`), deliverables inside it | warn |
 

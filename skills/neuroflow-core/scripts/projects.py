@@ -31,6 +31,7 @@ a repository that could not be read (view/refresh) · 2 usage or runtime error
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -292,8 +293,37 @@ def card_repos(card: dict) -> list[str]:
 
 # ── tasks ───────────────────────────────────────────────────────────────────────────────────────
 
-def read_board(tasks: Path) -> list[dict]:
-    """Every task file of a board: one per `{column}/{slug}.md`; a legacy flat file counts in its `status` column."""
+TASK_HASH_KEYS = ("status", "updated")  # what a move writes; every other byte of a task file counts
+LEGACY_TASK_KEYS = ("id", "assignee", "responsible", "level")
+CONFLICT_MARK = re.compile(r"^(<{7}|>{7})( |$)", re.M)
+
+
+def task_hash(text: str) -> str:
+    """The content hash a workbench intent is checked against (neuroflow-core → Workbench snapshot): sha256 of the task
+    file as UTF-8 with its BOM dropped, LF line endings, and the frontmatter's top-level `status` and `updated` lines
+    left out. A move writes only those two, so a move half done still matches, while any other edit does not."""
+    lines = text.lstrip("﻿").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    if lines and lines[0].strip() == "---":
+        end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
+        if end is not None:
+            keep = [line for line in lines[1:end] if not re.match(rf"^(?:{'|'.join(TASK_HASH_KEYS)}):", line)]
+            lines = [lines[0], *keep, *lines[end:]]
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
+def task_notes(text: str) -> str:
+    """The free-form notes below a task file's frontmatter."""
+    lines = text.lstrip("﻿").replace("\r\n", "\n").split("\n")
+    if lines and lines[0].strip() == "---":
+        end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
+        lines = lines[end + 1:] if end is not None else []
+    return "\n".join(lines).strip()
+
+
+def read_board(tasks: Path, details: bool = False) -> list[dict]:
+    """Every task file of a board: one per `{column}/{slug}.md`; a legacy flat file counts in its `status` column.
+    With `details` (the workbench export) each task also carries its `status`, `created`, `updated`, `phase` and
+    `tags`, its notes, its content hash (task_hash), whether it is a legacy file and whether it holds conflict markers."""
     out: list[dict] = []
     if not tasks.is_dir():
         return out
@@ -301,12 +331,13 @@ def read_board(tasks: Path) -> list[dict]:
         rel = path.relative_to(tasks)
         if path.name.lower() in ("readme.md", "index.md", "flow.md") or len(rel.parts) > 2:
             continue
-        fm = frontmatter(read_text(path) or "")
+        text = read_text(path) or ""
+        fm = frontmatter(text)
         if not fm:
             continue
         column = rel.parts[0] if len(rel.parts) == 2 else str(fm.get("status") or "inbox")
         slug = path.stem if len(rel.parts) == 2 else re.sub(r"^[A-Za-z]*-?\d+-", "", path.stem)
-        out.append({
+        task = {
             "slug": slug,
             "file": rel.as_posix(),
             "column": column,
@@ -316,7 +347,21 @@ def read_board(tasks: Path) -> list[dict]:
             "project": str(fm.get("project")).strip() if fm.get("project") not in (None, []) else None,
             "blocked_by": as_list(fm.get("blocked_by")),
             "open": column.lower() not in CLOSED,
-        })
+        }
+        if details:
+            scalar = lambda key: str(fm.get(key)).strip() if fm.get(key) not in (None, [], "") else None  # noqa: E731
+            task.update({
+                "status": scalar("status"),
+                "created": scalar("created"),
+                "updated": scalar("updated"),
+                "phase": scalar("phase"),
+                "tags": as_list(fm.get("tags")),
+                "notes": task_notes(text),
+                "sha256": task_hash(text),
+                "legacy": len(rel.parts) == 1 or any(key in fm for key in LEGACY_TASK_KEYS),
+                "conflicted": bool(CONFLICT_MARK.search(text)),
+            })
+        out.append(task)
     return out
 
 

@@ -94,6 +94,20 @@ export type NfSnapshot = {
   /** Things the loader could not read or understand, in plain words. */
   problems: string[]
   loadedAt: number
+  /** Changes on the person's claude.ai workbench waiting for /neuroflow:tasks --apply-web (pending.json); null when none. */
+  workbench?: NfWebPending | null
+}
+
+/**
+ * ~/.neuroflow/workbench/pending.json as workbench.py last wrote it (neuroflow-core → Workbench snapshot): how many
+ * workbench changes wait for Claude Code, since when (`oldest`), and per level the board and the slugs they touch. As of
+ * `checkedAt` only.
+ */
+export type NfWebPending = {
+  checkedAt: string | null
+  oldest: string | null
+  count: number
+  levels: { level: string; kind: string | null; board: string | null; root: string | null; slugs: string[]; count: number }[]
 }
 
 /** One row of a wiki's index.md: which wiki, the page title, its file and one-line summary. */
@@ -158,6 +172,8 @@ export type NfCard = {
   project: string | null
   /** The task belongs to this project: every task at project level, a matching `project:` elsewhere. */
   isMine: boolean
+  /** A change from the claude.ai workbench waits for this card (pending.json). */
+  web?: boolean
 }
 
 /** One level's task board as the board pane draws it (commands/tasks.md format). */
@@ -204,6 +220,8 @@ export type NfTaskView = {
   card?: string | null
   /** Whether the card lists other repositories, whose boards the cache can hold. */
   hasRemote?: boolean
+  /** Workbench changes waiting for Claude Code (pending.json): when it was written and how many. */
+  web?: { checkedAt: string | null; count: number } | null
 }
 
 /** A flowie sync the mod queued (in $.store): the files it wrote there and the commit message. */

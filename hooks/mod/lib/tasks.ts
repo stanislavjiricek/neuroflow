@@ -7,6 +7,7 @@ import type { NfBoard, NfCard, NfTaskLevel, NfTaskView } from '../../../types'
 import { asList, asString, parseYamlSubset, splitFrontmatter } from './frontmatter'
 import type { NfIo } from './io'
 import { dirname, isWindowsPath, join, resolveFrom, toSlash } from './paths'
+import { loadPending, pendingSlugs } from './workbench'
 
 export type Column = { id: string; label: string; archive: boolean }
 
@@ -72,9 +73,9 @@ export const buildBoard = (columns: readonly Column[], cards: Readonly<Record<st
   }
 }
 
-/** A card as one text line: `⚠ rerun-ica @li due 08-20`. */
+/** A card as one text line: `⚠ rerun-ica @li due 08-20`; `↻` when a workbench change waits for it. */
 export const cardLine = (card: NfCard): string =>
-  `${card.overdue ? '⚠ ' : ''}${card.title}${card.owner ? ` @${card.owner}` : ''}${card.due ? ` due ${card.due.slice(5)}` : ''}`
+  `${card.web ? '↻ ' : ''}${card.overdue ? '⚠ ' : ''}${card.title}${card.owner ? ` @${card.owner}` : ''}${card.due ? ` due ${card.due.slice(5)}` : ''}`
 
 /** The mark of this project's cards on flowie and hive boards (the prose's rendering rules use the same). */
 export const MINE = '◆'
@@ -405,7 +406,18 @@ export const loadTaskView = async (io: NfIo, root: string, home: string | null, 
   // The card id: the flowie's link, else the first hive that lists this repo (board order).
   const card = named.get('flowie') ?? refs.map(ref => named.get(ref.id) ?? null).find(id => id !== null) ?? null
   const levels: NfTaskLevel[] = []
-  for (const ref of refs) levels.push(await loadLevel(io, ref, today, ref.kind === 'project' ? null : named.get(ref.id) ?? card))
+  // Changes queued on the claude.ai workbench (pending.json, as of when workbench.py wrote it) mark their cards.
+  const pending = await loadPending(io, home === null ? null : toSlash(home))
+  for (const ref of refs) {
+    const level = await loadLevel(io, ref, today, ref.kind === 'project' ? null : named.get(ref.id) ?? card)
+    const waiting = pendingSlugs(pending, ref, root)
+    const mark = (item: NfCard): NfCard => (waiting.has(item.slug) ? { ...item, web: true } : item)
+    levels.push(waiting.size === 0 ? level : {
+      ...level,
+      board: { ...level.board, columns: level.board.columns.map(column => ({ ...column, cards: column.cards.map(mark) })) },
+      top: level.top.map(mark),
+    })
+  }
   let hasRemote = false
   if (home !== null && card !== null) {
     const entry = await projectCard(io, home, hiveDirs, card)
@@ -422,7 +434,7 @@ export const loadTaskView = async (io: NfIo, root: string, home: string | null, 
       levels.push({ ...level, fetched: stamp === '' ? null : stamp })
     }
   }
-  return { levels, card, hasRemote }
+  return { levels, card, hasRemote, web: pending === null ? null : { checkedAt: pending.checkedAt, count: pending.count } }
 }
 
 // ── what the views say ────────────────────────────────────────────────────────────────────────

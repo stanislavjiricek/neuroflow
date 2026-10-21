@@ -316,6 +316,18 @@ class NF2Tests(Base):
         self.set_config(CONFIG.replace("default_mode: critic", "default_mode: critic\nwiki_capture: forbid"))
         self.assertNotIn("wiki", self.messages("NF2"))
 
+    def test_the_workbench_opt_in_and_the_personal_switch(self):
+        for policy in ("allow", "allow-names", "forbid"):
+            self.set_config(CONFIG.replace("default_mode: critic", f"default_mode: critic\nworkbench_mirror: {policy}"))
+            self.assertNotIn("workbench", self.messages("NF2"))
+        self.set_config(CONFIG.replace("default_mode: critic", "default_mode: critic\nworkbench_mirror: everyone"))
+        self.assertIn("`workbench_mirror: everyone` must be allow, allow-names or forbid", self.messages("NF2"))
+        self.set_config(CONFIG.replace("default_mode: critic", "default_mode: critic\nworkbench: on\nworkbench_levels: [flowie]"))
+        found = [f for f in self.findings("NF2") if "personal workbench" in f.message]
+        self.assertEqual(len(found), 1)
+        self.assertIn("`workbench`, `workbench_levels`", found[0].message)
+        self.assertIn("~/.neuroflow/user.yaml", found[0].message)
+
 
 FREEZE = REPO / "skills" / "phase-preregistration" / "scripts" / "freeze.py"
 

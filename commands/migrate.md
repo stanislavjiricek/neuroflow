@@ -155,4 +155,5 @@ The same plan-then-apply flow for the folders outside the project: your flowie (
 - When something was written, append `## HH:MM — [migrate] {what changed, per level}` to `.neuroflow/sessions/YYYY-MM-DD.md` if `.neuroflow/` exists — e.g. `## 10:12 — [migrate] project to nf_schema 1 and neuroflow 0.2.22; flowie: 3 task files in the current format`.
 - Add a line to `reasoning/general.jsonl` for each decision the person made in Step 2 (for example the phase chosen for a legacy value).
 - Suggest committing the project's migration on its own (`/neuroflow:git`), so collaborators see one clean change. Collaborators on an older neuroflow should update the plugin before they write to `.neuroflow/` again.
+- If the person keeps a claude.ai workbench (`workbench: on` in `~/.neuroflow/user.yaml`), say in one line that `/neuroflow:dashboard --web` upgrades its page when the installed neuroflow ships a newer one — this command never publishes or uploads anything.
 - Close with `Next: /neuroflow:phase`.

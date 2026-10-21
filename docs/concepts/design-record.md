@@ -101,7 +101,7 @@ warning, kept as a rule of the mod's charter.
 | M136 | @people autocomplete with roster context | X | Built differently | Rule added: never invent an email address or handle. |
 | M137 | Upstream change digests: hive norms and teammate activity | X | Not built | Not built: /hive --sync already prints a change digest (now computed by git diff), and a teammate 'who changed what' feed would break the hive's no-surveillance rule. |
 | M138 | Authorship stamps on shared memory | X | Not built | Not built: git blame already records authorship for everyone, and silently stamping the model's writes would break the files and the reasoning-log format. |
-| M139 | Supervisor status page and feedback through a private Artifact | X | Not built | Not built: supervisor accounts, hosting rules and comment intake are outside the plugin, and a --share step would belong in /write-report, which is not in this package. |
+| M139 | Supervisor status page and feedback through a private Artifact | X | Not built | Not built: supervisor accounts, hosting rules and comment intake are outside the plugin, and a --share step would belong in /write-report, which is not in this package. Revisited in W01: still not built. |
 | M140 | Lab-curated agents and checklists from the hive | X | Built differently | Defined an optional review_checklist.md format in the hive repo, which reaches members through the clone on --sync. |
 | M141 | Lab policy edition at the managed tier | X | Not built | Not built: this is an enterprise lockdown product that would promise PHI protection with holes (Bash, MCP), well outside a research plugin. |
 | M142 | Cross-session loop steering and GitHub event intake | X | Not built | Not built: answers.md and SendMessage already cover steering a loop, and GitHub event intake for local sessions cannot be verified. |
@@ -215,7 +215,7 @@ warning, kept as a rule of the mod's charter.
 | M194 | Clean-room reproduction gate | T3 | Built | cleanroom.py clones at the recorded commit, then builds the environment from --requirements (venv), --python or --current-python. |
 | M195 | Autoresearch branch tournament in worktrees | X | Not built | Breaks autoresearch's one-agent design and its history/ snapshot model, which is not git. |
 | M196 | Interactive raw and spike browser as a Client module | X | Not built | MNE raw.plot()/mne-qt-browser over X11 or VNC, or annotate_* functions plus an MNE Report, beat a braille terminal browser. |
-| M197 | Drag-and-drop Kanban in the terminal | X | Not built | Not built: /tasks --move already does this in one line; drag-and-drop in a terminal is fragile. |
+| M197 | Drag-and-drop Kanban in the terminal | X | Not built | Not built: /tasks --move already does this in one line; drag-and-drop in a terminal is fragile. Revisited in W01: drag and drop is built in the browser, on the claude.ai workbench, not in the terminal. |
 | M198 | Overnight lab shift with a morning briefing | X | Folded into another | Folded into M220: the overnight budget brake is max_iterations / max_wall_clock / max_cost; report.md (STOPPED line plus open questions) is the morning briefing; /loop covers pacing. |
 
 ## Onboarding
@@ -379,3 +379,12 @@ warning, kept as a rule of the mod's charter.
 | M082 | Meeting radar | T2 | In the mod | The band names the next meeting (prepare, notes) and a past one left unclosed (close). |
 | M083 | Live progress in the model's Bash rows | X | Built differently | The ~10-minute rule lives in long-runs.md plus pointers in the phase skills: use run_in_background or a detached launch with progress lines. |
 | M084 | Autoresearch dashboard pane (retires server.py) | T2 | In the mod | The dashboard's loop tab: iteration, best snapshot, a quality sparkline and open questions. |
+
+## Revisited
+
+Decisions taken after the review that reopen one of its ideas. They are not among the 270 ideas counted above, and the
+ideas they answer keep their tier and outcome there, with a pointer here.
+
+| ID | Idea | Tier | Outcome | Note |
+|---|---|---|---|---|
+| W01 | The claude.ai workbench: one private page per person over their flowie, hives and projects (answers M139 and M197) | — | Built | Each person may publish one owner-only claude.ai artifact with a tab per level: a Kanban with drag and drop and keyboard moves, the project list, the wiki and the level's panel, all from one template (neuroflow-core → Workbench snapshot). Git stays the only store: a click is an intent that the owner's own Claude Code checks against git and applies through /tasks Moves and each level's push rule (/tasks --apply-web); every upload needs a one-line preview and the person's yes, and hive or project data needs the team's workbench_mirror opt-in. M139 stays not built: there is no shared editable board and no read-only window for a supervisor. A shared board would make every writer an editor who can republish the page and its rules, add a second access list Claude Code cannot read, and have one member commit others' clicks; a window would add a keeper role and comment intake. Both are a separate, later decision. M197 stays out of the terminal: drag and drop lives in the browser, and the terminal keeps /tasks --move and the mod's board pane. |

@@ -137,6 +137,7 @@ nav:
       - "hive": commands/hive.md
       - "tasks": commands/tasks.md
       - "dashboard": commands/dashboard.md
+      - Your workbench: concepts/workbench.md
       - "meeting": commands/meeting.md
       - "wiki": commands/wiki.md
   - Commands:

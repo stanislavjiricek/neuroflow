@@ -17,7 +17,14 @@ reads:
   - ~/.neuroflow/boards/                # the project's other repositories' boards (cache, read-only)
   - ~/.neuroflow/user.yaml
   - .neuroflow/{phase}/autoresearch-loops.md
-writes: []
+  - ~/.neuroflow/workbench/                  # --web: what waits on the claude.ai workbench
+  - ~/.neuroflow/flowie/workbench.json       # --web: the workbench record, when a flowie is linked
+  - ~/.neuroflow/hives/{org-repo}/hive.md    # --web: the team's workbench_mirror
+writes:
+  - ~/.neuroflow/user.yaml                   # --web only: the person's consent, levels and machine name (merged, never replaced)
+  - ~/.neuroflow/workbench/                  # --web only: pending.json (machine-local)
+  - ~/.neuroflow/flowie/workbench.json       # --web only: the workbench record, committed by path with the private sync
+  - .neuroflow/sessions/YYYY-MM-DD.md         # --web only: one session line
 lifecycle: light
 requires:
   - .neuroflow/project_config.md
@@ -27,9 +34,10 @@ next:
 
 # /dashboard
 
-Shows the project at a glance. It changes nothing.
+Shows the project at a glance. It changes nothing — except `--web`, which publishes and refreshes your private claude.ai
+workbench (below).
 
-**With the neuroflow mod active**, this command never reaches the model: the mod opens the dashboard as a pane drawn
+**With the neuroflow mod active**, this command (without `--web`) never reaches the model: the mod opens the dashboard as a pane drawn
 by code, holding the keyboard, and keeps it current as files change. The digits pick the tabs — `1` now (every item
 the band can show, each with its action), `2` phase, `3` deadlines, `4` integrity, `5` tasks, `6` loop — `h` and `l`
 step to the previous and the next tab, `r` reads the files again, `q` closes, and Esc gives the keys back to the
@@ -91,6 +99,88 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
      `results.md` as a sparkline and the open questions at the top of its `report.md`.
    Every symbol has a word next to it, so the block reads correctly without colour.
 3. If something needs attention (a date within 3 days, an expired approval, a marker not set by a person, a legacy
-   config format), end with one line naming the command that deals with it.
+   config format), end with one line naming the command that deals with it. When `~/.neuroflow/workbench/pending.json`
+   lists changes waiting on the workbench, add one line: `↻ {n} workbench changes wait (oldest {age of its oldest}, as of {HH:MM}) — /neuroflow:tasks --apply-web`.
 
-This command writes nothing, so it adds no session line.
+Without `--web` this command writes nothing, so it adds no session line.
+
+## `--web` — your claude.ai workbench
+
+One private claude.ai page over your own levels: a tab for your flowie, each hive you joined and each project you export
+it from, each drawn the same way — the board with drag and drop and keyboard moves, the project list, the wiki and the
+level's panel. `neuroflow:neuroflow-core` → **Workbench snapshot** holds the format and every rule this mode follows.
+Git stays the only store: the page shows a snapshot, and a click there is a request that `/neuroflow:tasks --apply-web`
+checks against git and applies. With the mod active, `--web` still runs this prose.
+
+`--web` sets the workbench up the first time and refreshes it after; `--web --status` reports and uploads nothing;
+`--web --levels` changes which levels are mirrored. Below, `{wb}` stands for
+`python <neuroflow-core skill base dir>/scripts/workbench.py` and `{scratch}` for a folder in this session's scratchpad.
+Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say them), `2` is an error (show it and stop).
+
+1. **Tools.** The workbench needs the Artifact and ArtifactData tools — a claude.ai subscription with Artifacts, not an
+   API key, Bedrock or Vertex. Load ArtifactData with ToolSearch when it is deferred. If either is missing, say so in
+   one sentence (the terminal boards — `/neuroflow:tasks` and the mod's board pane — work as before) and stop.
+2. **Your consent and levels.** `{wb} levels` lists this machine's levels: the key, the team's opt-in and yours.
+   - Without `workbench: on` in `~/.neuroflow/user.yaml`: say in three lines what the workbench is, that it lives in the
+     claude.ai account Claude Code is signed into, and what leaves — show the table `{wb} sources` prints — then ask
+     (AskUserQuestion: *Set it up* / *Not now*). Only after a yes, write `workbench: on` (merge into the file, never
+     replace it).
+   - Without `workbench_machine`: ask once for a name for this machine (suggest two, e.g. *laptop*, *lab desktop*) and
+     write it.
+   - On the first run and with `--levels`: ask which levels to mirror (AskUserQuestion, several may be picked), offering
+     only those the team allows; name the others with the reason `{wb} levels` gives — never write a team's
+     `workbench_mirror` yourself. Write `workbench_levels` as a JSON list, and `workbench_index_only` for levels whose
+     wiki should go up without page bodies.
+3. **Export.** `{wb} export --out {scratch}/wb`: per level the documents, the size, the cards and wiki pages, the
+   freshness label, and every item held back with its reason (exit `1`). A `warnings` line flags an export over 8 MB as
+   slow for the page to load and names the level whose wiki weighs most: offer to add it to `workbench_index_only`
+   (AskUserQuestion) and export again after a yes.
+4. **The record and the account.** `{wb} record`.
+   - With a record: read its URL with the Artifact tool (`action: read`) before any ArtifactData call. If the result does
+     not say you can edit it, Claude Code is signed into another account than the workbench's: stop with one line that
+     names the record's account label, and never create a second workbench without asking. Run
+     `{wb} page --check {the file the read saved}`: `changed` means someone edited the live page since neuroflow
+     published it — ask before replacing it; `upgrade: true` means the plugin's page is newer — step 6 republishes it.
+   - Without one: ask for an account label (*personal*, *institute*, …). Without a linked flowie, an Artifact `list` may
+     show a workbench made on another machine (title *neuroflow workbench*): ask whether it is yours and use its URL
+     rather than making another.
+<!-- nf-rule: EGRESS-CONFIRM -->
+5. **Preview, then your yes.** One line, then one question: *"Upload to your private workbench ({account}): {levels} —
+   {n} documents, {KB} KB{; and publish the page, neuroflow template {t}, {KB} KB}. Go ahead?"* Nothing leaves before a
+   yes in this turn. Without one, upload nothing and say how to run it later. No upload ever runs on a timer or at the end
+   of another command.
+6. **Publish — the first time, or to upgrade.** `{wb} stage --out {scratch}/page` prints the file, its hashes, the
+   capabilities, the contract, the title, the icon and the description. Read the staged file in full (the Artifact tool
+   requires it for a file Claude did not write), then publish it with the Artifact tool: `file_path` the staged file,
+   `capabilities` and `contract` exactly as printed; `icon` and `description` on the first publish; to upgrade, the
+   record's `url`. Then record it: `{wb} record --set url=… --set account=… --set template_version=… --set contract=…
+   --set page_sha256=… --set published_at=…`.
+7. **Upload.** List what the store holds: ArtifactData `list` of collection `data/users/me`, and of
+   `data/users/me/{level}/parts` for each level being written, each with `out_dir` `{scratch}/remote`. Then
+   `{wb} export --out {scratch}/wb --remote {scratch}/remote --fetch`. Its `guard` gives each level a verdict: `write`;
+   `ask` — another machine or branch exported it: ask its one-line question, and after a yes rerun with
+   `--overwrite {level}`; `skip` or `refuse` — say why, nothing is written for that level. Exit `2` because the listing
+   shows no versions: write the versions the ArtifactData results named as `{"path": version}` into a file and rerun with
+   `--versions {file}`. Send each of its `batches` with ArtifactData `batch`, `writes` exactly as printed (parts first,
+   the meta last). A batch refused because a document changed: list again and redo it — never force. When the page
+   holds no preferences yet (a new or rebuilt page) and the record keeps a copy, the export says `prefs: restored from
+   the record` and the first batch puts them back.
+8. **Clean up.** ArtifactData `list` of `data/users/me/inbox/intents` (`out_dir` `{scratch}/intents`), then
+   `{wb} gc --intents {scratch}/intents --remote {scratch}/remote`: finished intents older than 7 days, and every document
+   of a level no longer mirrored (parts first, then the meta). A delete sends nothing; send its batches.
+9. **Check and record.** ArtifactData `list` of `data/users/me` with `as_level: admin` must come back empty — the
+   owner-only rules hide the workbench even from an editor; report it as *owner-only rules checked {date}*. Copy the
+   page's preferences into the record: ArtifactData `get` of `data/users/me` · `prefs` (`out_dir`), then
+   `{wb} record --prefs {file}`; when it reports `changed` with a flowie, commit by path as it prints, then
+   `git -C ~/.neuroflow/flowie pull --rebase --autostash && git -C ~/.neuroflow/flowie push` (the private sync). Write
+   what waits: `{wb} pending --intents {scratch}/intents`; when changes wait, offer `/neuroflow:tasks --apply-web`.
+10. **The first time only:** give the link and offer to pin it to the claude.ai sidebar (AskUserQuestion); pin only after
+    a yes.
+11. If `.neuroflow/` exists: `## HH:MM — [dashboard] workbench refreshed: {levels} ({n} documents)`.
+
+`--web --status` reads local files only — the record, `{wb} levels` and `~/.neuroflow/workbench/pending.json` — and
+prints the account, the URL, the page's template against the plugin's, each level with its consent and the team's
+opt-in, and how many changes wait and since when (`oldest`, as of the time pending.json was written). It uploads
+nothing.
+
+`--web --levels` asks step 2's level question again; a level taken off is purged in step 8, after the step 5 yes.

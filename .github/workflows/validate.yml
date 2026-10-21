@@ -62,6 +62,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: claude plugin test .
 
+      - name: Workbench page tests (node --test)
+        if: ${{ !cancelled() }}
+        run: node --test tests/workbench/workbench.test.mjs
+
       - name: Mod policy (hooks/mod/policy.json)
         if: ${{ !cancelled() }}
         run: python scripts/automation/mod_policy.py

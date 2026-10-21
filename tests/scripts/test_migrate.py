@@ -213,6 +213,27 @@ class MigrateTest(unittest.TestCase):
         self.assertTrue(any("/ethics" in item["message"] for item in result["report"]))
         self.assertEqual(code, 1)
 
+    def test_the_workbench_opt_in_is_a_contract_key(self) -> None:
+        # A legacy dialect's line becomes a frontmatter fact; a frontmatter line is kept as it is; --set writes it.
+        self.write(".neuroflow/project_config.md", "# cfg\n\nactive_phase: data\nworkbench_mirror: Allow-Names\n")
+        code, result = self.migrate("--apply")
+        frontmatter = self.read(".neuroflow/project_config.md").split("\n---\n")[0]
+        self.assertIn("workbench_mirror: allow-names", frontmatter)
+        self.assertLess(frontmatter.index("workbench_mirror"), frontmatter.index("plugin_version"))
+        code, result = self.migrate("--apply")
+        self.assertEqual(result["changes"], [], result)
+        code, result = self.migrate("--apply", "--set", "workbench_mirror=forbid")
+        self.assertIn("workbench_mirror: forbid\n", self.read(".neuroflow/project_config.md"))
+        code, result = self.migrate("--set", "workbench_mirror=everyone")
+        self.assertEqual(code, 2)
+
+    def test_an_unknown_workbench_policy_stays_in_the_notes(self) -> None:
+        self.write(".neuroflow/project_config.md", "# cfg\n\nactive_phase: data\nworkbench_mirror: maybe\n")
+        code, result = self.migrate("--apply")
+        config = self.read(".neuroflow/project_config.md")
+        self.assertNotIn("workbench_mirror", config.split("\n---\n")[0])
+        self.assertIn("workbench_mirror: maybe", config.split("\n---\n", 1)[1])
+
     def test_leading_rule_is_not_frontmatter(self) -> None:
         self.write(".neuroflow/project_config.md", "---\n# Project config\n---\n\n**Phase:** paper\n")
         code, result = self.migrate()

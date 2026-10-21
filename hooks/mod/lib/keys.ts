@@ -10,7 +10,7 @@ import type { NfDashboardTab } from '../../../types'
 /** What a key does. One meaning per key across every view. */
 export type Meaning =
   | 'left' | 'down' | 'up' | 'right' | 'reread' | 'close' | 'yes' | 'no' | 'cancel'
-  | 'dashboard' | 'prepare' | 'notes' | 'close meeting' | 'migrate' | 'review' | 'sync'
+  | 'dashboard' | 'prepare' | 'notes' | 'close meeting' | 'migrate' | 'review' | 'sync' | 'apply'
   | 'go to phase' | 'boards' | 'freeze' | 'verify' | 'unfreeze' | 'pick'
 
 /**
@@ -29,6 +29,8 @@ export const BAND = {
   migrate: 'm',
   review: 'w',
   sync: 's',
+  /** the workbench changes waiting for /neuroflow:tasks --apply-web (it fills the prompt; the person sends it) */
+  apply: 'a',
   keep: NAV.yes,
   drop: NAV.no,
   /** hide today, not today, stop driving, stop the note capture */
@@ -68,6 +70,7 @@ export const VIEW_KEYS: Readonly<Record<View, Readonly<Record<string, Meaning>>>
     [BAND.migrate]: 'migrate',
     [BAND.review]: 'review',
     [BAND.sync]: 'sync',
+    [BAND.apply]: 'apply',
     [BAND.keep]: 'yes',
     [BAND.drop]: 'no',
     [BAND.dismiss]: 'cancel',
