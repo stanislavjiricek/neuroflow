@@ -13,11 +13,11 @@
 </div>
 
 <a id="whats-new"></a>
-## What's new in 0.2.26
+## What's new in 0.2.27
 
-- **A new face** — the ring replaces the old logos on the website, in link previews and here, and [`/neuroflow`](commands/neuroflow.md) greets with it; one generator makes every image ([`brand_assets.py`](scripts/automation/brand_assets.py)), and each install is 5.5 MB lighter
-- **Watch the intro** — a 4:33 video on the landing page and the [Overview](https://stanislavjiricek.github.io/neuroflow/overview/#intro-video), fetched from a release when the site deploys, never stored in git
-- **One What's new** — this README shows only the newest release; every earlier one is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/), and [`repo_checks.py`](scripts/automation/repo_checks.py) keeps it that way
+- **The mod, from the keyboard, in a new look** — the dashboard, the task boards, the phase picker and the review panes open holding the keys, with one key map (digits for tabs and levels, `h` `j` `k` `l` to move, Enter to act, `q` to close) that works over SSH without a mouse. Anything that writes, consents or starts a turn asks first, so typing never acts. The views take the ring's look: a phase flow line, a dates ruler, rounded board columns, and a `now` tab with everything that needs you ([Keyboard and SSH](https://stanislavjiricek.github.io/neuroflow/concepts/mods/#keyboard-and-ssh))
+- **Your workbench on claude.ai** — [`/neuroflow:dashboard --web`](commands/dashboard.md) publishes a private page with the task boards, project lists and wikis of your flowie, hives and projects, after a preview and your yes; a card you move there comes back through [`/neuroflow:tasks --apply-web`](commands/tasks.md), checked against git, which stays the only store ([the workbench](https://stanislavjiricek.github.io/neuroflow/concepts/workbench/))
+- **Typeahead** — with the mod, typing a neuroflow command completes phases, dashboard tabs, hives, levels and card names
 
 Every earlier release is in the [changelog](https://stanislavjiricek.github.io/neuroflow/changelog/).
 
@@ -83,13 +83,13 @@ Run `/neuroflow:<command>` in any project folder. Start with `/neuroflow:neurofl
 
 | Command | What it does |
 |---|---|
-| [`/dashboard`](commands/dashboard.md) | The project at a glance — phase map, deadlines, integrity state, task board counts, the running autoresearch loop (a live pane with the neuroflow mod) |
+| [`/dashboard`](commands/dashboard.md) | The project at a glance — phase map, deadlines, integrity state, task board counts, the running autoresearch loop (a live pane with the neuroflow mod); `--web` publishes your private claude.ai workbench |
 | [`/doctor`](commands/doctor.md) | Health check of the setup around a project — tools, backups, storage location, contracts, and whether the neuroflow mod is live |
 | [`/git`](commands/git.md) | Context-aware git utility — smart push/pull, commit messages, branches, PRs with shorthand aliases whose scope is final; never commits local-only files (sessions, reviews, credentials) |
 | [`/pipeline`](commands/pipeline.md) | Define and run a multi-step research pipeline — one step per invocation from a saved plan; interactive by default, or `--executor` for no questions |
 | [`/interview`](commands/interview.md) | Interview preparation from either side — tailored questions, practice Q&A, readiness evaluation; candidate notes stay private |
 | [`/phase`](commands/phase.md) | Show the phase map and switch phase (a picker you drive with the arrow keys or a click when the neuroflow mod is on) |
-| [`/tasks`](commands/tasks.md) | Single entry point for the 3-tier Kanban task board (project / flowie / hive) — view, add, move, complete, archive |
+| [`/tasks`](commands/tasks.md) | Single entry point for the 3-tier Kanban task board (project / flowie / hive) — view, add, move, complete, archive; `--apply-web` applies the moves made on your claude.ai workbench |
 | [`/sentinel`](commands/sentinel.md) | Full audit of `.neuroflow/` — deterministic checks (`nf_check.py`) first, then drift, broken references, preregistration vs progress |
 | [`/slideshow`](commands/slideshow.md) | Build a presentation from selected areas of the project — pick phases, figures, and key findings, then get a structured slide deck ready to export |
 | [`/poster`](commands/poster.md) | Generate a LaTeX conference poster from project memory — compiled and rendered between critic rounds |

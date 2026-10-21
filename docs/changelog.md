@@ -6,6 +6,16 @@ title: Changelog
 
 Every neuroflow release, newest first. The README on GitHub shows only the newest one.
 
+## 0.2.27
+
+The mod from the keyboard, its new look, and the claude.ai workbench:
+
+- The neuroflow mod is usable from the keyboard alone, for example over SSH: the dashboard, the task boards, the phase picker and the wiki, X-ray and living-paper panes open holding the keys, and one key registry (`hooks/mod/lib/keys.ts`) gives every key one meaning — digits pick a tab or a level, `h` `j` `k` `l` move, Enter acts, `q` closes, Esc gives the keys back to the prompt; the band keeps its letters and teaches `^X Tab`
+- Typing never acts: a pane that holds the keys ignores the keys typed right after it opens, and keeping or dropping a drafted decision, migrating, syncing, a meeting action, a board move, a phase switch from the picker or a review decision is confirmed with a question whose safe answer comes first
+- The views in the new look: the `◌` mark, a phase flow line in the glyph legend (`◉` current, `●` visited, `→` recommended, `○` not started), a dates ruler with week ticks, rounded board columns with pages past five cards and a list layout for narrow docks, a `now` tab with every band item, theme colours only; [`/dashboard`](commands/dashboard.md), [`/tasks`](commands/tasks.md) and [`/phase`](commands/phase.md) describe the keys, and the mod's figures are redrawn ([mods](concepts/mods.md))
+- Typeahead for phases, dashboard tabs, hives, levels and card names after a neuroflow command
+- The claude.ai workbench ([workbench](concepts/workbench.md)): one private page per person with a tab for the flowie, each hive and each project; `/dashboard --web` exports an allowlisted snapshot after a preview and a yes (hive and project data only with the team's `workbench_mirror` opt-in), and `/tasks --apply-web` checks the moves and new tasks queued on the page against git, applies them with the `/tasks` rules and commits them with a `Neuroflow-Intent` trailer; a mod guard asks before ArtifactData writes anywhere else and never lets Claude create an intent
+
 ## 0.2.26
 
 A new front page and one look:
