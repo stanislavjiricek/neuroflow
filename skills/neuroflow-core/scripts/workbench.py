@@ -284,9 +284,11 @@ def as_keys(value) -> list[str]:
 # so a case-insensitive file system cannot fold two levels into one file.
 
 def escape_segment(text: str) -> str:
-    """A card id in key characters: lower-case letters, digits and `_ . -` stay, every other byte becomes `~hh`."""
-    return "".join(ch if re.fullmatch(r"[a-z0-9_.\-]", ch) else "".join(f"~{byte:02x}" for byte in ch.encode("utf-8"))
-                   for ch in text.lower())
+    """A card id in key characters: lower-case letters, digits and `_ . -` stay, every other byte becomes `~hh` — and
+    so does a last `.`, which Windows drops from a folder name (`study-2024.` would be filed as `study-2024`)."""
+    out = "".join(ch if re.fullmatch(r"[a-z0-9_.\-]", ch) else "".join(f"~{byte:02x}" for byte in ch.encode("utf-8"))
+                  for ch in text.lower())
+    return out[:-1] + "~2e" if out.endswith(".") else out
 
 
 def project_key(card: str | None, origin: str | None) -> str | None:

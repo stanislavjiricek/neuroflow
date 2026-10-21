@@ -142,10 +142,14 @@ class KeyTests(Home):
         self.assertIsNone(wb.project_key(None, None))
         long_key = wb.project_key("x" * 300, None)
         self.assertTrue(long_key.startswith("project+~~") and len(long_key) <= 200)
-        for key in ("flowie", "hive+example-lab+hive", wb.project_key("Oddball EEG", None), "project+github.com+org+repo", long_key):
+        self.assertEqual(wb.project_key("study-2024.", None), "project+study-2024~2e")  # Windows drops a last dot
+        self.assertEqual(wb.project_key("a..", None), "project+a.~2e")
+        for key in ("flowie", "hive+example-lab+hive", wb.project_key("Oddball EEG", None), "project+github.com+org+repo", long_key,
+                    wb.project_key("study-2024.", None), wb.project_key("v1.0 .", None)):
             self.assertTrue(wb.valid_level_key(key), key)
             # a key is a valid file name everywhere: an ArtifactData listing saved with out_dir names files after it
             self.assertIsNone(re.search(r'[<>:"/\\|?*A-Z]', key), key)
+            self.assertFalse(key.endswith((".", " ")), key)
         for key in ("prefs", "inbox", "project+a b", "hive", "../x", "", "hive:example-lab:hive"):
             self.assertFalse(wb.valid_level_key(key), key)
 
