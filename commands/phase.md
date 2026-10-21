@@ -98,12 +98,12 @@ With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the ma
 
    If `recommended_phases` is absent from `project_config.md`, omit the `→` entries and the legend entry for "recommended". Suggest running `/neuroflow` to set up the project and generate phase recommendations.
 
-   **Below the phase map, render upcoming deadlines** from `.neuroflow/timeline.md` (if it exists and has entries): the next 3 entries with future dates, `⚠` on anything within 14 days, `❌ OVERDUE` on past dates that are not marked done:
+   **Below the phase map, render upcoming deadlines** from `.neuroflow/timeline.md` (if it exists and has entries): the next 3 entries with future dates, each marked as `/dashboard` marks dates (neuroflow-develop → **Visual style**) — `⚠` within 3 days, `▸` within 14, `·` later — and `⚠ OVERDUE` on a past date that is not marked done:
 
    ```
    Deadlines:
-     ⚠ 2026-08-25  SfN abstract deadline          (paper)
-       2026-10-01  Ethics approval expires        (data)
+     ▸ 2026-08-25  SfN abstract deadline          (paper)
+     · 2026-10-01  Ethics approval expires        (data)
    ```
 
    Skip the block silently if `timeline.md` is absent or empty.
