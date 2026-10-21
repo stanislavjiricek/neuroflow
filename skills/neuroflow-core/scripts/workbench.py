@@ -593,7 +593,8 @@ NEVER = ["sessions/, review/, paper/xray-*, wiki/.pending/ and every other local
          "integrations.json, user.yaml, local-projects.json, boards/", "fails/, finance/, reasoning/",
          "the flowie's profile.md and wellbeing/", "wiki raw/ files and images", "email addresses, anywhere",
          "meeting attendees, agendas and notes", "machine-local paths"]
-SCRUB = ("Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) "
+SCRUB = ("Free text (titles, notes, descriptions, a project's status and phase, column labels, wiki pages with their type "
+         "and status, ideas, team text, people's names and roles, errata rows, dated rows) "
          "goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address "
          "becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. "
          "An item with secret-like text or a name from that config's participant roster is held back whole, and so is one "
@@ -717,9 +718,25 @@ def columns_of(tasks: Path) -> tuple[list[dict], int]:
     return columns, days if isinstance(days, int) and days > 0 else 90
 
 
-def roster(src: Source, person: dict) -> list[dict]:
-    """The level's people as roster handles; names and roles only where the team's opt-in allows them."""
+def roster(src: Source, person: dict, scrub: Scrubber | None = None, withheld: list[dict] | None = None) -> list[dict]:
+    """The level's people as roster handles; names and roles only where the team's opt-in allows them, and only through
+    the scrubber (without one — the validator needs handles only — none at all)."""
     people: dict[str, dict] = {}
+
+    def named(entry: dict, values: dict) -> dict:
+        if not src.names or scrub is None:
+            return entry
+        for key in ("name", "role"):
+            if not values.get(key):
+                continue
+            text, hits = scrub.text(str(values[key]))
+            if held(hits):
+                if withheld is not None:
+                    withheld.append({"source": "people", "item": entry["handle"], "reason": held(hits)})
+                continue
+            entry[key] = text
+        return entry
+
     if src.kind == "flowie":
         handle = handle_of(person.get("handle"))
         if handle:
@@ -731,10 +748,7 @@ def roster(src: Source, person: dict) -> list[dict]:
             cell = lambda name: row[index[name]].strip() if name in index and index[name] < len(row) else ""  # noqa: E731
             handle = handle_of(cell("github") or cell("handle"))
             if handle:
-                entry = {"handle": handle}
-                if src.names:
-                    entry.update({key: cell(key) for key in ("name", "role") if cell(key)})
-                people[handle.lower()] = entry
+                people[handle.lower()] = named({"handle": handle}, {key: cell(key) for key in ("name", "role")})
     else:
         config = read_text(src.repo / ".neuroflow" / "project_config.md") or ""
         split = mg.sc.split_frontmatter(config)
@@ -746,10 +760,7 @@ def roster(src: Source, person: dict) -> list[dict]:
                 if isinstance(item, dict):
                     handle = handle_of(item.get("handle"))
                     if handle:
-                        entry = {"handle": handle}
-                        if src.names:
-                            entry.update({key: str(item[key]) for key in ("name", "role") if item.get(key)})
-                        people[handle.lower()] = entry
+                        people[handle.lower()] = named({"handle": handle}, item)
     return sorted((allow("person", entry) for entry in people.values()), key=lambda entry: entry["handle"].lower())
 
 
@@ -773,7 +784,9 @@ def parse_table(text: str) -> tuple[list[str], list[list[str]]]:
     return headers, rows
 
 
-def export_cards(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dict]:
+def export_cards(src: Source, scrub: Scrubber, withheld: list[dict], handles: set[str] | None = None) -> list[dict]:
+    """The level's cards; an owner goes up only as a handle on the level's roster (`handles`, lower case) — a legacy
+    `assignee: Kristyna` that matches no roster entry is left out."""
     cards = []
     for task in pj.read_board(src.memory / "tasks", details=True):
         title, title_hits = scrub.text(task["title"])
@@ -783,10 +796,12 @@ def export_cards(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[dic
         if reason:
             withheld.append({"source": "tasks", "item": task["file"], "reason": reason})
             continue
-        owner = task.get("owner")
+        owner = handle_of(task.get("owner")) if task.get("owner") else None
+        if owner and owner.lower() not in (handles or set()):
+            owner = None
         cards.append(allow("card", {
             "slug": task["slug"], "file": task["file"], "column": task["column"], "title": title,
-            "owner": handle_of(owner) if owner else None, "due": task["due"] if task["due"] and DATE.match(task["due"]) else None,
+            "owner": owner, "due": task["due"] if task["due"] and DATE.match(task["due"]) else None,
             "created": date_of(task.get("created")), "updated": date_of(task.get("updated")), "phase": task.get("phase"),
             "tags": task.get("tags") or [], "project": task.get("project"), "blocked_by": task.get("blocked_by") or [],
             "sha256": task["sha256"], "notes": notes, "legacy": task["legacy"], "readable": not task["conflicted"],
@@ -823,18 +838,20 @@ def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[
             continue
         # a URL travels unchanged, like a name: personal data or a secret left in it holds the entry back
         repos = [public_url(url) for url in pj.repo_values(entry) if pj.is_remote(url) and not url.lower().startswith("file:")]
-        reason = name_held(scrub, *repos)
+        visited = pj.as_list(entry.get("visited_phases"))
+        reason = name_held(scrub, *repos, *visited)
         if reason:
             withheld.append({"source": "registry", "item": pid, "reason": reason})
             continue
-        description, hits = scrub.text(str(entry.get("description") or ""))
-        if held(hits):
-            withheld.append({"source": "registry", "item": pid, "reason": held(hits)})
-            description = ""
+        text: dict[str, str] = {}
+        for name in ("description", "status", "current_phase"):  # free text: rewritten, or left out when held back
+            text[name], hits = scrub.text(str(entry.get(name) or ""))
+            if held(hits):
+                withheld.append({"source": "registry", "item": pid, "reason": held(hits)})
+                text[name] = ""
         out.append(allow("registry", {
-            "id": pid, "description": description, "status": str(entry.get("status") or "") or None,
-            "current_phase": str(entry.get("current_phase") or "") or None, "visited_phases": pj.as_list(entry.get("visited_phases")),
-            "repos": repos}))
+            "id": pid, "description": text["description"], "status": text["status"] or None,
+            "current_phase": text["current_phase"] or None, "visited_phases": visited, "repos": repos}))
     return out
 
 
@@ -993,6 +1010,9 @@ def export_wiki(src: Source, scrub: Scrubber, withheld: list[dict], index_only: 
     for rel, fm, body in raw:
         title, hits = scrub.text(scalar(fm, "title") or rel.split("/")[-1])
         summary, summary_hits = scrub.text(summaries.get(rel, ""))
+        page_type, type_hits = scrub.text(scalar(fm, "type") or "")
+        status, status_hits = scrub.text(scalar(fm, "status") or "")
+        summary_hits |= type_hits | status_hits
         tags = pj.as_list(fm.get("tags"))
         sources = [name.split("/")[-1] for name in pj.as_list(fm.get("sources"))]
         text = ""
@@ -1005,7 +1025,7 @@ def export_wiki(src: Source, scrub: Scrubber, withheld: list[dict], index_only: 
         if reason:
             withheld.append({"source": "wiki", "item": rel, "reason": reason})
             continue
-        page = {"id": rel, "title": title, "type": scalar(fm, "type"), "tags": tags, "status": scalar(fm, "status"),
+        page = {"id": rel, "title": title, "type": page_type or None, "tags": tags, "status": status or None,
                 "updated": date_of(scalar(fm, "updated")), "summary": summary, "sources": sources}
         if not index_only:
             page["body"] = text
@@ -1176,7 +1196,8 @@ def pack(level: str, kind: str, items: list[dict], field: str) -> list[dict]:
 def build_level(src: Source, person: dict, scrub: Scrubber, home: Path, now: datetime, machine: str, fetch: bool) -> dict:
     withheld: list[dict] = []
     columns, archive_days = columns_of(src.memory / "tasks")
-    cards = export_cards(src, scrub, withheld)
+    people = roster(src, person, scrub, withheld)
+    cards = export_cards(src, scrub, withheld, {entry["handle"].lower() for entry in people})
     known = {column["id"] for column in columns}
     for card in cards:
         if card["column"] not in known:
@@ -1190,7 +1211,7 @@ def build_level(src: Source, person: dict, scrub: Scrubber, home: Path, now: dat
     pages = export_wiki(src, scrub, withheld, index_only)
     core = with_hash(allow("core", {
         "snap_schema": SNAP_SCHEMA, "level": src.key, "part": "core", "kind": src.kind, "label": src.label,
-        "columns": columns, "archive_after_days": archive_days, "people": roster(src, person),
+        "columns": columns, "archive_after_days": archive_days, "people": people,
         "registry": export_registry(src, scrub, withheld), "panel": export_panel(src, scrub, withheld),
         "phases": sorted(mg.canonical_phases() - {"setup"}), "card": src.card}))
     parts = [core, *pack(src.key, "cards", cards, "cards"), *(pack(src.key, "wiki", pages, "pages") if pages else [])]

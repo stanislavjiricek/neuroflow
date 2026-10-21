@@ -359,6 +359,29 @@ class ExportTests(Home):
         for leak in (token, "jana@", "deploy", "Catch-up"):
             self.assertNotIn(leak, everything, leak)
 
+    def test_every_free_text_field_is_scrubbed_and_an_owner_must_be_on_the_roster(self) -> None:
+        hive = "hive+example-lab+hive"
+        self.make_hive(policy="allow-names")
+        self.write(self.hive / "members.md", "| name | email | github | role |\n|---|---|---|---|\n"
+                                             "| Jana Example (jana@uni.example.org) | jana@uni.example.org | jana | postdoc, +420 777 123 456 |\n")
+        self.write(self.hive / "projects" / "projects.json", json.dumps({"projects": [
+            {"id": "oddball", "status": "waiting on jana@uni.example.org", "current_phase": "call +420 777 123 456"}]}))
+        self.write(self.hive / "wiki" / "pages" / "people" / "contact.md",
+                   "---\ntitle: Contact\ntype: contact jana@uni.example.org\nstatus: ask bob@uni.example.org\n---\nbody\n")
+        self.write(self.hive / "tasks" / "inbox" / "legacy.md", task("Old one", "inbox", assignee="Kristyna"))
+        code, result = self.export()
+        everything = "".join(path.read_text(encoding="utf-8") for path in (self.scratch / "up").rglob("*.json"))
+        for leak in ("jana@", "bob@", "777 123", "Kristyna"):
+            self.assertNotIn(leak, everything, leak)
+        core = self.doc(hive, "core")
+        self.assertEqual(core["people"], [{"handle": "jana", "name": "Jana Example ([email removed])", "role": "postdoc, [phone removed]"}])
+        self.assertEqual((core["registry"][0]["status"], core["registry"][0]["current_phase"]),
+                         ("waiting on [email removed]", "call [phone removed]"))
+        page = self.doc(hive, "wiki-000")["pages"][0]
+        self.assertEqual((page["type"], page["status"]), ("contact [email removed]", "ask [email removed]"))
+        owners = {card["slug"]: card["owner"] for card in self.doc(hive, "cards-000")["cards"]}
+        self.assertEqual((owners["legacy"], owners["fix-map"]), (None, "jana"))  # format alone is not enough: the roster
+
     def test_registry_urls_leave_without_user_info_and_a_secret_holds_the_entry_back(self) -> None:
         self.make_flowie()
         token = "ghp_" + "A1b2C3d4" * 5
