@@ -295,6 +295,44 @@ class ExportTests(Home):
             self.assertEqual(wb.with_hash(doc)["sha256"], doc["sha256"])
         self.assertEqual(sum(len(self.doc("flowie", i)["cards"]) for i in ids if i.startswith("cards-")), 402)
 
+    def test_a_level_too_large_for_one_part_is_trimmed_and_never_stops_the_others(self) -> None:
+        self.make_flowie()
+        self.make_hive(policy="allow")
+        self.write(self.flowie / "ideas.md", "idea " * 12_000)              # 60,000 characters
+        self.write(self.flowie / "ideas-inbox.md", "注意" * 30_000)          # 60,000 CJK characters: 180 KB
+        for n in range(800):
+            self.write(self.flowie / "notes" / f"note-{n:04d}.md", f"# Note {n}\n")
+        self.write(self.flowie / "tasks" / "inbox" / "huge.md", task("x" * 250_000, "inbox"))
+        code, result = self.export()
+        self.assertEqual(code, 1)
+        self.assertEqual([row["level"] for row in result["levels"]], ["flowie", "hive+example-lab+hive"])
+        core = self.doc("flowie", "core")
+        self.assertLessEqual(wb.doc_bytes(core), wb.PART_MAX)
+        self.assertLessEqual(len(core["panel"]["ideas_inbox"].encode("utf-8")), wb.TEXT_MAX + 4)
+        self.assertEqual(len(core["panel"]["notes"]), wb.LIST_MAX)
+        self.assertEqual(core["panel"]["notes"][-1]["file"], "note-0799.md")  # the newest stay
+        withheld = result["levels"][0]["withheld"]
+        self.assertIn({"source": "notes", "item": "600 older", "reason": "the panel lists the newest 200"}, withheld)
+        self.assertIn({"source": "tasks", "item": "inbox/huge.md", "reason": "larger than one part (200 KB)"}, withheld)
+        self.assertNotIn("huge", {card["slug"] for card in self.doc("flowie", "cards-000")["cards"]})
+        # a registry too large to share the core with the panel goes, said why; the level is still exported
+        self.write(self.flowie / "projects" / "projects.json", json.dumps({"projects": [
+            {"id": f"p{n:03d}", "description": "d" * 1000} for n in range(400)]}))
+        code, result = self.export()
+        self.assertEqual(self.doc("flowie", "core")["registry"], [])
+        self.assertIn({"source": "registry", "item": "the project registry",
+                       "reason": "larger than one part (200 KB) with the rest of the level"}, result["levels"][0]["withheld"])
+        self.assertEqual(result["skipped"], [])
+        # a level whose columns and people alone overflow a part is skipped with its reason; the others still go up
+        self.make_hive(policy="allow-names")
+        self.write(self.hive / "members.md", "| name | email | github | role |\n|---|---|---|---|\n" + "".join(
+            f"| Name {n} | m{n}@example.org | user{n} | role {n} |\n" for n in range(4000)))
+        code, result = self.export()
+        self.assertEqual(code, 1)
+        self.assertEqual([row["level"] for row in result["levels"]], ["flowie"])
+        self.assertEqual([(row["level"], row["reason"]) for row in result["skipped"]],
+                         [("hive+example-lab+hive", "its columns and people alone are larger than one part (200 KB)")])
+
     def test_every_exported_field_is_in_the_allowlist(self) -> None:
         snapshot = json.loads((FIXTURES / "snapshot.json").read_text(encoding="utf-8"))
         seen: set[str] = set()

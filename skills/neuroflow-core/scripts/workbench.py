@@ -58,8 +58,9 @@ INTENT_SCHEMA = 1
 PREFS_SCHEMA = 1
 PART_MAX = 200_000          # bytes of one part document (the store takes 256 KiB)
 BODY_MAX = 150_000          # bytes of one wiki page body
-NOTES_MAX = 1000            # characters of a card's notes
-TEXT_MAX = 60_000           # characters of a panel text (ideas, hive.md)
+NOTES_MAX = 1000            # characters of a card's notes and of a registry description
+TEXT_MAX = 40_000           # bytes of a panel text (ideas, hive.md): two of them and the lists fit the core part
+LIST_MAX = 200              # entries of a panel list (notes, meetings, an erratum's rows): the newest
 BATCH_WRITES = 50
 BATCH_BYTES = 900_000       # under the batch limit of 1 MiB
 SIZE_WARN = 8_000_000       # bytes of one export: past this the page is slow to load
@@ -554,8 +555,8 @@ SOURCES = [
      "note": "extra marks a folder that config.json does not name"},
     {"source": "registry", "levels": "flowie, hive", "from": "projects/projects.json",
      "fields": ["core.registry", *every("registry")],
-     "note": "remote repository URLs only, without a user name, password or query; a flowie pointer as its id and hive "
-             "only"},
+     "note": "remote repository URLs only, without a user name, password or query; the first 1,000 characters of a "
+             "description; a flowie pointer as its id and hive only"},
     {"source": "wiki", "levels": "flowie, hive, project", "from": "wiki/pages/**, wiki/index.md",
      "fields": ["part.pages", *every("page")],
      "note": "no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded"},
@@ -563,16 +564,16 @@ SOURCES = [
      "fields": ["core.people", *every("person")],
      "note": "name and role only with allow-names; your own handle only at flowie level; never an email address"},
     {"source": "ideas", "levels": "flowie, hive", "from": "ideas.md, ideas-inbox.md (flowie)",
-     "fields": ["flowie_panel.ideas", "flowie_panel.ideas_inbox", "hive_panel.ideas"], "note": "the text"},
+     "fields": ["flowie_panel.ideas", "flowie_panel.ideas_inbox", "hive_panel.ideas"], "note": "the text, at most 40 KB"},
     {"source": "notes", "levels": "flowie", "from": "notes/*.md", "fields": ["flowie_panel.notes", *every("note")],
-     "note": "never the notes themselves"},
+     "note": "never the notes themselves; the newest 200"},
     {"source": "meetings", "levels": "flowie, hive, project", "from": "meetings/*.md",
      "fields": ["flowie_panel.meetings", "hive_panel.meetings", "project_panel.meetings", *every("meeting")],
-     "note": "never attendees, agenda or notes"},
+     "note": "never attendees, agenda or notes; the newest 200"},
     {"source": "team", "levels": "hive", "from": "hive.md", "fields": ["hive_panel.team"],
-     "note": "the text after the frontmatter: the team's name, description, norms and research directions"},
+     "note": "the text after the frontmatter, at most 40 KB: the team's name, description, norms and research directions"},
     {"source": "errata", "levels": "hive", "from": "errata/*.md", "fields": ["hive_panel.errata", *every("erratum")],
-     "note": "the table rows: date, scope, problem, workaround, reported_by"},
+     "note": "the table rows (the newest 200 per dataset): date, scope, problem, workaround, reported_by"},
     {"source": "phases", "levels": "project", "from": "project_config.md, phase folders",
      "fields": ["project_panel.project_name", "project_panel.active_phase", "project_panel.recommended_phases",
                 "project_panel.visited", "project_panel.ethics_not_applicable", "core.phases", "core.card"],
@@ -711,6 +712,20 @@ def date_of(*values) -> str | None:
 
 def clip(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[:limit].rstrip() + " …"
+
+
+def clip_bytes(text: str, limit: int) -> str:
+    """At most `limit` bytes of UTF-8 (a part's limit is bytes: 60,000 CJK characters are 180 KB)."""
+    data = text.encode("utf-8")
+    return text if len(data) <= limit else data[:limit].decode("utf-8", "ignore").rstrip() + " …"
+
+
+def newest(items: list, source: str, withheld: list[dict]) -> list:
+    """The newest LIST_MAX entries of a list sorted oldest first; how many were left out is counted, with why."""
+    if len(items) <= LIST_MAX:
+        return items
+    withheld.append({"source": source, "item": f"{len(items) - LIST_MAX} older", "reason": f"the panel lists the newest {LIST_MAX}"})
+    return items[-LIST_MAX:]
 
 
 # ── what a level holds ──────────────────────────────────────────────────────────────────────────
@@ -858,7 +873,7 @@ def export_registry(src: Source, scrub: Scrubber, withheld: list[dict]) -> list[
             continue
         text: dict[str, str] = {}
         for name in ("description", "status", "current_phase"):  # free text: rewritten, or left out when held back
-            text[name], hits = scrub.text(str(entry.get(name) or ""))
+            text[name], hits = scrub.text(clip(str(entry.get(name) or ""), NOTES_MAX))
             if held(hits):
                 withheld.append({"source": "registry", "item": pid, "reason": held(hits)})
                 text[name] = ""
@@ -874,7 +889,7 @@ def text_block(path: Path, source: str, scrub: Scrubber, withheld: list[dict], f
         return None
     if frontmatter:
         text = split_fm(text)[1]
-    value, hits = scrub.text(clip(text.replace("\r\n", "\n").strip(), TEXT_MAX))
+    value, hits = scrub.text(clip_bytes(text.replace("\r\n", "\n").strip(), TEXT_MAX))
     if held(hits):
         withheld.append({"source": source, "item": path.name, "reason": held(hits)})
         return None
@@ -892,9 +907,9 @@ def dated_list(folder: Path, source: str, kind: str, scrub: Scrubber, withheld: 
         if reason:
             withheld.append({"source": source, "item": path.name, "reason": reason})
             continue
-        out.append(allow(kind, {"slug": path.stem, "file": path.name, "title": title,
+        out.append(allow(kind, {"slug": path.stem, "file": path.name, "title": clip(title, 300),
                                 "date": date_of(scalar(fm, "date"), path.stem)}))
-    return out
+    return newest(out, source, withheld)
 
 
 def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
@@ -925,7 +940,7 @@ def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
                     continue
                 clean.append(cells)
             errata.append(allow("erratum", {"dataset": path.stem, "columns": [scrub.text(cell)[0] for cell in headers],
-                                            "rows": clean}))
+                                            "rows": newest(clean, "errata", withheld)}))
         return allow("hive_panel", {
             "team": text_block(src.repo / "hive.md", "team", scrub, withheld, frontmatter=True),
             "ideas": text_block(src.repo / "ideas.md", "ideas", scrub, withheld),
@@ -958,7 +973,7 @@ def export_panel(src: Source, scrub: Scrubber, withheld: list[dict]) -> dict:
         "ethics_not_applicable": scalar(fm, "ethics") == "not-applicable",
         "ethics": marker(nf / "ethics" / "status.md", "status", "expires"),
         "prereg": marker(nf / "preregistration" / "status.md", "status", "frozen_at"),
-        "dates": timeline, "meetings": dated_list(nf / "meetings", "meetings", "meeting", scrub, withheld)})
+        "dates": newest(timeline, "dates", withheld), "meetings": dated_list(nf / "meetings", "meetings", "meeting", scrub, withheld)})
 
 
 WIKILINK = re.compile(r"(!?)\[\[([^\[\]\n|#]*)(?:#[^\[\]\n|]*)?(?:\|([^\[\]\n]*))?\]\]")
@@ -1189,10 +1204,26 @@ def ledger_states(src: Source, ledger: dict) -> dict[str, dict]:
 
 # ── export ──────────────────────────────────────────────────────────────────────────────────────
 
+def part_overhead(level: str, kind: str, field: str) -> int:
+    return doc_bytes({"snap_schema": SNAP_SCHEMA, "level": level, "part": f"{kind}-000", field: [], "sha256": "0" * 64})
+
+
+def fitting(level: str, kind: str, field: str, items: list[dict], source: str, name: str, withheld: list[dict]) -> list[dict]:
+    """The items that fit a part on their own; one that does not is held back with a reason, never the whole run."""
+    overhead = part_overhead(level, kind, field)
+    out = []
+    for item in items:
+        if doc_bytes(item) + 1 + overhead > PART_MAX:
+            withheld.append({"source": source, "item": str(item.get(name)), "reason": f"larger than one part ({PART_MAX // 1000} KB)"})
+        else:
+            out.append(item)
+    return out
+
+
 def pack(level: str, kind: str, items: list[dict], field: str) -> list[dict]:
-    """Items packed into parts of at most PART_MAX bytes: `{kind}-000`, `{kind}-001`, …"""
+    """Items packed into parts of at most PART_MAX bytes: `{kind}-000`, `{kind}-001`, … (each item fits alone)."""
     parts, current, size = [], [], 0
-    overhead = doc_bytes({"snap_schema": SNAP_SCHEMA, "level": level, "part": f"{kind}-000", field: [], "sha256": "0" * 64})
+    overhead = part_overhead(level, kind, field)
     for item in items:
         weight = doc_bytes(item) + 1
         if current and size + weight + overhead > PART_MAX:
@@ -1221,16 +1252,32 @@ def build_level(src: Source, person: dict, scrub: Scrubber, home: Path, now: dat
         column["label"] = column["id"] if held(hits) else label
     columns = [allow("column", column) for column in columns]
     index_only = src.key in person["index_only"]
-    pages = export_wiki(src, scrub, withheld, index_only)
-    core = with_hash(allow("core", {
-        "snap_schema": SNAP_SCHEMA, "level": src.key, "part": "core", "kind": src.kind, "label": src.label,
-        "columns": columns, "archive_after_days": archive_days, "people": people,
-        "registry": export_registry(src, scrub, withheld), "panel": export_panel(src, scrub, withheld),
-        "phases": sorted(mg.canonical_phases() - {"setup"}), "card": src.card}))
+    cards = fitting(src.key, "cards", "cards", cards, "tasks", "file", withheld)
+    pages = fitting(src.key, "wiki", "pages", export_wiki(src, scrub, withheld, index_only), "wiki", "id", withheld)
+    registry, panel = export_registry(src, scrub, withheld), export_panel(src, scrub, withheld)
+    # The core part is one document. Panel texts are clipped by bytes and lists keep their newest entries, so it fits;
+    # if it still does not, the panel goes, then the registry — said why — and only then is the level skipped.
+    core = None
+    for keep_panel, keep_registry in ((True, True), (False, True), (True, False), (False, False)):
+        candidate = with_hash(allow("core", {
+            "snap_schema": SNAP_SCHEMA, "level": src.key, "part": "core", "kind": src.kind, "label": src.label,
+            "columns": columns, "archive_after_days": archive_days, "people": people,
+            "registry": registry if keep_registry else [], "panel": panel if keep_panel else {},
+            "phases": sorted(mg.canonical_phases() - {"setup"}), "card": src.card}))
+        if doc_bytes(candidate) <= PART_MAX:
+            core = candidate
+            break
+    too_big = f"larger than one part ({PART_MAX // 1000} KB) with the rest of the level"
+    if core is None:
+        return {"source": src, "skipped": f"its columns and people alone are larger than one part ({PART_MAX // 1000} KB)"}
+    if not keep_panel:
+        withheld.append({"source": "panel", "item": "the level's panel", "reason": too_big})
+    if not keep_registry:
+        withheld.append({"source": "registry", "item": "the project registry", "reason": too_big})
     parts = [core, *pack(src.key, "cards", cards, "cards"), *(pack(src.key, "wiki", pages, "pages") if pages else [])]
     oversized = [part["part"] for part in parts if doc_bytes(part) > PART_MAX]
     if oversized:
-        raise UsageError(f"{src.label}: {', '.join(oversized)} would exceed {PART_MAX} bytes")
+        return {"source": src, "skipped": f"{', '.join(oversized)} would exceed {PART_MAX} bytes"}
     source = git_source(src, home, fetch)
     applied: dict[str, dict] = {}
     if src.kind != "project" and source.get("git"):
@@ -1473,8 +1520,15 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
             raise UsageError("not mirrored: " + "; ".join(f"{key} ({rows[key]['reason']})" for key in refused))
     scrub = Scrubber(pii_settings(args.pii_config or person["pii_config"]))
     out = Path(args.out)
-    built = [build_level(src, person, scrub, home, now, machine, False) for src in chosen]  # discover fetched them
+    built, skipped = [], []
+    for src in chosen:
+        item = build_level(src, person, scrub, home, now, machine, False)  # discover fetched them
+        if "skipped" in item:  # one level too large never stops the others
+            skipped.append({"level": src.key, "label": src.label, "reason": item["skipped"]})
+        else:
+            built.append(item)
     result: dict = {"machine": machine, "exported_at": iso(now), "levels": preview(built), "unkeyed": unkeyed,
+                    "skipped": skipped,
                     "not_mirrored": [row for row in rows.values() if not row["mirrored"]],
                     # what gc deletes from the workbench, where it holds them: the preview names them
                     "purge": [{"level": row["level"], "label": row["label"], "reason": row.get("reason")}
@@ -1484,7 +1538,7 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
         write_doc(out / "docs" / key_file(key) / "meta.json", item["meta"])
         for part in item["parts"]:
             write_doc(out / "docs" / key_file(key) / f"{part['part']}.json", part)
-    findings = any(row["withheld"] for row in result["levels"]) or bool(unkeyed)
+    findings = any(row["withheld"] for row in result["levels"]) or bool(unkeyed) or bool(skipped)
     total = sum(row["bytes"] for row in result["levels"])
     if total > SIZE_WARN:
         def wiki_bytes(item: dict) -> int:
@@ -2462,6 +2516,8 @@ def print_human(command: str, code: int, result: dict) -> None:
                 print(f"  held back: {item['source']} {item['item']} ({item['reason']})")
         for warning in result.get("warnings") or []:
             print(f"warning: {warning}")
+        for row in result.get("skipped") or []:
+            print(f"not exported: {row['label']} ({row['level']}) — {row['reason']}")
         for row in result.get("purge") or []:
             print(f"deleted from the workbench where it holds it: {row['label']} ({row['level']}) — {row['reason']}")
         for key, verdict in (result.get("guard") or {}).items():

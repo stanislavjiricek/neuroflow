@@ -100,14 +100,14 @@ and a test keeps the two equal.
 |---|---|---|---|
 | tasks | flowie, hive, project | `tasks/{column}/{slug}.md` | `cards`, `slug`, `file`, `column`, `title`, `owner`, `due`, `created`, `updated`, `phase`, `tags`, `project`, `blocked_by`, `sha256`, `notes`, `legacy`, `readable` — owner only as a roster handle; the first 1,000 characters of the notes; sha256 is the content hash; legacy and readable say whether the file is in an older format or carries a merge conflict |
 | columns | flowie, hive, project | `tasks/config.json` | `columns`, `id`, `label`, `archive`, `closed`, `extra`, `archive_after_days` — extra marks a folder that config.json does not name |
-| registry | flowie, hive | `projects/projects.json` | `registry`, `id`, `description`, `status`, `current_phase`, `visited_phases`, `repos`, `pointer`, `hive` — remote repository URLs only, without a user name, password or query; a flowie pointer as its id and hive only |
+| registry | flowie, hive | `projects/projects.json` | `registry`, `id`, `description`, `status`, `current_phase`, `visited_phases`, `repos`, `pointer`, `hive` — remote repository URLs only, without a user name, password or query; the first 1,000 characters of a description; a flowie pointer as its id and hive only |
 | wiki | flowie, hive, project | `wiki/pages/**, wiki/index.md` | `pages`, `id`, `title`, `type`, `tags`, `status`, `updated`, `summary`, `sources`, `body` — no body with index only; [[links]] resolved to pages; sources, raw/ files and images named, never uploaded |
 | people | flowie, hive, project | `your handle, members.md, collaborators` | `people`, `handle`, `name`, `role` — name and role only with allow-names; your own handle only at flowie level; never an email address |
-| ideas | flowie, hive | `ideas.md, ideas-inbox.md (flowie)` | `ideas`, `ideas_inbox` — the text |
-| notes | flowie | `notes/*.md` | `notes`, `file`, `title`, `date` — never the notes themselves |
-| meetings | flowie, hive, project | `meetings/*.md` | `meetings`, `slug`, `title`, `date` — never attendees, agenda or notes |
-| team | hive | `hive.md` | `team` — the text after the frontmatter: the team's name, description, norms and research directions |
-| errata | hive | `errata/*.md` | `errata`, `dataset`, `columns`, `rows` — the table rows: date, scope, problem, workaround, reported_by |
+| ideas | flowie, hive | `ideas.md, ideas-inbox.md (flowie)` | `ideas`, `ideas_inbox` — the text, at most 40 KB |
+| notes | flowie | `notes/*.md` | `notes`, `file`, `title`, `date` — never the notes themselves; the newest 200 |
+| meetings | flowie, hive, project | `meetings/*.md` | `meetings`, `slug`, `title`, `date` — never attendees, agenda or notes; the newest 200 |
+| team | hive | `hive.md` | `team` — the text after the frontmatter, at most 40 KB: the team's name, description, norms and research directions |
+| errata | hive | `errata/*.md` | `errata`, `dataset`, `columns`, `rows` — the table rows (the newest 200 per dataset): date, scope, problem, workaround, reported_by |
 | phases | project | `project_config.md, phase folders` | `project_name`, `active_phase`, `recommended_phases`, `visited`, `ethics_not_applicable`, `phases`, `card` — visited names the phase folders that exist, card the project's id in your registry; no other config field |
 | dates | project | `timeline.md` | `dates`, `date`, `what`, `gates` — the dated rows; gates names the phase a date gates |
 | integrity | project | `ethics/status.md, preregistration/status.md` | `ethics`, `prereg`, `status`, `expires`, `frozen_at`, `by_person` — by_person says whether a person set the marker; never approval documents |
