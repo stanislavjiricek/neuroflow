@@ -48,6 +48,12 @@ describe('the key registry', () => {
     expect(lineNeighbour(['a', 'b', 'c'], 'a', -1)).toBe('a')
     expect(lineNeighbour(['a', 'b'], 'elsewhere', -1)).toBe('a')
     expect(lineNeighbour([], null, 1)).toBe(null)
+    // With a harmless start, j and k land there from no ring and from anything that is no stop — not on the first.
+    expect(lineNeighbour(['act', 'start', 'b'], null, 1, 'start')).toBe('start')
+    expect(lineNeighbour(['act', 'start', 'b'], 'elsewhere', -1, 'start')).toBe('start')
+    expect(lineNeighbour(['act', 'start', 'b'], 'start', 1, 'start')).toBe('b')
+    expect(lineNeighbour(['act', 'start', 'b'], 'start', -1, 'start')).toBe('act')
+    expect(lineNeighbour(['a', 'b'], null, 1, 'gone')).toBe('a')
     const grid = [['a1', 'a2', 'a3'], [], ['c1']]
     expect(gridNeighbour(grid, null, 'down')).toBe('a1')
     expect(gridNeighbour(grid, 'a1', 'down')).toBe('a2')
@@ -59,10 +65,23 @@ describe('the key registry', () => {
     expect(gridNeighbour([[], []], null, 'down')).toBe(null)
   })
 
-  test('keys typed through a focused open are dropped for TYPE_THROUGH_MS', () => {
+  test('keys typed through a focused open are dropped for TYPE_THROUGH_MS, and an action\'s Enter as long after the last key', () => {
     expect(isPastTypeThrough(1_000, undefined)).toBe(true)
     expect(isPastTypeThrough(1_399, 1_000)).toBe(false)
     expect(isPastTypeThrough(1_400, 1_000)).toBe(true)
+    // Opened long ago, but a `k` 100 ms before: the Enter of `ok⏎` is dropped.
+    expect(isPastTypeThrough(9_000, 1_000, 8_900)).toBe(false)
+    expect(isPastTypeThrough(9_000, 1_000, 8_600)).toBe(true)
+    expect(isPastTypeThrough(9_000, undefined, undefined)).toBe(true)
+  })
+
+  test('the dashboard\'s and the boards\' letters only move, read, close, cancel a pick or open a view: none writes, consents or starts a turn', () => {
+    const harmless = new Set(['pick', 'left', 'right', 'down', 'up', 'reread', 'close', 'cancel', 'go to phase', 'boards', 'verify'])
+    for (const view of ['dashboard', 'board'] as const) {
+      for (const [key, what] of Object.entries(VIEW_KEYS[view])) expect(harmless.has(what), `${view}: ${key} (${what})`).toBe(true)
+    }
+    // Freezing and unfreezing set a person's marker: Enter on their buttons, each after a yes.
+    expect(Object.values(VIEW_KEYS.dashboard)).not.toContain('freeze')
   })
 
   test('a view asks for fewer rows on a short terminal (24 rows over SSH)', () => {

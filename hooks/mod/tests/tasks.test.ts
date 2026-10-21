@@ -22,6 +22,8 @@ import {
   userHives,
 } from '../lib/tasks'
 import { boardRingTarget, cardKeys, firstTarget, taskLines } from '../features/views'
+import { answerAsks } from './ask'
+import type { Dialog } from './ask'
 import { buttons, elements, lines } from './drawn'
 import { fakeFs } from './fakefs'
 import type { FakeFs } from './fakefs'
@@ -255,13 +257,14 @@ describe('the boards in a session', () => {
     props: { title: requestId, isFocused: true, bodyColumns: 140, placement: 'inline', scroll: { offset: 0, bodyRows: rows }, view: {} },
   })
 
-  type Seen = { filled: string[]; ran: string[]; toasts: string[]; fs: FakeFs; clock: ReturnType<typeof mock.clock> }
+  type Seen = { filled: string[]; ran: string[]; toasts: string[]; fs: FakeFs; clock: ReturnType<typeof mock.clock>; dialog: Dialog }
   const setUp = (on: On, files: Record<string, string> = FILES): Seen => {
     const fs = fakeFs(on, files, ROOT)
     mock.env(on, { HOME })
     const clock = mock.clock(on, { now: new Date(2026, 9, 7, 9, 0).getTime() })
     mock.store(on)
-    const seen: Seen = { filled: [], ran: [], toasts: [], fs, clock }
+    // A move asks first: answered as a stray Enter would answer it, unless the test answers otherwise.
+    const seen: Seen = { filled: [], ran: [], toasts: [], fs, clock, dialog: answerAsks(on) }
     on('session.start', ($, e) => ({ cwd: e.cwd }))
     on('ui.open', () => ({ value: { isPlaced: true } }))
     on('ui.close', () => ({ value: undefined }))
@@ -299,8 +302,9 @@ describe('the boards in a session', () => {
     await ui.unmount()
   })
 
-  test('/neuroflow:tasks: digits pick the level; Enter on a card and a target runs the move at project and flowie level and only fills a hive\'s', { options: { runtime: 'observe' } }, async ($, on) => {
-    const { filled, ran, toasts, clock } = setUp(on)
+  test('/neuroflow:tasks: digits pick the level; Enter on a card and a target runs the move at project and flowie level after a yes and only fills a hive\'s', { options: { runtime: 'observe' } }, async ($, on) => {
+    const { filled, ran, toasts, clock, dialog } = setUp(on)
+    dialog.answer(() => 'Move it')
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     expect((await $.command.run({ command: 'neuroflow:tasks', args: '' } as never)).text).toContain('Task boards open')
     const ui = await $.ui.mount(pane('nf-board') as never)
@@ -326,12 +330,28 @@ describe('the boards in a session', () => {
     expect(flowie).toContain('level: flowie')
     expect(flowie).toContain('◆ ⚠ Check stats due 10-03')
     expect(flowie).toContain('◆ Oddball EEG (this project)')
+    // A card and a target are pressed by Enter: one right after another key is typed through (lib/keys.ts →
+    // TYPE_THROUGH_MS), so the person's Enter comes a moment later.
+    const enter = async (key: string) => {
+      await clock.advance(500)
+      await ui.press({ key })
+    }
     await ui.press({ key: 'nf-card-check-stats' })
+    expect(buttons(await ui.drawn()).find(button => button.key === 'nf-card-check-stats')?.label).not.toContain('▸')
+    await enter('nf-card-check-stats')
     // The picked card is marked; its targets are the board's other open columns and done.
     const picked = await ui.drawn()
     expect(buttons(picked).find(button => button.key === 'nf-card-check-stats')?.label).toContain('▸ ◆ ⚠ Check stats')
     expect(buttons(picked).filter(button => button.key.startsWith('nf-move-')).map(button => button.label)).toEqual(['inbox', 'ready', 'active', 'meeting', 'done'])
+    // An Enter right after the pick moved the ring onto a target is typed through: nothing moves, nothing asks.
     await ui.press({ key: 'nf-move-done' })
+    expect([ran, dialog.asked]).toEqual([[], []])
+    await enter('nf-move-done')
+    expect(dialog.asked).toEqual([{
+      question: 'Move "Check stats" to done? /neuroflow:tasks --level flowie --move check-stats done runs now and syncs your flowie.',
+      options: ['Not now', 'Move it'],
+      header: 'Tasks',
+    }])
     expect(ran).toEqual(['neuroflow:tasks --level flowie --move check-stats done'])
     await ui.press({ key: 'nf-level-hive:lab-team' })
     const hive = JSON.stringify(await ui.drawn())
@@ -340,20 +360,28 @@ describe('the boards in a session', () => {
     expect(hive).toContain('◆ oddball-lab (this project)')
     expect(hive).toContain('◆ Agenda item @jana')
     expect(hive).not.toContain('◆ Review poster')
-    await ui.press({ key: 'nf-card-agenda-item' })
-    await ui.press({ key: 'nf-move-inbox' })
+    await enter('nf-card-agenda-item')
+    await enter('nf-move-inbox')
     // A push to the team's repository is the person's to send (charter rule 16): the move only goes into the prompt.
     expect(filled).toEqual(['/neuroflow:tasks --level hive --hive lab-team --move agenda-item inbox'])
     expect(ran).toHaveLength(1)
+    expect(dialog.asked).toHaveLength(1)
     expect(toasts.join(' ')).toContain('the move is in the prompt — Esc, then Enter sends it')
     await ui.press({ key: 'nf-level-project' })
     // x cancels a pick: nothing moves.
-    await ui.press({ key: 'nf-card-rerun-ica' })
+    await enter('nf-card-rerun-ica')
     await ui.press({ key: 'nf-board-cancel' })
     expect(buttons(await ui.drawn()).some(button => button.key.startsWith('nf-move-'))).toBe(false)
     expect(ran).toHaveLength(1)
-    await ui.press({ key: 'nf-card-rerun-ica' })
-    await ui.press({ key: 'nf-move-review' })
+    // A stray Enter in the dialog answers its first option, the safe one: nothing moves, and the card stays picked.
+    dialog.answer(asked => asked.options[0] ?? '')
+    await enter('nf-card-rerun-ica')
+    await enter('nf-move-review')
+    expect(dialog.asked[1]?.question).toBe('Move "Rerun ICA" to review? /neuroflow:tasks --move rerun-ica review runs now.')
+    expect(ran).toHaveLength(1)
+    expect(buttons(await ui.drawn()).find(button => button.key === 'nf-card-rerun-ica')?.label).toContain('▸')
+    dialog.answer(() => 'Move it')
+    await enter('nf-move-review')
     expect(ran).toEqual(['neuroflow:tasks --level flowie --move check-stats done', 'neuroflow:tasks --move rerun-ica review'])
     expect(filled).toHaveLength(1)
     await ui.unmount()
@@ -430,7 +458,8 @@ describe('the boards in a session', () => {
     // The person's own Tab moves the ring (the engine raises ui.focus); j, k, h and l go on from there.
     await $.ui.focus({ component: 'Pane', requestId: 'nf-board', plugin: 'neuroflow', element: 'nf-card-write-intro', origin: { kind: 'person' } } as never)
     for (const key of ['nf-nav-left', 'nf-nav-right', 'nf-nav-down', 'nf-nav-up']) await ui.press({ key })
-    // A card picked, x shows up to cancel it.
+    // A card picked (an Enter a moment after the last key), x shows up to cancel it.
+    await clock.advance(500)
     await ui.press({ key: 'nf-card-write-intro' })
     expect(buttons(await ui.drawn()).find(button => button.key === 'nf-board-cancel')?.hotkey).toBe('x')
     await ui.unmount()

@@ -312,6 +312,12 @@ declare module 'claude-code' {
        * TYPE_THROUGH_MS after it (lib/keys.ts) are dropped as typed through (views and user panes).
        */
       openedAt: Record<string, number>
+      /**
+       * When each pane (by id) last saw one of its keys pressed, or its ring moved by the mod, in `$.clock` time: an
+       * Enter on an action (a row, a card, a move target, accept, sync) within TYPE_THROUGH_MS after it is dropped as
+       * typed through, so a word typed for the prompt never presses what its `j` or `k` moved the ring onto.
+       */
+      keyAt: Record<string, number>
       // Feature slices: each feature file owns the keys between its markers.
       // <feature:context>
       /** Page titles and one-line summaries of the initialized wikis (index.md rows), for prompt-time lookups. */

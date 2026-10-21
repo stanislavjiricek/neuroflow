@@ -17,14 +17,20 @@ import {
   integrityRows,
   loopSummary,
   markRuns,
+  moveQuestion,
+  NOW_START,
   nowRingKeys,
   nowRows,
   nowSummary,
   parseOpenQuestions,
   parseRunning,
+  runQuestion,
   sparkline,
   tabLines,
 } from '../features/views'
+import { lineNeighbour } from '../lib/keys'
+import { answerAsks } from './ask'
+import type { Asked } from './ask'
 import { buttons, elements, hotkeys, keyProblems, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
@@ -159,10 +165,30 @@ describe('dashboard lines', () => {
       '→ next phase: paper | ',
       '· wellbeing check-in due — the band asks for it, or /neuroflow:flowie --assess | ',
     ])
-    // The version notice is the pane's Update line, above every tab: not a row, but the first stop of j and k.
+    // The version notice is the pane's Update line, above every tab: not a row, but the first stop of j and k, above
+    // the tab's own name, where they start.
     expect(rows.some(row => row.text.includes('is installed'))).toBe(false)
-    expect(nowRingKeys(rows, true).slice(0, 3)).toEqual(['nf-dash-migrate', 'nf-now-draft-keep', 'nf-now-draft-drop'])
+    const ring = nowRingKeys(rows, true)
+    expect(ring.slice(0, 4)).toEqual(['nf-dash-migrate', NOW_START, 'nf-now-draft-keep', 'nf-now-draft-drop'])
     expect(rows.find(row => row.actions.some(action => action.key === 'nf-now-meet-prepare'))?.actions[0]?.act).toEqual({ kind: 'command', command: 'neuroflow:meeting', args: '--prepare lab-2026-10-07' })
+    // From no ring (and from any element that is not a stop) j and k land on the tab's name, never on an action: a
+    // typed `ok` leaves the ring where Enter only reads the tab again.
+    for (const at of [null, 'nf-tab-phase', 'nf-dash-reread']) {
+      expect(lineNeighbour(ring, at, 1, NOW_START), String(at)).toBe(NOW_START)
+      expect(lineNeighbour(ring, at, -1, NOW_START), String(at)).toBe(NOW_START)
+    }
+    // From there a second j reaches the first action, and k the Update line's migrate above it.
+    expect(lineNeighbour(ring, NOW_START, 1, NOW_START)).toBe('nf-now-draft-keep')
+    expect(lineNeighbour(ring, NOW_START, -1, NOW_START)).toBe('nf-dash-migrate')
+    // Nothing to reach, nothing to walk: no j and k.
+    expect(nowRingKeys([{ level: 'info', glyph: '→', text: 'next phase: paper', actions: [] }], false)).toEqual([])
+  })
+
+  test('every action from a pane asks first: a move names its command, a key\'s command says it starts a model turn', () => {
+    expect(runQuestion('neuroflow:meeting', '--prepare lab-2026-10-07')).toBe('Run /neuroflow:meeting --prepare lab-2026-10-07 now? It starts a model turn.')
+    expect(runQuestion('neuroflow:migrate', '')).toBe('Run /neuroflow:migrate now? It starts a model turn.')
+    expect(moveQuestion({ kind: 'project', name: 'project' }, 'rerun-ica', 'Rerun ICA', 'review')).toBe('Move "Rerun ICA" to review? /neuroflow:tasks --move rerun-ica review runs now.')
+    expect(moveQuestion({ kind: 'flowie', name: 'flowie' }, 'check-stats', 'Check stats', 'done')).toBe('Move "Check stats" to done? /neuroflow:tasks --level flowie --move check-stats done runs now and syncs your flowie.')
   })
 })
 
@@ -440,6 +466,7 @@ describe('engine', () => {
       ran.push(e.command)
       return { text: '' }
     })
+    const dialog = answerAsks(on)
     await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
     await $.command.run({ command: 'neuroflow:dashboard', args: '' })
     const ui = await $.ui.mount({
@@ -450,10 +477,18 @@ describe('engine', () => {
       props: { title: 'neuroflow', isFocused: true, bodyColumns: 120, placement: 'inline', scroll: { offset: 0, bodyRows: 16 }, view: {} },
     } as never)
     expect(JSON.stringify(await ui.drawn())).toContain('↑ neuroflow 0.2.22 is installed; this project is on 0.2.21 — run /neuroflow:migrate')
-    // An Enter typed through the open does not migrate; one after it does. The migrate key has no letter.
+    // An Enter typed through the open does not migrate, nor asks. The migrate key has no letter.
     await ui.press({ key: 'nf-dash-migrate' })
     expect(ran).toEqual([])
+    expect(dialog.asked).toEqual([])
     expect(buttons(await ui.drawn()).find(button => button.key === 'nf-dash-migrate')?.hotkey).toBe(undefined)
+    // One after it asks first, the safe answer on top: a stray Enter in the dialog migrates nothing.
+    await clock.advance(500)
+    await ui.press({ key: 'nf-dash-migrate' })
+    expect(dialog.asked).toEqual([{ question: 'Run /neuroflow:migrate now? It starts a model turn.', options: ['Not now', 'Run it'], header: 'neuroflow' }])
+    expect(ran).toEqual([])
+    // The person's yes runs it.
+    dialog.answer(() => 'Run it')
     await clock.advance(500)
     await ui.press({ key: 'nf-dash-migrate' })
     expect(ran).toContain('neuroflow:migrate')
@@ -470,11 +505,15 @@ describe('keyboard first', () => {
     [`${project}/.neuroflow/meetings/lab-2026-10-07.md`]: '---\ntitle: Lab meeting\ndate: 2026-10-07T14:00\n---\n',
     [`${project}/.neuroflow/tasks/active/rerun-ica.md`]: '---\ntitle: Rerun ICA\nstatus: active\n---\n',
   }
-  type Seen = { opens: Record<string, unknown>[]; closes: string[]; ran: string[]; store: Map<string, unknown>; clock: ReturnType<typeof mock.clock> }
+  type Seen = { opens: Record<string, unknown>[]; closes: string[]; ran: string[]; store: Map<string, unknown>; clock: ReturnType<typeof mock.clock>; dialog: ReturnType<typeof answerAsks> }
   const setUp = (on: On, stored: Record<string, unknown> = {}): Seen => {
     fakeFs(on, FILES, project)
     mock.env(on, { HOME: '/home/me' })
-    const seen: Seen = { opens: [], closes: [], ran: [], store: new Map(Object.entries(stored)), clock: mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() }) }
+    const seen: Seen = {
+      opens: [], closes: [], ran: [], store: new Map(Object.entries(stored)), clock: mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() }),
+      // Every question is answered as a stray Enter would answer it, unless the test answers otherwise.
+      dialog: answerAsks(on),
+    }
     on('store.get', ($, e) => ({ value: seen.store.get(e.key) }))
     on('store.set', ($, e) => {
       seen.store.set(e.key, e.value)
@@ -533,14 +572,15 @@ describe('keyboard first', () => {
     expect(seen.opens.slice(4).map(open => [open.id, open.rows])).toEqual([['nf-dashboard', 10], ['nf-board', 10]])
   })
 
-  test('the dashboard opens on now; keys typed through the open do nothing, and a now row acts only on Enter', { options: { runtime: 'observe' } }, async ($, on) => {
+  test('the dashboard opens on now; keys typed through the open do nothing, and a now row acts only on Enter and a yes', { options: { runtime: 'observe' } }, async ($, on) => {
     const seen = setUp(on)
     await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
     const opened = await $.command.run({ command: 'neuroflow:dashboard', args: '' })
     expect(opened.text).toBe('Dashboard open — 1–6 tabs, h/l previous/next, r reread, q close, Esc back to the prompt.')
     const ui = await $.ui.mount(pane('nf-dashboard') as never)
     const now = await ui.drawn()
-    expect(JSON.stringify(now)).toContain('1: now')
+    // The shown tab is a key with no letter, at full strength: where j and k start.
+    expect(buttons(now).find(button => button.key === 'nf-tab-now')).toEqual({ key: 'nf-tab-now', label: '1: now', plain: true })
     expect(lines(now)).toContain('▸ meeting "Lab meeting" in 60 min')
     expect(keyProblems(now, 'dashboard')).toEqual([])
     // Writing and consenting actions have no letter there: Enter on the row, never a bare key.
@@ -550,7 +590,14 @@ describe('keyboard first', () => {
     await seen.clock.advance(100)
     await ui.press({ key: 'nf-now-meet-prepare' })
     expect(seen.ran).toEqual([])
+    expect(seen.dialog.asked).toEqual([])
+    // Past the open and the last key: it asks, the safe answer first, and a stray Enter there runs nothing.
     await seen.clock.advance(400)
+    await ui.press({ key: 'nf-now-meet-prepare' })
+    expect(seen.dialog.asked.map(asked => [asked.question, asked.options])).toEqual([['Run /neuroflow:meeting --prepare lab-2026-10-07 now? It starts a model turn.', ['Not now', 'Run it']]])
+    expect(seen.ran).toEqual([])
+    seen.dialog.answer(() => 'Run it')
+    await seen.clock.advance(500)
     await ui.press({ key: 'nf-now-meet-prepare' })
     expect(seen.ran).toEqual(['neuroflow:meeting --prepare lab-2026-10-07'])
     // Digits pick a tab, h and l step through them, wrapping.
@@ -830,7 +877,9 @@ describe('integrity actions in the dashboard', () => {
     await $.command.run({ command: 'neuroflow:dashboard', args: 'integrity' })
     const ui = await $.ui.mount(pane as never)
     expect(JSON.stringify(await ui.drawn())).toContain('freeze prereg…')
-    expect(buttons(await ui.drawn()).find(button => button.key === 'nf-dash-freeze')).toMatchObject({ hotkey: 'f', plain: true })
+    // A person's marker is set on Enter (or a click), never on a letter that could be a word typed for the prompt.
+    expect(buttons(await ui.drawn()).find(button => button.key === 'nf-dash-freeze')).toEqual({ key: 'nf-dash-freeze', label: 'freeze prereg…', plain: true })
+    expect(hotkeys(await ui.drawn())).not.toContain('f')
     await seen.clock.advance(500)
     await ui.press({ key: 'nf-dash-freeze' })
     expect(seen.asked[0]).toContain('prereg-osf.md')
@@ -840,11 +889,16 @@ describe('integrity actions in the dashboard', () => {
     expect(argv.slice(argv.indexOf('--set-by'), argv.indexOf('--set-by') + 2)).toEqual(['--set-by', 'person'])
   })
 
-  test('any answer but the exact yes freezes nothing', { options: { runtime: 'observe' } }, async ($, on) => {
+  test('any answer but the exact yes freezes nothing; an Enter right after another key does not even ask', { options: { runtime: 'observe' } }, async ($, on) => {
     const seen = setUp(on, 'Not now')
     await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
     await $.command.run({ command: 'neuroflow:dashboard', args: 'integrity' })
     const ui = await $.ui.mount(pane as never)
+    await seen.clock.advance(500)
+    // `r` typed, and Enter at once: typed through.
+    await ui.press({ key: 'nf-dash-reread' })
+    await ui.press({ key: 'nf-dash-freeze' })
+    expect(seen.asked).toEqual([])
     await seen.clock.advance(500)
     await ui.press({ key: 'nf-dash-freeze' })
     expect(seen.asked[0]).toContain('prereg-osf.md')
@@ -888,7 +942,8 @@ describe('the dashboard in the new look', () => {
     const medium = await $.ui.mount(pane(76, 'terminal', 40) as never)
     const rows = lines(await medium.drawn())
     expect(rows.slice(0, 2)).toEqual(['◌ neuroflow', 'Oddball · data-analyze · critic'])
-    expect(rows).toContain('1: now')
+    // The shown tab reads `1: now` at full strength, a key with no letter; the others are dim digit keys.
+    expect(buttons(await medium.drawn()).find(button => button.key === 'nf-tab-now')).toEqual({ key: 'nf-tab-now', label: '1: now', plain: true })
     expect(rows).toContain(`${'━'.repeat(6)}${'─'.repeat(70)}`)
     expect(rows).toContain('▸ meeting "Lab meeting" in 60 min')
     // The summary under what needs attention, its labels UPPERCASE; side by side only where the pane is wide.
@@ -960,5 +1015,111 @@ describe('the dashboard in the new look', () => {
     const narrow = await $.ui.mount(pane(44) as never)
     expect(lines(await narrow.drawn())).toContain('● ideation  ● preregistration  ● data  ◉ data-analyze  → paper')
     await narrow.unmount()
+  })
+})
+
+describe('words typed into a dashboard that holds the keys', () => {
+  const project = '/work/proj'
+  /** Every row of the now tab that writes, consents or starts a turn: a drafted decision, a meeting, the version notice, wiki cards. */
+  const FILES = {
+    [`${project}/.neuroflow/project_config.md`]: '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data-analyze\nplugin_version: 0.2.21\n---\n',
+    // Not named "neuroflow": the pattern also matches the project, which would then read as the plugin's own repo.
+    '*/.claude-plugin/plugin.json': '{"name": "neuroflow-fixture", "version": "0.2.22"}',
+    '*/commands/data-analyze.md': '---\nname: data-analyze\nphase: data-analyze\nlifecycle: full\n---\n',
+    [`${project}/.neuroflow/sessions/2026-10-07.md`]: '## 10:00 — [data-analyze] plan written\n',
+    [`${project}/.neuroflow/meetings/lab-2026-10-07.md`]: '---\ntitle: Lab meeting\ndate: 2026-10-07T11:30\n---\n',
+    [`${project}/.neuroflow/wiki/.pending/2026-10-07-fdr.md`]: '---\ntitle: FDR\nstatus: pending\n---\nbody\n',
+  }
+  const PANE = {
+    plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-dashboard',
+    props: { title: 'neuroflow', isFocused: true, bodyColumns: 116, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
+  }
+
+  test('"ok" and Enter, typed for the prompt into a freshly opened dashboard past its open guard, write and run nothing', { options: { runtime: 'on' } }, async ($, on) => {
+    const fs = fakeFs(on, FILES, project)
+    mock.env(on, { HOME: '/home/me' })
+    const clock = mock.clock(on, { now: new Date(2026, 9, 7, 10, 30).getTime() })
+    mock.store(on)
+    on('session.start', ($$, e) => ({ cwd: e.cwd }))
+    on('session.model', () => ({ value: 'claude-test' }))
+    on('turn.complete', () => ({ text: 'done' }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.toast', () => ({ value: undefined }))
+    on('ui.log', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.focus', () => ({}))
+    const ran: string[] = []
+    on('command.run', ($$, e) => {
+      ran.push(`${e.command} ${e.args}`.trim())
+      return { text: '', ref: 1 }
+    })
+    const filled: string[] = []
+    on('prompt.fill', ($$, e) => {
+      filled.push(e.text)
+      return { isFilled: true, text: e.text, cursor: e.text.length }
+    })
+    on('model.complete', () => ({
+      value: {
+        isAnswered: true,
+        text: '{"statement": "Use FDR (BH) across electrodes", "reasoning": "Bonferroni was too conservative."}',
+        usage: { input_tokens: 10, output_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
+      },
+    }))
+    // Each question is answered as a stray Enter would answer it: with its first option.
+    const dialog = answerAsks(on)
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    // A command turn that logged no decision: the mod drafts one, kept only on the person's yes.
+    await $.command.run({ command: 'neuroflow:data-analyze', args: '' })
+    await $.turn.complete({ reason: 'answer', answer: 'We compared Bonferroni and FDR. '.repeat(10), durationMs: 1, isAborted: false, turnId: 't1' } as never)
+    await $.command.run({ command: 'neuroflow:dashboard', args: '' })
+    ran.length = 0
+    const ui = await $.ui.mount(PANE as never)
+    const tree = await ui.drawn()
+    expect(lines(tree)).toContain('✎ decision drafted for data-analyze: Use FDR (BH) across electrodes')
+    const before = JSON.stringify(fs.files)
+    // The now tab's stops as drawn, from the top: the Update line's migrate, the tab's own name, each row's actions.
+    const ring = buttons(tree).map(button => button.key).filter(key => key === 'nf-dash-migrate' || key === NOW_START || key.startsWith('nf-now-'))
+    expect(ring.slice(0, 3)).toEqual(['nf-dash-migrate', NOW_START, 'nf-now-draft-keep'])
+    expect(ring).toEqual(expect.arrayContaining(['nf-now-draft-drop', 'nf-now-meet-prepare', 'nf-now-meet-notes', 'nf-now-wiki-review']))
+    const actions = ring.filter(key => key !== NOW_START)
+    // Typed a second and a half after the open, past its guard: `o` is no key of the pane, `k` moves the ring.
+    await clock.advance(1500)
+    expect(hotkeys(tree)).not.toContain('o')
+    expect(hotkeys(tree)).toContain('k')
+    await ui.press({ key: 'nf-nav-up' })
+    // The kit has no ring of its own, so Enter is pressed where the mod sends the ring from none: the tab's own name.
+    const enterOn = lineNeighbour(ring, null, -1, NOW_START)
+    expect(enterOn).toBe(NOW_START)
+    await ui.press({ key: enterOn ?? '' })
+    // Whatever the ring had stood on, an Enter right after the `k` presses nothing.
+    for (const key of actions) await ui.press({ key })
+    // "okay" typed slowly: the Enter comes 600 ms after the `k`, and still only reads the tab again.
+    await clock.advance(300)
+    await ui.press({ key: 'nf-nav-up' })
+    await clock.advance(600)
+    await ui.press({ key: lineNeighbour(ring, null, -1, NOW_START) ?? '' })
+    expect(ran).toEqual([])
+    expect(filled).toEqual([])
+    expect(dialog.asked).toEqual([])
+    expect(JSON.stringify(fs.files)).toBe(before)
+    // And had the ring been walked onto an action, a late Enter only asks — the safe answer first, which is what a
+    // stray Enter in the dialog picks: still nothing is written, kept, migrated, synced or prepared.
+    for (const key of actions) {
+      await clock.advance(500)
+      await ui.press({ key })
+    }
+    expect(dialog.asked.map(asked => asked.options[0])).toEqual(['Not now', 'Not now', 'Keep it waiting', 'Not now', 'Not now', 'Not now'])
+    expect(dialog.asked.map(asked => asked.question)).toEqual([
+      'Run /neuroflow:migrate now? It starts a model turn.',
+      'Keep "Use FDR (BH) across electrodes" in the reasoning log, as a decision you approved?',
+      'Drop the drafted decision "Use FDR (BH) across electrodes"? It is not written anywhere.',
+      'Run /neuroflow:meeting --prepare lab-2026-10-07 now? It starts a model turn.',
+      'Run /neuroflow:meeting --notes lab-2026-10-07 now? It starts a model turn.',
+      'Run /neuroflow:wiki --review now? It starts a model turn.',
+    ])
+    expect(ran).toEqual([])
+    expect(JSON.stringify(fs.files)).toBe(before)
+    expect(lines(await ui.drawn())).toContain('✎ decision drafted for data-analyze: Use FDR (BH) across electrodes')
+    await ui.unmount()
   })
 })

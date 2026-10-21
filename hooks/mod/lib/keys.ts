@@ -5,13 +5,20 @@
 //
 // Charter rule 7: letters only in the band above the prompt, where a digit typed into an empty prompt could
 // press a button; digits only in panes, which hold the keys only after the person gave them (a command, ^X Tab).
+//
+// A pane holds the keys from the moment it opens, so whatever the person types there may have been meant for the
+// prompt. The dashboard's and the boards' letters therefore only move, read, close, cancel a pick or open another
+// view; none writes, consents or starts a model turn. Such an action is a Button without a hotkey: Enter on it (the
+// ring put there by Tab, j, k, h or l) or a click, never an Enter within TYPE_THROUGH_MS of another key, and it asks
+// first with the safe answer on top (views.tsx → confirm). The band decides on letters, because it holds the keys
+// only after ^X Tab.
 import type { NfDashboardTab } from '../../../types'
 
 /** What a key does. One meaning per key across every view. */
 export type Meaning =
   | 'left' | 'down' | 'up' | 'right' | 'reread' | 'close' | 'yes' | 'no' | 'cancel'
   | 'dashboard' | 'prepare' | 'notes' | 'close meeting' | 'migrate' | 'review' | 'sync' | 'apply'
-  | 'go to phase' | 'boards' | 'freeze' | 'verify' | 'unfreeze' | 'pick'
+  | 'go to phase' | 'boards' | 'verify' | 'pick'
 
 /**
  * Moving and deciding, in every pane: h/l the previous or next tab, column or target; j/k the next or previous row,
@@ -37,8 +44,11 @@ export const BAND = {
   dismiss: NAV.cancel,
 } as const
 
-/** The dashboard's own actions, beside the tab digits and the NAV keys. */
-export const DASH = { goPhase: 'g', boards: 'b', freeze: 'f', verify: 'v', unfreeze: 'u' } as const
+/**
+ * The dashboard's own keys, beside the tab digits and the NAV keys: views to open and a read-only check. Freezing and
+ * unfreezing the preregistration set a person's marker, so they are Enter on their buttons, each after a yes.
+ */
+export const DASH = { goPhase: 'g', boards: 'b', verify: 'v' } as const
 
 /** The living-paper pane: s syncs the skeleton now (a model turn), as the band's s syncs the flowie. */
 export const PAPER = { sync: BAND.sync } as const
@@ -85,9 +95,7 @@ export const VIEW_KEYS: Readonly<Record<View, Readonly<Record<string, Meaning>>>
     [NAV.close]: 'close',
     [DASH.goPhase]: 'go to phase',
     [DASH.boards]: 'boards',
-    [DASH.freeze]: 'freeze',
     [DASH.verify]: 'verify',
-    [DASH.unfreeze]: 'unfreeze',
   },
   board: {
     ...picks(DIGITS.length),
@@ -108,11 +116,19 @@ export const VIEW_KEYS: Readonly<Record<View, Readonly<Record<string, Meaning>>>
 
 // ── opening a view ────────────────────────────────────────────────────────────────────────────
 
-/** Keys typed this soon after a view opened holding the keys are dropped: typed through, not meant for it. */
+/**
+ * Keys typed this soon after a view opened holding the keys are dropped: typed through, not meant for it. So is an
+ * Enter on an action this soon after another key of the pane or a move of its ring: `ok⏎` typed for the prompt
+ * moves the ring with its `k` and must not press what the ring then stands on.
+ */
 export const TYPE_THROUGH_MS = 400
 
-/** True once a press may act: the view was not opened holding the keys, or long enough ago. */
-export const isPastTypeThrough = (now: number, openedAt: number | undefined): boolean => openedAt === undefined || now - openedAt >= TYPE_THROUGH_MS
+/**
+ * True once a press may act: TYPE_THROUGH_MS or more past each of `times` that is known — when the view opened holding
+ * the keys and, for an action, its pane's last key and last ring move.
+ */
+export const isPastTypeThrough = (now: number, ...times: readonly (number | undefined)[]): boolean =>
+  times.every(at => at === undefined || now - at >= TYPE_THROUGH_MS)
 
 /** The engine's focus chord, as the band and the pane footers teach it (Claude Code's own default binding). */
 export const CHORD = '^X Tab'
@@ -145,10 +161,13 @@ export const tabNeighbour = (tab: NfDashboardTab, step: 1 | -1): NfDashboardTab 
   return DASHBOARD_TABS[(at + step + DASHBOARD_TABS.length) % DASHBOARD_TABS.length]?.id ?? tab
 }
 
-/** In a list of element keys, the one after (`1`) or before (`-1`) `current`; the first when the ring is elsewhere. */
-export const lineNeighbour = (keys: readonly string[], current: string | null, step: 1 | -1): string | null => {
+/**
+ * In a list of element keys, the one after (`1`) or before (`-1`) `current`. While the ring is on none of them, j and
+ * k start on `start` — a harmless stop, so a typed j or k never lands the ring on an action — else on the first.
+ */
+export const lineNeighbour = (keys: readonly string[], current: string | null, step: 1 | -1, start?: string): string | null => {
   const at = current === null ? -1 : keys.indexOf(current)
-  if (at < 0) return keys[0] ?? null
+  if (at < 0) return start !== undefined && keys.includes(start) ? start : (keys[0] ?? null)
   return keys[Math.min(keys.length - 1, Math.max(0, at + step))] ?? null
 }
 

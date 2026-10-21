@@ -5,6 +5,7 @@ import type { NfFlowieSyncEntry } from '../../../types'
 import { SYNC_QUEUE, afterFlush, asQueue, checkRemoteEntry, enqueue, flushFlowie, gitReason, isSettled, syncState } from '../lib/flowiesync'
 import type { NfIo, NfRun } from '../lib/io'
 import { bandItems, keyFillsPrompt } from '../features/views'
+import { answerAsks } from './ask'
 import { elements, hotkeys } from './drawn'
 import { fakeFs } from './fakefs'
 import { memIo } from './memio'
@@ -518,6 +519,7 @@ describe('the sync before a neuroflow command', () => {
       return { isFilled: true, text: e.text, cursor: e.text.length }
     })
     on('ui.open', () => ({ value: { isPlaced: true } }))
+    const dialog = answerAsks(on, () => 'Run it')
     await $.session.start({ cwd: ROOT, surface: 'terminal', isInteractive: true })
     await checkDone()
     const ui = await $.ui.mount<'terminal', 'AbovePrompt'>(BAND as never)
@@ -537,11 +539,15 @@ describe('the sync before a neuroflow command', () => {
     expect(filled).toEqual(['/neuroflow:migrate', '/neuroflow:migrate'])
     expect(seen.ran).toEqual([])
     expect(seen.git).toEqual([])
-    // A turn ends: the sync runs, and the keys run the command again.
+    // A turn ends: the sync runs, and the keys run the command again — the band's at once (it holds the keys only
+    // after ^X Tab), the dashboard's after the person's yes (it holds them while the person may type).
     await $.turn.complete(TURN as never)
     expect(seen.git).toEqual(SYNC)
     await ui.press({ key: 'nf-migrate' })
+    expect(seen.ran).toEqual(['neuroflow:migrate'])
+    await seen.clock.advance(500)
     await pane.press({ key: 'nf-dash-migrate' })
+    expect(dialog.asked.map(asked => asked.question)).toEqual(['Run /neuroflow:migrate now? It starts a model turn.'])
     expect(seen.ran).toEqual(['neuroflow:migrate', 'neuroflow:migrate'])
     expect(filled).toHaveLength(2)
     await pane.unmount()

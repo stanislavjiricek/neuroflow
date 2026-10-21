@@ -7,9 +7,13 @@
 //  - /neuroflow:dashboard opens the pane; its integrity tab freezes, verifies and unfreezes a
 //    preregistration on a person's key press and confirmation (M018), through freeze.py
 //  - /neuroflow:tasks opens the task boards of every level — project, flowie, each hive (M070, M163); a move runs
-//    on Enter at project and flowie level, and goes into the prompt at a hive's for the person to send (rule 16)
+//    on Enter and the person's yes at project and flowie level, and goes into the prompt at a hive's for the person
+//    to send (rule 16)
 // Every view a command opens takes the keyboard, keys typed through that open are dropped, and every hotkey comes
-// from the one key map in lib/keys.ts. Each draws the one look (skills/neuroflow-develop → Visual style) for the width
+// from the one key map in lib/keys.ts. A pane holds the keys while the person may be typing for the prompt, so no
+// letter there writes, consents or starts a model turn: those actions are Enter on their row (never right after
+// another key: actOn) and ask first, the safe answer on top (confirm); the band, reached by ^X Tab, keeps its
+// letters. Each draws the one look (skills/neuroflow-develop → Visual style) for the width
 // and height it gets, from the pure helpers of lib/layout.ts; tabLines and the row helpers below are its text form.
 // Without the mod, commands/phase.md, commands/dashboard.md and commands/tasks.md do the same in prose.
 import { atom, read, update } from 'claude-code'
@@ -73,6 +77,7 @@ const quietAtom = atom({ plugin: 'neuroflow', key: 'quietSince' } as const, null
 const flowieSyncAtom = atom({ plugin: 'neuroflow', key: 'flowieSync' } as const, NO_SYNC)
 const wellbeingCheckAtom = atom({ plugin: 'neuroflow', key: 'wellbeingCheck' } as const, null)
 const openedAtAtom = atom({ plugin: 'neuroflow', key: 'openedAt' } as const, {})
+const keyAtAtom = atom({ plugin: 'neuroflow', key: 'keyAt' } as const, {})
 const keysLearnedAtom = atom({ plugin: 'neuroflow', key: 'keysLearned' } as const, null)
 const paneRingAtom = atom({ plugin: 'neuroflow', key: 'paneRing' } as const, {})
 
@@ -241,8 +246,9 @@ export type NowLive = { draft: NfDraftedDecision | null; drive: NfDrive | null; 
 /**
  * The dashboard's now tab: every item the band can show, whatever the quiet setting, each with its action — the
  * drafted decision, the loop being driven and a live note capture first, as on the band. The version notice is
- * the pane's Update line, above every tab. An action runs on Enter on its row and has no letter: a pane that holds
- * the keys must never turn typed words into a migration, a kept decision or a paid turn.
+ * the pane's Update line, above every tab. A pane that holds the keys must never turn typed words into a write, a
+ * consent or a paid turn, so an action has no letter: it runs on Enter on its row, never an Enter that follows
+ * another key within TYPE_THROUGH_MS, and asks first (runNow); j and k start on the tab's own name (NOW_START).
  */
 export const nowRows = (snap: NfSnapshot, sync: NfFlowieSync | null, live: NowLive): NowRow[] => {
   const rows: NowRow[] = []
@@ -291,11 +297,22 @@ export const nowRows = (snap: NfSnapshot, sync: NfFlowieSync | null, live: NowLi
   return rows
 }
 
-/** The now tab's rows in the order j and k walk them: the Update line's migrate first, then each row's actions. */
-export const nowRingKeys = (rows: readonly NowRow[], isBehind: boolean): string[] => [
-  ...(isBehind ? ['nf-dash-migrate'] : []),
-  ...rows.flatMap(row => row.actions.map(action => action.key)),
-]
+/**
+ * Where j and k start on the now tab while the ring is on none of its rows: the shown tab's own name (`1: now`),
+ * which only reads the tab again. Never an action, so a j or k typed for the prompt leaves the ring on nothing
+ * that writes.
+ */
+export const NOW_START = 'nf-tab-now'
+
+/**
+ * The now tab's stops in the order j and k walk them, as they stand from the top: the Update line's migrate, the
+ * tab's name (where they start, NOW_START), then each row's actions. None when there is no action to reach.
+ */
+export const nowRingKeys = (rows: readonly NowRow[], isBehind: boolean): string[] => {
+  const actions = rows.flatMap(row => row.actions.map(action => action.key))
+  if (!isBehind && actions.length === 0) return []
+  return [...(isBehind ? ['nf-dash-migrate'] : []), NOW_START, ...actions]
+}
 
 /** The keys of the cards a board draws, column by column; none on a read-only board, whose cards are text. */
 export const cardKeys = (level: Pick<NfTaskLevel, 'kind' | 'board'>): string[][] =>
@@ -628,30 +645,73 @@ const markOpened = async ($: EngineInterface, id: string): Promise<void> => {
   await forgetRing($, id)
 }
 
+/** Notes a key of a pane — a press, or a move of its ring the mod made: an Enter on an action right after it is dropped. */
+const noteKey = async ($: EngineInterface, id: string): Promise<void> => {
+  const now = await $.clock.now()
+  await update($, keyAtAtom, keys => ({ ...keys, [id]: now }))
+}
+
 /**
- * A press handler for a pane's element that ignores the keys typed through a focused open (lib/keys.ts →
- * TYPE_THROUGH_MS): a person who presses Enter on the command and keeps typing never runs anything there.
+ * A press handler for one of a pane's keys (a tab or a level, h, j, k, l, r, q, x, the views it opens): dropped while
+ * typed through a focused open (lib/keys.ts → TYPE_THROUGH_MS), so a person who presses Enter on the command and keeps
+ * typing never acts there. Every press is noted for the guard of the actions (actOn).
  */
 const act =
   ($: EngineInterface, id: string, run: () => unknown) =>
   async (): Promise<void> => {
-    if (!isPastTypeThrough(await $.clock.now(), (await read($, openedAtAtom))[id])) return
+    const now = await $.clock.now()
+    const opened = (await read($, openedAtAtom))[id]
+    await noteKey($, id)
+    if (!isPastTypeThrough(now, opened)) return
     await run()
   }
+
+/**
+ * A press handler for an action — a now-tab row, the Update line's migrate, a card, a move target, freeze — which has
+ * no letter: Enter on it with the ring there, or a click. Dropped while typed through the open and within
+ * TYPE_THROUGH_MS of the pane's last key or ring move: `ok⏎` typed for the prompt moves the ring with its `k`, and its
+ * Enter must not press what the ring then stands on. An action that writes, consents or starts a model turn asks
+ * first besides (confirm). A move of the ring by the person (Tab, a click) is not counted: a click is that move and
+ * the press at once.
+ */
+const actOn =
+  ($: EngineInterface, id: string, run: () => unknown) =>
+  async (): Promise<void> => {
+    const now = await $.clock.now()
+    const opened = (await read($, openedAtAtom))[id]
+    const last = (await read($, keyAtAtom))[id]
+    await noteKey($, id)
+    if (!isPastTypeThrough(now, opened, last)) return
+    await run()
+  }
+
+/**
+ * Asks before an action of a pane writes, consents or starts a model turn: the engine's question dialog with the safe
+ * answer first, so a stray Enter there answers no. Only the exact yes acts — a dismissed dialog, an answer typed under
+ * "Other" and a run with nobody to ask all mean no.
+ */
+const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string): Promise<boolean> =>
+  (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
+
+/** The question before a key's command runs: a model turn the person starts. */
+export const runQuestion = (command: string, args: string): string =>
+  `Run /${command}${args === '' ? '' : ` ${args}`} now? It starts a model turn.`
 
 /** Moves the pane's focus ring onto one of its elements and remembers it there (j, k, h, l; a picked card). */
 const focusRing = async ($: EngineInterface, pane: string, key: string): Promise<void> => {
   const result = await $.ui.focus({ requestId: pane, key }).catch((): { deny?: string } => ({ deny: 'no ring' }))
+  await noteKey($, pane)
   if (result.deny === undefined) await update($, paneRingAtom, ring => ({ ...ring, [pane]: key }))
 }
 
 /**
- * j and k in a list of rows: the next or the previous one from where the ring is, the first when it is elsewhere.
- * The ring is moved even onto the element the mod last recorded: should the record be stale, the move mends it.
+ * j and k in a list of rows: the next or the previous one from where the ring is; while it is on none of them, the
+ * harmless `start` (lib/keys.ts → lineNeighbour). The ring is moved even onto the element the mod last recorded:
+ * should the record be stale, the move mends it.
  */
-const stepRing = async ($: EngineInterface, pane: string, keys: readonly string[], step: 1 | -1): Promise<void> => {
+const stepRing = async ($: EngineInterface, pane: string, keys: readonly string[], step: 1 | -1, start?: string): Promise<void> => {
   const at = (await read($, paneRingAtom))[pane] ?? null
-  const to = lineNeighbour(keys, at, step)
+  const to = lineNeighbour(keys, at, step, start)
   if (to !== null) await focusRing($, pane, to)
 }
 
@@ -663,6 +723,7 @@ const stepRing = async ($: EngineInterface, pane: string, keys: readonly string[
 const ringTo = async ($: EngineInterface, pane: string, key: string): Promise<void> => {
   await update($, paneRingAtom, ring => ({ ...ring, [pane]: key }))
   await $.ui.focus({ requestId: pane, key }).catch(() => ({ deny: 'no ring' }))
+  await noteKey($, pane)
 }
 
 /** Sets the active phase as the person asked: config, session log, reasoning log, snapshot. */
@@ -887,12 +948,20 @@ const boardStep = async ($: EngineInterface, direction: Direction): Promise<void
 }
 
 /**
- * Enter on a move target. At project and flowie level the move runs at once, as every key's command does (runKey);
- * at a hive's it only goes into the prompt: the push to the team's repository is the person's to send (rule 16).
+ * The question before a move runs at project or flowie level, where /tasks moves the file at once (and at flowie
+ * level commits and syncs it): `Move "Rerun ICA" to review? /neuroflow:tasks --move rerun-ica review runs now.`
+ */
+export const moveQuestion = (level: Pick<NfTaskLevel, 'kind' | 'name'>, slug: string, title: string, target: string): string =>
+  `Move "${title}" to ${target}? ${moveCommand(level, slug, target)} runs now${level.kind === 'flowie' ? ' and syncs your flowie' : ''}.`
+
+/**
+ * Enter on a move target. At project and flowie level the move runs after the person's yes (runKey, with the safe
+ * answer first: the board holds the keys while the person may type); at a hive's it only goes into the prompt: the
+ * push to the team's repository is the person's to send (rule 16). A move not made leaves the card picked.
  */
 const runMove = async ($: EngineInterface, level: NfTaskLevel, slug: string, target: string): Promise<void> => {
-  await update($, boardPickAtom, () => null)
   if (level.kind === 'hive') {
+    await update($, boardPickAtom, () => null)
     const text = moveCommand(level, slug, target)
     const filled = await $.prompt.fill({ text }).then(
       result => result.isFilled,
@@ -905,7 +974,11 @@ const runMove = async ($: EngineInterface, level: NfTaskLevel, slug: string, tar
     )
     return
   }
-  await runKey($, 'neuroflow:tasks', `${levelArgs(level).trim()} --move ${slug} ${target}`.trim())
+  const title = level.board.columns.flatMap(column => column.cards).find(card => card.slug === slug)?.title ?? slug
+  const args = `${levelArgs(level).trim()} --move ${slug} ${target}`.trim()
+  if (await runKey($, 'neuroflow:tasks', args, { question: moveQuestion(level, slug, title, target), yes: 'Move it', header: 'Tasks' })) {
+    await update($, boardPickAtom, () => null)
+  }
 }
 
 const hideBandToday = async ($: EngineInterface): Promise<void> => {
@@ -913,13 +986,17 @@ const hideBandToday = async ($: EngineInterface): Promise<void> => {
   await update($, bandHiddenAtom, () => true)
 }
 
+/** What a pane asks before a key's command runs (confirm): the question, its yes and the dialog's chip. */
+type Ask = { question: string; yes: string; header: string }
+
 /**
- * A key's neuroflow command (the band's, the dashboard's, a board move): run at once — or, while a flowie sync of
- * the mod's waits, put in the prompt for the person to send, so the sync runs before it (keyFillsPrompt). The band
- * or pane keeps the keys after the press, so Esc comes first. A prompt box that does not take the text runs the
- * command as before.
+ * A key's neuroflow command (the band's, the dashboard's, a board move): run — or, while a flowie sync of the mod's
+ * waits, put in the prompt for the person to send, so the sync runs before it (keyFillsPrompt). The band or pane
+ * keeps the keys after the press, so Esc comes first. A prompt box that does not take the text runs the command as
+ * before. From a pane, which holds the keys while the person may type, the command runs only after `ask` is answered
+ * yes; the band, which holds them only after ^X Tab, runs it at once. True when it ran or went into the prompt.
  */
-const runKey = async ($: EngineInterface, command: string, args: string): Promise<void> => {
+const runKey = async ($: EngineInterface, command: string, args: string, ask?: Ask): Promise<boolean> => {
   if (keyFillsPrompt(await read($, flowieSyncAtom))) {
     const text = `/${command}${args === '' ? '' : ` ${args}`}`
     const filled = await $.prompt.fill({ text }).then(
@@ -928,11 +1005,16 @@ const runKey = async ($: EngineInterface, command: string, args: string): Promis
     )
     if (filled) {
       $.ui.toast(`neuroflow: ${text} is in the prompt — Esc, then Enter runs it; your flowie sync goes first`)
-      return
+      return true
     }
   }
+  if (ask !== undefined && !(await confirm($, ask.question, 'Not now', ask.yes, ask.header))) return false
   await $.command.run({ command, args })
+  return true
 }
+
+/** The pane's ask before a command runs: `Run /… now? It starts a model turn.` */
+const runAsk = (command: string, args: string): Ask => ({ question: runQuestion(command, args), yes: 'Run it', header: 'neuroflow' })
 
 /** Stops the loop being driven (the band's x, the now tab's stop): the current iteration finishes, none starts. */
 const stopDriving = async ($: EngineInterface): Promise<void> => {
@@ -1074,13 +1156,38 @@ const settleDraft = async ($: EngineInterface, keep: boolean): Promise<void> => 
   await update($, draftAtom, () => null)
 }
 
-/** Enter on a now-tab row: the band's own act for it. */
+/**
+ * Enter on a now-tab row: the band's own act for it, after the person's yes in the engine's question dialog, the safe
+ * answer first — the pane holds the keys while the person may be typing for the prompt (confirm). Only the workbench's
+ * apply goes ahead without a question: it puts its command in the prompt, for the person to send.
+ */
 const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
-  if (now.kind === 'command') await runKey($, now.command, now.args)
-  else if (now.kind === 'fill') await fillKey($, now.command, now.args)
-  else if (now.kind === 'keep' || now.kind === 'drop') await settleDraft($, now.kind === 'keep')
-  else if (now.kind === 'stop-drive') await stopDriving($)
-  else await endCapture($)
+  if (now.kind === 'fill') {
+    await fillKey($, now.command, now.args)
+    return
+  }
+  if (now.kind === 'command') {
+    await runKey($, now.command, now.args, runAsk(now.command, now.args))
+    return
+  }
+  if (now.kind === 'keep' || now.kind === 'drop') {
+    const draft = await read($, draftAtom)
+    if (draft === null) return
+    const keep = now.kind === 'keep'
+    const yes = keep
+      ? await confirm($, `Keep "${draft.statement}" in the reasoning log, as a decision you approved?`, 'Not now', 'Keep it', 'Decision')
+      : await confirm($, `Drop the drafted decision "${draft.statement}"? It is not written anywhere.`, 'Keep it waiting', 'Drop it', 'Decision')
+    if (yes) await settleDraft($, keep)
+    return
+  }
+  if (now.kind === 'stop-drive') {
+    const drive = await read($, driveAtom)
+    if (drive !== null && (await confirm($, `Stop driving "${drive.name}"? The current iteration finishes; no new one starts.`, 'Keep driving', 'Stop it', 'Autoresearch'))) {
+      await stopDriving($)
+    }
+    return
+  }
+  if (await confirm($, 'End the note capture? Your next messages go to the model again.', 'Keep capturing', 'End it', 'Notes')) await endCapture($)
 }
 
 /**
@@ -1251,7 +1358,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const scope = await read($, scopeAtom)
     if (!scope?.isActive || e.args.trim() !== '' || !(await isPersonThere($))) return next(e)
     await openBoard($)
-    return { text: 'Task boards open — digits pick the level, h/j/k/l or Tab reach a card, Enter moves it, q closes. (Any argument runs the full /tasks flow.)' }
+    return { text: 'Task boards open — digits pick the level, h/j/k/l or Tab reach a card, Enter picks it and Enter on a column moves it (after a yes), q closes. (Any argument runs the full /tasks flow.)' }
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: BOARD }, async ($, e) => {
@@ -1279,6 +1386,8 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const pageFor = (cards: readonly NfCard[]) => pageOf(cards, near === null ? -1 : cards.findIndex(card => card.slug === near))
     const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
     const run = (fn: () => unknown) => act($, BOARD, fn)
+    // A card and a move target are pressed by Enter: not right after another key (actOn), and a move asks first.
+    const runOn = (fn: () => unknown) => actOn($, BOARD, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
     const canStep = first !== null
     const layout = boardLayout(width, board.columns.length)
@@ -1292,7 +1401,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           label={fit(`${item.slug === pick ? '▸' : ' '} ${levelCardLine(item, level.kind)}`, room)}
           plain
           {...(picked === null && `nf-card-${item.slug}` === first ? { autoFocus: true as const } : {})}
-          onPress={run(() => pickCard($, item.slug))}
+          onPress={runOn(() => pickCard($, item.slug))}
         />
       )
     const note = (page: ReturnType<typeof pageFor>): JSX.Element | null => {
@@ -1366,7 +1475,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           <Box flexDirection="row" flexWrap="wrap" columnGap={2} marginTop={space}>
             <Text>{`move "${fit(picked.title, size === 'narrow' ? 18 : 32)}" →`}</Text>
             {moveTargets(board, cardColumn(board, picked.slug)).map(target => (
-              <Button key={`nf-move-${target}`} label={target} plain onPress={run(() => runMove($, level, picked.slug, target))} />
+              <Button key={`nf-move-${target}`} label={target} plain onPress={runOn(() => runMove($, level, picked.slug, target))} />
             ))}
             <Button key="nf-board-cancel" label="cancel" hotkey={NAV.cancel} plain dimColor onPress={run(() => cancelPick($))} />
           </Box>
@@ -1630,6 +1739,9 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const space = compact ? 0 : 1
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
     const run = (fn: () => unknown) => act($, DASHBOARD, fn)
+    // The now tab's rows, migrate, freeze and unfreeze are pressed by Enter: not right after another key (actOn),
+    // and each asks first.
+    const runOn = (fn: () => unknown) => actOn($, DASHBOARD, fn)
     const color = (tone: Tone | undefined) => (tone === undefined ? undefined : TONE_COLOR[tone])
     const frozenByPerson = snap.prereg?.status === 'frozen' && snap.prereg.setBy === 'person'
     // The prose dashboard's Update line (commands/dashboard.md): here too, also after the band was hidden for today.
@@ -1675,7 +1787,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
                 {row.actions.length > 0 ? (
                   <Box flexDirection="row" columnGap={2} flexShrink={0}>
                     {row.actions.map(action => (
-                      <Button key={action.key} label={action.label} plain onPress={run(() => runNow($, action.act))} />
+                      <Button key={action.key} label={action.label} plain onPress={runOn(() => runNow($, action.act))} />
                     ))}
                   </Box>
                 ) : null}
@@ -1832,15 +1944,14 @@ export const registerViews = (on: On, opts: NfOptions): void => {
             {frozenByPerson
               ? [
                   <Button key="nf-dash-verify" label="verify hashes" hotkey={DASH.verify} plain onPress={run(() => verifyFromDashboard($))} />,
-                  <Button key="nf-dash-unfreeze" label="unfreeze…" hotkey={DASH.unfreeze} plain onPress={run(() => unfreezeFromDashboard($))} />,
+                  <Button key="nf-dash-unfreeze" label="unfreeze…" plain onPress={runOn(() => unfreezeFromDashboard($))} />,
                 ]
               : [
                   <Button
                     key="nf-dash-freeze"
                     label={snap.prereg?.status === 'frozen' ? 'confirm freeze…' : 'freeze prereg…'}
-                    hotkey={DASH.freeze}
                     plain
-                    onPress={run(() => freezeFromDashboard($))}
+                    onPress={runOn(() => freezeFromDashboard($))}
                   />,
                 ]}
           </Box>
@@ -1950,8 +2061,8 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           <Button key="nf-nav-right" label={full ? 'tab ›' : '›'} hotkey={NAV.right} plain dimColor onPress={run(() => selectTab($, tabNeighbour(tab, 1)))} />
           {ringKeys.length > 0
             ? [
-                <Button key="nf-nav-down" label={full ? '▾ row' : '▾'} hotkey={NAV.down} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, 1))} />,
-                <Button key="nf-nav-up" label={full ? '▴ row' : '▴'} hotkey={NAV.up} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, -1))} />,
+                <Button key="nf-nav-down" label={full ? '▾ row' : '▾'} hotkey={NAV.down} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, 1, NOW_START))} />,
+                <Button key="nf-nav-up" label={full ? '▴ row' : '▴'} hotkey={NAV.up} plain dimColor onPress={run(() => stepRing($, DASHBOARD, ringKeys, -1, NOW_START))} />,
               ]
             : null}
           <Button key="nf-dash-reread" label="reread" hotkey={NAV.reread} plain dimColor onPress={run(() => rereadDashboard($))} />
@@ -1959,7 +2070,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
         </Box>
         {term ? (
           <Box flexShrink={0}>
-            <Text dimColor>{ringKeys.length > 0 ? 'enter: act · esc: prompt' : 'esc: prompt'}</Text>
+            <Text dimColor>{ringKeys.length > 0 ? 'enter: act · esc: prompt' : tab === 'integrity' ? 'tab, enter: act · esc: prompt' : 'esc: prompt'}</Text>
           </Box>
         ) : null}
       </Box>
@@ -1993,14 +2104,16 @@ export const registerViews = (on: On, opts: NfOptions): void => {
               <Text color={TONE_COLOR.warning} wrap={compact ? 'truncate-end' : 'wrap'}>{`↑ ${behind}`}</Text>
             </Box>
             <Box flexShrink={0}>
-              <Button key="nf-dash-migrate" label="migrate" plain onPress={run(() => runKey($, 'neuroflow:migrate', ''))} />
+              <Button key="nf-dash-migrate" label="migrate" plain onPress={runOn(() => runKey($, 'neuroflow:migrate', '', runAsk('neuroflow:migrate', '')))} />
             </Box>
           </Box>
         ) : null}
         <Box flexDirection="row" flexWrap="wrap" columnGap={strip.gap} marginTop={behind !== null ? space : 0}>
           {DASHBOARD_TABS.map(item =>
             item.id === tab ? (
-              <Text>{`${item.digit}: ${item.label}`}</Text>
+              // The shown tab at full strength, a key with no letter: Enter on it reads the tab again. On now it is
+              // where j and k start (NOW_START), so a typed j or k never puts the ring on an action.
+              <Button key={`nf-tab-${item.id}`} label={`${item.digit}: ${item.label}`} plain onPress={run(() => rereadDashboard($))} />
             ) : (
               <Button key={`nf-tab-${item.id}`} label={item.label} hotkey={item.digit} plain dimColor onPress={run(() => selectTab($, item.id))} />
             ),

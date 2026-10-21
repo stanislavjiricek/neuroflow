@@ -67,6 +67,7 @@
     "neuroflow.drive",
     "neuroflow.flowieSync",
     "neuroflow.gitAlias",
+    "neuroflow.keyAt",
     "neuroflow.keysLearned",
     "neuroflow.loginNode",
     "neuroflow.loopView",
