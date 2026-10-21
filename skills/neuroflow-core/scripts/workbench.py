@@ -1644,6 +1644,9 @@ def schema_problem(intent: dict) -> str | None:
             return "schema: due is not YYYY-MM-DD"
         if fields.get("tags") is not None and not (isinstance(fields["tags"], list) and all(isinstance(t, str) for t in fields["tags"])):
             return "schema: tags must be a list of words"
+        for name in ("owner", "phase", "project"):
+            if fields.get(name) is not None and not isinstance(fields[name], str):
+                return f"schema: {name} must be text"
         if intent.get("to") is not None and not isinstance(intent["to"], str):
             return "schema: to must be a column id"
     return None
@@ -1659,6 +1662,23 @@ def claim_of(intent: dict) -> tuple[str | None, datetime | None]:
     return claim.get("machine"), parse_time(claim.get("claimed_at"))
 
 
+# An intent is data a page wrote, maybe a newer page: before any check, a field is read only in the shape it must
+# have, so one malformed intent can never stop a run (it is claimed, and validate rejects it with its reason).
+
+def text_of(value) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def target_intent(body: dict) -> str | None:
+    target = body.get("target")
+    return text_of(target.get("intent")) if isinstance(target, dict) else None
+
+
+def outcome_of(body) -> dict:
+    outcome = body.get("outcome") if isinstance(body, dict) else None
+    return outcome if isinstance(outcome, dict) else {}
+
+
 def cmd_pickup(args, home: Path, now: datetime) -> tuple[int, dict]:
     person = consent(home)
     machine = args.machine or person["machine"]
@@ -1672,11 +1692,11 @@ def cmd_pickup(args, home: Path, now: datetime) -> tuple[int, dict]:
     out = Path(args.out) if args.out else Path(args.intents).parent / "claims"
     held_back: set[str] = set()
     for intent_id, doc in sorted(docs.items(), key=lambda pair: (str(pair[1]["body"].get("created_at")), pair[0])):
-        after = doc["body"].get("after")
+        after = text_of(doc["body"].get("after"))
         # a chain is claimed whole: a link whose earlier link waits elsewhere waits too
-        if after in held_back or (after in docs and docs[after]["body"].get("status") == "claimed"
-                                  and claim_of(docs[after]["body"])[0] != machine
-                                  and (claim_of(docs[after]["body"])[1] or now) > now - CLAIM_TTL):
+        if after is not None and (after in held_back or (after in docs and docs[after]["body"].get("status") == "claimed"
+                                                         and claim_of(docs[after]["body"])[0] != machine
+                                                         and (claim_of(docs[after]["body"])[1] or now) > now - CLAIM_TTL)):
             if doc["body"].get("status") != "done":
                 held_back.add(intent_id)
                 skipped.append({"intent": intent_id, "reason": f"waits for {after}"})
@@ -1691,8 +1711,8 @@ def cmd_pickup(args, home: Path, now: datetime) -> tuple[int, dict]:
         if status == "claimed" and who != machine and when is not None and now - when < CLAIM_TTL:
             skipped.append({"intent": intent_id, "reason": f"claimed by {who} {int((now - when).total_seconds() // 60)} min ago"})
             continue
-        level = body.get("level")
-        if level not in here and valid_level_key(level):
+        level = text_of(body.get("level"))
+        if valid_level_key(level) and level not in here:
             label = str(level)
             reason = (f"open Claude Code in the project {label[len('project+'):]}" if label.startswith("project+") else
                       f"{label[len('hive+'):].replace('+', '/')} is not cloned on this machine" if label.startswith("hive+")
@@ -1745,9 +1765,8 @@ def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str,
     planned_slug: dict[str, str] = {}      # add intent id → its slug (this run, or an earlier outcome)
     touched: dict[str, dict] = {}          # slug → the last action that touched it in this run
     for intent_id, body in done.items():
-        outcome = body.get("outcome") if isinstance(body.get("outcome"), dict) else {}
-        if body.get("op") == "add" and outcome.get("slug"):
-            planned_slug[intent_id] = outcome["slug"]
+        if body.get("op") == "add" and text_of(outcome_of(body).get("slug")):
+            planned_slug[intent_id] = outcome_of(body)["slug"]
     cancels = {}
     for intent_id, body in intents:
         if body.get("op") == "cancel" and schema_problem(body) is None:
@@ -1783,7 +1802,7 @@ def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str,
             continue
         if op == "cancel":
             target = body["target"]["intent"]
-            prior = verdicts.get(target) or ((done[target].get("outcome") or {}) if target in done else None)
+            prior = verdicts.get(target) or (outcome_of(done[target]) if target in done else None)
             if prior is None and target not in present:
                 verdicts[intent_id] = {"result": "rejected", "reason": f"{target} is not in the workbench"}
             elif prior is not None and prior.get("result") in ("applied", "coalesced"):
@@ -1801,7 +1820,7 @@ def validate_level(src: Source, intents: list[tuple[str, dict]], done: dict[str,
         if after:
             # a chain whose earlier link failed fails too; an earlier link the store no longer holds (gc) leaves the
             # checks below to decide, against the files as they are
-            before = verdicts.get(after) or ((done[after].get("outcome") or {}) if after in done else None)
+            before = verdicts.get(after) or (outcome_of(done[after]) if after in done else None)
             if before is not None and before.get("result") in ("rejected", "cancelled", "conflict"):
                 verdicts[intent_id] = {"result": "rejected", "reason": f"depends on {after}"}
                 continue
@@ -1933,8 +1952,9 @@ def cmd_validate(args, home: Path, now: datetime) -> tuple[int, dict]:
             continue
         by_level.setdefault(level, []).append((iid, body))
     for iid, body in pending_cancels.items():
-        if body.get("level") in by_level and (body.get("target") or {}).get("intent") in mine:
-            by_level[body["level"]].append((iid, body))  # a cancel the page queued after the claim still counts
+        level = text_of(body.get("level"))
+        if level in by_level and target_intent(body) in mine:
+            by_level[level].append((iid, body))  # a cancel the page queued after the claim still counts
     plan: dict = {"machine": machine, "validated_at": iso(now), "levels": [], "rejected": rejected}
     ledger = read_ledger(home)
     for key, items in by_level.items():
@@ -2144,21 +2164,23 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
     here = {src.key: src for src in sources}
     levels: dict[str, dict] = {}
     # an undone change (a cancel or a release waits for it) is no longer waiting, as the page counts it too
-    undone = {(doc["body"].get("target") or {}).get("intent") for doc in docs.values()
-              if doc["body"].get("op") == "cancel" and doc["body"].get("status") != "done"}
+    undone = {target_intent(doc["body"]) for doc in docs.values()
+              if doc["body"].get("op") == "cancel" and doc["body"].get("status") != "done"} - {None}
     undone |= {iid for iid, doc in docs.items() if doc["body"].get("cancel_requested_at")}
     grew = True
     while grew:  # a change chained to an undone one is rejected later ("depends on …"): not waiting either
         grew = False
         for iid, doc in docs.items():
-            if iid not in undone and doc["body"].get("after") in undone and doc["body"].get("status") != "done":
+            if iid not in undone and text_of(doc["body"].get("after")) in undone and doc["body"].get("status") != "done":
                 undone.add(iid)
                 grew = True
     for intent_id, doc in docs.items():
         body = doc["body"]
         if body.get("status") == "done" or intent_id in finished or body.get("op") == "cancel" or intent_id in undone:
             continue
-        key = body.get("level")
+        key = text_of(body.get("level"))
+        if not valid_level_key(key):
+            continue  # no board shows it; the next --apply-web rejects it with its reason
         entry = levels.setdefault(key, {"level": key, "slugs": [], "adds": 0, "count": 0, "oldest": None})
         entry["count"] += 1
         made = parse_time(body.get("created_at"))
@@ -2167,7 +2189,7 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
         target = body.get("target") if isinstance(body.get("target"), dict) else {}
         if body.get("op") == "add":
             entry["adds"] += 1
-        elif target.get("slug") and target["slug"] not in entry["slugs"]:
+        elif text_of(target.get("slug")) and target["slug"] not in entry["slugs"]:
             entry["slugs"].append(target["slug"])
         src = here.get(key)
         if src is not None:

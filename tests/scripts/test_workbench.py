@@ -763,6 +763,35 @@ class IntentTests(Home):
         body = json.loads(Path(write["file_path"]).read_text(encoding="utf-8"))
         self.assertEqual(body, {"status": "claimed", "claim": {"machine": "laptop", "claimed_at": NOW}})
 
+    def test_malformed_or_newer_intents_never_stop_a_run_and_are_rejected_with_a_reason(self) -> None:
+        hive = "hive+example-lab+hive"
+
+        def docs(status: str) -> dict[str, dict]:
+            return {
+                "i-x1-aaaa": intent("move", hive, "01", status=status, target={"slug": "fix-map"}, **{"from": "inbox"}, to="active",
+                                    base="0" * 64, intent_schema=2, after=["i-zz-zzzz"]),
+                "i-x2-bbbb": intent("move", {"org": "example-lab"}, "02", status=status, target={"slug": "fix-map"}, **{"from": "inbox"}, to="active"),
+                "i-x3-cccc": intent("add", hive, "03", status=status, fields={"title": "T", "phase": ["data"]}),
+                "i-x4-dddd": intent("move", hive, "04", status=status, target=["fix-map"], **{"from": "inbox"}, to="active"),
+                "i-x5-eeee": intent("cancel", hive, "05", status=status, target={"intent": ["i-x1-aaaa"]}),
+                "i-x6-ffff": intent("cancel", {"x": 1}, "06", status="pending", target=["i-x1-aaaa"]),
+                "i-x7-gggg": dict(intent("add", hive, "07", status="done", fields={"title": "U"}), outcome="applied"),
+            }
+        code, result = self.wb("pickup", "--intents", str(self.intents(docs("pending"))), "--out", str(self.scratch / "claims"))
+        self.assertIn(code, (0, 1), result)
+        claimed = sorted(w["doc_id"] for batch in result["batches"] for w in batch["writes"])
+        self.assertEqual(claimed, ["i-x1-aaaa", "i-x2-bbbb", "i-x3-cccc", "i-x4-dddd", "i-x5-eeee", "i-x6-ffff"])
+        code, result = self.wb("pending", "--intents", str(self.intents(docs("pending"))))
+        self.assertEqual(code, 0, result)
+        code, plan, verdicts = self.validate(docs("claimed"))
+        self.assertEqual(code, 1)
+        self.assertIn("intent_schema 2", verdicts["i-x1-aaaa"]["reason"])
+        self.assertEqual(verdicts["i-x2-bbbb"]["reason"], "schema: no valid level")
+        self.assertEqual(verdicts["i-x3-cccc"]["reason"], "schema: phase must be text")
+        self.assertEqual(verdicts["i-x4-dddd"]["reason"], "schema: target must name one slug or one intent")
+        self.assertEqual(verdicts["i-x5-eeee"]["reason"], "schema: target must name one slug or one intent")
+        self.assertTrue(all(verdict["result"] == "rejected" for verdict in verdicts.values()))
+
     def test_a_chain_waits_whole_while_its_first_link_is_claimed_elsewhere(self) -> None:
         hive = "hive+example-lab+hive"
         docs = {"i-w1-aaaa": intent("move", hive, "01", status="claimed", machine="desktop", target={"slug": "fix-map"}, **{"from": "inbox"},
