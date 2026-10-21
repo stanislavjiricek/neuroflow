@@ -27,7 +27,7 @@ title: /phase
 5. Asks whether to switch, as a **menu**: move with the arrow keys and press Enter, or click an option. "Stay in the current phase" comes first, then the next recommended phases; **Other** lets you type any phase.
 6. If you pick a different phase, it changes `active_phase` in `project_config.md` — that one value — logs the switch, and suggests the new phase's command.
 
-With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the same map with a picker that opens holding the keyboard — Down or Enter opens the list, the arrow keys move, a letter jumps to the phases that start with it, Enter switches and Esc closes (or a click) — and the switch is written by code. `/neuroflow:phase data-analyze` switches at once, with no picker. Without the mod, Claude asks the same question with Claude Code's question menu.
+With the neuroflow mod active, the mod answers `/neuroflow:phase` itself: the same map with a picker that opens holding the keyboard, each phase by its name, marked `◉` `●` `→` `○` as above, with its state in words — Down or Enter opens the list, the arrow keys move, a letter jumps to the phases that start with it, Enter switches and Esc closes (or a click) — and the switch is written by code. `/neuroflow:phase data-analyze` switches at once, with no picker. Without the mod, Claude asks the same question with Claude Code's question menu.
 
 The switch never edits `.claude/CLAUDE.md`: its neuroflow block is static and points at `project_config.md`, so nothing goes stale.
 

@@ -34,6 +34,7 @@ import {
   isCompact,
   measuredRows,
   moreLabel,
+  pad,
   pageNote,
   pageOf,
   paneColumns,
@@ -46,7 +47,7 @@ import {
 import { appendLine, isoDate, sessionLine, sessionLogPath } from '../lib/memory'
 import type { NfOptions } from '../lib/options'
 import { join, resolveFrom, toSlash } from '../lib/paths'
-import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
+import { PHASES, PHASE_GLYPH, isPhase, nextPhase, phaseLegend, phaseMap, phaseNodes, phaseState, phaseSummary, pickerOrder, travelledTo } from '../lib/phases'
 import { KNOWN_SCHEMA, loadSnapshot, versionNotice } from '../lib/project'
 import { parseJson, runScript } from '../lib/scripts'
 import { MINE, levelArgs, levelCardLine, levelSummary, loadTaskView, moveCommand, openingLevel, topCards } from '../lib/tasks'
@@ -1057,6 +1058,26 @@ const runNow = async ($: EngineInterface, now: NowAct): Promise<void> => {
   else await endCapture($)
 }
 
+/**
+ * The phase picker's options, in picker order: each phase's id and label first (a typed letter finds the phase by its
+ * name), then its glyph from the one legend and its state in words — current, next, recommended, visited, not
+ * started — in one column; `short` for the mobile buttons.
+ */
+export const pickerOptions = (
+  current: string | null,
+  visited: readonly string[],
+  recommended: readonly string[],
+): { value: string; label: string; short: string }[] => {
+  const next = nextPhase(current, recommended)
+  const rows = pickerOrder(current, recommended).map(phase => {
+    const state = phaseState(phase.id, current, visited, recommended)
+    const word = state === 'current' ? 'current' : phase.id === next ? 'next' : state === 'recommended' ? 'recommended' : state === 'visited' ? 'visited' : 'not started'
+    return { value: phase.id, text: `${phase.id} — ${phase.label}`, mark: `${PHASE_GLYPH[state]} ${word}` }
+  })
+  const width = Math.max(0, ...rows.map(row => cells(row.text)))
+  return rows.map(row => ({ value: row.value, label: `${pad(row.text, width)}  ${row.mark}`, short: `${row.value} · ${row.mark}` }))
+}
+
 /** M065 — the mark a phase command gets in the slash menu: the current phase and the recommended next one. */
 export const phaseMark = (command: string, current: string | null, next: string | null): string | null =>
   command === current ? `${PHASE_GLYPH.current} current phase ·` : command === next ? `${PHASE_GLYPH.recommended} next ·` : null
@@ -1980,9 +2001,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     rememberViewport(e.viewport)
     const snap = await read($, snapshotAtom)
     const note = await read($, pickerNoteAtom)
-    const order = pickerOrder(snap?.phase ?? null, snap?.recommendedPhases ?? [])
-    const tag = (id: string): string =>
-      id === snap?.phase ? '  (current)' : snap?.recommendedPhases.includes(id) ? '  (recommended)' : snap?.phasesVisited.includes(id) ? '  (visited)' : ''
+    const options = pickerOptions(snap?.phase ?? null, snap?.phasesVisited ?? [], snap?.recommendedPhases ?? [])
     const pick = async (value: string): Promise<void> => {
       // An Enter typed through the open would switch to the highlighted phase: dropped (lib/keys.ts).
       if (!isPastTypeThrough(await $.clock.now(), (await read($, openedAtAtom))[PICKER])) return
@@ -1996,36 +2015,66 @@ export const registerViews = (on: On, opts: NfOptions): void => {
       const { Box, Button, Text } = $.ui.resolve(e)
       return (
         <Box flexDirection="column">
-          {order.slice(0, 8).map(phase => <Button key={`nf-pick-${phase.id}`} label={`${phase.id}${tag(phase.id)}`} onPress={() => pick(phase.id)} />)}
+          {options.slice(0, 8).map(option => (
+            <Button key={`nf-pick-${option.value}`} label={option.short} onPress={() => pick(option.value)} />
+          ))}
           {note !== null ? <Text color="warning">{note}</Text> : null}
         </Box>
       )
     }
     const { Box, Select, Text } = $.ui.resolve(e)
-    const legend =
-      e.surface !== 'terminal'
-        ? null
-        : e.props.isFocused
-          ? '↓ or enter opens the list · ↑↓ move · a letter jumps · enter switches · esc closes'
-          : unfocusedHint('/neuroflow:phase')
+    const width = e.props.bodyColumns
+    const term = e.surface === 'terminal'
+    const compact = isCompact(e.viewport?.rows ?? measuredRows())
     return (
       <Box flexDirection="column">
-        <Select
-          key="nf-phase-select"
-          label="Phase "
-          options={order.map(phase => ({ value: phase.id, label: `${phase.id} — ${phase.label}${tag(phase.id)}` }))}
-          value={snap?.phase ?? undefined}
-          autoFocus
-          onSelect={value => {
-            void pick(value)
-          }}
-        />
-        {note !== null ? <Text color="warning">{note}</Text> : null}
-        {legend !== null ? (
+        <Box flexDirection="row" justifyContent="space-between" columnGap={2}>
+          <Box flexShrink={0}>
+            <Text>{`${MARK} switch phase`}</Text>
+          </Box>
+          <Box flexShrink={1}>
+            <Text dimColor wrap="truncate-end">{`now: ${snap?.phase ?? 'none'}`}</Text>
+          </Box>
+        </Box>
+        {term ? (
           <Text dimColor wrap="truncate-end">
-            {legend}
+            {rule(width)}
           </Text>
         ) : null}
+        <Box flexDirection="column" marginY={compact || !term ? 0 : 1}>
+          <Select
+            key="nf-phase-select"
+            label="Phase  "
+            options={options.map(option => ({ value: option.value, label: option.label }))}
+            value={snap?.phase ?? undefined}
+            autoFocus
+            onSelect={value => {
+              void pick(value)
+            }}
+          />
+          {note !== null ? <Text color="warning">{note}</Text> : null}
+        </Box>
+        {term && !compact ? (
+          <Text dimColor wrap="truncate-end">
+            {rule(width)}
+          </Text>
+        ) : null}
+        {!term ? null : e.props.isFocused ? (
+          <Box flexDirection={widthClass(width) === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
+            <Box flexShrink={1}>
+              <Text dimColor wrap="wrap">
+                ↓ or enter: open · ↑↓: move · a letter: jump · enter: switch
+              </Text>
+            </Box>
+            <Box flexShrink={0}>
+              <Text dimColor>esc: close</Text>
+            </Box>
+          </Box>
+        ) : (
+          <Text dimColor wrap="truncate-end">
+            {unfocusedHint('/neuroflow:phase')}
+          </Text>
+        )}
       </Box>
     )
   }).catch(($, e, next) => next(e))

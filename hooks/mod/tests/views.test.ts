@@ -7,6 +7,7 @@ import { nextPhase, phaseMap, pickerOrder } from '../lib/phases'
 import {
   bandActions,
   bandItems,
+  pickerOptions,
   cardLegend,
   cardRows,
   dashboardTitle,
@@ -24,7 +25,7 @@ import {
   sparkline,
   tabLines,
 } from '../features/views'
-import { buttons, hotkeys, keyProblems, lines } from './drawn'
+import { buttons, elements, hotkeys, keyProblems, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
 const snapshot = (over: Partial<NfSnapshot> = {}): NfSnapshot => ({
@@ -248,6 +249,20 @@ describe('phases', () => {
     expect(order.length).toBe(19)
     expect(nextPhase('data', ['ideation', 'data', 'paper'])).toBe('paper')
     expect(phaseMap(null, [], [])).toBe('')
+  })
+
+  test('the picker\'s options: the phase by its name first, then the legend\'s glyph and the state in words, in one column', () => {
+    const options = pickerOptions('data', ['ideation', 'data'], ['ideation', 'data', 'paper', 'output'])
+    const words = options.slice(0, 5).map(option => [option.label.replace(/ {2,}/, ' | '), option.short])
+    expect(words).toEqual([
+      ['data — acquisition & BIDS | ◉ current', 'data · ◉ current'],
+      ['ideation — question & literature | ● visited', 'ideation · ● visited'],
+      ['paper — manuscript | → next', 'paper · → next'],
+      ['output — export & archive | → recommended', 'output · → recommended'],
+      ['preregistration — hypotheses & plan | ○ not started', 'preregistration · ○ not started'],
+    ])
+    // The marks start in one column: after the longest label (preregistration's) and two spaces.
+    expect(new Set(options.map(option => option.label.search(/ {2}[◉●→○] /)))).toEqual(new Set([35]))
   })
 
   test('setActivePhase edits only the one line', () => {
@@ -711,7 +726,11 @@ describe('phase switching', () => {
         plugin: 'neuroflow', surface, component: 'Pane', requestId: 'nf-phase',
         props: { title: 'Switch phase', isFocused: true, bodyColumns: 60, placement: 'inline', scroll: { offset: 0, bodyRows: 12 }, view: {} },
       } as never)
-      expect(JSON.stringify(await ui.drawn())).toContain('data-analyze — analysis  (recommended)')
+      // The one legend's glyph, the id and label, and the state words in one column.
+      const options = (elements(await ui.drawn(), 'Select')[0]?.props.options ?? []) as { value: string; label: string }[]
+      expect(options.find(option => option.value === 'data-analyze')?.label).toMatch(/^data-analyze — analysis +→ next$/)
+      expect(options.find(option => option.value === 'data')?.label).toMatch(/^data — acquisition & BIDS +◉ current$/)
+      expect(lines(await ui.drawn())[0]).toBe('◌ switch phase')
       await ui.unmount()
     }
     const ui = await $.ui.mount({
@@ -719,7 +738,7 @@ describe('phase switching', () => {
       props: { title: 'Switch phase', isFocused: true, bodyColumns: 60, placement: 'inline', scroll: { offset: 0, bodyRows: 12 }, view: {} },
     } as never)
     // The legend says how the list works; an Enter typed through the open switches nothing.
-    expect(JSON.stringify(await ui.drawn())).toContain('↓ or enter opens the list · ↑↓ move · a letter jumps · enter switches · esc closes')
+    expect(lines(await ui.drawn())).toEqual(expect.arrayContaining(['↓ or enter: open · ↑↓: move · a letter: jump · enter: switch', 'esc: close', 'now: data']))
     await ui.select({ key: 'nf-phase-select', value: 'data-analyze' })
     expect(fs.files[`${project}/.neuroflow/project_config.md`]).toContain('active_phase: data\n')
     await clock.advance(500)
