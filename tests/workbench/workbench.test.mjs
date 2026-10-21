@@ -218,7 +218,7 @@ test('the wiki index groups pages by type and searches titles, tags and summarie
 test('the project panel: phases with a word for each mark, dates ahead from the viewer\'s date', () => {
   const panel = level('project+oddball-eeg').panel
   assert.deepEqual(phaseMap(panel).map(item => `${item.glyph} ${item.phase} ${item.state}`), [
-    '✔ ideation visited', '✔ preregistration visited', '○ data not started', '● data-analyze current', '○ paper not started'])
+    '● ideation visited', '● preregistration visited', '○ data not started', '◉ data-analyze current', '○ paper not started'])
   assert.deepEqual(upcomingDates(panel, '2026-10-21').map(row => `${row.date} ${row.days}`), ['2026-12-01 41', '2027-06-30 252'])
   assert.equal(panel.prereg.by_person, false)
 })
