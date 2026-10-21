@@ -440,7 +440,28 @@ def consent(home: Path) -> dict:
     data = read_user_yaml(home)
     return {"on": on(data.get("workbench")), "levels": as_keys(data.get("workbench_levels")),
             "index_only": as_keys(data.get("workbench_index_only")), "machine": str(data.get("workbench_machine") or "").strip(),
-            "account": str(data.get("workbench_account") or "").strip(), "handle": str(data.get("flowie_handle") or "").strip()}
+            "account": str(data.get("workbench_account") or "").strip(), "handle": str(data.get("flowie_handle") or "").strip(),
+            "pii_config": str(data.get("pii_config") or "").strip() if not isinstance(data.get("pii_config"), (list, dict)) else ""}
+
+
+def pii_settings(path_text: str | None) -> dict | None:
+    """The person's pii_scan.py config (id_patterns, roster) — from --pii-config, else the file `pii_config` names in
+    user.yaml; None without one. A relative roster path is read from the config's own folder. A config that cannot be
+    read stops the export: going on would upload ID numbers and roster names the person asked to be caught."""
+    if not path_text:
+        return None
+    path = Path(path_text).expanduser()
+    try:
+        config = json.loads(path.read_bytes().decode("utf-8-sig"))
+    except (OSError, ValueError) as error:
+        raise UsageError(f"the pii_scan config {path} cannot be read ({error}); fix it, or remove pii_config from "
+                         "~/.neuroflow/user.yaml") from error
+    if not isinstance(config, dict):
+        raise UsageError(f"the pii_scan config {path} must be a JSON object")
+    roster = config.get("roster")
+    if isinstance(roster, str) and roster.strip() and not Path(roster.strip()).expanduser().is_absolute():
+        config = {**config, "roster": str(path.parent / roster.strip())}
+    return config
 
 
 def level_rows(sources: list[Source], person: dict) -> list[dict]:
@@ -575,9 +596,10 @@ NEVER = ["sessions/, review/, paper/xray-*, wiki/.pending/ and every other local
 SCRUB = ("Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) "
          "goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address "
          "becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. "
-         "An item with secret-like text or a name from your participant roster is held back whole, and so is one whose "
-         "file name, tags or links carry personal data, as they travel unchanged. The preview names each item held back; "
-         "the page only counts them.")
+         "An item with secret-like text or a name from that config's participant roster is held back whole, and so is one "
+         "whose file name, tags or links carry personal data, as they travel unchanged. Your pii_scan config is the file "
+         "pii_config names in ~/.neuroflow/user.yaml (its id_patterns and roster); without it, ID numbers and participant "
+         "names are not checked. The preview names each item held back; the page only counts them.")
 
 
 def sources_markdown() -> str:
@@ -600,9 +622,13 @@ class Scrubber:
         self.mod = mod
         cfg = config or {}
         roster_file = cfg.get("roster")
-        roster = mod.load_roster(Path(roster_file).expanduser()) if roster_file else None
+        try:
+            roster = mod.load_roster(Path(roster_file).expanduser()) if roster_file else None
+            patterns = mod.id_patterns_from(cfg)
+        except mod.ConfigError as error:
+            raise UsageError(f"the pii_scan config: {error}") from error
         # No allowed or known addresses: an email address never leaves (only reserved example domains pass).
-        self.scanner = mod.Scanner(mod.id_patterns_from(cfg), roster, (), (), secrets=True)
+        self.scanner = mod.Scanner(patterns, roster, (), (), secrets=True)
 
     def text(self, value: str | None) -> tuple[str, set[str]]:
         if not value:
@@ -1411,7 +1437,7 @@ def cmd_export(args, home: Path, now: datetime) -> tuple[int, dict]:
         refused = [key for key in wanted if not rows[key]["mirrored"]]
         if refused:
             raise UsageError("not mirrored: " + "; ".join(f"{key} ({rows[key]['reason']})" for key in refused))
-    scrub = Scrubber(json.loads(Path(args.pii_config).read_text(encoding="utf-8")) if args.pii_config else None)
+    scrub = Scrubber(pii_settings(args.pii_config or person["pii_config"]))
     out = Path(args.out)
     built = [build_level(src, person, scrub, home, now, machine, False) for src in chosen]  # discover fetched them
     result: dict = {"machine": machine, "exported_at": iso(now), "levels": preview(built), "unkeyed": unkeyed,
@@ -2298,7 +2324,7 @@ def cmd_levels(args, home: Path, now: datetime) -> tuple[int, dict]:
     person = consent(home)
     sources, unkeyed = discover(home, args.root)
     return 0, {"workbench": "on" if person["on"] else "off", "machine": person["machine"] or None,
-               "levels": level_rows(sources, person), "unkeyed": unkeyed}
+               "pii_config": person["pii_config"] or None, "levels": level_rows(sources, person), "unkeyed": unkeyed}
 
 
 def cmd_key(args, home: Path, now: datetime) -> tuple[int, dict]:
@@ -2387,6 +2413,7 @@ def print_human(command: str, code: int, result: dict) -> None:
         return
     if command == "levels":
         print(f"workbench: {result['workbench']} · machine: {result['machine'] or 'not named yet'}")
+        print(f"ID numbers and participant names: {'checked with ' + result['pii_config'] if result['pii_config'] else 'not checked (no pii_config)'}")
         for row in result["levels"]:
             print(f"  {row['level']}: {row['label']} — {'mirrored' if row['mirrored'] else row['reason']}")
         for item in result["unkeyed"]:
@@ -2432,7 +2459,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--plan", help="apply, pending: the plan validate wrote")
     parser.add_argument("--today", help="apply: the date written into updated: (default: today)")
     parser.add_argument("--machine", help="the machine label (default: workbench_machine in user.yaml)")
-    parser.add_argument("--pii-config", help="export: a pii_scan.py config (id_patterns, roster)")
+    parser.add_argument("--pii-config", help="export: a pii_scan.py config (id_patterns, roster) instead of the one pii_config "
+                                             "in user.yaml names")
     parser.add_argument("--days", type=int, default=GC_DAYS, help="gc: keep finished intents this many days")
     parser.add_argument("--purge", action="append", metavar="KEY",
                         help="gc: delete this level's documents too — one the person took off (its parts must be listed)")

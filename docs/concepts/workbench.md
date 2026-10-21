@@ -81,9 +81,10 @@ account the workbench was recorded under, rather than making a second one.
 `forbid`. **Without the key, nothing of that hive or project is mirrored**: it is the team's decision, recorded in a
 commit the team can see, and `/dashboard --web` never writes it for you. It fetches first and follows the stricter of
 what your clone holds and what the team pushed, so a team's `forbid` takes effect before you pull, and a value nobody
-pushed does not start a mirror. Your other keys: `workbench_machine` (the
-name each export shows), `workbench_index_only` (levels whose wiki goes up as an index without page bodies) and
-`workbench_account` (which recorded workbench this machine uses). The record itself — the page's address, the account
+pushed does not start a mirror. Your other keys: `workbench_machine` (the name each export shows),
+`workbench_index_only` (levels whose wiki goes up as an index without page bodies), `workbench_account` (which recorded
+workbench this machine uses) and `pii_config` (the path of your `pii_scan.py` config — ID patterns and a participant
+roster — which every export applies; without it, ID numbers and participant names are not checked). The record itself — the page's address, the account
 label, the page version and a copy of your settings — lives in your flowie's `workbench.json`, or in `user.yaml`
 when no flowie is linked.
 
@@ -115,7 +116,7 @@ and a test keeps the two equal.
 
 Never uploaded: sessions/, review/, paper/xray-*, wiki/.pending/ and every other local-tier path; integrations.json, user.yaml, local-projects.json, boards/; fails/, finance/, reasoning/; the flowie's profile.md and wellbeing/; wiki raw/ files and images; email addresses, anywhere; meeting attendees, agendas and notes; machine-local paths.
 
-Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. An item with secret-like text or a name from your participant roster is held back whole, and so is one whose file name, tags or links carry personal data, as they travel unchanged. The preview names each item held back; the page only counts them.
+Free text (titles, notes, descriptions, column labels, wiki pages, ideas, team text, errata rows, dated rows) goes through pii_scan.py's patterns, without its allowance for addresses the project lists: an email address becomes [email removed], a phone number [phone removed], an ID number your pii_scan config names [id removed]. An item with secret-like text or a name from that config's participant roster is held back whole, and so is one whose file name, tags or links carry personal data, as they travel unchanged. Your pii_scan config is the file pii_config names in ~/.neuroflow/user.yaml (its id_patterns and roster); without it, ID numbers and participant names are not checked. The preview names each item held back; the page only counts them.
 <!-- workbench-sources:end -->
 
 Every upload — the first publish, each refresh, each write-back of outcomes — needs a one-line preview and your yes

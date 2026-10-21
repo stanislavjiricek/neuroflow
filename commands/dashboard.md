@@ -127,6 +127,11 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
      replace it).
    - Without `workbench_machine`: ask once for a name for this machine (suggest two, e.g. *laptop*, *lab desktop*) and
      write it.
+   - Without `pii_config` (the `levels` result names none), on the first run: ask whether the person keeps a
+     pii_scan.py config — ID patterns, a participant roster built with `pii_scan.py --build-roster` (AskUserQuestion:
+     *Yes — I'll give its path* / *No*). Write the path they give as `pii_config` (merge); every export applies it. Ask
+     only for the file's path, never for names. Without one, ID numbers and participant names are not checked — the
+     table says so.
    - On the first run and with `--levels`: ask which levels to mirror (AskUserQuestion, several may be picked), offering
      only those the team allows; name the others with the reason `{wb} levels` gives — never write a team's
      `workbench_mirror` yourself. Write `workbench_levels` as a JSON list, and `workbench_index_only` for levels whose
@@ -188,8 +193,8 @@ Every `{wb}` call takes `--json`; exit `0` is clean, `1` names findings (say the
 
 `--web --status` reads local files only — the record, `{wb} levels` and `~/.neuroflow/workbench/pending.json` — and
 prints the account, the URL, the page's template against the plugin's, each level with its consent and the team's
-opt-in, and how many changes wait and since when (`oldest`, as of the time pending.json was written). It uploads
-nothing.
+opt-in, whether ID numbers and participant names are checked (`pii_config`), and how many changes wait and since when
+(`oldest`, as of the time pending.json was written). It uploads nothing.
 
 `--web --levels` asks step 2's level question again; each level taken off is named in the step 5 preview and, after its
 yes, purged in step 8 (`--purge {level}`).

@@ -379,6 +379,36 @@ class ExportTests(Home):
             self.assertNotIn(leak, everything, leak)
         self.assertEqual(wb.public_url("jana@lab-server:repos/x.git"), "lab-server:repos/x.git")
 
+    def test_ids_and_roster_names_follow_the_pii_config_user_yaml_names(self) -> None:
+        hive = "hive+example-lab+hive"
+        self.make_hive(policy="allow")
+        keys = self.base / "keys"  # outside every project, as pii_scan.py wants the roster
+        names = self.write(keys / "names.txt", "Jana Novakova\n")
+        wb.pii().build_roster(names, keys / "roster.json", self.base / "work")
+        self.write(keys / "pii.json", json.dumps({"id_patterns": [{"name": "subject", "regex": r"\bsub-\d{2}\b"}],
+                                                  "roster": "roster.json"}))  # relative: read next to the config
+        self.write(self.hive / "tasks" / "inbox" / "call.md", task("Call Jana Novakova (sub-07) about session 2", "inbox"))
+        self.write(self.hive / "tasks" / "inbox" / "ids.md", task("Re-run sub-07", "inbox"))
+        base = 'workbench: on\nworkbench_machine: laptop\nworkbench_levels: ["hive+example-lab+hive"]\n'
+        self.user_yaml(base)
+        code, result = self.export()  # without pii_config neither is checked — the consent table says so
+        titles = {card["slug"]: card["title"] for card in self.doc(hive, "cards-000")["cards"]}
+        self.assertEqual(titles["ids"], "Re-run sub-07")
+        self.assertIn("call", titles)
+        self.assertIn("without it, ID numbers and participant names are not checked", wb.SCRUB)
+        self.user_yaml(base + f"pii_config: {(keys / 'pii.json').as_posix()}\n")
+        self.assertEqual(self.wb("levels")[1]["pii_config"], (keys / "pii.json").as_posix())
+        code, result = self.export()
+        titles = {card["slug"]: card["title"] for card in self.doc(hive, "cards-000")["cards"]}
+        self.assertEqual(titles["ids"], "Re-run [id removed]")
+        self.assertNotIn("call", titles)
+        self.assertIn({"source": "tasks", "item": "inbox/call.md", "reason": "a name from your participant roster"},
+                      result["levels"][0]["withheld"])
+        self.user_yaml(base + f"pii_config: {(keys / 'missing.json').as_posix()}\n")
+        code, result = self.export()  # a config that cannot be read stops the export: nothing goes up unchecked
+        self.assertEqual(code, 2)
+        self.assertIn("pii_scan config", result["error"])
+
     def test_a_large_export_warns_and_names_index_only(self) -> None:
         self.make_flowie()
         self.write(self.flowie / "wiki" / "pages" / "concepts" / "big.md", "---\ntitle: Big\n---\n" + "word " * 2000)
