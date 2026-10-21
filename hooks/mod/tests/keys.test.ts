@@ -21,16 +21,29 @@ describe('the key registry', () => {
   })
 
   test('the NAV letters mean what NAV says wherever a view offers them, and nothing else takes them', () => {
-    const nav: Record<string, string> = { [NAV.left]: 'left', [NAV.down]: 'down', [NAV.up]: 'up', [NAV.right]: 'right', [NAV.reread]: 'reread', [NAV.close]: 'close', [NAV.yes]: 'yes', [NAV.no]: 'no', [NAV.cancel]: 'cancel' }
+    const nav: Record<string, string> = { [NAV.left]: 'left', [NAV.down]: 'down', [NAV.up]: 'up', [NAV.right]: 'right', [NAV.reread]: 'reread', [NAV.close]: 'close', [NAV.cancel]: 'cancel' }
     expect(new Set(Object.values(NAV)).size).toBe(Object.values(NAV).length)
     for (const [view, keys] of Object.entries(VIEW_KEYS)) {
       for (const [key, what] of Object.entries(keys)) if (key in nav) expect(what, `${view}: ${key}`).toBe(nav[key])
     }
-    // The band shares y, n and x with the panes, and means the same by them.
-    expect([BAND.keep, BAND.drop, BAND.dismiss]).toEqual([NAV.yes, NAV.no, NAV.cancel])
+    // The band shares only x with the panes (the boards' cancel), and means the same by it; y and n are its own.
+    expect(BAND.dismiss).toBe(NAV.cancel)
     const bandLetters = Object.values(BAND)
     expect(new Set(bandLetters).size).toBe(bandLetters.length)
-    expect(bandLetters.filter(letter => Object.values(NAV).includes(letter as never)).sort()).toEqual(['n', 'x', 'y'])
+    expect(bandLetters.filter(letter => Object.values(NAV).includes(letter as never))).toEqual(['x'])
+  })
+
+  test('no pane decides on a letter: keep, accept, skip, reject, sync, migrate and a move are Enter and a yes; only the band, reached by ^X Tab, keeps y and n', () => {
+    // What a pane's letter may do: move, read, close, cancel a pick, open another view, re-check hashes.
+    const harmless = new Set(['pick', 'left', 'right', 'down', 'up', 'reread', 'close', 'cancel', 'go to phase', 'boards', 'verify'])
+    for (const [view, keys] of Object.entries(VIEW_KEYS)) {
+      if (view === 'band') continue
+      for (const [key, what] of Object.entries(keys)) expect(harmless.has(what), `${view}: ${key} (${what})`).toBe(true)
+    }
+    expect(VIEW_KEYS.wiki).toEqual({ j: 'down', k: 'up', q: 'close' })
+    expect(VIEW_KEYS.xray).toEqual({ j: 'down', k: 'up', q: 'close' })
+    expect(VIEW_KEYS.paper).toEqual({ r: 'reread', q: 'close' })
+    expect([VIEW_KEYS.band.y, VIEW_KEYS.band.n]).toEqual(['yes', 'no'])
   })
 
   test('the dashboard tabs are the digits 1–6, now first, under the ids /neuroflow:dashboard <tab> takes', () => {
@@ -75,13 +88,10 @@ describe('the key registry', () => {
     expect(isPastTypeThrough(9_000, undefined, undefined)).toBe(true)
   })
 
-  test('the dashboard\'s and the boards\' letters only move, read, close, cancel a pick or open a view: none writes, consents or starts a turn', () => {
-    const harmless = new Set(['pick', 'left', 'right', 'down', 'up', 'reread', 'close', 'cancel', 'go to phase', 'boards', 'verify'])
-    for (const view of ['dashboard', 'board'] as const) {
-      for (const [key, what] of Object.entries(VIEW_KEYS[view])) expect(harmless.has(what), `${view}: ${key} (${what})`).toBe(true)
-    }
-    // Freezing and unfreezing set a person's marker: Enter on their buttons, each after a yes.
-    expect(Object.values(VIEW_KEYS.dashboard)).not.toContain('freeze')
+  test('freezing and unfreezing set a person\'s marker: Enter on their buttons, each after a yes, never a letter', () => {
+    expect(Object.keys(VIEW_KEYS.dashboard)).not.toContain('f')
+    expect(Object.keys(VIEW_KEYS.dashboard)).not.toContain('u')
+    expect(VIEW_KEYS.dashboard.v).toBe('verify')
   })
 
   test('a view asks for fewer rows on a short terminal (24 rows over SSH)', () => {

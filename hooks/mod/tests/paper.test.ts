@@ -11,8 +11,9 @@ import {
   parseXray,
   skeletonDate,
 } from '../lib/paper'
-import { XRAY_PAGE, findingLabel, xrayCounts, xrayPage, xrayStep } from '../features/user'
-import { buttons, lines } from './drawn'
+import { XRAY_PAGE, findingLabel, syncQuestion, xrayCounts, xrayPage, xrayStep } from '../features/user'
+import { STRAY_ENTER, answerAsks } from './ask'
+import { buttons, hotkeys, lines } from './drawn'
 import { fakeFs } from './fakefs'
 
 const ledger = [
@@ -109,6 +110,7 @@ describe('paper commands in a session', () => {
       ranProse = true
       return { text: 'prose', ref: 1 }
     })
+    const dialog = answerAsks(on, () => 'Accept')
     await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
     const status = await $.command.run({ command: 'neuroflow:paper', args: '--auto status' })
     expect(status.text).toContain('Auto paper: on | 2 facts (1 final) | synced 2026-10-05 | 1 gap | H2: no final result')
@@ -116,7 +118,8 @@ describe('paper commands in a session', () => {
       plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-paper',
       props: { title: 'living paper', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
     } as never)
-    expect(Object.fromEntries(buttons(await paper.drawn()).map(button => [button.key, button.hotkey]))).toEqual({ 'nf-paper-sync': 's', 'nf-paper-refresh': 'r', 'nf-paper-close': 'q' })
+    // Sync is a model turn that rewrites the skeleton: Enter on it and a yes, never a letter.
+    expect(Object.fromEntries(buttons(await paper.drawn()).map(button => [button.key, button.hotkey]))).toEqual({ 'nf-paper-sync': undefined, 'nf-paper-refresh': 'r', 'nf-paper-close': 'q' })
     // The new look: the mark and the pane's name, the prose's status line, the sections under UPPERCASE labels.
     expect(lines(await paper.drawn())).toEqual(expect.arrayContaining(['◌ living paper', 'RESULTS', 'without a final result: H2', 'GAPS']))
     await paper.unmount()
@@ -131,15 +134,70 @@ describe('paper commands in a session', () => {
     } as never)
     expect(JSON.stringify(await pane.drawn())).toContain('S3.2-1')
     expect(lines(await pane.drawn())).toEqual(expect.arrayContaining(['◌ X-ray · results-2026-10-07', '1 red · 1 orange open · 0 decided', 'FIX']))
-    // y right after the open is typed through: nothing is decided.
+    // Accept and reject have no letter: Enter on them, and a yes.
+    expect(hotkeys(await pane.drawn())).toEqual(['j', 'k', 'q'])
+    // An Enter right after the open is typed through: nothing is decided, nothing asked.
     await pane.press({ key: 'nf-xray-accept' })
     expect(parseXray(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.jsonl`])[0].status).toBe('open')
+    expect(dialog.asked).toEqual([])
     await clock.advance(500)
     await pane.press({ key: 'nf-xray-accept' })
+    expect(dialog.asked).toEqual([{ question: 'Accept S3.2-1? Its box is ticked in both X-ray files; the fix is applied only when you ask Claude to.', options: ['Keep it open', 'Accept'], header: 'X-ray' }])
     expect(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.md`]).toContain('  - [x] S3.2-1 red')
     expect(parseXray(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.jsonl`])[0].status).toBe('accepted')
+    // Reject asks for a reason, keeping it open first: a stray Enter there rejects nothing.
+    dialog.answer(STRAY_ENTER)
+    await clock.advance(500)
+    await pane.press({ key: 'nf-xray-reject' })
+    expect(dialog.asked[1]?.options[0]).toBe('Keep it open')
+    expect(parseXray(fs.files[`${root}/.neuroflow/paper/xray-results-2026-10-07.jsonl`])[1].status).toBe('open')
     await $.command.run({ command: 'neuroflow:paper', args: '--xray manuscript/results.md' })
     expect(ranProse).toBe(true)
+  })
+
+  test('the living paper syncs on Enter and a yes, never on a typed s: a stray Enter in the question keeps the pane and starts no turn', { options: { runtime: 'observe' } }, async ($, on) => {
+    fakeFs(on, files, root)
+    mock.env(on, { HOME: '/home/me' })
+    const clock = mock.clock(on, { now: 0 })
+    on('session.start', ($$, e) => ({ cwd: e.cwd }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: undefined }))
+    const closed: string[] = []
+    on('ui.close', ($$, e) => {
+      closed.push(e.id)
+      return { value: undefined }
+    })
+    const ran: string[] = []
+    on('command.run', ($$, e) => {
+      ran.push(`${e.command} ${e.args}`)
+      return { text: 'prose', ref: 1 }
+    })
+    const dialog = answerAsks(on)
+    await $.session.start({ cwd: root, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:paper', args: '--auto status' })
+    const pane = await $.ui.mount({
+      plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-paper',
+      props: { title: 'living paper', isFocused: true, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+    } as never)
+    // "so which gaps block the Results?" typed for the prompt: no `s` key to press.
+    expect(hotkeys(await pane.drawn())).toEqual(['r', 'q'])
+    expect(lines(await pane.drawn())).toContain('tab, enter: act · esc: prompt')
+    await clock.advance(500)
+    // An Enter on sync right after a key is typed through.
+    await pane.press({ key: 'nf-paper-refresh' })
+    await pane.press({ key: 'nf-paper-sync' })
+    expect([dialog.asked, ran, closed]).toEqual([[], [], []])
+    await clock.advance(500)
+    await pane.press({ key: 'nf-paper-sync' })
+    expect(dialog.asked).toEqual([{ question: syncQuestion(false), options: ['Not now', 'Sync now'], header: 'Paper' }])
+    expect([ran, closed]).toEqual([[], []])
+    dialog.answer(() => 'Sync now')
+    await clock.advance(500)
+    await pane.press({ key: 'nf-paper-sync' })
+    expect([ran, closed]).toEqual([['neuroflow:paper --auto sync'], ['nf-paper']])
+    expect(syncQuestion(true)).toContain('rewrites nothing')
+    dialog.answer(STRAY_ENTER)
+    await pane.unmount()
   })
 })
 
@@ -203,9 +261,9 @@ describe('a long X-ray (#255)', () => {
     await clock.advance(500)
     const drawn = await pane.drawn()
     expect(JSON.stringify(drawn)).toContain('showing 1–8 of 145 open, red first')
-    // The picked finding is marked; every hotkey is the key map's: y, n, j, k, q.
+    // The picked finding is marked; every hotkey is the key map's: j, k, q (accept and reject are Enter and a yes).
     expect(buttons(drawn).find(button => button.key === 'nf-xray-S1.1-1')?.label).toContain('▸ ✖ S1.1-1 red')
-    expect(buttons(drawn).flatMap(button => (button.hotkey === undefined ? [] : [button.hotkey]))).toEqual(['y', 'n', 'j', 'k', 'q'])
+    expect(buttons(drawn).flatMap(button => (button.hotkey === undefined ? [] : [button.hotkey]))).toEqual(['j', 'k', 'q'])
     for (let step = 0; step < 8; step += 1) await pane.press({ key: 'nf-xray-next' })
     expect(JSON.stringify(await pane.drawn())).toContain('showing 9–16 of 145 open')
     await pane.press({ key: 'nf-xray-prev' })

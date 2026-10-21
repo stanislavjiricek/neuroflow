@@ -1,20 +1,22 @@
 // User ideas — the living paper and the paper X-ray, drawn and decided by code.
 //  - U1 living paper: `/neuroflow:paper --auto status` is answered in code (the status line commands/paper.md
 //    specifies) and opens a pane with the reporting gaps, the Results slots still without a final result,
-//    and how many allow-listed sources changed since the last sync; `s` runs `/neuroflow:paper --auto sync`.
-//    The mod never writes the skeleton: sync stays a model turn, on the person's key press.
-//  - U3 X-ray: `/neuroflow:paper --xray view` opens the newest X-ray as a pane; a finding is accepted (`y`, its box
-//    ticked) or rejected with a reason (`n`) on a key press, in both X-ray files; `j` and `k` step through the open
-//    findings, red first. `--xray check <file>` runs the two deterministic checks (statcheck.py, cite_check.py)
-//    and reports them with no model turn.
+//    and how many allow-listed sources changed since the last sync; Enter on sync now, after a yes, runs
+//    `/neuroflow:paper --auto sync`. The mod never writes the skeleton: sync stays a model turn, the person's.
+//  - U3 X-ray: `/neuroflow:paper --xray view` opens the newest X-ray as a pane; a finding is accepted (its box
+//    ticked) or rejected with a reason, each with Enter and the person's answer, in both X-ray files; `j` and `k`
+//    step through the open findings, red first. `--xray check <file>` runs the two deterministic checks
+//    (statcheck.py, cite_check.py) and reports them with no model turn.
 //  - U2 auto wiki: after a command turn that logged a new decision, one model call judges whether it is
 //    reusable knowledge (the wiki-protocol skill's rubric: nothing is the normal answer, evidence mandatory, never
 //    results); at most two cards go to .neuroflow/wiki/.pending/, never one whose title is already in the wiki or
 //    anywhere in the queue (a skipped card is never raised again). Only with `wiki_auto: ask` in the person's
 //    user.yaml, a project that does not forbid it, and runtime on. `/neuroflow:wiki --review` opens the cards
-//    as a pane: accept (`y`) runs the normal `/neuroflow:wiki --add --from-pending`; skip (`n`) marks the card
-//    skipped.
-// Each pane opens holding the keys, on the one key map of lib/keys.ts; keys typed through that open are dropped. They
+//    as a pane: accept runs the normal `/neuroflow:wiki --add --from-pending`; skip marks the card skipped for good.
+// Each pane opens holding the keys, on the one key map of lib/keys.ts; keys typed through that open are dropped.
+// Since a pane holds the keys while the person may be typing for the prompt, no letter there writes or starts a model
+// turn: accept, skip, reject and sync are Enter on their buttons (Tab reaches them), never right after another key
+// (actOn), and each asks first, the safe answer on top (confirm). They
 // share the views' look (skills/neuroflow-develop → Visual style): the ring mark and the pane's name, rules on the
 // terminal, UPPERCASE dim labels, a quiet legend; an X-ray's red finding reads ✖, an orange one !.
 // The figure check (U4) is prose only: a viewer cannot show figures or take pointer input on most terminals.
@@ -23,7 +25,7 @@ import type { EngineInterface, On } from 'claude-code'
 
 import type { NfPaperView, NfWikiCard, NfXrayView } from '../../../types'
 import type { NfIo } from '../lib/io'
-import { BAND, CHORD, NAV, PAPER, isPastTypeThrough, paneRows } from '../lib/keys'
+import { BAND, CHORD, NAV, isPastTypeThrough, paneRows } from '../lib/keys'
 import { MARK, fit, isCompact, measuredRows, paneColumns, rememberViewport, rule, widthClass } from '../lib/layout'
 import { isoDate } from '../lib/memory'
 import { mayWrite } from '../lib/options'
@@ -57,6 +59,7 @@ const wikiIndexAtom = atom({ plugin: 'neuroflow', key: 'wikiIndex' } as const, [
 const activeCommandAtom = atom({ plugin: 'neuroflow', key: 'activeCommand' } as const, null)
 const baselineAtom = atom({ plugin: 'neuroflow', key: 'reasoningBaseline' } as const, null)
 const openedAtAtom = atom({ plugin: 'neuroflow', key: 'openedAt' } as const, {})
+const keyAtAtom = atom({ plugin: 'neuroflow', key: 'keyAt' } as const, {})
 
 const PAPER_PANE = 'nf-paper'
 const XRAY_PANE = 'nf-xray'
@@ -70,6 +73,12 @@ export const SKELETON_SOURCES = [
   'ideation', 'preregistration', 'ethics', 'experiment', 'tool-build', 'tool-validate', 'data', 'data-preprocess',
   'data-analyze', 'brain-build', 'brain-optimize', 'brain-run', 'reasoning',
 ]
+
+/** The question before the living paper syncs: a model turn that rewrites the skeleton files, unless it is frozen. */
+export const syncQuestion = (frozen: boolean): string =>
+  frozen
+    ? 'Sync the living paper now? It is frozen (a submission or revision exists): a model turn reports what changed and rewrites nothing.'
+    : 'Sync the living paper now? A model turn rewrites skeleton.md, paper-ledger.md and gaps.md from their sources.'
 
 /** A red finding is a countable defect (✖, as a failed check reads), an orange one a judgement to look at (!). */
 const SEVERITY_GLYPH: Record<string, string> = { red: '✖', orange: '!' }
@@ -145,13 +154,47 @@ const markOpened = async ($: EngineInterface, id: string): Promise<void> => {
   await update($, openedAtAtom, opened => ({ ...opened, [id]: now }))
 }
 
-/** A press handler for a pane's element that ignores the keys typed through a focused open (lib/keys.ts). */
+/** Notes a key of a pane: an Enter on an action right after it is dropped (actOn). */
+const noteKey = async ($: EngineInterface, id: string): Promise<void> => {
+  const now = await $.clock.now()
+  await update($, keyAtAtom, keys => ({ ...keys, [id]: now }))
+}
+
+/** A press handler for one of a pane's keys (j, k, r, q), dropped while typed through a focused open (lib/keys.ts). */
 const act =
   ($: EngineInterface, id: string, run: () => unknown) =>
   async (): Promise<void> => {
-    if (!isPastTypeThrough(await $.clock.now(), (await read($, openedAtAtom))[id])) return
+    const now = await $.clock.now()
+    const opened = (await read($, openedAtAtom))[id]
+    await noteKey($, id)
+    if (!isPastTypeThrough(now, opened)) return
     await run()
   }
+
+/**
+ * A press handler for an action — accept, skip, reject, sync now, a finding's row — which has no letter: Enter on it
+ * with the ring there, or a click. Dropped while typed through the open and within TYPE_THROUGH_MS of the pane's
+ * last key, so an Enter that ends a sentence typed for the prompt never presses it; what writes or starts a model
+ * turn asks first besides (confirm).
+ */
+const actOn =
+  ($: EngineInterface, id: string, run: () => unknown) =>
+  async (): Promise<void> => {
+    const now = await $.clock.now()
+    const opened = (await read($, openedAtAtom))[id]
+    const last = (await read($, keyAtAtom))[id]
+    await noteKey($, id)
+    if (!isPastTypeThrough(now, opened, last)) return
+    await run()
+  }
+
+/**
+ * Asks before a pane's action writes or starts a model turn: the engine's question dialog with the safe answer
+ * first, so a stray Enter there answers no. Only the exact yes acts — a dismissed dialog, an answer typed under
+ * "Other" and a run with nobody to ask all mean no.
+ */
+const confirm = async ($: EngineInterface, question: string, no: string, yes: string, header: string): Promise<boolean> =>
+  (await $.ui.ask(question, { options: [no, yes], header }).catch(() => no)) === yes
 
 /** The footer of a pane that does not hold the keys (the terminal's): how to give them to it. */
 const unfocusedHint = (command: string): string => `${CHORD}: use the keys here · ${command} focuses it`
@@ -205,6 +248,9 @@ const decide = async ($: EngineInterface, id: string, status: 'accepted' | 'reje
   const view = await read($, xrayViewAtom)
   if (scope === null || scope.root === null || view === null) return
   let reason: string | undefined
+  if (status === 'accepted' && !(await confirm($, `Accept ${id}? Its box is ticked in both X-ray files; the fix is applied only when you ask Claude to.`, 'Keep it open', 'Accept', 'X-ray'))) {
+    return
+  }
   if (status === 'rejected') {
     const keep = 'Keep it open'
     const answer = await $.ui
@@ -285,10 +331,17 @@ const loadCards = async ($: EngineInterface, root: string): Promise<NfWikiCard[]
   return cards
 }
 
-/** Skip marks the card skipped (it is never raised again); accept closes the pane and runs the normal --add flow. */
-const settleCard = async ($: EngineInterface, file: string, accept: boolean): Promise<void> => {
+/**
+ * Skip marks the card skipped (it is never raised again); accept closes the pane and runs the normal --add flow, a
+ * model turn. Each only after the person's yes: the pane holds the keys while the person may be typing.
+ */
+const settleCard = async ($: EngineInterface, file: string, title: string, accept: boolean): Promise<void> => {
   const scope = await read($, scopeAtom)
   if (scope === null || scope.root === null) return
+  const yes = accept
+    ? await confirm($, `Accept "${title}"? /neuroflow:wiki --add writes the page from the card, as a model turn.`, 'Not now', 'Accept', 'Wiki')
+    : await confirm($, `Skip "${title}" for good? A skipped card is never raised again.`, 'Keep it waiting', 'Skip it', 'Wiki')
+  if (!yes) return
   const path = join(scope.root, PENDING_DIR, file)
   if (!accept) {
     const text = await ioOf($).read(path)
@@ -364,7 +417,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     await markOpened($, WIKI_PANE)
     await $.ui.open({ id: WIKI_PANE, title: 'wiki cards', focus: true, rows: paneRows('wiki', measuredRows()), columns: paneColumns('wiki') })
     return {
-      text: `${cards.length} wiki card${cards.length === 1 ? '' : 's'} waiting — y accepts (runs /neuroflow:wiki --add for the card), n skips it for good, j/k move between cards, q closes.`,
+      text: `${cards.length} wiki card${cards.length === 1 ? '' : 's'} waiting — Tab to accept (runs /neuroflow:wiki --add for the card) or skip (for good), Enter, then your yes; j/k move between cards, q closes.`,
     }
   }).catch(($, e, next) => next(e))
 
@@ -377,6 +430,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     if (card === null) return <Text dimColor>No wiki cards are waiting.</Text>
     const index = cards.indexOf(card)
     const run = (fn: () => unknown) => act($, WIKI_PANE, fn)
+    const runOn = (fn: () => unknown) => actOn($, WIKI_PANE, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
     const step = (by: 1 | -1): string => cards[(index + by + cards.length) % cards.length]?.file ?? card.file
     const width = e.props.bodyColumns
@@ -431,8 +485,8 @@ export const registerUser = (on: On, opts: NfOptions): void => {
         {keysHere ? (
           <Box flexDirection={widthClass(width) === 'narrow' ? 'column' : 'row'} justifyContent="space-between" columnGap={2}>
             <Box flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={1}>
-              <Button key="nf-wiki-accept" label={widthClass(width) === 'wide' ? 'accept → /wiki --add' : 'accept'} hotkey={NAV.yes} plain onPress={run(() => settleCard($, card.file, true))} />
-              <Button key="nf-wiki-skip" label="skip" hotkey={NAV.no} plain onPress={run(() => settleCard($, card.file, false))} />
+              <Button key="nf-wiki-accept" label={widthClass(width) === 'wide' ? 'accept → /wiki --add' : 'accept'} plain onPress={runOn(() => settleCard($, card.file, card.title, true))} />
+              <Button key="nf-wiki-skip" label="skip" plain onPress={runOn(() => settleCard($, card.file, card.title, false))} />
               {cards.length > 1
                 ? [
                     <Button key="nf-wiki-next" label="next" hotkey={NAV.down} plain dimColor onPress={run(() => update($, wikiPickAtom, () => step(1)))} />,
@@ -443,7 +497,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
             </Box>
             {term ? (
               <Box flexShrink={0}>
-                <Text dimColor>esc: prompt</Text>
+                <Text dimColor>tab, enter: act · esc: prompt</Text>
               </Box>
             ) : null}
           </Box>
@@ -495,6 +549,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     if (view === null || scope === null || scope.root === null) return <Text dimColor>neuroflow: no living paper loaded — /neuroflow:paper --auto status</Text>
     const root = scope.root
     const run = (fn: () => unknown) => act($, PAPER_PANE, fn)
+    const runOn = (fn: () => unknown) => actOn($, PAPER_PANE, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
     const width = e.props.bodyColumns
     const term = e.surface === 'terminal'
@@ -555,9 +610,9 @@ export const registerUser = (on: On, opts: NfOptions): void => {
               <Button
                 key="nf-paper-sync"
                 label="sync now"
-                hotkey={PAPER.sync}
                 plain
-                onPress={run(async () => {
+                onPress={runOn(async () => {
+                  if (!(await confirm($, syncQuestion(view.frozen), 'Not now', 'Sync now', 'Paper'))) return
                   await $.ui.close({ id: PAPER_PANE })
                   await $.command.run({ command: 'neuroflow:paper', args: '--auto sync' })
                 })}
@@ -578,7 +633,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
             </Box>
             {term ? (
               <Box flexShrink={0}>
-                <Text dimColor>esc: prompt</Text>
+                <Text dimColor>tab, enter: act · esc: prompt</Text>
               </Box>
             ) : null}
           </Box>
@@ -603,6 +658,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
     const page = xrayPage(open, pick, XRAY_PAGE)
     const picked = view.findings.find(item => item.id === pick) ?? page.first
     const run = (fn: () => unknown) => act($, XRAY_PANE, fn)
+    const runOn = (fn: () => unknown) => actOn($, XRAY_PANE, fn)
     const keysHere = e.surface !== 'terminal' || e.props.isFocused
     const width = e.props.bodyColumns
     const term = e.surface === 'terminal'
@@ -651,7 +707,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
                   key={`nf-xray-${item.id}`}
                   label={fit(`${item.id === picked?.id ? '▸' : ' '} ${findingLabel(item)}`, Math.max(20, width))}
                   plain
-                  onPress={run(() => update($, xrayPickAtom, () => item.id))}
+                  onPress={runOn(() => update($, xrayPickAtom, () => item.id))}
                 />
               ))}
               {page.total > page.shown.length ? <Text dimColor>{`  showing ${page.from}–${page.to} of ${page.total} open, red first`}</Text> : null}
@@ -675,8 +731,8 @@ export const registerUser = (on: On, opts: NfOptions): void => {
             <Box flexDirection="row" flexWrap="wrap" columnGap={2} flexShrink={1}>
               {picked !== null && picked.status === 'open'
                 ? [
-                    <Button key="nf-xray-accept" label="accept" hotkey={NAV.yes} plain onPress={run(() => decide($, picked.id, 'accepted'))} />,
-                    <Button key="nf-xray-reject" label="reject…" hotkey={NAV.no} plain onPress={run(() => decide($, picked.id, 'rejected'))} />,
+                    <Button key="nf-xray-accept" label="accept" plain onPress={runOn(() => decide($, picked.id, 'accepted'))} />,
+                    <Button key="nf-xray-reject" label="reject…" plain onPress={runOn(() => decide($, picked.id, 'rejected'))} />,
                   ]
                 : null}
               {open.length > 1
@@ -689,7 +745,7 @@ export const registerUser = (on: On, opts: NfOptions): void => {
             </Box>
             {term ? (
               <Box flexShrink={0}>
-                <Text dimColor>esc: prompt</Text>
+                <Text dimColor>tab, enter: act · esc: prompt</Text>
               </Box>
             ) : null}
           </Box>

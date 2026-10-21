@@ -7,11 +7,11 @@
 // press a button; digits only in panes, which hold the keys only after the person gave them (a command, ^X Tab).
 //
 // A pane holds the keys from the moment it opens, so whatever the person types there may have been meant for the
-// prompt. The dashboard's and the boards' letters therefore only move, read, close, cancel a pick or open another
-// view; none writes, consents or starts a model turn. Such an action is a Button without a hotkey: Enter on it (the
-// ring put there by Tab, j, k, h or l) or a click, never an Enter within TYPE_THROUGH_MS of another key, and it asks
-// first with the safe answer on top (views.tsx → confirm). The band decides on letters, because it holds the keys
-// only after ^X Tab.
+// prompt. A pane's letters therefore only move, read, close, cancel a pick or open another view; none writes,
+// consents or starts a model turn. Such an action — keep, migrate, a move, sync, accept, skip, reject, freeze — is a
+// Button without a hotkey: Enter on it (the ring put there by Tab, j, k, h or l) or a click, never an Enter within
+// TYPE_THROUGH_MS of another key, and it asks first with the safe answer on top (the views' confirm). The band
+// decides on letters (y keep, n drop, x stop), because it holds the keys only after ^X Tab.
 import type { NfDashboardTab } from '../../../types'
 
 /** What a key does. One meaning per key across every view. */
@@ -21,13 +21,16 @@ export type Meaning =
   | 'go to phase' | 'boards' | 'verify' | 'pick'
 
 /**
- * Moving and deciding, in every pane: h/l the previous or next tab, column or target; j/k the next or previous row,
- * card, finding or wiki card; y yes (keep, accept); n no (drop, skip, reject); x cancel or stop; r reread; q close.
- * Enter acts on the element the engine's ring is on; Esc gives the keys back to the prompt (both the engine's).
+ * Moving, wherever a view offers it: h/l the previous or next tab, column or target; j/k the next or previous row,
+ * card, finding or wiki card; x cancel or stop; r reread; q close. Enter acts on the element the engine's ring is
+ * on; Esc gives the keys back to the prompt (both the engine's).
  */
-export const NAV = { left: 'h', down: 'j', up: 'k', right: 'l', reread: 'r', close: 'q', yes: 'y', no: 'n', cancel: 'x' } as const
+export const NAV = { left: 'h', down: 'j', up: 'k', right: 'l', reread: 'r', close: 'q', cancel: 'x' } as const
 
-/** The band above the prompt: letters only. Its y, n and x mean what they mean in a pane. */
+/**
+ * The band above the prompt: letters only, and the one view that decides on them — y keeps and n drops a drafted
+ * decision — since it holds the keys only after ^X Tab. Its x means what x means on the boards: cancel, stop.
+ */
 export const BAND = {
   dashboard: 'd',
   prepare: 'p',
@@ -38,8 +41,8 @@ export const BAND = {
   sync: 's',
   /** the workbench changes waiting for /neuroflow:tasks --apply-web (it fills the prompt; the person sends it) */
   apply: 'a',
-  keep: NAV.yes,
-  drop: NAV.no,
+  keep: 'y',
+  drop: 'n',
   /** hide today, not today, stop driving, stop the note capture */
   dismiss: NAV.cancel,
 } as const
@@ -49,9 +52,6 @@ export const BAND = {
  * unfreezing the preregistration set a person's marker, so they are Enter on their buttons, each after a yes.
  */
 export const DASH = { goPhase: 'g', boards: 'b', verify: 'v' } as const
-
-/** The living-paper pane: s syncs the skeleton now (a model turn), as the band's s syncs the flowie. */
-export const PAPER = { sync: BAND.sync } as const
 
 /** Digits pick a dashboard tab or a board level, in focused panes only. */
 export const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const
@@ -107,9 +107,10 @@ export const VIEW_KEYS: Readonly<Record<View, Readonly<Record<string, Meaning>>>
     [NAV.close]: 'close',
     [NAV.cancel]: 'cancel',
   },
-  wiki: { [NAV.yes]: 'yes', [NAV.no]: 'no', [NAV.down]: 'down', [NAV.up]: 'up', [NAV.close]: 'close' },
-  xray: { [NAV.yes]: 'yes', [NAV.no]: 'no', [NAV.down]: 'down', [NAV.up]: 'up', [NAV.close]: 'close' },
-  paper: { [PAPER.sync]: 'sync', [NAV.reread]: 'reread', [NAV.close]: 'close' },
+  // Accept, skip, reject and sync are Enter on their buttons, each after a yes: no letter.
+  wiki: { [NAV.down]: 'down', [NAV.up]: 'up', [NAV.close]: 'close' },
+  xray: { [NAV.down]: 'down', [NAV.up]: 'up', [NAV.close]: 'close' },
+  paper: { [NAV.reread]: 'reread', [NAV.close]: 'close' },
   // The picker is a dialog around the engine's Select: arrows, Enter, a letter to jump, Esc.
   picker: {},
 }
