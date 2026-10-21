@@ -706,7 +706,7 @@ describe('keyboard first', () => {
     for (const [id, command] of [['nf-dashboard', '/neuroflow:dashboard'], ['nf-board', '/neuroflow:tasks'], ['nf-phase', '/neuroflow:phase']] as const) {
       const ui = await $.ui.mount(pane(id, false) as never)
       const drawn = await ui.drawn()
-      expect(lines(drawn)).toContain(`${command} gives it the keys · ^X Tab reaches it after the band`)
+      expect(lines(drawn)).toContain(`${command} gives it the keys`)
       expect(JSON.stringify(drawn)).not.toContain('esc: prompt')
       await ui.unmount()
     }
