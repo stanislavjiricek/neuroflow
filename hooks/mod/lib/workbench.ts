@@ -42,7 +42,12 @@ export const parsePending = (text: string | null): NfWebPending | null => {
     }))
   const count = typeof data.count === 'number' ? data.count : levels.reduce((sum, level) => sum + level.count, 0)
   if (count <= 0) return null
-  return { checkedAt: typeof data.checked_at === 'string' ? data.checked_at : null, count, levels }
+  return {
+    checkedAt: typeof data.checked_at === 'string' ? data.checked_at : null,
+    oldest: typeof data.oldest === 'string' ? data.oldest : null,
+    count,
+    levels,
+  }
 }
 
 /** Reads pending.json from the home folder; null when there is none. */
@@ -72,14 +77,27 @@ export const pendingSlugs = (pending: NfWebPending | null, board: { id: string; 
   return out
 }
 
+/** How long the oldest waiting change has waited: "40 min", "5 h", "3 days"; "" when pending.json does not say. */
+export const pendingAge = (iso: string | null, nowMs: number): string => {
+  const at = Date.parse(iso ?? '')
+  if (Number.isNaN(at)) return ''
+  const minutes = Math.max(0, Math.round((nowMs - at) / 60000))
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 48) return `${hours} h`
+  return `${Math.round(hours / 24)} days`
+}
+
 /** The band's line while workbench changes wait for Claude Code; its key fills the apply command into the prompt. */
-export const pendingBandItem = (pending: NfWebPending | null) => {
+export const pendingBandItem = (pending: NfWebPending | null, nowMs: number = Date.now()) => {
   if (pending === null || pending.count <= 0) return null
   const time = pendingTime(pending.checkedAt)
+  const age = pendingAge(pending.oldest, nowMs)
+  const note = [age ? `oldest ${age}` : '', time ? `as of ${time}` : ''].filter(Boolean).join(', ')
   return {
     level: 'warn' as const,
     glyph: '↻',
-    text: `${pending.count} workbench change${pending.count === 1 ? '' : 's'} wait${pending.count === 1 ? 's' : ''} for Claude Code${time ? ` (as of ${time})` : ''} — ${WEB_APPLY}`,
+    text: `${pending.count} workbench change${pending.count === 1 ? '' : 's'} wait${pending.count === 1 ? 's' : ''} for Claude Code${note ? ` (${note})` : ''} — ${WEB_APPLY}`,
     actions: [{ key: 'nf-web-apply', label: 'apply', hotkey: 'w', command: 'neuroflow:tasks', args: '--apply-web', fill: true }],
   }
 }

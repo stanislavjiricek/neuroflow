@@ -95,7 +95,7 @@ Loop      connectivity (data-analyze) · running · iteration 23 · best v019 ·
    Every symbol has a word next to it, so the block reads correctly without colour.
 3. If something needs attention (a date within 3 days, an expired approval, a marker not set by a person, a legacy
    config format), end with one line naming the command that deals with it. When `~/.neuroflow/workbench/pending.json`
-   lists changes waiting on the workbench, add one line: `↻ {n} workbench changes wait (as of {HH:MM}) — /neuroflow:tasks --apply-web`.
+   lists changes waiting on the workbench, add one line: `↻ {n} workbench changes wait (oldest {age of its oldest}, as of {HH:MM}) — /neuroflow:tasks --apply-web`.
 
 Without `--web` this command writes nothing, so it adds no session line.
 

@@ -100,10 +100,12 @@ export type NfSnapshot = {
 
 /**
  * ~/.neuroflow/workbench/pending.json as workbench.py last wrote it (neuroflow-core → Workbench snapshot): how many
- * workbench changes wait for Claude Code, and per level the board and the slugs they touch. As of `checkedAt` only.
+ * workbench changes wait for Claude Code, since when (`oldest`), and per level the board and the slugs they touch. As of
+ * `checkedAt` only.
  */
 export type NfWebPending = {
   checkedAt: string | null
+  oldest: string | null
   count: number
   levels: { level: string; kind: string | null; board: string | null; root: string | null; slugs: string[]; count: number }[]
 }

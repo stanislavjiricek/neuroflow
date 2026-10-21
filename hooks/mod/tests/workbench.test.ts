@@ -5,7 +5,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { bandActions, bandItems } from '../features/views'
 import { cardLine, loadTaskView } from '../lib/tasks'
-import { artifactViolations, normalUrl, parsePending, pendingBandItem, pendingSlugs, workbenchContext, yamlKey } from '../lib/workbench'
+import { artifactViolations, normalUrl, parsePending, pendingAge, pendingBandItem, pendingSlugs, workbenchContext, yamlKey } from '../lib/workbench'
 import type { NfSnapshot } from '../../../types'
 import { fakeFs } from './fakefs'
 import { memIo } from './memio'
@@ -14,7 +14,7 @@ const HOME = '/home/me'
 const ROOT = '/work/proj'
 const URL = 'https://claude.ai/artifact/0123abcd'
 const PENDING = JSON.stringify({
-  checked_at: '2026-10-21T08:14:00Z', count: 3, command: '/neuroflow:tasks --apply-web',
+  checked_at: '2026-10-21T08:14:00Z', oldest: '2026-10-19T08:00:00Z', count: 3, command: '/neuroflow:tasks --apply-web',
   levels: [
     { level: 'hive+example-lab+hive', kind: 'hive', board: 'hive:lab-team', slugs: ['rerun-ica'], adds: 0, count: 1 },
     { level: 'project+oddball', kind: 'project', board: 'project', root: 'C:/Work/Proj', slugs: ['qc-report'], adds: 1, count: 2 },
@@ -67,10 +67,13 @@ describe('pending.json', () => {
     expect(cardLine({ slug: 'x', title: 'X', owner: null, due: null, overdue: false, project: null, isMine: false, web: true })).toBe('↻ X')
   })
 
-  test('the band says how many changes wait, as of when, and its key fills the apply command', () => {
-    const item = pendingBandItem(parsePending(PENDING))
-    expect(item?.text.startsWith('3 workbench changes wait for Claude Code (as of ')).toBe(true)
+  test('the band says how many changes wait, since when, as of when, and its key fills the apply command', () => {
+    const item = pendingBandItem(parsePending(PENDING), Date.parse('2026-10-21T09:00:00Z'))
+    expect(item?.text.startsWith('3 workbench changes wait for Claude Code (oldest 2 days, as of ')).toBe(true)
     expect(item?.text.endsWith('— /neuroflow:tasks --apply-web')).toBe(true)
+    expect(pendingAge('2026-10-21T08:20:00Z', Date.parse('2026-10-21T09:00:00Z'))).toBe('40 min')
+    expect(pendingAge('2026-10-21T04:00:00Z', Date.parse('2026-10-21T09:00:00Z'))).toBe('5 h')
+    expect(pendingAge(null, Date.parse('2026-10-21T09:00:00Z'))).toBe('')
     const items = bandItems(snapshot({ workbench: parsePending(PENDING) }), true)
     expect(items.map(entry => entry.glyph)).toEqual(['↻'])
     expect(bandActions(items).map(action => [action.key, action.hotkey, action.command, action.args, action.fill])).toEqual([

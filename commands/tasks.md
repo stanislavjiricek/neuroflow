@@ -144,7 +144,7 @@ Every board display renders as an ASCII Kanban — never a flat list, except in 
 - At most 5 cards per column (`+N more` underneath); titles or slugs truncated to fit; `owner` as `@handle`, `due` as `due MM-DD`.
 - Overdue tasks (past `due` and not done) are marked `⚠`. Within a column: at `flowie` and `hive` level this project's tasks first (Levels → This project), marked `◆`; then overdue tasks; then by `due`, undated last.
 - Footer: the done count and the level shown — at flowie or hive level with `◆ {project}` when this project's tasks are marked.
-- When `~/.neuroflow/workbench/pending.json` lists changes waiting on the claude.ai workbench, the cards it names are marked `↻` and one more line follows the footer: `↻ {n} workbench changes wait (as of {HH:MM}) — /neuroflow:tasks --apply-web`.
+- When `~/.neuroflow/workbench/pending.json` lists changes waiting on the claude.ai workbench, the cards it names are marked `↻` and one more line follows the footer: `↻ {n} workbench changes wait (oldest {age of its oldest}, as of {HH:MM}) — /neuroflow:tasks --apply-web`.
 
 ## Web changes (`--apply-web`)
 
