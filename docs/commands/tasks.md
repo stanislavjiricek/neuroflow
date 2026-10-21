@@ -72,8 +72,8 @@ A bare `/neuroflow:tasks` opens the boards as a pane drawn by code, no model tur
 | `r` · `q` · Esc | Read the boards again · close the pane · give the keys back to the prompt |
 
 The columns have round corners, each headed by its name in capitals and its count; a card too long for its column ends
-in `…`. In a pane too narrow for the columns side by side — a dock beside the conversation — they stand one under the
-other.
+in `…`. Where a column would get under 18 cells — a narrow dock, or five columns on an 80-column terminal — they stand
+one under the other.
 
 The pane holds the keys while you may think you are typing into the prompt, so at project and flowie level a move first asks in Claude Code's question dialog, the safe answer on top: after your yes it runs as one `/tasks` command (`/neuroflow:tasks --level flowie --move {slug} {column}` at flowie level), and `/tasks` moves the file as usual; a stray Enter in the question moves nothing and leaves the card picked. At a hive's level the move only goes into the prompt (`/neuroflow:tasks --level hive --hive {org-repo} --move {slug} {column}`) for you to send with Esc and then Enter: it ends in a push to the team's repository, which `/tasks` shows you and makes only after your yes. Any argument runs the full command.
 

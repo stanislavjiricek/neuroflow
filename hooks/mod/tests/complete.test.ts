@@ -47,8 +47,11 @@ describe('typeahead for the typed paths', () => {
       'data-analyze | → next · analysis',
       'data-preprocess | ○ not started · preprocessing',
     ])
-    expect(rows('/phase pa')).toEqual(['paper | → recommended next · manuscript'])
+    // paper is recommended, but data-analyze comes next: the picker's word, `recommended`.
+    expect(rows('/phase pa')).toEqual(['paper | → recommended · manuscript'])
     expect(rows('/neuroflow:phase I')).toEqual(['ideation | ● visited · question & literature'])
+    // A next phase already visited keeps the visited glyph's word, and says next beside it.
+    expect(rows('/neuroflow:phase data-a', { ...CONTEXT, visited: ['ideation', 'data', 'data-analyze'] })).toEqual(['data-analyze | ● visited · next · analysis'])
     // The id is the whole argument: nothing after it, and nothing for another command.
     expect(rows('/neuroflow:phase data-analyze x')).toEqual([])
     expect(rows('/neuroflow:paper da')).toEqual([])
@@ -69,6 +72,18 @@ describe('typeahead for the typed paths', () => {
     expect(rows('/neuroflow:tasks --level hive --hive l', { ...CONTEXT, tasks: null })).toEqual([])
     expect(rows('/neuroflow:git --level p')).toEqual([])
     expect(rows('please --level p')).toEqual([])
+    // /migrate takes no --hive of its own: the flag belongs to the scripts its prose runs.
+    expect(rows('/neuroflow:migrate --hive l')).toEqual([])
+    expect(rows('/migrate --hive a')).toEqual([])
+  })
+
+  test('at hive level a single joined hive needs no --hive; among several the line must name one', () => {
+    const one: CompleteContext = { ...CONTEXT, tasks: { levels: TASKS.levels.filter(item => item.id !== 'hive:alpha-team') } }
+    expect(rows('/neuroflow:tasks --level hive --move a', one)).toEqual(['agenda-item | Agenda item · meeting'])
+    expect(rows('/neuroflow:tasks --level hive --move agenda-item i', one)).toEqual(['inbox | move agenda-item here'])
+    // Two hives and no --hive: /tasks would ask which, so nothing is offered.
+    expect(rows('/neuroflow:tasks --level hive --move a')).toEqual([])
+    expect(rows('/neuroflow:tasks --level hive --hive alpha-team --move a')).toEqual([])
   })
 
   test('after --move, the open cards of the level the line names; after the card, the columns it can move to', () => {

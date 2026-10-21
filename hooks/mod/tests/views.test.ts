@@ -3,8 +3,9 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 import type { NfMeeting, NfSnapshot } from '../../../types'
+import { completions } from '../lib/complete'
 import { setActivePhase } from '../lib/config'
-import { nextPhase, phaseMap, pickerOrder } from '../lib/phases'
+import { PHASES, nextPhase, phaseMap, pickerOrder } from '../lib/phases'
 import {
   bandActions,
   bandItems,
@@ -27,7 +28,6 @@ import {
   parseRunning,
   runQuestion,
   sparkline,
-  tabLines,
   gatesColumnWidth,
 } from '../features/views'
 import { VIEW_KEYS, lineNeighbour } from '../lib/keys'
@@ -138,18 +138,47 @@ describe('loop parsing', () => {
 })
 
 describe('dashboard lines', () => {
-  test('every tab has a text form', () => {
-    const snap = snapshot({
-      ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: null, expires: '2027-06-30', aiProcessing: 'pseudonymised' },
-    })
-    expect(tabLines('phase', snap, null)[0].text).toBe('● ideation  ● preregistration  ● data  ◉ data-analyze  → paper')
-    expect(tabLines('phase', snap, null).map(line => line.text).slice(-1)).toEqual(['◉ current  ● visited  → recommended next'])
-    expect(tabLines('integrity', snap, null)[0].text).toBe('✔ ethics approved · expires 2027-06-30')
-    // The tasks tab reads every level's board when it opens; until then it says so.
-    expect(tabLines('tasks', snap, null)[0]).toEqual({ text: 'Reading the task boards…', dim: true })
-    expect(tabLines('deadlines', snap, null)[0].dim).toBe(true)
-    expect(tabLines('loop', snap, null)[0].text).toBe('No autoresearch loops.')
-    expect(tabLines('now', snap, null)).toEqual([{ text: '→ next phase: paper', tone: undefined }])
+  test('every tab draws as text where the terminal\'s lines are not drawn: a glyph and a word with each state', { options: { runtime: 'observe' } }, async ($, on) => {
+    const project = '/work/proj'
+    fakeFs(on, {
+      [`${project}/.neuroflow/project_config.md`]:
+        '---\nnf_schema: 1\nproject_name: Oddball\nactive_phase: data-analyze\nrecommended_phases: [ideation, preregistration, data, data-analyze, paper]\n---\n',
+      [`${project}/.neuroflow/ethics/status.md`]: '---\nstatus: approved\nset_by: model\nexpires: 2027-06-30\nai_processing: pseudonymised\n---\n',
+      [`${project}/.neuroflow/ideation/flow.md`]: '# ideation\n',
+      [`${project}/.neuroflow/preregistration/flow.md`]: '# preregistration\n',
+      [`${project}/.neuroflow/data/flow.md`]: '# data\n',
+    }, project)
+    mock.env(on, { HOME: '/home/me' })
+    mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() })
+    mock.store(on)
+    on('session.start', ($$, e) => ({ cwd: e.cwd }))
+    on('ui.open', () => ({ value: { isPlaced: true } }))
+    on('ui.status', () => ({ value: undefined }))
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    /** The rows a tab draws on the desktop: no rules, no flow line, no ruler — the plain-text path (charter rule 8). */
+    const drawn = async (tab: string): Promise<string[]> => {
+      await $.command.run({ command: 'neuroflow:dashboard', args: tab })
+      const ui = await $.ui.mount({
+        plugin: 'neuroflow', surface: 'desktop', component: 'Pane', requestId: 'nf-dashboard',
+        props: { title: 'neuroflow', isFocused: true, bodyColumns: 116, placement: 'inline', scroll: { offset: 0, bodyRows: 18 }, view: {} },
+      } as never)
+      const rows = lines(await ui.drawn())
+      await ui.unmount()
+      return rows
+    }
+    expect(await drawn('now')).toContain('→ next phase: paper')
+    expect(await drawn('phase')).toEqual(expect.arrayContaining([
+      '● ideation  ● preregistration  ● data  ◉ data-analyze  → paper', 'NOW', 'data-analyze — analysis', 'NEXT', '/neuroflow:paper — manuscript',
+      '◉ current  ● visited  → recommended next',
+    ]))
+    // The ethics expiry is a date: later than two weeks, `·`.
+    expect(await drawn('deadlines')).toEqual(expect.arrayContaining(['·', '2027-06-30', 'ethics approval expires', 'in 266 days']))
+    // An approval the model set reads `?` and says so (commands/dashboard.md → Integrity).
+    expect(await drawn('integrity')).toEqual(expect.arrayContaining([
+      '?', 'ethics', 'approved · expires 2027-06-30', 'not set by a person', 'model may read: pseudonymised data', 'preregistration', 'none frozen',
+    ]))
+    expect(await drawn('tasks')).toEqual(expect.arrayContaining(['project 0', 'No open tasks.']))
+    expect(await drawn('loop')).toContain('No autoresearch loops.')
   })
 
   test('the now tab lists every band item, whatever the quiet setting, each with its action and no letter', () => {
@@ -215,7 +244,7 @@ describe('the dashboard\'s rows', () => {
     ])
     expect(integrityRows(snap).map(row => [row.glyph, row.name, row.value, row.note, row.more.join('; ')])).toEqual([
       // Approved, but not by a person: `?` and the words (commands/dashboard.md → Integrity).
-      ['?', 'ethics', 'approved · expires 2027-06-30', 'not set by a person', 'model may read: pseudonymised'],
+      ['?', 'ethics', 'approved · expires 2027-06-30', 'not set by a person', 'model may read: pseudonymised data'],
       ['■', 'preregistration', 'frozen 2026-10-01 · 2 files', 'set by a person', 'planned N: 24'],
       ['■', 'raw data', 'read-only: sourcedata/', null, ''],
     ])
@@ -226,6 +255,9 @@ describe('the dashboard\'s rows', () => {
       '· raw data: no folders declared (raw_roots)',
     ])
     expect(integrityRows(snapshot({ ethics: { status: 'expired', setBy: 'person', setAt: null, approvalId: null, expires: null, aiProcessing: null } }))[0]).toMatchObject({ glyph: '⚠', tone: 'error' })
+    // What the model may read, in the prose dashboard's words (commands/dashboard.md): `none`, or the kind of data.
+    const reads = (aiProcessing: string) => integrityRows(snapshot({ ethics: { status: 'approved', setBy: 'person', setAt: null, approvalId: null, expires: null, aiProcessing } }))[0]?.more
+    expect([reads('none'), reads('identifiable')]).toEqual([['model may read: none'], ['model may read: identifiable data']])
   })
 
   test('the ruler\'s marks keep their colours; the loop and the now tab\'s summary read as one line each', () => {
@@ -291,6 +323,23 @@ describe('phases', () => {
     ])
     // The marks start in one column: after the longest label (preregistration's) and two spaces.
     expect(new Set(options.map(option => option.label.search(/ {2}[◉●→○] /)))).toEqual(new Set([35]))
+    // A next phase already visited: the visited glyph keeps its word, next beside it.
+    expect(pickerOptions('data', ['ideation', 'data', 'paper'], ['ideation', 'data', 'paper', 'output'])[2]?.short).toBe('paper · ● visited · next')
+  })
+
+  test('the picker and the typeahead mark every phase alike', () => {
+    for (const [current, visited, recommended] of [
+      ['data', ['ideation', 'data'], ['ideation', 'data', 'data-analyze', 'paper']],
+      ['data', ['ideation', 'data', 'data-analyze'], ['ideation', 'data', 'data-analyze', 'paper']],
+      ['notes', [], []],
+      [null, ['ideation'], ['ideation', 'paper']],
+    ] as const) {
+      for (const option of pickerOptions(current, visited, recommended)) {
+        const text = `/neuroflow:phase ${option.value}`
+        const [row] = completions({ text, cursor: text.length, token: option.value, start: 17 }, { phase: current, visited, recommended, tasks: null }).filter(item => item.text === option.value)
+        expect(row?.description, option.value).toBe(`${option.short.slice(option.value.length + 3)} · ${PHASES.find(phase => phase.id === option.value)?.label}`)
+      }
+    }
   })
 
   test('setActivePhase edits only the one line', () => {
@@ -1091,8 +1140,8 @@ describe('the dashboard in the new look', () => {
     [`${project}/.neuroflow/preregistration/flow.md`]: '# preregistration\n',
     [`${project}/.neuroflow/data/flow.md`]: '# data\n',
   }
-  const setUp = (on: On) => {
-    fakeFs(on, FILES, project)
+  const setUp = (on: On, extra: Record<string, string> = {}) => {
+    fakeFs(on, { ...FILES, ...extra }, project)
     mock.env(on, { HOME: '/home/me' })
     const clock = mock.clock(on, { now: new Date(2026, 9, 7, 13, 0).getTime() })
     mock.store(on)
@@ -1146,7 +1195,9 @@ describe('the dashboard in the new look', () => {
     const narrow = await $.ui.mount(pane(44, 'terminal', 40) as never)
     const dock = lines(await narrow.drawn())
     expect(dock[0]).toBe('◌ neuroflow · Oddball · data-analyze · critic')
-    expect(dock).toContain('─'.repeat(44))
+    // Two plain rules: the one under the wrapped tabs, with no heavy segment, and the closing one above the legend.
+    expect(dock.filter(line => /^─+$/.test(line))).toEqual(['─'.repeat(44), '─'.repeat(44)])
+    expect(dock.some(line => line.includes('━'))).toBe(false)
     expect(dock).toContain('PHASE')
     await narrow.unmount()
     const short = await $.ui.mount(pane(76, 'terminal', 24) as never)
@@ -1169,6 +1220,16 @@ describe('the dashboard in the new look', () => {
     expect(drawn).toContain(`${' '.repeat(7)}⚠${' '.repeat(10)}▸`)
     for (const cell of ['2026-10-08', 'Abstract deadline', 'tomorrow', 'gates paper', 'in 12 days']) expect(drawn).toContain(cell)
     await terminal.unmount()
+    // A narrow dock (44 cells) draws no ruler, only the dates as a list.
+    const dock = await $.ui.mount(pane(44, 'terminal', 40) as never)
+    const listed = lines(await dock.drawn())
+    expect(listed.some(line => line.startsWith('today ┼'))).toBe(false)
+    for (const cell of ['⚠', '2026-10-08', 'Abstract deadline', 'tomorrow', 'Lab retreat', 'in 12 days']) expect(listed).toContain(cell)
+    await dock.unmount()
+    // The narrowest pane that draws one, 56 cells: six weeks.
+    const medium = await $.ui.mount(pane(56, 'terminal', 40) as never)
+    expect(lines(await medium.drawn())).toContain(`today ┼${'──────┬'.repeat(6)} +42 d`)
+    await medium.unmount()
     const desktop = await $.ui.mount(pane(76, 'desktop') as never)
     expect(lines(await desktop.drawn()).some(line => line.startsWith('today ┼'))).toBe(false)
     expect(lines(await desktop.drawn())).toContain('Abstract deadline')
@@ -1189,6 +1250,23 @@ describe('the dashboard in the new look', () => {
     const narrow = await $.ui.mount(pane(44) as never)
     expect(lines(await narrow.drawn())).toContain('● ideation  ● preregistration  ● data  ◉ data-analyze  → paper')
     await narrow.unmount()
+  })
+
+  test('the loop tab: a loop name longer than its label column is cut a cell short of it, never running into the value', { options: { runtime: 'observe' } }, async ($, on) => {
+    setUp(on, {
+      [`${project}/.neuroflow/data-analyze/autoresearch-loops.md`]:
+        '| Name | Location | Iterations | Best | Status |\n|---|---|---|---|---|\n| connectivity-sweep-alpha | analysis/loops/sweep/ | 23 | v019 | running |\n',
+    })
+    await $.session.start({ cwd: project, surface: 'terminal', isInteractive: true })
+    await $.command.run({ command: 'neuroflow:dashboard', args: 'loop' })
+    for (const columns of [64, 116]) {
+      const ui = await $.ui.mount(pane(columns) as never)
+      const tree = await ui.drawn()
+      // The 15-cell label column holds 14 cells of the name and a blank: `connectivity-… data-analyze · running …`.
+      expect(lines(tree)).toEqual(expect.arrayContaining(['connectivity-…', 'data-analyze · running · iteration 23 · best v019', 'quality']))
+      expect(elements(tree, 'Box').filter(box => box.props.width === 15)).toHaveLength(2)
+      await ui.unmount()
+    }
   })
 })
 

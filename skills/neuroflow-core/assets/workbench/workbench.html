@@ -1047,7 +1047,7 @@ function drawPanel(level) {
   }
   return h('div', { class: 'grid-2' },
     section('Phases', h('div', { class: 'phase-map' }, ...phaseMap(panel).map(item => h('span', { class: `chip${item.state === 'current' ? ' ok' : ''}`, title: item.state, text: `${item.glyph} ${item.phase}` }))),
-      h('p', { class: 'dim', text: '◉ current · ● visited · ○ not started' })),
+      h('p', { class: 'dim', text: '◉ current · ● visited · → recommended' })),
     section('Dates', rows(upcomingDates(panel, today), row => h('li', {}, h('span', { text: `${row.days <= 3 ? '⚠ ' : row.days <= 14 ? '▸ ' : ''}${row.what}${row.gates ? ` (${row.gates})` : ''}` }),
       h('span', { class: 'when', text: `${row.date} · ${row.days === 0 ? 'today' : row.days === 1 ? 'tomorrow' : `in ${row.days} days`}` }))) || h('p', { class: 'dim', text: 'No dates ahead in timeline.md.' })),
     section('Integrity', h('ul', { class: 'rows' },

@@ -6,9 +6,11 @@ import {
   bandPlan,
   boardLayout,
   cells,
+  charCells,
   fit,
   flowLine,
   isCompact,
+  labelCell,
   moreLabel,
   pad,
   pageNote,
@@ -49,6 +51,30 @@ describe('widths and heights', () => {
     expect(align('a long left part', 'right', 12)).toBe('a lo…  right')
     expect(align('x', 'too long right', 10)).toBe('too long…')
     expect(align('only left', '', 6)).toBe('only…')
+  })
+
+  test('a label leaves a blank cell in its column before the value', () => {
+    expect(labelCell('connectivity-sweep-alpha', 15)).toBe('connectivity-…')
+    expect(cells(labelCell('connectivity-sweep-alpha', 15))).toBe(14)
+    expect(labelCell('EVIDENCE', 10)).toBe('EVIDENCE')
+    expect(labelCell('S12.10.4-11', 10)).toBe('S12.10.4…')
+    expect(labelCell('PHASE', 7)).toBe('PHASE')
+  })
+
+  test('a wide character (CJK, an emoji) takes two cells, so a title in it is cut to its room; the views\' own glyphs take one', () => {
+    const title = '重新运行独立成分分析并检查标记通道'
+    expect(cells(title)).toBe(34)
+    expect(fit(title, 10)).toBe('重新运行…')
+    expect(cells(fit(title, 10))).toBe(9)
+    expect(pad('重新', 6)).toBe('重新  ')
+    expect(align('任务', 'due', 10)).toBe('任务   due')
+    expect([charCells('中'), charCells('ｶ'), charCells('Ａ'), charCells('🎉'), charCells('a')]).toEqual([2, 1, 2, 2, 1])
+    expect(cells('🎉 done')).toBe(7)
+    // Ambiguous and text-style glyphs stay narrow, as Claude Code's renderer draws them.
+    const glyphs = '◌ ◉ ● → ○ · ▸ ◂ ▾ ▴ ‹ › ◆ ⚠ ✔ ✖ ✎ ✓ ↻ ↑ ■ ▁ █ ─ ━ ┼ ┬ … —'
+    expect(cells(glyphs)).toBe(Array.from(glyphs).length)
+    // The band sizes an item's box by its cells: a CJK item is not cut while the band has room for it.
+    expect(bandItemWidths(40, ['⚠ 摘要截止日期 — 明天'])).toEqual([21])
   })
 })
 
@@ -130,8 +156,12 @@ describe('the dates ruler', () => {
     expect(ruler(116, [])).toEqual({ axis: `today ┼${'──────┬'.repeat(14)} +98 d`, marks: '', days: 98 })
   })
 
-  test('narrow: four weeks in a 44-cell dock; no ruler where under two weeks fit', () => {
-    expect(ruler(44, [])?.axis).toBe(`today ┼${'──────┬'.repeat(4)} +28 d`)
+  test('the narrowest ruler a view draws: six weeks at 56 cells (a narrow dock draws none); none where under two weeks fit', () => {
+    const narrowest = ruler(56, marks)
+    expect(narrowest?.axis).toBe(`today ┼${'──────┬'.repeat(6)} +42 d`)
+    expect(cells(narrowest?.axis ?? '')).toBe(55)
+    expect(narrowest?.marks).toBe(`${' '.repeat(7)}⚠${' '.repeat(10)}▸`)
+    expect(widthClass(55)).toBe('narrow')
     expect(ruler(26, marks)).toBe(null)
   })
 })
