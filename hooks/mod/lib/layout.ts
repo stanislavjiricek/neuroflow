@@ -29,7 +29,7 @@ export const WORDMARK = 'neuroflow'
 /** Under this many body cells a view is narrow (a dock beside the transcript, a phone): stacked, lists, no ruler. */
 export const NARROW_BELOW = 56
 
-/** From this many body cells a view is wide (a 100-column terminal and up): side by side where it helps. */
+/** From this many body cells a view is wide (an inline pane in a terminal of about 95 columns and up): side by side. */
 export const WIDE_FROM = 90
 
 export type WidthClass = 'narrow' | 'medium' | 'wide'
@@ -40,7 +40,7 @@ export const widthClass = (columns: number): WidthClass => (columns < NARROW_BEL
 /** A terminal under COMPACT_BELOW rows (24 over SSH): the views drop their blank rows and summaries. */
 export const isCompact = (rows: number | null | undefined): boolean => rows !== null && rows !== undefined && rows < COMPACT_BELOW
 
-/** The body columns a view asks for when it opens docked beside a fullscreen transcript (a request the engine caps). */
+/** The body columns a view asks for when it opens docked beside a fullscreen transcript (a request: a width the person set wins). */
 const DOCK: Readonly<Record<Exclude<View, 'band'>, number>> = {
   dashboard: 64,
   board: 84,
