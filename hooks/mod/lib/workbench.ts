@@ -9,10 +9,10 @@ import type { NfWebPending } from '../../../types'
 import type { NfIo } from './io'
 import { join, toSlash } from './paths'
 
-/** A folder in one spelling: forward slashes, no trailing slash, a drive-lettered (Windows) path in lower case. */
-const folderKey = (path: string): string => {
+/** A folder in one spelling: forward slashes, no trailing slash, a Windows path (drive-lettered or UNC) in lower case. */
+export const folderKey = (path: string): string => {
   const slashed = toSlash(path.trim()).replace(/\/+$/, '')
-  return /^[A-Za-z]:/.test(slashed) ? slashed.toLowerCase() : slashed
+  return /^([A-Za-z]:|\/\/[^/])/.test(slashed) ? slashed.toLowerCase() : slashed
 }
 
 export const WEB_APPLY = '/neuroflow:tasks --apply-web'
@@ -38,6 +38,7 @@ export const parsePending = (text: string | null): NfWebPending | null => {
       kind: typeof level.kind === 'string' ? level.kind : null,
       board: typeof level.board === 'string' ? level.board : null,
       root: typeof level.root === 'string' ? level.root : null,
+      roots: Array.isArray(level.roots) ? level.roots.filter((root): root is string => typeof root === 'string') : [],
       slugs: Array.isArray(level.slugs) ? level.slugs.filter((slug): slug is string => typeof slug === 'string') : [],
       count: typeof level.count === 'number' ? level.count : 0,
     }))
@@ -65,13 +66,15 @@ export const pendingTime = (iso: string | null): string => {
 
 /**
  * The slugs waiting for a web change on one of the mod's boards: `flowie`, `hive:{folder}` (the board ids
- * workbench.py writes into pending.json), or the project board when pending.json names this project's root.
+ * workbench.py writes into pending.json), or the project board when pending.json names this project's root — as the
+ * folder was reached or as it resolves (a junction's target, a mapped drive's share), in either case.
  */
 export const pendingSlugs = (pending: NfWebPending | null, board: { id: string; kind: string }, root: string): Set<string> => {
   const out = new Set<string>()
   for (const level of pending?.levels ?? []) {
+    const roots = [level.root, ...level.roots].filter((item): item is string => item !== null)
     const here = board.kind === 'project'
-      ? level.kind === 'project' && level.root !== null && folderKey(level.root) === folderKey(root)
+      ? level.kind === 'project' && roots.some(item => folderKey(item) === folderKey(root))
       : level.board === board.id
     if (here) for (const slug of level.slugs) out.add(slug)
   }

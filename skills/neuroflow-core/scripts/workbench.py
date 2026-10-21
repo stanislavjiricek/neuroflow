@@ -407,7 +407,9 @@ def fetch_clone(repo: Path, home: Path) -> None:
 
 
 def project_root(start: Path | None) -> Path | None:
-    return pj.find_root(start.resolve()) if start is not None else None
+    """The project folder at or above `start`, spelled as it was reached and never resolved: through a junction or a
+    mapped drive it keeps the path the person opened, which is the one the mod sees (pending.json names both)."""
+    return pj.find_root(Path(os.path.abspath(start))) if start is not None else None
 
 
 def discover(home: Path, root: Path | None, fetch: bool = False) -> tuple[list[Source], list[dict]]:
@@ -2197,7 +2199,14 @@ def cmd_pending(args, home: Path, now: datetime) -> tuple[int, dict]:
         if src is not None:
             entry.update({"kind": src.kind, "label": src.label, "board": src.board})
             if src.kind == "project":
+                # the folder as it was reached, and as it resolves (a junction's target, a mapped drive's share): the
+                # mod matches its own project root against either
+                try:
+                    resolved = src.repo.resolve().as_posix()
+                except OSError:
+                    resolved = src.repo.as_posix()
                 entry["root"] = src.repo.as_posix()
+                entry["roots"] = list(dict.fromkeys([src.repo.as_posix(), resolved]))
     record = active_record(home)
     data = {"checked_at": iso(now), "url": (record or {}).get("url"), "count": sum(e["count"] for e in levels.values()),
             "oldest": min((e["oldest"] for e in levels.values() if e["oldest"]), key=parse_time, default=None),

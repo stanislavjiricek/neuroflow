@@ -1111,6 +1111,28 @@ class IntentTests(Home):
         self.assertEqual(meta["applied"], {"i-p1-aaaa": {"state": "worktree"}})
         self.assertEqual(meta["source"]["uncommitted_tasks"], 1)  # one staged rename
 
+    def test_pending_names_the_project_root_as_reached_and_as_resolved(self) -> None:
+        link = self.base / "jn"
+        try:
+            if os.name == "nt":
+                import _winapi
+                _winapi.CreateJunction(str(self.project.parent), str(link))
+            else:
+                os.symlink(self.project.parent, link, target_is_directory=True)
+        except (OSError, AttributeError, ImportError) as error:
+            self.skipTest(f"no junction or symlink here: {error}")
+        try:
+            via = link / "oddball"
+            docs = {"i-j1-aaaa": intent("move", "project+oddball-eeg", "01", status="pending", target={"slug": "qc-report"},
+                                        **{"from": "review"}, to="done", base="0" * 64)}
+            code, result = run("pending", "--intents", str(self.intents(docs)), "--home", str(self.home), "--root", str(via),
+                               "--now", NOW, "--json")
+            level = next(item for item in result["levels"] if item["level"] == "project+oddball-eeg")
+            self.assertEqual(level["root"], via.as_posix())  # the spelling the person opened, which the mod sees
+            self.assertEqual(level["roots"], [via.as_posix(), self.project.resolve().as_posix()])
+        finally:
+            os.rmdir(link) if os.name == "nt" else os.unlink(link)
+
     def test_pending_json_tells_the_mod_which_cards_wait(self) -> None:
         hive = "hive+example-lab+hive"
         docs = {"i-q1-aaaa": intent("move", hive, "01", status="pending", target={"slug": "fix-map"}, **{"from": "inbox"}, to="active",

@@ -5,7 +5,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { bandActions, bandItems } from '../features/views'
 import { cardLine, loadTaskView } from '../lib/tasks'
-import { artifactViolations, normalUrl, parsePending, pendingAge, pendingBandItem, pendingSlugs, workbenchContext, yamlKey } from '../lib/workbench'
+import { artifactViolations, folderKey, normalUrl, parsePending, pendingAge, pendingBandItem, pendingSlugs, workbenchContext, yamlKey } from '../lib/workbench'
 import type { NfSnapshot } from '../../../types'
 import { fakeFs } from './fakefs'
 import { memIo } from './memio'
@@ -64,6 +64,17 @@ describe('pending.json', () => {
     expect([...pendingSlugs(pending, { id: 'hive:other', kind: 'hive' }, ROOT)]).toEqual([])
     expect([...pendingSlugs(pending, { id: 'project', kind: 'project' }, 'c:/work/proj/')]).toEqual(['qc-report'])
     expect([...pendingSlugs(pending, { id: 'project', kind: 'project' }, '/elsewhere')]).toEqual([])
+  })
+
+  test('the project root matches as it was reached or as it resolves, in any case on Windows', () => {
+    const pending = parsePending(JSON.stringify({ count: 1, levels: [{ level: 'project+oddball', kind: 'project', board: 'project',
+      root: 'C:/jn/oddball', roots: ['C:/jn/oddball', '//Lab-Server/Share/oddball'], slugs: ['qc-report'], count: 1 }] }))
+    expect(pending?.levels[0].roots).toEqual(['C:/jn/oddball', '//Lab-Server/Share/oddball'])
+    for (const root of ['C:\\JN\\Oddball', 'c:/jn/oddball/', '\\\\lab-server\\share\\Oddball']) {
+      expect([...pendingSlugs(pending, { id: 'project', kind: 'project' }, root)]).toEqual(['qc-report'])
+    }
+    expect([...pendingSlugs(pending, { id: 'project', kind: 'project' }, 'C:/work/oddball')]).toEqual([])
+    expect(folderKey('/Home/Jana/Proj')).toBe('/Home/Jana/Proj') // a POSIX path keeps its case
     expect(cardLine({ slug: 'x', title: 'X', owner: null, due: null, overdue: false, project: null, isMine: false, web: true })).toBe('↻ X')
   })
 
