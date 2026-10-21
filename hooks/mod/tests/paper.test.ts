@@ -222,7 +222,7 @@ describe('paper commands in a session', () => {
       plugin: 'neuroflow', surface: 'terminal', component: 'Pane', requestId: 'nf-paper',
       props: { title: 'living paper', isFocused: false, bodyColumns: 100, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
     } as never)
-    expect(lines(await unfocused.drawn())).toContain('/neuroflow:paper --auto status gives it the keys · ^X Tab reaches it after the band')
+    expect(lines(await unfocused.drawn())).toContain('/neuroflow:paper --auto status gives it the keys')
     await unfocused.unmount()
   })
 })

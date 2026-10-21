@@ -153,9 +153,9 @@ you type.
 Keys you type in the first 400 ms after a view opened holding the keys do nothing: a quick Enter or the start of your
 next sentence never acts in a pane you did not mean to type into. Esc gives the keys back to the prompt and leaves the
 pane open — only the phase picker, a dialog, closes on Esc; `q` closes the dashboard, the boards and the review panes.
-A pane that does not hold the keys says so at its foot: `/neuroflow:dashboard gives it the keys · ^X Tab reaches it
-after the band`. ^X Tab gives the keys to the band first whenever the band shows keys of its own, so running the pane's
-command again is the sure way back into it.
+A pane that does not hold the keys says so at its foot: `/neuroflow:dashboard gives it the keys`. Running the pane's
+command again is the way back into it; for the dashboard, `d` on the band works too. ^X Tab gives the keys to the band,
+not to an open pane (seen on Claude Code 2.1.306).
 
 A pane holds the keys while you may think you are typing into the prompt, so no letter in a pane writes, consents or
 starts a model turn. Every action on the dashboard's now tab and its Update line — keeping or dropping a drafted

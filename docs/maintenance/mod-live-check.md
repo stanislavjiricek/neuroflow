@@ -164,10 +164,10 @@ the code assumes but cannot test.
 - [ ] `/neuroflow:dashboard` Enter, then `2` straight away: that first `2` does nothing; one half a second later works.
 - [ ] Esc gives the keys back to the prompt and the pane stays; typing goes into the prompt. `q` closes it.
 - [ ] `/neuroflow:dashboard` again, with the pane open: it holds the keys again.
-- [ ] *Note* what ^X Tab focuses while the band shows keys and the dashboard is open, and how you get from the band to
-  the pane and back.
+- [ ] ^X Tab while the dashboard is open gives the band the keys, not the pane (on 2.1.306 a second ^X Tab did not
+  reach the pane either); *note* it if a newer Claude Code moves on to the pane.
 - [ ] `d` on the band (after ^X Tab): the dashboard opens on now. *Note* whether it holds the keys; if not, its foot reads
-  `/neuroflow:dashboard gives it the keys · ^X Tab reaches it after the band`.
+  `/neuroflow:dashboard gives it the keys`.
 - [ ] `5`, then `b`: the dashboard closes and the boards open holding the keys. Open the dashboard again
   (`/neuroflow:dashboard`), then `2` and `g`: the phase picker opens holding the keys.
 - [ ] Esc in the picker closes it; `q` there does nothing.
@@ -254,8 +254,7 @@ And on every state:
   asks for a reason, *Keep it open* on top; `j` past the eighth finding turns the page; `q`.
 - [ ] Living paper (`/neuroflow:paper --auto status`): `s` does nothing — type `so which gaps…` into it; Tab to
   *sync now* and Enter asks first, and the yes runs the sync; `r`, `q`.
-- [ ] Each review pane without the keys (Esc) reads `{its command} gives it the keys · ^X Tab reaches it after the band`
-  at its foot.
+- [ ] Each review pane without the keys (Esc) reads `{its command} gives it the keys` at its foot.
 
 ### The look
 
