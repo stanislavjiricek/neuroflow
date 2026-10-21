@@ -324,6 +324,22 @@ export const cardKeys = (level: Pick<NfTaskLevel, 'kind' | 'board'>): string[][]
 export const cardColumn = (board: NfBoard, slug: string): string | null =>
   board.columns.find(column => column.cards.some(card => card.slug === slug))?.id ?? null
 
+/**
+ * The board's foot: what is done and archived, the level, and a word for each mark its cards carry — `◆ Oddball EEG
+ * (this project)` at flowie and hive level, `⚠ overdue` (commands/tasks.md → Rendering).
+ */
+export const boardFoot = (level: Pick<NfTaskLevel, 'kind' | 'name' | 'mine' | 'project' | 'board'>): string => {
+  const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
+  const overdue = level.board.columns.some(column => column.cards.some(card => card.overdue))
+  return [
+    `done ${level.board.done}`,
+    `archived ${level.board.archived}`,
+    `level: ${level.name}`,
+    ...(marked ? [`${MINE} ${level.project} (this project)`] : []),
+    ...(overdue ? ['⚠ overdue'] : []),
+  ].join(' · ')
+}
+
 /** The target the ring goes to once a card is picked: the column after the card's, else the first target. */
 export const firstTarget = (board: NfBoard, from: string | null): string | null => {
   const ids = openColumnsOf(board)
@@ -1389,7 +1405,6 @@ export const registerViews = (on: On, opts: NfOptions): void => {
     const ring = (await read($, paneRingAtom))[BOARD] ?? null
     const near = ring !== null && ring.startsWith('nf-card-') ? ring.slice('nf-card-'.length) : pick
     const pageFor = (cards: readonly NfCard[]) => pageOf(cards, near === null ? -1 : cards.findIndex(card => card.slug === near))
-    const marked = (level.kind === 'flowie' || level.kind === 'hive') && level.mine > 0 && level.project !== null
     const run = (fn: () => unknown) => act($, BOARD, fn)
     // A card and a move target are pressed by Enter: not right after another key (actOn), and a move asks first.
     const runOn = (fn: () => unknown) => actOn($, BOARD, fn)
@@ -1486,7 +1501,7 @@ export const registerViews = (on: On, opts: NfOptions): void => {
           </Box>
         ) : null}
         <Box flexDirection="column" marginTop={space}>
-          <Text dimColor wrap="wrap">{`done ${board.done} · archived ${board.archived} · level: ${level.name}${marked ? ` · ${MINE} ${level.project} (this project)` : ''}`}</Text>
+          <Text dimColor wrap="wrap">{boardFoot(level)}</Text>
           {view.web ? (
             <Text color="warning" wrap="wrap">{`↻ ${pendingText(view.web, now)}`}</Text>
           ) : null}

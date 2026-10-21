@@ -21,7 +21,7 @@ import {
   topCards,
   userHives,
 } from '../lib/tasks'
-import { boardRingTarget, cardKeys, firstTarget, taskLines } from '../features/views'
+import { boardFoot, boardRingTarget, cardKeys, firstTarget, taskLines } from '../features/views'
 import { answerAsks } from './ask'
 import type { Dialog } from './ask'
 import { buttons, elements, lines } from './drawn'
@@ -242,6 +242,18 @@ describe('the task view', () => {
       '◆ this project (Oddball EEG, oddball-lab) · ⚠ overdue · /neuroflow:tasks opens the boards (digits pick the level)',
     ])
     expect(lines[1].tone).toBe('warning')
+  })
+
+  test('the board\'s foot names every mark its cards carry: ◆ this project, ⚠ overdue', async () => {
+    const view = await loadTaskView(memIo(FILES, { home: HOME }), ROOT, HOME, TODAY)
+    const foot = (id: string) => {
+      const level = view.levels.find(item => item.id === id)
+      if (level === undefined) throw new Error(`no level ${id}`)
+      return boardFoot(level)
+    }
+    expect(foot('project')).toBe('done 0 · archived 0 · level: project · ⚠ overdue')
+    expect(foot('flowie')).toBe('done 2 · archived 0 · level: flowie · ◆ Oddball EEG (this project) · ⚠ overdue')
+    expect(foot('hive:lab-team')).toBe('done 0 · archived 0 · level: lab-team · ◆ oddball-lab (this project)')
   })
 
   test('a move names the level the way /tasks takes it', () => {
@@ -473,7 +485,8 @@ describe('the boards in a session', () => {
     const tree = await ui.drawn()
     const boxes = elements(tree, 'Box').filter(box => box.props.borderStyle !== undefined)
     expect(boxes.map(box => box.props.borderStyle)).toEqual(['round', 'round'])
-    expect(lines(tree)).toEqual(expect.arrayContaining(['INBOX', 'ACTIVE', '0', '1', 'done 0 · archived 0 · level: project']))
+    // The foot gives the overdue card's ⚠ its word: cards are uncoloured Buttons, so the word is the only key to it.
+    expect(lines(tree)).toEqual(expect.arrayContaining(['INBOX', 'ACTIVE', '0', '1', 'done 0 · archived 0 · level: project · ⚠ overdue']))
     await ui.unmount()
     // Two columns in 44 cells still make a grid; in 34 they would get 16 cells each.
     const roomy = await $.ui.mount({ ...pane('nf-board'), props: { ...pane('nf-board').props, bodyColumns: 44 } } as never)

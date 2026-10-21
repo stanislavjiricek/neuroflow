@@ -90,7 +90,7 @@ out for the width and height they get, from a narrow dock to a wide terminal and
 
 move "Rerun ICA" →  inbox  ready  <span class="nf-ring">review</span>  meeting  done  <span class="nf-key"><i>x:</i> cancel</span>
 
-<span class="dim">done 3 · archived 0 · level: project</span>
+<span class="dim">done 3 · archived 0 · level: project · ⚠ overdue</span>
 <span class="dim">────────────────────────────────────────────────────────────────────────────</span>
 <span class="nf-key"><i>h:</i> ◂</span>  <span class="nf-key"><i>l:</i> ▸</span>  <span class="nf-key"><i>j:</i> ▾</span>  <span class="nf-key"><i>k:</i> ▴</span>  <span class="nf-key"><i>r:</i> reread</span>  <span class="nf-key"><i>q:</i> close</span>  <span class="dim">enter: move there · esc: prompt</span></div></div>
 <figcaption>The task boards: the project's, your flowie's and each hive's, read from the local copies, each column a round box with its name and count. The digits pick the level; on flowie and hive boards this project's tasks come first, marked ◆. Tab or <code>h</code> <code>j</code> <code>k</code> <code>l</code> reach a card — <code>j</code> past a column's fifth shows its next five — Enter picks it (▸) and Enter on a column moves it: at project and flowie level after your yes in Claude Code's question dialog, whose safe answer comes first; at a hive's as one command in the prompt for you to send. In a dock too narrow for the columns side by side, they stand one under the other.</figcaption>
