@@ -1,13 +1,15 @@
 // The claude.ai workbench as the mod sees it on this machine (neuroflow-core → Workbench snapshot).
 //  - ~/.neuroflow/workbench/pending.json, which workbench.py writes when /neuroflow:tasks --apply-web or
 //    /neuroflow:dashboard --web runs: the band offers the apply command and the board marks the cards it names.
-//  - the person's recorded workbench (the flowie's workbench.json, else workbench_records in ~/.neuroflow/user.yaml)
-//    and their workbench_levels: the EGRESS-CONFIRM guard on ArtifactData writes reads them.
-// The mod never calls ArtifactData itself and never sends anything: it only reads these local files.
+//  - the person's recorded workbench (the flowie's workbench.json, else workbench_records in ~/.neuroflow/user.yaml),
+//    and the levels they mirror from this machine as `workbench.py levels` decides them (their consent and the team's
+//    opt-in, one executable home): the EGRESS-CONFIRM guard on ArtifactData writes reads them.
+// The mod never calls ArtifactData itself and never sends anything: it only reads local files and runs that check.
 import { BAND } from './keys'
 import type { NfWebPending } from '../../../types'
 import type { NfIo } from './io'
 import { join, toSlash } from './paths'
+import { parseJson, runScript } from './scripts'
 
 /** A folder in one spelling: forward slashes, no trailing slash, a Windows path (drive-lettered or UNC) in lower case. */
 export const folderKey = (path: string): string => {
@@ -108,7 +110,8 @@ export const pendingBandItem = (pending: NfWebPending | null, nowMs: number = Da
 
 // ── the guard on ArtifactData writes (nf-rule: EGRESS-CONFIRM) ───────────────────────────────────
 
-export type NfWorkbenchContext = { urls: string[]; levels: string[] }
+/** The recorded workbench URLs, and the levels mirrored from this machine — null when workbench.py could not say. */
+export type NfWorkbenchContext = { urls: string[]; levels: string[] | null }
 
 /** A claude.ai artifact URL in one spelling: no query, fragment or trailing slash, host in lower case. */
 export const normalUrl = (url: unknown): string => {
@@ -146,13 +149,12 @@ export const yamlKey = (text: string | null, key: string): unknown => {
   return plain.replace(/^(["'])(.*)\1$/, '$2')
 }
 
-/** The recorded workbench URLs (every account's) and the levels the person mirrors. */
-export const workbenchContext = async (io: NfIo, home: string | null): Promise<NfWorkbenchContext> => {
-  if (home === null) return { urls: [], levels: [] }
+/** The recorded workbench URLs, every account's: the flowie's workbench.json and workbench_records in user.yaml. */
+export const workbenchUrls = async (io: NfIo, home: string | null): Promise<string[]> => {
+  if (home === null) return []
   const base = join(toSlash(home), '.neuroflow')
-  const userYaml = await io.read(join(base, 'user.yaml'))
   const records: unknown[] = []
-  const fromYaml = yamlKey(userYaml, 'workbench_records')
+  const fromYaml = yamlKey(await io.read(join(base, 'user.yaml')), 'workbench_records')
   if (Array.isArray(fromYaml)) records.push(...fromYaml)
   try {
     const flowie = asObject(JSON.parse((await io.read(join(base, 'flowie/workbench.json'))) ?? 'null'))
@@ -160,10 +162,28 @@ export const workbenchContext = async (io: NfIo, home: string | null): Promise<N
   } catch {
     // no record in the flowie
   }
-  const urls = records.map(asObject).filter((item): item is Record<string, unknown> => item !== null && typeof item.url === 'string').map(item => normalUrl(item.url))
-  const levels = yamlKey(userYaml, 'workbench_levels')
-  return { urls, levels: Array.isArray(levels) ? levels.filter((level): level is string => typeof level === 'string') : [] }
+  return records.map(asObject).filter((item): item is Record<string, unknown> => item !== null && typeof item.url === 'string').map(item => normalUrl(item.url))
 }
+
+/**
+ * The levels mirrored from this machine, as `workbench.py levels` decides them — the person's `workbench: on` and
+ * workbench_levels (in every form it reads) and the team's workbench_mirror — never re-derived here; null when the
+ * script does not answer (no Python, a timeout).
+ */
+export const mirroredLevels = async (io: NfIo, root: string | null): Promise<string[] | null> => {
+  const run = await runScript(io, 'skills/neuroflow-core/scripts/workbench.py', ['levels', '--json', ...(root !== null ? ['--root', root] : [])],
+    { cwd: root ?? undefined, timeoutMs: 20_000 })
+  const data = asObject(parseJson<unknown>(run.stdout))
+  if (run.exitCode !== 0 || data === null || !Array.isArray(data.levels)) return null
+  return data.levels.map(asObject).filter((row): row is Record<string, unknown> => row !== null && row.mirrored === true && typeof row.level === 'string')
+    .map(row => String(row.level))
+}
+
+/** The context the guard checks a write against; the levels are asked of workbench.py only when a write needs them. */
+export const workbenchContext = async (io: NfIo, home: string | null, root: string | null, input: ArtifactDataInput): Promise<NfWorkbenchContext> => ({
+  urls: await workbenchUrls(io, home),
+  levels: artifactWrites(input).some(write => uploadsLevel(write) !== null) ? await mirroredLevels(io, root) : [],
+})
 
 export type ArtifactDataWrite = { op: string; collection: string; doc_id: string; if_version?: number; data?: Record<string, unknown>; file_path?: string }
 export type ArtifactDataInput = ArtifactDataWrite & { action?: string; url?: string; writes?: ArtifactDataWrite[] }
@@ -171,6 +191,24 @@ export type ArtifactDataInput = ArtifactDataWrite & { action?: string; url?: str
 const WRITES = new Set(['set', 'update', 'delete', 'str_replace', 'batch'])
 const INTENTS = 'data/users/me/inbox/intents'
 const INTENT_FIELDS = new Set(['status', 'claim', 'outcome'])
+
+/**
+ * A store path with the viewer's id as `me`: the store takes the same collection under the resolved id
+ * (data/users/u_…/…), as workbench.py's normal_path reads listings — so neither spelling slips past a check.
+ */
+export const normalPath = (path: string): string => {
+  const parts = String(path ?? '').replace(/\/+$/, '').split('/')
+  if (parts.length >= 3 && parts[0] === 'data' && parts[1] === 'users') parts[2] = 'me'
+  return parts.join('/')
+}
+
+/** The level a write uploads data of (data/users/me/{level}… other than the intents and the preferences); null for none. */
+const uploadsLevel = (write: ArtifactDataWrite): string | null => {
+  const collection = normalPath(String(write.collection ?? ''))
+  const path = `${collection}/${write.doc_id}`.split('/')
+  if (collection === INTENTS || write.op === 'delete' || path.length < 4 || path[0] !== 'data' || path[1] !== 'users' || path[2] !== 'me') return null
+  return path.length === 4 && path[3] === 'prefs' ? null : path[3]
+}
 
 /** The writes an ArtifactData call makes, one entry each (a batch's `writes`, or the call itself). */
 export const artifactWrites = (input: ArtifactDataInput): ArtifactDataWrite[] => {
@@ -183,10 +221,11 @@ export type ArtifactViolation = { level: 'deny' | 'ask'; message: string }
 
 /**
  * What an ArtifactData write would break (neuroflow-core → Workbench snapshot, EGRESS-CONFIRM): it may go without a
- * question only to the person's recorded workbench, under data/users/me, for a level they mirror. Claude never
- * creates an intent — only the page does, from a person's click — so a write that would create or rewrite one
- * is denied; Claude only updates an intent's status, claim and outcome, pinned with if_version. A delete sends
- * nothing out. `bodies` holds the parsed files of entries that name a file_path (null: unreadable).
+ * question only to the person's recorded workbench, under data/users/me (or the same place under the viewer's
+ * resolved id), for a level `workbench.py levels` says they mirror from this machine. Claude never creates an
+ * intent — only the page does, from a person's click — so a write that would create or rewrite one is denied,
+ * whichever id spells the path; Claude only updates an intent's status, claim and outcome, pinned with if_version.
+ * A delete sends nothing out. `bodies` holds the parsed files of entries that name a file_path (null: unreadable).
  */
 export const artifactViolations = (input: ArtifactDataInput, context: NfWorkbenchContext, bodies: ReadonlyMap<string, Record<string, unknown> | null>): ArtifactViolation[] => {
   const writes = artifactWrites(input)
@@ -199,7 +238,7 @@ export const artifactViolations = (input: ArtifactDataInput, context: NfWorkbenc
     add({ level: 'ask', message: 'this writes to a claude.ai artifact that is not your recorded neuroflow workbench' })
   }
   for (const write of writes) {
-    const collection = String(write.collection ?? '').replace(/\/+$/, '')
+    const collection = normalPath(String(write.collection ?? ''))
     if (collection === INTENTS) {
       if (write.op === 'delete') continue
       if (write.op !== 'update' || typeof write.if_version !== 'number') {
@@ -219,9 +258,12 @@ export const artifactViolations = (input: ArtifactDataInput, context: NfWorkbenc
       add({ level: 'ask', message: 'this writes to the artifact outside data/users/me, where the store keeps your private workbench' })
       continue
     }
-    if (write.op === 'delete' || (path.length === 4 && path[3] === 'prefs')) continue
-    if (!context.levels.includes(path[3])) {
-      add({ level: 'ask', message: `this uploads ${path[3]}, which is not one of your workbench_levels in ~/.neuroflow/user.yaml` })
+    const level = uploadsLevel(write)
+    if (level === null) continue
+    if (context.levels === null) {
+      add({ level: 'ask', message: `this uploads ${level}, and workbench.py could not say which levels you mirror from this machine` })
+    } else if (!context.levels.includes(level)) {
+      add({ level: 'ask', message: `this uploads ${level}, which is not a level you mirror from this machine (/neuroflow:dashboard --web --status lists them)` })
     }
   }
   return out

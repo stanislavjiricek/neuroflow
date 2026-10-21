@@ -347,7 +347,7 @@ done. A guard that would ask denies instead in a headless run, where nobody is t
 | `GIT-NO-SECRETS` | `git clean -x`, staging local-only files (a project's, and any `integrations.json`; your flowie's other files are synced, so staging them by path is fine), `git add .` / `-A` / `-u` in your flowie or while `.gitignore` lacks the local-only lines; commands that throw work away (`reset --hard`, force push) | deny — ask for a broad `git add` and for discards |
 | `GIT-ALIAS-SCOPE` | A git verb beyond the endpoint of the running `/git` alias | deny |
 | `INTEGRITY-MARKER` | The model writing `set_by: person` into an ethics or preregistration status file | ask |
-| `EGRESS-CONFIRM` | Uploads to outside services (NotebookLM sources); `ArtifactData` writes to anything but your recorded [workbench](workbench.md) under `data/users/me` for a level you mirror; Claude creating or rewriting a workbench request, which only the page does | ask — deny for a workbench request |
+| `EGRESS-CONFIRM` | Uploads to outside services (NotebookLM sources); `ArtifactData` writes to anything but your recorded [workbench](workbench.md) under `data/users/me` (or your resolved id there) for a level you mirror from this machine — as `workbench.py levels` decides it, from your consent and the team's opt-in; Claude creating or rewriting a workbench request, which only the page does | ask — deny for a workbench request |
 | `LOGIN-NODE` | Heavy compute on an HPC login node (a scheduler on `PATH`, no job around the session) | ask |
 | `MEMORY-PURITY` | Files outside the documented `.neuroflow/` structure (read from `nf_check.py --structure`), deliverables inside it | warn |
 
